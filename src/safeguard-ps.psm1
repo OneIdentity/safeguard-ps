@@ -1,12 +1,5 @@
 # Global session variable for login information
-try
-{
-    Get-Variable -Name "SafeguardSession" -Scope Global | Out-Null
-}
-catch
-{
-    New-Variable -Name "SafeguardSession" -Scope Global -Value $null
-}
+New-Variable -Name "SafeguardSession" -Scope Global -Value $null
 
 # SSL handling
 function Disable-SslVerification
@@ -67,6 +60,304 @@ function Invoke-WithBody
 
 <#
 .SYNOPSIS
+Log into a Safeguard appliance in this Powershell session for the purposes
+of using the REST API.
+
+.DESCRIPTION
+This utility can help you securely obtain an access token from a Safeguard
+appliance and save it as a global variable. Optionally, the token can be
+returned to standard out and not saved in the session.
+
+The password may be passed in as a SecureString or a Powershell
+credential can be used for both username and password. By default, this
+script will securely prompt for the password. Client certificate
+authentication is also supported. Two-factor authentication is not supported.
+
+First this script retrieves an access token from the embedded redistributable
+secure token service. Then, it exchanges this token for a Safeguard user token.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate--will be ignored for entire session.
+
+.PARAMETER IdentityProvider
+Identity provider to use for RSTS authentication (e.g. local, certificate, ad<int>-<domain>)
+
+.PARAMETER Credential
+Powershell credential to be used for username and password.
+
+.PARAMETER Username
+The username to authenticate as when not using Powershell credential.
+
+.PARAMETER Password
+SecureString containing the password when not using a Powershell credential.
+
+.PARAMETER Thumbprint
+Client certificate thumbprint to use to authenticate the connection to the RSTS.
+
+.PARAMETER Version
+Version of the Web API you are using (default: 2).
+
+.PARAMETER NoSessionVariable
+If this switch is sent the access token will be returned and a login session context variable will not be created.
+
+.INPUTS
+None.
+
+.OUTPUTS
+AccessToken response from Safeguard rSTS. 
+
+
+.EXAMPLE
+Connect-Safeguard 10.5.32.54 local -Credential (Get-Credential)
+
+Login Successful.
+
+
+.EXAMPLE
+Connect-Safeguard 10.5.32.54 -Username admin
+(certificate, local)
+IdentityProvider: local
+Password: ********
+
+Login Successful.
+
+
+.EXAMPLE
+Connect-Safeguard 10.5.32.162 -Thumbprint "AB40BF0AD5647C9A8E0431DA5F473F44910D8975"
+
+Login Successful.
+
+
+.EXAMPLE
+Connect-Safeguard 10.5.32.162 ad18-green.vas
+Username: petrsnd
+Password: **********
+
+Login Successful.
+
+
+.EXAMPLE
+Connect-Safeguard 10.5.32.162 local Admin Admin123 -NoSessionVariable
+eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1Ni...
+
+#>
+function Connect-Safeguard 
+{
+    [CmdletBinding(DefaultParameterSetName="Username")]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure = $false,
+        [Parameter(ParameterSetName="Username",Mandatory=$false,Position=1)]
+        [string]$IdentityProvider,
+        [Parameter(ParameterSetName="PSCredential",Position=2)]
+        [PSCredential]$Credential,
+        [Parameter(ParameterSetName="Username",Mandatory=$false,Position=2)]
+        [string]$Username,
+        [Parameter(ParameterSetName="Username",Position=3)]
+        [SecureString]$Password,
+        [Parameter(ParameterSetName="Certificate",Mandatory=$true)]
+        [string]$Thumbprint,
+        [Parameter(Mandatory=$false)]
+        [int]$Version = 2,
+        [Parameter(Mandatory=$false)]
+        [switch]$NoSessionVariable = $false
+    )
+
+    try
+    {
+        if ($Insecure)
+        {
+            Disable-SslVerification
+        }
+        $GetPrimaryProvidersRelativeURL = "RSTS/UserLogin/LoginController?response_type=token&redirect_uri=urn:InstalledApplication&loginRequestStep=1"
+        $IdentityProviders = ,"certificate" + `
+            (Invoke-RestMethod -Method GET -Uri "https://$Appliance/$GetPrimaryProvidersRelativeURL").Providers.Id
+        if (-not $IdentityProvider -and -not $Thumbprint)
+        {
+            Write-Host "($($IdentityProviders -join ", "))"
+            $IdentityProvider = (Read-Host "Provider")
+        }
+        if (-not $Thumbprint -and $IdentityProviders -notcontains $IdentityProvider.ToLower())
+        {
+            throw "IdentityProvider '$IdentityProvider' not found in ($($IdentityProviders -join ", "))"
+        }
+    
+        if ($IdentityProvider -ieq "certificate")
+        {
+            if (-not $Thumbprint)
+            {
+                $Thumbprint = (Read-Host "Thumbprint")
+            }
+            $Scope = "rsts:sts:primaryproviderid:certificate"
+        }
+        else
+        {
+            switch ($PsCmdlet.ParameterSetName)
+            {
+                "Username" {
+                    if (-not $Username)
+                    {
+                        $Username = (Read-Host "Username")
+                    }
+                    if (-not $Password)
+                    { 
+                        $Password = (Read-Host "Password" -AsSecureString)
+                    }
+                    $PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
+                    break
+                }
+                "PSCredential" {
+                    $Username = $Credential.UserName
+                    $PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Credential.Password))
+                    break
+                }
+                "Certificate" {
+                    $IdentityProvider = "certificate"
+                    $Scope = "rsts:sts:primaryproviderid:certificate"
+                }
+            }
+        }
+    
+        if ($Username)
+        {
+            $Scope = "rsts:sts:primaryproviderid:$($IdentityProvider.ToLower())"
+            $RstsResponse = (Invoke-RestMethod -Method POST -Headers @{
+                "Accept" = "application/json";
+                "Content-type" = "application/json"
+            } -Uri "https://$Appliance/RSTS/oauth2/token" -Body @"
+{
+    "grant_type": "password",
+    "username": "$Username",
+    "password": "$PasswordPlainText",
+    "scope": "$Scope"
+}
+"@)
+        }
+        else
+        {
+            $RstsResponse = (Invoke-RestMethod -CertificateThumbprint $Thumbprint -Method POST -Headers @{
+                "Accept" = "application/json";
+                "Content-type" = "application/json"
+            } -Uri "https://$Appliance/RSTS/oauth2/token" -Body @"
+{
+    "grant_type": "client_credentials",
+    "scope": "$Scope"
+}
+"@)
+        }
+        
+        $LoginResponse = (Invoke-RestMethod -Method POST -Headers @{
+            "Accept" = "application/json";
+            "Content-type" = "application/json"
+        } -Uri "https://$Appliance/service/core/v$Version/Token/LoginResponse" -Body @"
+{
+    "StsAccessToken": "$($RstsResponse.access_token)"
+}
+"@)
+        
+        if ($LoginResponse.Status -ine "Success")
+        {
+            throw $LoginResponse
+        }
+        
+        if ($NoSessionVariable)
+        {
+            $LoginResponse.UserToken
+        }
+        else
+        {
+            Set-Variable -Name "SafeguardSession" -Scope Global -Value @{
+                "Appliance" = $Appliance;
+                "IdentityProvider" = $IdentityProvider;
+                "AccessToken" = $LoginResponse.UserToken;
+                "Thumbprint" = $Thumbprint;
+            }
+            Write-Host "Login Successful."
+        }
+    }
+    finally
+    {
+        if ($Insecure)
+        {
+            Enable-SslVerification
+        }
+    }
+}
+
+<#
+.SYNOPSIS
+Log out of a Safeguard appliance in this Powershell session when finished
+using the REST API.
+
+.DESCRIPTION
+This utility will invalidate your token and remove the session variable
+that was created by the Connect-Safeguard cmdlet.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate--will be ignored for entire session.
+
+.INPUTS
+None.
+
+.OUTPUTS
+None.
+
+.EXAMPLE
+Disconnect-Safeguard
+
+Log out Successful.
+
+#>
+
+function Disconnect-Safeguard
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure = $false
+    )
+
+    try
+    {
+        if ($Insecure)
+        {
+            Disable-SslVerification
+        }
+        if (-not $SafeguardSession)
+        {
+            Write-Host "Not logged in."
+        }
+        else
+        {
+            $Version = 2
+            $Appliance = $SafeguardSession["Appliance"]
+            $AccessToken = $SafeguardSession["AccessToken"]
+            $Headers = @{
+                "Accept" = "application/json";
+                "Content-type" = "application/json";
+                "Authorization" = "Bearer $AccessToken"
+            }
+            Invoke-RestMethod -Method POST -Headers $Headers -Uri "https://$Appliance/service/core/v$Version/Token/Logout"
+            Remove-Variable -Name "SafeguardSession" -Scope Global
+        }
+    
+        Write-Host "Log out Successful."
+    }
+    finally
+    {
+        if ($Insecure)
+        {
+            Enable-SslVerification
+        }
+    }
+}
+
+<#
+.SYNOPSIS
 Call a method in the Safeguard Web API.
 
 .DESCRIPTION
@@ -75,10 +366,10 @@ scripting purposes. It provides  a couple benefits over using curl.exe or
 Invoke-RestMethod by generating or reusing an access token and composing
 the Url, parameters, and body for the request.
 
-This script is meant to be used with the Login-Safeguard.ps1 script which
+This script is meant to be used with the Connect-Safeguard cmdlet which
 will generate and store a variable in the session so that it doesn't need
-to be passed to each call to the API.  Call Logout=Safeguard.ps1 script
-when finished.
+to be passed to each call to the API.  Call Disconnect-Safeguard when
+finished.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -87,7 +378,7 @@ IP address or hostname of a Safeguard appliance.
 Safeguard service you would like to call: Appliance or Core.
 
 .PARAMETER Insecure
-Ignore verification of Safeguard appliance SSL certificate.
+Ignore verification of Safeguard appliance SSL certificate--will be ignored for entire session.
 
 .PARAMETER Method
 REST method verb you would like to use: GET, PUT, POST, DELETE.
@@ -129,25 +420,25 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Invoke-SafeguardMethod.ps1 -AccessToken $token -Appliance 10.5.32.54 Core GET Assets/16/Accounts
+Invoke-SafeguardMethod -AccessToken $token -Appliance 10.5.32.54 Core GET Assets/16/Accounts
 
 .EXAMPLE
-.\Invoke-SafeguardMethod.ps1 -Appliance 10.5.32.54 -Anonymous notification GET SystemVerification/Manufacturing
+Invoke-SafeguardMethod -Appliance 10.5.32.54 -Anonymous notification GET SystemVerification/Manufacturing
 
 .EXAMPLE
-Invoke-SafeguardMethod.ps1 Appliance GET TrustedCertificates
+Invoke-SafeguardMethod Appliance GET TrustedCertificates
 
 .EXAMPLE
-Invoke-SafeguardMethod.ps1 Core GET Users -Parameters @{ filter = "UserName eq 'admin'" }
+Invoke-SafeguardMethod Core GET Users -Parameters @{ filter = "UserName eq 'admin'" }
 
 .EXAMPLE
-Invoke-SafeguardMethod.ps1 Core POST ReasonCodes -Body @{ Name = "RN12345"; Description = "Routine maintenance." }
+Invoke-SafeguardMethod Core POST ReasonCodes -Body @{ Name = "RN12345"; Description = "Routine maintenance." }
 
 .EXAMPLE
-Invoke-SafeguardMethod.ps1 Core DELETE ReasonCodes/4
+Invoke-SafeguardMethod Core DELETE ReasonCodes/4
 
 .EXAMPLE
-Invoke-SafeguardMethod.ps1 PUT ReasonCodes/1 -Body @{ Name = "RN2233"; Description = "Service interrupted." }
+Invoke-SafeguardMethod PUT ReasonCodes/1 -Body @{ Name = "RN2233"; Description = "Service interrupted." }
 
 #>
 function Invoke-SafeguardMethod
@@ -193,7 +484,7 @@ function Invoke-SafeguardMethod
         {
             $Appliance = (Read-Host "Appliance")
         }
-        $AccessToken = (& $PsScriptRoot\Login-Safeguard.ps1 -Appliance $Appliance -NoSessionVariable)
+        $AccessToken = (Connect-Safeguard -Appliance $Appliance -Insecure:$Insecure -NoSessionVariable)
     }
     elseif (-not $Anonymous)
     {
@@ -211,7 +502,7 @@ function Invoke-SafeguardMethod
         }
         if (-not $AccessToken -and -not $Anonymous)
         {
-            $AccessToken = (& $PsScriptRoot\Login-Safeguard.ps1 -Appliance $Appliance -NoSessionVariable)
+            $AccessToken = (Connect-Safeguard -Appliance $Appliance -Insecure:$Insecure -NoSessionVariable)
         }
     }
 
@@ -230,7 +521,8 @@ function Invoke-SafeguardMethod
         $Headers["Authorization"] = "Bearer $AccessToken"
     }
 
-    try {
+    try
+    {
         switch ($Method.ToLower())
         {
             {$_ -in "get","delete"} {
@@ -250,7 +542,8 @@ function Invoke-SafeguardMethod
             }
         }
     }
-    finally {
+    finally
+    {
         if ($Insecure)
         {
             Enable-SslVerification
