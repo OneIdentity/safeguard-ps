@@ -78,7 +78,10 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardLicense -AccessToken $token -Appliance 10.5.32.54
+Uninstall-SafeguardLicense -AccessToken $token -Appliance 10.5.32.54
+
+.EXAMPLE
+Uninstall-SafeguardLicense -Key "123-123-123"
 
 #>
 function Uninstall-SafeguardLicense
@@ -88,7 +91,7 @@ function Uninstall-SafeguardLicense
         [string]$Appliance,
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,Position=0)]
         [string]$Key
     )
 
@@ -97,7 +100,7 @@ function Uninstall-SafeguardLicense
     if (-not $Key)
     {
         $CurrentKeys = (Get-SafeguardLicense -AccessToken $AccessToken -Appliance $Appliance).Key -join ", "
-        Write-Host "Currently Installed Licenses: [$CurrentKeys]"
+        Write-Host "Currently Installed Licenses: [ $CurrentKeys ]"
         $Key = (Read-Host "Key")
     }
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance Core DELETE "Licenses/$Key"
