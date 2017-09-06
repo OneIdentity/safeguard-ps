@@ -117,7 +117,7 @@ Login Successful.
 
 
 .EXAMPLE
-Connect-Safeguard 10.5.32.54 -Username admin
+Connect-Safeguard 10.5.32.54 -Username admin -Insecure
 (certificate, local)
 IdentityProvider: local
 Password: ********
@@ -167,6 +167,8 @@ function Connect-Safeguard
         [Parameter(Mandatory=$false)]
         [switch]$NoSessionVariable = $false
     )
+
+    $ErrorActionPreference = "Stop"
 
     try
     {
@@ -276,6 +278,7 @@ function Connect-Safeguard
                 "IdentityProvider" = $IdentityProvider;
                 "AccessToken" = $LoginResponse.UserToken;
                 "Thumbprint" = $Thumbprint;
+                "Insecure" = $Insecure;
             }
             Write-Host "Login Successful."
         }
@@ -298,9 +301,6 @@ using the REST API.
 This utility will invalidate your token and remove the session variable
 that was created by the Connect-Safeguard cmdlet.
 
-.PARAMETER Insecure
-Ignore verification of Safeguard appliance SSL certificate--will be ignored for entire session.
-
 .INPUTS
 None.
 
@@ -317,16 +317,12 @@ Log out Successful.
 function Disconnect-Safeguard
 {
     Param(
-        [Parameter(Mandatory=$false)]
-        [switch]$Insecure = $false
     )
+
+    $ErrorActionPreference = "Stop"
 
     try
     {
-        if ($Insecure)
-        {
-            Disable-SslVerification
-        }
         if (-not $SafeguardSession)
         {
             Write-Host "Not logged in."
@@ -336,15 +332,19 @@ function Disconnect-Safeguard
             $Version = 2
             $Appliance = $SafeguardSession["Appliance"]
             $AccessToken = $SafeguardSession["AccessToken"]
+            $Insecure = $SafeguardSession["Insecure"]
+            if ($Insecure)
+            {
+                Disable-SslVerification
+            }
             $Headers = @{
                 "Accept" = "application/json";
                 "Content-type" = "application/json";
                 "Authorization" = "Bearer $AccessToken"
             }
             Invoke-RestMethod -Method POST -Headers $Headers -Uri "https://$Appliance/service/core/v$Version/Token/Logout"
-            Remove-Variable -Name "SafeguardSession" -Scope Global
+            Set-Variable -Name "SafeguardSession" -Scope Global -Value $null
         }
-    
         Write-Host "Log out Successful."
     }
     finally
@@ -478,6 +478,12 @@ function Invoke-SafeguardMethod
         [int]$Timeout = 300
     )
 
+    $ErrorActionPreference = "Stop"
+
+    if ($SafeguardSession)
+    {
+        $Insecure = $SafeguardSession["Insecure"]
+    }
     if (-not $AccessToken -and -not $Anonymous -and -not $SafeguardSession)
     {
         if (-not $Appliance)
