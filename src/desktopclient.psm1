@@ -27,6 +27,9 @@ function Install-SafeguardDesktopClient
         [switch]$Insecure
     )
 
+    $ErrorActionPreference = "Stop"
+    Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
+
     if ($Insecure)
     {
         Disable-SslVerification

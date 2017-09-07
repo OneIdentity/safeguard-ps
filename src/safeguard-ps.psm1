@@ -1,34 +1,7 @@
 # Global session variable for login information
 New-Variable -Name "SafeguardSession" -Scope Global -Value $null
 
-# SSL handling
-function Disable-SslVerification
-{
-    if (-not ([System.Management.Automation.PSTypeName]"TrustEverything").Type)
-    {
-        Add-Type -TypeDefinition  @"
-using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
-public static class TrustEverything
-{
-    private static bool ValidationCallback(object sender, X509Certificate certificate, X509Chain chain,
-        SslPolicyErrors sslPolicyErrors) { return true; }
-    public static void SetCallback() { System.Net.ServicePointManager.ServerCertificateValidationCallback = ValidationCallback; }
-    public static void UnsetCallback() { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
-}
-"@
-    }
-    [TrustEverything]::SetCallback()
-}
-function Enable-SslVerification
-{
-    if (([System.Management.Automation.PSTypeName]"TrustEverything").Type)
-    {
-        [TrustEverything]::UnsetCallback()
-    }
-}
-
-# Helpers for calling Safeguard REST APIs
+# Helpers for calling Safeguard Web APIs
 function New-SafeguardUrl
 {
     $Url = "https://$Appliance/service/$($Service.ToLower())/v$Version/$RelativeUrl"
@@ -61,7 +34,7 @@ function Invoke-WithBody
 <#
 .SYNOPSIS
 Log into a Safeguard appliance in this Powershell session for the purposes
-of using the REST API.
+of using the Web API.
 
 .DESCRIPTION
 This utility can help you securely obtain an access token from a Safeguard
@@ -107,7 +80,7 @@ If this switch is sent the access token will be returned and a login session con
 None.
 
 .OUTPUTS
-AccessToken response from Safeguard rSTS. 
+None (with LoginSession variable filled out) or AccessToken for calling Web API.
 
 
 .EXAMPLE
@@ -295,7 +268,7 @@ function Connect-Safeguard
 <#
 .SYNOPSIS
 Log out of a Safeguard appliance in this Powershell session when finished
-using the REST API.
+using the Web API.
 
 .DESCRIPTION
 This utility will invalidate your token and remove the session variable
@@ -381,7 +354,7 @@ Safeguard service you would like to call: Appliance or Core.
 Ignore verification of Safeguard appliance SSL certificate--will be ignored for entire session.
 
 .PARAMETER Method
-REST method verb you would like to use: GET, PUT, POST, DELETE.
+HTTP method verb you would like to use: GET, PUT, POST, DELETE.
 
 .PARAMETER RelativeUrl
 Relative portion of the Url you would like to call starting after the version.
