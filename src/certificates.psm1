@@ -28,6 +28,24 @@ function Get-CertificateFileContents
 
     $CertificateContents
 }
+# Helper function for finding tools to generate certificates
+function Get-Tool {
+    Param(
+        [Parameter(Mandatory=$true, Position=0)]
+        [string[]]$Paths,
+        [Parameter(Mandatory=$true, Position=1)]
+        [string]$Tool
+    )
+    foreach ($path in $Paths) {
+        Write-Host "Searching $path for $Tool"
+        $makecerts = (Get-ChildItem -Recurse -EA SilentlyContinue $path | ?{ $_.Name -eq $Tool })
+        if ($makecerts.Length -gt 0) {
+            $makecerts[-1].Fullname
+            return
+        }
+    }
+    throw "Unable to find $Tool"
+}
 
 <#
 .SYNOPSIS
@@ -521,7 +539,6 @@ Get-SafeguardTrustedCertificateForAppliance -AccessToken $token -Appliance 10.5.
 .EXAMPLE
 Get-SafeguardTrustedCertificateForAppliance -ApplianceId 00155D26E342
 #>
-
 function Get-SafeguardSslCertificateForAppliance
 {
     Param(
@@ -549,4 +566,110 @@ function Get-SafeguardSslCertificateForAppliance
             $_
         }
     }
+}
+
+<#
+.SYNOPSIS
+Create test certificates for use with Safeguard.
+
+.DESCRIPTION
+Creates test certificates for use with Safeguard.  This cmdlet will create
+a new root CA, an intermediate CA, a user certificate, and a server SSL
+certificate.  The user certificate can be used for login.  The SSL certificate
+can be used to secure Safeguard.
+
+.PARAMETER SubjectBaseDn
+A string containing the subject base Dn (e.g. "").
+
+.PARAMETER KeySize
+An integer with the RSA key size.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate--will be ignored for entire session.
+
+.INPUTS
+None.
+
+.OUTPUTS
+None.  Just host messages describing what has been created.
+
+.EXAMPLE
+New-SafeguardTestCertificates
+
+.EXAMPLE
+New-SafeguardTestCertificates 
+#>
+function New-SafeguardTestCertificates
+{
+    Param(
+        [Parameter(Mandatory=$true)]
+        [string]$SubjectBaseDn,
+        [Parameter(Mandatory=$false)]
+        [int]$KeySize = 2048,
+        [Parameter(Mandatory=$false)]
+        $OutputDirectory = "$(Get-Location)\" + ("CERTS-{0}" -f (Get-Date -format s) -replace ':','-')
+    )
+
+    Write-Host -ForegroundColor Yellow "Locating tools"
+    $MakeCert = (Get-Tool @("C:\Program Files (x86)\Windows Kits", "C:\Program Files (x86)\Microsoft SDKs\Windows") "makecert.exe")
+    $Pvk2Pfx = (Get-Tool @("C:\Program Files (x86)\Windows Kits", "C:\Program Files (x86)\Microsoft SDKs\Windows") "pvk2pfx.exe")
+    $CertUtil = (Join-Path $env:windir "system32\certutil.exe")
+
+    Write-Host "Creating Directory: $OutputDirectory"
+    New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
+
+    Write-Host -ForegroundColor Yellow "Generating Certificates"
+    Write-Host "This script can be annoying because you have to type your password a lot... this is a limitation of the underlying tools"
+    Write-Host -ForegroundColor Yellow "Just type the same password at all of the prompts!!! It can be as simple as one letter."
+    $Password = Read-Host "Password"
+
+    $Name = "RootCA"
+    $Subject = "CN=$Name,$SubjectBaseDn"
+    Write-Host "Creating Root CA Certificate as $Subject"
+    Invoke-Expression ("& '$MakeCert' -n '$Subject' -r -a sha256 -len $KeySize -m 240 -cy authority -sky signature -sv '$OutputDirectory\$Name.pvk' '$OutputDirectory\$Name.cer'")
+    Invoke-Expression ("& '$certutil' -encode '$OutputDirectory\$Name.cer' '$OutputDirectory\$Name.pem'")
+    Invoke-Expression ("& '$pvk2pfx' -pvk '$OutputDirectory\$Name.pvk' -spc '$OutputDirectory\$Name.cer' -pfx '$OutputDirectory\$Name.pfx' -pi $Password")
+
+    $Issuer = "RootCA"
+    $Name = "IntermediateCA"
+    $Subject = "CN=$Name,$SubjectBaseDn"
+    Write-Host "Creating Intermediate CA Certificate as $Subject"
+    Invoke-Expression ("& '$MakeCert' -n '$Subject' -a sha256 -len $KeySize -m 240 -cy authority -sky signature -iv '$OutputDirectory\$Issuer.pvk' -ic '$OutputDirectory\$Issuer.cer' -sv '$OutputDirectory\$Name.pvk' '$OutputDirectory\$Name.cer'")
+    Invoke-Expression ("& '$certutil' -encode '$OutputDirectory\$Name.cer' '$OutputDirectory\$Name.pem'")
+    Invoke-Expression ("& '$pvk2pfx' -pvk '$OutputDirectory\$Name.pvk' -spc '$OutputDirectory\$Name.cer' -pfx '$OutputDirectory\$Name.pfx' -pi $Password")
+
+    $Issuer = "IntermediateCA"
+    $Name = "UserCert"
+    $Subject = "CN=$Name,$SubjectBaseDn"
+    Write-Host "Creating User Certificate as $Subject"
+    Invoke-Expression ("& '$MakeCert' -n '$Subject' -a sha256 -len $KeySize -m 120 -cy end -sky exchange -eku '1.3.6.1.4.1.311.10.3.4,1.3.6.1.5.5.7.3.4,1.3.6.1.5.5.7.3.2' -iv '$OutputDirectory\$Issuer.pvk' -ic '$OutputDirectory\$Issuer.cer' -sv '$OutputDirectory\$Name.pvk' '$OutputDirectory\$Name.cer'")
+    Invoke-Expression ("& '$certutil' -encode '$OutputDirectory\$Name.cer' '$OutputDirectory\$Name.pem'")
+    Invoke-Expression ("& '$pvk2pfx' -pvk '$OutputDirectory\$Name.pvk' -spc '$OutputDirectory\$Name.cer' -pfx '$OutputDirectory\$Name.pfx' -pi $Password")
+
+    $Issuer = "IntermediateCA"
+    Write-Host "The IP address of your host is necessary to define the SSL Certificate subject name"
+    $Name = Read-Host "IPAddress"
+    $Subject = "CN=$Name,$SubjectBaseDn"
+    Write-Host "Creating User Certificate as $Subject"
+    Invoke-Expression ("& '$MakeCert' -n '$Subject' -a sha256 -len $KeySize -m 120 -cy end -sky exchange -eku '1.3.6.1.5.5.7.3.1' -iv '$OutputDirectory\$Issuer.pvk' -ic '$OutputDirectory\$Issuer.cer' -sv '$OutputDirectory\$Name.pvk' '$OutputDirectory\$Name.cer'")
+    Invoke-Expression ("& '$certutil' -encode '$OutputDirectory\$Name.cer' '$OutputDirectory\$Name.pem'")
+    Invoke-Expression ("& '$pvk2pfx' -pvk '$OutputDirectory\$Name.pvk' -spc '$OutputDirectory\$Name.cer' -pfx '$OutputDirectory\$Name.pfx' -pi $Password")
+
+    Write-Host -ForegroundColor Yellow "You now have four certificates in $OutputDirectory."
+    Write-Host "To do SSL:"
+    Write-Host "- Upload both RootCA and IntermediateCA to Safeguard using Upload-SafeguardTrustedCertificate.ps1"
+    Write-Host "- Upload the certificate with the IP address to Safeguard using Upload-SafeguardSSlCertificate.ps1"
+    Write-Host "- Import RootCA into your trusted root store"
+    Write-Host "- Import IntermediateCA into your intermediate store"
+    Write-Host "- Then, open a browser... if the IP address matches the subject you gave it should work"
+    Write-Host "To do certificate log in:"
+    Write-Host "- Upload both RootCA and IntermediateCA if you haven't already using Upload-SafeguardTrustedCertificate.ps1"
+    Write-Host "- Import UserCert into your personal user store"
+    Write-Host "- Create a user with the PrimaryAuthenticationIdentity set to the thumbprint of UserCert"
+    Write-Host "   - You can see your installed certificate thumbprints with: gci Cert:\CurrentUser\My\"
+    Write-Host "   - The POST to create the user will need a body like this: -Body @{`n" `
+    "                `"PrimaryAuthenticationProviderId`" = -2;`n" `
+    "                `"UserName`" = `"CertBoy`";`n" `
+    "                `"PrimaryAuthenticationIdentity`" = `"<thumbprint>`" }"
+    Write-Host "- Test it by getting a token: Connect-Safeguard -Thumbprint `"<thumbprint>`""
 }
