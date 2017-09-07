@@ -29,7 +29,7 @@ function Add-ExWebClientExType
 {
     if (-not ([System.Management.Automation.PSTypeName]"Ex.WebClientEx").Type)
     {
-        Add-Type @"
+        Add-Type -WarningAction SilentlyContinue -TypeDefinition @"
 using System;
 using System.Net;
 

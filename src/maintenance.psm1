@@ -469,6 +469,9 @@ IP address or hostname of a Safeguard appliance.
 .PARAMETER AccessToken
 A string containing the bearer token to be used with Safeguard Web API.
 
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
 .PARAMETER OutFile
 A string containing the path to store the support bundle.
 
@@ -491,7 +494,7 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardSupportBundle.ps1 -AccessToken $token 10.5.32.54
+Get-SafeguardSupportBundle -Appliance 10.5.32.54 -AccessToken $token
 #>
 function Get-SafeguardSupportBundle
 {
@@ -503,7 +506,9 @@ function Get-SafeguardSupportBundle
         [Parameter(Mandatory=$false)]
         [string]$OutFile,
         [Parameter(Mandatory=$false)]
-        [int]$Version,
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [int]$Version = 2,
         [Parameter(Mandatory=$false)]
         [int]$Timeout,
         [Parameter(Mandatory=$false)]
@@ -541,11 +546,11 @@ function Get-SafeguardSupportBundle
     }
 
     # Handle options and timeout
-    $Timeout = 600
+    $DefaultTimeout = 600
     $Url = "https://$Appliance/service/appliance/v$Version/SupportBundle"
     if ($IncludeExtendedEventLog)
     {
-        $Timeout = 900
+        $DefaultTimeout = 900
         $Url += "?includeEventLogs=true"
     }
     else
@@ -554,12 +559,16 @@ function Get-SafeguardSupportBundle
     }
     if ($IncludeExtendedSessionsLog)
     {
-        $Timeout = 1800
+        $DefaultTimeout = 1800
         $Url += "&IncludeSessions=true"
     }
     else
     {
         $Url += "&IncludeSessions=false"
+    }
+    if (-not $Timeout)
+    {
+        $Timeout = $DefaultTimeout
     }
 
     # Use the WebClient class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
