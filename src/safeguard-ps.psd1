@@ -77,7 +77,7 @@ NestedModules = @(
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
 FunctionsToExport = @(
     # sslhandling.psm1 is just a helper module -- no functions exported
-    # confirmation.psm1 is just a helper module -- no functions exported
+    # ps-utilities.psm1 is just a helper module -- no functions exported
     # safeguard-ps.psm1
     'Connect-Safeguard','Disconnect-Safeguard','Invoke-SafeguardMethod',
     # licensing.psm1
@@ -92,7 +92,8 @@ FunctionsToExport = @(
     # maintenance.psm1
     'Get-SafeguardStatus','Get-SafeguardTime','Get-SafeguardHealth',
     'Get-SafeguardApplianceName','Set-SafeguardApplianceName',
-    'Invoke-SafeguardApplianceShutdown','Invoke-SafeguardApplianceReboot','Invoke-SafeguardApplianceFactoryReset'
+    'Invoke-SafeguardApplianceShutdown','Invoke-SafeguardApplianceReboot','Invoke-SafeguardApplianceFactoryReset',
+    'Get-SafeguardSupportBundle'
     )
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.

@@ -1,4 +1,6 @@
-# Confirmation prompt
+# This file contains random Powershell utilities required by some modules
+# Nothing is exported from here
+
 function Get-Confirmation
 {
     Param(
@@ -20,5 +22,35 @@ function Get-Confirmation
     {
         0 {$true}
         1 {$false}
+    }
+}
+
+function Add-ExWebClientExType
+{
+    if (-not ([System.Management.Automation.PSTypeName]"Ex.WebClientEx").Type)
+    {
+        Add-Type @"
+using System;
+using System.Net;
+
+namespace Ex
+{
+    public class WebClientEx : WebClient
+    {
+        int _timeoutSeconds;
+
+        public WebClientEx(int timeoutSeconds)
+        {
+            _timeoutSeconds = timeoutSeconds;
+        }
+        protected override WebRequest GetWebRequest(Uri uri)
+        {
+            var webRequest = base.GetWebRequest(uri);
+            webRequest.Timeout = (int)TimeSpan.FromSeconds(_timeoutSeconds).TotalMilliseconds;
+            return webRequest;
+        }
+    }
+}
+"@
     }
 }

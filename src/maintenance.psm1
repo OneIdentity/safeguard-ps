@@ -270,7 +270,7 @@ function Invoke-SafeguardApplianceShutdown
     )
 
     $ErrorActionPreference = "Stop"
-    Import-Module -Name "$PSScriptRoot\confirmation.psm1" -Scope Local
+    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
 
     if ($Force)
     {
@@ -348,7 +348,7 @@ function Invoke-SafeguardApplianceReboot
     )
 
     $ErrorActionPreference = "Stop"
-    Import-Module -Name "$PSScriptRoot\confirmation.psm1" -Scope Local
+    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
 
     if ($Force)
     {
@@ -372,6 +372,42 @@ function Invoke-SafeguardApplianceReboot
     }
 }
 
+<#
+.SYNOPSIS
+Send a command to a Safeguard appliance to factory reset via the Web API.
+
+.DESCRIPTION
+This command will revert the Safeguard appliance to its initial factory
+state.  This will drop all data stored on the appliance.  This should
+generally only be done as a last resort.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.PARAMETER Reason
+A string containing the name to give the appliance.
+
+.PARAMETER Force
+Do not prompt for confirmation.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Invoke-SafeguardApplianceShutdown -Reason "Because I said so."
+
+.EXAMPLE
+Get-SafeguardName -Appliance 10.5.32.54 -AccessToken $token -Insecure -Force "Because I said so."
+#>
 function Invoke-SafeguardApplianceFactoryReset
 {
     Param(
@@ -388,8 +424,7 @@ function Invoke-SafeguardApplianceFactoryReset
     )
 
     $ErrorActionPreference = "Stop"
-    Import-Module -Name "$PSScriptRoot\confirmation.psm1" -Scope Local
-
+    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
 
     if ($Force)
     {
@@ -417,4 +452,125 @@ function Invoke-SafeguardApplianceFactoryReset
     {
         Write-Host -ForegroundColor Yellow "Operation canceled."
     }
+}
+
+<#
+.SYNOPSIS
+Get a support bundle from a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Save a support bundle from the Safeguard appliance as a ZIP file to the
+file system. If a file path is not specified, one will be generated in
+the current directory.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER OutFile
+A string containing the path to store the support bundle.
+
+.PARAMETER Version
+Version of the Web API you are using (default: 2).
+
+.PARAMETER Timeout
+A timeout value in seconds (default timeout depends on options specified).
+
+.PARAMETER IncludeExtendedEventLog
+Whether to include extended event logs (increases size and generation time).
+
+.PARAMETER IncludeExtendedSessionsLog
+Whether to include extended sessions logs (dramatically increases generation time).
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardSupportBundle.ps1 -AccessToken $token 10.5.32.54
+#>
+function Get-SafeguardSupportBundle
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [string]$OutFile,
+        [Parameter(Mandatory=$false)]
+        [int]$Version,
+        [Parameter(Mandatory=$false)]
+        [int]$Timeout,
+        [Parameter(Mandatory=$false)]
+        [switch]$IncludeExtendedEventLog,
+        [Parameter(Mandatory=$false)]
+        [switch]$IncludeExtendedSessionsLog
+    )
+
+    $ErrorActionPreference = "Stop"
+    Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
+
+    if ($SafeguardSession)
+    {
+        $Insecure = $SafeguardSession["Insecure"]
+    }
+    if (-not $Appliance -and $SafeguardSession)
+    {
+        $Appliance = $SafeguardSession["Appliance"]
+    }
+    if (-not $AccessToken -and $SafeguardSession)
+    {
+        $AccessToken = $SafeguardSession["AccessToken"]
+    }
+    if (-not $Appliance)
+    {
+        $Appliance = (Read-Host "Appliance")
+    }
+    if (-not $AccessToken)
+    {
+        $AccessToken = (Connect-Safeguard -Appliance $Appliance -Insecure:$Insecure -NoSessionVariable)
+    }
+    if (-not $OutFile)
+    {
+        $OutFile = (Join-Path (Get-Location) "SG-$Appliance-$((Get-Date).ToString("MMddTHHmmssZz")).zip")
+    }
+
+    # Handle options and timeout
+    $Timeout = 600
+    $Url = "https://$Appliance/service/appliance/v$Version/SupportBundle"
+    if ($IncludeExtendedEventLog)
+    {
+        $Timeout = 900
+        $Url += "?includeEventLogs=true"
+    }
+    else
+    {
+        $Url += "?includeEventLogs=false"
+    }
+    if ($IncludeExtendedSessionsLog)
+    {
+        $Timeout = 1800
+        $Url += "&IncludeSessions=true"
+    }
+    else
+    {
+        $Url += "&IncludeSessions=false"
+    }
+
+    # Use the WebClient class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
+    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+    Add-ExWebClientExType
+
+    $WebClient = (New-Object Ex.WebClientEx -ArgumentList @($Timeout))
+    $WebClient.Headers.Add("Accept", "application/octet-stream")
+    $WebClient.Headers.Add("Content-type", "application/json")
+    $WebClient.Headers.Add("Authorization", "Bearer $AccessToken")
+    Write-Host "This operation may take several minutes..."
+    Write-Host "Downloading support bundle to: $OutFile"
+    $WebClient.DownloadFile($Url, $OutFile)
 }

@@ -1,4 +1,5 @@
-# SSL handling
+# SSL handling helpers
+# Nothing is exported from here
 function Disable-SslVerification
 {
     if (-not ([System.Management.Automation.PSTypeName]"TrustEverything").Type)
