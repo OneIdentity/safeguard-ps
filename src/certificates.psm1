@@ -432,14 +432,18 @@ function Set-SafeguardSslCertificateForAppliance
         $Thumbprint = (Read-Host "Thumbprint")
     }
 
-    if ($ApplianceId)
+    if (-not $ApplianceId)
     {
         $ApplianceId = (Invoke-SafeguardMethod -Anonymous -Appliance $Appliance Notification GET Status).ApplianceId
     }
 
     Write-Host "Setting $Thumbprint as current SSL Certificate for $ApplianceId..."
     $CurrentIds = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance Core GET "SslCertificates/$Thumbprint/Appliances")
-    $CurrentIds += @{ Id = $ApplianceId }
+    if (-not $CurrentIds)
+    {
+        $CurrentIds = @()
+    }
+    $CurrentIds += @{ "Id" = "$ApplianceId" }
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance Core PUT "SslCertificates/$Thumbprint/Appliances" -Body $CurrentIds
 }
 
@@ -506,6 +510,10 @@ function Clear-SafeguardSslCertificateForAppliance
     Write-Host "Clearing $Thumbprint as current SSL Certificate for $ApplianceId..."
     $CurrentIds = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance Core GET "SslCertificates/$Thumbprint/Appliances")
     $NewIds = $CurrentIds | Where-Object { $_.Id -ne $ApplianceId }
+    if (-not $NewIds)
+    {
+        $NewIds = @()
+    }
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance Core PUT "SslCertificates/$Thumbprint/Appliances" -Body $NewIds
 }
 
@@ -594,7 +602,7 @@ None.
 None.  Just host messages describing what has been created.
 
 .EXAMPLE
-New-SafeguardTestCertificates
+New-SafeguardTestCertificates -SubjectBaseDn "OU=petrsnd,O=OneIdentityInc,C=US"
 
 .EXAMPLE
 New-SafeguardTestCertificates 
@@ -607,8 +615,19 @@ function New-SafeguardTestCertificates
         [Parameter(Mandatory=$false)]
         [int]$KeySize = 2048,
         [Parameter(Mandatory=$false)]
-        $OutputDirectory = "$(Get-Location)\" + ("CERTS-{0}" -f (Get-Date -format s) -replace ':','-')
+        $OutputDirectory
     )
+
+    $ErrorActionPreference = "Stop"
+
+    if (-not $OutputDirectory)
+    {
+        $OutputDirectory = (Join-Path $(Get-Location) + ("CERTS-{0}" -f (Get-Date -format s) -replace ':','-'))
+    }
+    else
+    {
+        $OutputDirectory = (Join-Path $OutputDirectory ("CERTS-{0}" -f (Get-Date -format s) -replace ':','-'))
+    }
 
     Write-Host -ForegroundColor Yellow "Locating tools"
     $MakeCert = (Get-Tool @("C:\Program Files (x86)\Windows Kits", "C:\Program Files (x86)\Microsoft SDKs\Windows") "makecert.exe")
@@ -619,9 +638,10 @@ function New-SafeguardTestCertificates
     New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
 
     Write-Host -ForegroundColor Yellow "Generating Certificates"
-    Write-Host "This script can be annoying because you have to type your password a lot... this is a limitation of the underlying tools"
+    Write-Host "This cmdlet can be annoying because you have to type your password a lot... this is a limitation of the underlying tools"
     Write-Host -ForegroundColor Yellow "Just type the same password at all of the prompts!!! It can be as simple as one letter."
-    $Password = Read-Host "Password"
+    $PasswordSecure = (Read-Host "Password" -AsSecureString)
+    $Password = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($PasswordSecure))
 
     $Name = "RootCA"
     $Subject = "CN=$Name,$SubjectBaseDn"
@@ -656,14 +676,14 @@ function New-SafeguardTestCertificates
     Invoke-Expression ("& '$pvk2pfx' -pvk '$OutputDirectory\$Name.pvk' -spc '$OutputDirectory\$Name.cer' -pfx '$OutputDirectory\$Name.pfx' -pi $Password")
 
     Write-Host -ForegroundColor Yellow "You now have four certificates in $OutputDirectory."
-    Write-Host "To do SSL:"
-    Write-Host "- Upload both RootCA and IntermediateCA to Safeguard using Upload-SafeguardTrustedCertificate.ps1"
-    Write-Host "- Upload the certificate with the IP address to Safeguard using Upload-SafeguardSSlCertificate.ps1"
-    Write-Host "- Import RootCA into your trusted root store"
-    Write-Host "- Import IntermediateCA into your intermediate store"
-    Write-Host "- Then, open a browser... if the IP address matches the subject you gave it should work"
-    Write-Host "To do certificate log in:"
-    Write-Host "- Upload both RootCA and IntermediateCA if you haven't already using Upload-SafeguardTrustedCertificate.ps1"
+    Write-Host -ForegroundColor Green "To setup Safeguard SSL:"
+    Write-Host "- Upload both RootCA and IntermediateCA to Safeguard using Install-SafeguardTrustedCertificate cmdlet"
+    Write-Host "- Upload the certificate with the IP address to Safeguard using Install-SafeguardSSlCertificate cmdlet"
+    Write-Host "- Import RootCA into your trusted root store using 'Run -> certmgr.msc'"
+    Write-Host "- Import IntermediateCA into your intermediate store using 'Run -> certmgr.msc'"
+    Write-Host "- Then, open a browser to Safeguard... if the IP address matches the subject you gave it should work"
+    Write-Host -ForegroundColor Green "To setup client certificate user login:"
+    Write-Host "- Upload both RootCA and IntermediateCA if you haven't already using Install-SafeguardTrustedCertificate cmdlet"
     Write-Host "- Import UserCert into your personal user store"
     Write-Host "- Create a user with the PrimaryAuthenticationIdentity set to the thumbprint of UserCert"
     Write-Host "   - You can see your installed certificate thumbprints with: gci Cert:\CurrentUser\My\"
