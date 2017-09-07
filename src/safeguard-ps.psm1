@@ -511,6 +511,17 @@ function Invoke-SafeguardMethod
             $AccessToken = (Connect-Safeguard -Appliance $Appliance -Insecure:$Insecure -NoSessionVariable)
         }
     }
+    else
+    {
+        if (-not $Appliance -and $SafeguardSession)
+        {
+            $Appliance = $SafeguardSession["Appliance"]
+        }
+        else
+        {
+            $Appliance = (Read-Host "Appliance")
+        }
+    }
 
     if ($Insecure)
     {
