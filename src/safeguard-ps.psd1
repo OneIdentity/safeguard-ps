@@ -69,7 +69,8 @@ NestedModules = @(
     'sslhandling.psm1',
     'licensing.psm1',
     'certificates.psm1',
-    'desktopclient.psm1'
+    'desktopclient.psm1',
+    'maintenance.psm1'
     )
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
@@ -85,7 +86,11 @@ FunctionsToExport = @(
     'Set-SafeguardSslCertificateForAppliance','Clear-SafeguardSslCertificateForAppliance','Get-SafeguardSslCertificateForAppliance',
     'New-SafeguardTestCertificates',
     # desktopclient.psm1
-    'Install-SafeguardDesktopClient'
+    'Install-SafeguardDesktopClient',
+    # maintenance.psm1
+    'Get-SafeguardStatus','Get-SafeguardTime','Get-SafeguardHealth',
+    'Get-SafeguardApplianceName','Set-SafeguardApplianceName',
+    'Invoke-SafeguardApplianceShutdown','Invoke-SafeguardApplianceReboot','Invoke-SafeguardApplianceFactoryReset'
     )
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
@@ -124,7 +129,17 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        # ReleaseNotes = ''
+        ReleaseNotes = @"
+safeguard-ps 1.0 Release Notes:
+
+- Initial version of safeguard-ps Powershell module
+- Allow non-SSL verified connections with -Insecure flag
+- Automated Safeguard desktop client install
+- Support for following Web API features:
+  - Safeguard product licensing
+  - Trusted certificates management
+  - SSL certificates management
+"@
 
     } # End of PSData hashtable
 

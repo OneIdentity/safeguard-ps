@@ -286,7 +286,6 @@ Disconnect-Safeguard
 Log out Successful.
 
 #>
-
 function Disconnect-Safeguard
 {
     Param(
@@ -490,7 +489,7 @@ function Invoke-SafeguardMethod
         {
             $Appliance = $SafeguardSession["Appliance"]
         }
-        else
+        elseif (-not $Appliance)
         {
             $Appliance = (Read-Host "Appliance")
         }
