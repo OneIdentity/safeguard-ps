@@ -71,7 +71,9 @@ NestedModules = @(
     'licensing.psm1',
     'certificates.psm1',
     'desktopclient.psm1',
-    'maintenance.psm1'
+    'maintenance.psm1',
+    'diagnostics.psm1',
+    'archives.psm1'
     )
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
@@ -97,6 +99,7 @@ FunctionsToExport = @(
     'New-SafeguardBackup','Remove-SafeguardBackup','Export-SafeguardBackup','Import-SafeguardBackup',
     'Restore-SafeguardBackup','Save-SafeguardBackupToArchive','Get-SafeguardBackupHistory',
     # diagnostics.psm1
+    'Invoke-SafeguardPing','Invoke-SafeguardSessionsPing','Invoke-SafeguardTelnet','Invoke-SafeguardSessionsTelnet',
     # archives.psm1
     'Get-SafeguardArchiveServer'
     )
