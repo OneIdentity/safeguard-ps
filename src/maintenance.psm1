@@ -514,7 +514,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate
 
 .PARAMETER OutFile
-A string containing the path to store the support bundle.
+A string containing the path to store the support bundle (default: SG-<id>-<date>.zip).
 
 .PARAMETER Version
 Version of the Web API you are using (default: 2).
@@ -630,6 +630,25 @@ function Get-SafeguardSupportBundle
         Write-Host "Downloading support bundle to: $OutFile"
         $WebClient.DownloadFile($Url, $OutFile)
     }
+    catch [System.Net.WebException]
+    {
+        if ($_.Exception.Response)
+        {
+            $Response = $_.Exception.Response
+            $Reader = New-Object System.IO.StreamReader -ArgumentList @($Response.GetResponseStream())
+            Write-Error $Reader.ReadToEnd()
+        }
+        else
+        {
+            Write-Error $_
+        }
+        throw "Failure returned from downloading support bundle from Safeguard"
+    }
+    catch
+    {
+        Write-Error $_
+        throw "Failed to GET support bundle from Safeguard"
+    }
     finally
     {
         if ($Insecure)
@@ -654,13 +673,13 @@ IP address or hostname of a Safeguard appliance.
 A string containing the bearer token to be used with Safeguard Web API.
 
 .PARAMETER Insecure
-Ignore verification of Safeguard appliance SSL certificate
+Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER Version
-Version of the Web API you are using (default: 1).
+Version of the Web API you are using (default: 2).
 
 .PARAMETER Patch
-A string containing the path to a patch.
+A string containing the path to a patch file.
 
 .PARAMETER Timeout
 A timeout value in seconds for uploading (default: 600s or 10m)
@@ -672,7 +691,7 @@ None.
 Script output as strings.
 
 .EXAMPLE
-Install-SafeguardPatch.ps1 -AccessToken $token -Patch XX.sgp -Appliance 10.5.32.54.
+Install-SafeguardPatch -AccessToken $token -Patch XX.sgp -Appliance 10.5.32.54.
 #>
 function Install-SafeguardPatch
 {
@@ -692,6 +711,7 @@ function Install-SafeguardPatch
     )
 
     $ErrorActionPreference = "Stop"
+    Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
 
     if ($SafeguardSession)
     {
@@ -741,34 +761,32 @@ function Install-SafeguardPatch
         $WebClient.Headers.Add("Content-type", "application/octet-stream")
         $WebClient.Headers.Add("Authorization", "Bearer $AccessToken")
         Write-Host "POSTing patch to Safeguard. This operation may take several minutes..."
-        try
+
+        $Bytes = [System.IO.File]::ReadAllBytes($Patch);
+        $ResponseBytes = $WebClient.UploadData("https://$Appliance/service/appliance/v$Version/Patch", "POST", $Bytes) | Out-Null
+        if ($ResponseBytes)
         {
-            $Bytes = [System.IO.File]::ReadAllBytes($Patch);
-            $ResponseBytes = $WebClient.UploadData("https://$Appliance/service/appliance/v$Version/Patch", "POST", $Bytes) | Out-Null
-            if ($ResponseBytes)
-            {
-                [System.Text.Encoding]::UTF8.GetString($ResponseBytes)
-            }
+            [System.Text.Encoding]::UTF8.GetString($ResponseBytes)
         }
-        catch [System.Net.WebException]
+    }
+    catch [System.Net.WebException]
+    {
+        if ($_.Exception.Response)
         {
-            if ($_.Exception.Response)
-            {
-                $Response = $_.Exception.Response
-                $Reader = New-Object System.IO.StreamReader -ArgumentList @($Response.GetResponseStream())
-                Write-Error $Reader.ReadToEnd()
-            }
-            else
-            {
-                Write-Error $_
-            }
-            throw "Failure returned from POSTing patch to Safeguard"
+            $Response = $_.Exception.Response
+            $Reader = New-Object System.IO.StreamReader -ArgumentList @($Response.GetResponseStream())
+            Write-Error $Reader.ReadToEnd()
         }
-        catch
+        else
         {
             Write-Error $_
-            throw "Failed to POST patch to Safeguard"
         }
+        throw "Failure returned from POSTing patch to Safeguard"
+    }
+    catch
+    {
+        Write-Error $_
+        throw "Failed to POST patch to Safeguard"
     }
     finally
     {
@@ -784,7 +802,7 @@ function Install-SafeguardPatch
     }
     catch
     {}
-    
+
     Write-Output "Requesting patch install action..."
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST Patch/Install
     if ($? -ne 0 -or $LastExitCode -eq 0)
@@ -893,24 +911,280 @@ function Remove-SafeguardBackup
 
     if (-not $BackupId)
     {
-        $CurrentBackupIds = (Get-SafeguardBackupHistory -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure).Id -join ", "
-        Write-Host "Backups: [ $CurrentBackupIds ]"
+        $CurrentBackupIds = (Get-SafeguardBackup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure).Id -join ", "
+        Write-Host "Available Backups: [ $CurrentBackupIds ]"
         $BackupId = (Read-Host "BackupId")
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance DELETE "Backups/$BackupId"
 }
 
+<#
+.SYNOPSIS
+Download signed, encrypted backup from Safeguard appliance via the Web API.
 
+.DESCRIPTION
+Download signed, encrypted backup for safe storage offline so that it can be
+uploaded to this appliance or another appliance in the future to recover data.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Version
+Version of the Web API you are using (default: 2).
+
+.PARAMETER BackupId
+A string containing a backup ID, which is a GUID.
+
+.PARAMETER OutFile
+A string containing the path to store the backup (default: SG-<id>-backup-<backup date>.sgb)
+
+.PARAMETER Timeout
+A timeout value in seconds for uploading (default: 600s or 10m)
+
+.INPUTS
+None.
+
+.OUTPUTS
+Script output as strings.
+
+.EXAMPLE
+Export-SafeguardBackup -AccessToken $token -Appliance 10.5.32.54 f1f42734-e0ea-4edb-80f3-9f018b1b8afd sg-backup.sgb
+#>
 function Export-SafeguardBackup
 {
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [int]$Version = 2,
+        [Parameter(Mandatory=$false,Position=0)]
+        [string]$BackupId,
+        [Parameter(Mandatory=$false,Position=1)]
+        [string]$OutFile,
+        [Parameter(Mandatory=$false)]
+        [int]$Timeout = 600
+    )
+
+    $ErrorActionPreference = "Stop"
+    Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
+
+    if ($SafeguardSession)
+    {
+        $Insecure = $SafeguardSession["Insecure"]
+    }
+    if (-not $Appliance -and $SafeguardSession)
+    {
+        $Appliance = $SafeguardSession["Appliance"]
+    }
+    if (-not $AccessToken -and $SafeguardSession)
+    {
+        $AccessToken = $SafeguardSession["AccessToken"]
+    }
+    if (-not $Appliance)
+    {
+        $Appliance = (Read-Host "Appliance")
+    }
+    if (-not $AccessToken)
+    {
+        $AccessToken = (Connect-Safeguard -Appliance $Appliance -Insecure:$Insecure -NoSessionVariable)
+    }
+
+    if (-not $BackupId)
+    {
+        $CurrentBackupIds = (Get-SafeguardBackup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure).Id -join ", "
+        Write-Host "Available Backups: [ $CurrentBackupIds ]"
+        $BackupId = (Read-Host "BackupId")
+    }
+    if (-not $OutFile)
+    {
+        $CreatedOn = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET Backups/$BackupId).CreatedOn
+        $FileName = "SG-$Appliance-backup-$((Get-Date $CreatedOn).ToString("MMddyyyyTHHmmZ")).sgb"
+        $OutFile = (Join-Path (Get-Location) $FileName)
+    }
+
+    try
+    {
+        if ($Insecure)
+        {
+            Disable-SslVerification
+        }
+        # Use the WebClient class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
+        Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+        Add-ExWebClientExType
+
+        $WebClient = (New-Object Ex.WebClientEx -ArgumentList @($Timeout))
+        $WebClient.Headers.Add("Accept", "application/octet-stream")
+        $WebClient.Headers.Add("Content-type", "application/json")
+        $WebClient.Headers.Add("Authorization", "Bearer $AccessToken")
+        Write-Host "This operation may take several minutes..."
+        Write-Host "Downloading Safeguard backup to: $OutFile"
+        $WebClient.DownloadFile("https://$Appliance/service/appliance/v$Version/Backups/$BackupId/Download", $OutFile)
+    }
+    catch [System.Net.WebException]
+    {
+        if ($_.Exception.Response)
+        {
+            $Response = $_.Exception.Response
+            $Reader = New-Object System.IO.StreamReader -ArgumentList @($Response.GetResponseStream())
+            Write-Error $Reader.ReadToEnd()
+        }
+        else
+        {
+            Write-Error $_
+        }
+        throw "Failure returned from downloading backup from Safeguard"
+    }
+    catch
+    {
+        Write-Error $_
+        throw "Failed to GET backup to Safeguard"
+    }
+    finally
+    {
+        if ($Insecure)
+        {
+            Enable-SslVerification
+        }
+    }
 
 }
 
+<#
+.SYNOPSIS
+Upload backup file to Safeguard appliance via the Web API.
 
+.DESCRIPTION
+Upload a backup to a Safeguard appliance via the Web API.  Once it is
+uploaded, you can call the Restore-SafeguardBackup cmdlet to restore it.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.PARAMETER Version
+Version of the Web API you are using (default: 2).
+
+.PARAMETER BackupFile
+A string containing the path to a backup file.
+
+.PARAMETER Timeout
+A timeout value in seconds for uploading (default: 600s or 10m)
+
+.INPUTS
+None.
+
+.OUTPUTS
+Script output as strings.
+
+.EXAMPLE
+Import-SafeguardBackup -AccessToken $token -Appliance 10.5.32.54 sg-backup.sgb
+#>
 function Import-SafeguardBackup
 {
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [int]$Version = 2,
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$BackupFile,
+        [Parameter(Mandatory=$false)]
+        [int]$Timeout = 600
+    )
 
+    $ErrorActionPreference = "Stop"
+    Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
+
+    if ($SafeguardSession)
+    {
+        $Insecure = $SafeguardSession["Insecure"]
+    }
+    if (-not $Appliance -and $SafeguardSession)
+    {
+        $Appliance = $SafeguardSession["Appliance"]
+    }
+    if (-not $AccessToken -and $SafeguardSession)
+    {
+        $AccessToken = $SafeguardSession["AccessToken"]
+    }
+    if (-not $Appliance)
+    {
+        $Appliance = (Read-Host "Appliance")
+    }
+    if (-not $AccessToken)
+    {
+        $AccessToken = (Connect-Safeguard -Appliance $Appliance -Insecure:$Insecure -NoSessionVariable)
+    }
+
+    try
+    {
+        if ($Insecure)
+        {
+            Disable-SslVerification
+        }
+        # Use the WebClient class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
+        Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+        Add-ExWebClientExType
+
+        $WebClient = (New-Object Ex.WebClientEx -ArgumentList @($Timeout))
+        $WebClient.Headers.Add("Accept", "application/json")
+        $WebClient.Headers.Add("Content-type", "application/octet-stream")
+        $WebClient.Headers.Add("Authorization", "Bearer $AccessToken")
+        Write-Host "POSTing backup to Safeguard. This operation may take several minutes..."
+
+        $Bytes = [System.IO.File]::ReadAllBytes($BackupFile);
+        $ResponseBytes = $WebClient.UploadData("https://$Appliance/service/appliance/v$Version/Backups/Upload", "POST", $Bytes) | Out-Null
+        if ($ResponseBytes)
+        {
+            [System.Text.Encoding]::UTF8.GetString($ResponseBytes)
+        }
+    }
+    catch [System.Net.WebException]
+    {
+        if ($_.Exception.Response)
+        {
+            $Response = $_.Exception.Response
+            $Reader = New-Object System.IO.StreamReader -ArgumentList @($Response.GetResponseStream())
+            Write-Error $Reader.ReadToEnd()
+        }
+        else
+        {
+            Write-Error $_
+        }
+        throw "Failure returned from uploading backup to Safeguard"
+    }
+    catch
+    {
+        Write-Error $_
+        throw "Failed to POST backup to Safeguard"
+    }
+    finally
+    {
+        if ($Insecure)
+        {
+            Enable-SslVerification
+        }
+    }
 }
 
 <#
@@ -962,8 +1236,8 @@ function Restore-SafeguardBackup
 
     if (-not $BackupId)
     {
-        $CurrentBackupIds = (Get-SafeguardBackupHistory -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure).Id -join ", "
-        Write-Host "Backups: [ $CurrentBackupIds ]"
+        $CurrentBackupIds = (Get-SafeguardBackup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure).Id -join ", "
+        Write-Host "Available Backups: [ $CurrentBackupIds ]"
         $BackupId = (Read-Host "BackupId")
     }
 
@@ -1025,8 +1299,8 @@ function Save-SafeguardBackupToArchive
 
     if (-not $BackupId)
     {
-        $CurrentBackupIds = (Get-SafeguardBackupHistory -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure).Id -join ", "
-        Write-Host "Backups: [ $CurrentBackupIds ]"
+        $CurrentBackupIds = (Get-SafeguardBackup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure).Id -join ", "
+        Write-Host "Available Backups: [ $CurrentBackupIds ]"
         $BackupId = (Read-Host "BackupId")
     }
 
@@ -1067,12 +1341,12 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardBackupHistory
+Get-SafeguardBackup
 
 .EXAMPLE
-Get-SafeguardBackupHistory -Appliance 10.5.32.54 -AccessToken $token -Insecure
+Get-SafeguardBackup -Appliance 10.5.32.54 -AccessToken $token -Insecure
 #>
-function Get-SafeguardBackupHistory
+function Get-SafeguardBackup
 {
     Param(
         [Parameter(Mandatory=$false)]

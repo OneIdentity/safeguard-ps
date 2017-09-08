@@ -97,7 +97,7 @@ FunctionsToExport = @(
     'Invoke-SafeguardApplianceShutdown','Invoke-SafeguardApplianceReboot','Invoke-SafeguardApplianceFactoryReset',
     'Get-SafeguardSupportBundle','Install-SafeguardPatch',
     'New-SafeguardBackup','Remove-SafeguardBackup','Export-SafeguardBackup','Import-SafeguardBackup',
-    'Restore-SafeguardBackup','Save-SafeguardBackupToArchive','Get-SafeguardBackupHistory',
+    'Restore-SafeguardBackup','Save-SafeguardBackupToArchive','Get-SafeguardBackup',
     # diagnostics.psm1
     'Invoke-SafeguardPing','Invoke-SafeguardSessionsPing','Invoke-SafeguardTelnet','Invoke-SafeguardSessionsTelnet',
     # archives.psm1
