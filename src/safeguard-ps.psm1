@@ -315,12 +315,14 @@ function Disconnect-Safeguard
                 "Authorization" = "Bearer $AccessToken"
             }
             Invoke-RestMethod -Method POST -Headers $Headers -Uri "https://$Appliance/service/core/v$Version/Token/Logout"
-            Set-Variable -Name "SafeguardSession" -Scope Global -Value $null
+            
         }
         Write-Host "Log out Successful."
     }
     finally
     {
+        Write-Host "Session variable removed."
+        Set-Variable -Name "SafeguardSession" -Scope Global -Value $null
         if ($Insecure)
         {
             Enable-SslVerification
