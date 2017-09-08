@@ -13,6 +13,9 @@ IP address or hostname of a Safeguard appliance.
 .PARAMETER AccessToken
 A string containing the bearer token to be used with Safeguard Web API.
 
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
 .PARAMETER LicenseFile
 A string containing the path to a Safeguard license file.
 
@@ -35,6 +38,8 @@ function Install-SafeguardLicense
         [string]$Appliance,
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
         [string]$LicenseFile
     )
@@ -45,13 +50,13 @@ function Install-SafeguardLicense
     $LicenseBase64 = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($LicenseContents))
     
     Write-Host "Uploading License File..."
-    $StagedLicense = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance Core POST Licenses -Body @{
+    $StagedLicense = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Licenses -Body @{
             Base64Data = "$LicenseBase64" 
         })
     $StagedLicense
 
     Write-Host "Installing License $($StagedLicense.Key)..."
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance Core POST "Licenses/$($StagedLicense.Key)/Install"
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Licenses/$($StagedLicense.Key)/Install"
 }
 
 <#
@@ -67,6 +72,9 @@ IP address or hostname of a Safeguard appliance.
 
 .PARAMETER AccessToken
 A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER Key
 A string containing the license key (e.g. 123-123-123)
@@ -91,6 +99,8 @@ function Uninstall-SafeguardLicense
         [string]$Appliance,
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
         [string]$Key
     )
@@ -103,7 +113,7 @@ function Uninstall-SafeguardLicense
         Write-Host "Currently Installed Licenses: [ $CurrentKeys ]"
         $Key = (Read-Host "Key")
     }
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance Core DELETE "Licenses/$Key"
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Licenses/$Key"
 }
 
 <#
@@ -118,6 +128,9 @@ IP address or hostname of a Safeguard appliance.
 
 .PARAMETER AccessToken
 A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
 
 .INPUTS
 None.
@@ -135,10 +148,12 @@ function Get-SafeguardLicense
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
         [Parameter(Mandatory=$false)]
-        [object]$AccessToken
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
     )
 
     $ErrorActionPreference = "Stop"
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance Core GET Licenses
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Licenses
 }

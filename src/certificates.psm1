@@ -62,6 +62,9 @@ IP address or hostname of a Safeguard appliance.
 .PARAMETER AccessToken
 A string containing the bearer token to be used with Safeguard Web API.
 
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
 .PARAMETER CertificateFile
 A string containing the path to a certificate in DER or Base64 format.
 
@@ -84,6 +87,8 @@ function Install-SafeguardTrustedCertificate
         [string]$Appliance,
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
         [string]$CertificateFile
     )
@@ -97,7 +102,7 @@ function Install-SafeguardTrustedCertificate
     }
 
     Write-Host "Uploading Certificate..."
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance Core `
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
         POST TrustedCertificates -Body @{
             Base64CertificateData = "$CertificateContents" 
         }
@@ -116,6 +121,9 @@ IP address or hostname of a Safeguard appliance.
 
 .PARAMETER AccessToken
 A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER Thumbprint
 A string containing the thumbprint of the certificate.
@@ -139,6 +147,8 @@ function Uninstall-SafeguardTrustedCertificate
         [string]$Appliance,
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
         [string]$Thumbprint
     )
@@ -147,12 +157,12 @@ function Uninstall-SafeguardTrustedCertificate
 
     if (-not $Thumbprint)
     {
-        $CurrentThumbprints = (Get-SafeguardTrustedCertificate -AccessToken $AccessToken -Appliance $Appliance).Thumbprint -join ", "
+        $CurrentThumbprints = (Get-SafeguardTrustedCertificate -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure).Thumbprint -join ", "
         Write-Host "Currently Installed Trusted Certificates: [ $CurrentThumbprints ]"
         $Thumbprint = (Read-Host "Thumbprint")
     }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance Core DELETE "TrustedCertificates/$Thumbprint"
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "TrustedCertificates/$Thumbprint"
 }
 
 <#
@@ -168,6 +178,9 @@ IP address or hostname of a Safeguard appliance.
 
 .PARAMETER AccessToken
 A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
 
 .INPUTS
 None.
@@ -187,12 +200,14 @@ function Get-SafeguardTrustedCertificate
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
         [Parameter(Mandatory=$false)]
-        [object]$AccessToken
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
     )
 
     $ErrorActionPreference = "Stop"
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance Core GET TrustedCertificates
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET TrustedCertificates
 }
 
 <#
@@ -210,6 +225,9 @@ IP address or hostname of a Safeguard appliance.
 
 .PARAMETER AccessToken
 A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER CertificateFile
 A string containing the path to a certificate PFX file.
@@ -239,6 +257,8 @@ function Install-SafeguardSslCertificate
         [string]$Appliance,
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
         [string]$CertificateFile,
         [Parameter(Mandatory=$false,Position=1)]
@@ -263,7 +283,7 @@ function Install-SafeguardSslCertificate
     Write-Host "Uploading Certificate..."
     if ($PasswordPlainText)
     {
-        $NewCertificate = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance Core `
+        $NewCertificate = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
             POST SslCertificates -Body @{
                 Base64CertificateData = "$CertificateContents";
                 Passphrase = "$PasswordPlainText"
@@ -271,7 +291,7 @@ function Install-SafeguardSslCertificate
     }
     else
     {
-        $NewCertificate = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance Core `
+        $NewCertificate = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
             POST SslCertificates -Body @{
                 Base64CertificateData = "$CertificateContents" 
             })
@@ -281,7 +301,7 @@ function Install-SafeguardSslCertificate
 
     if ($Assign -and $NewCertificate.Thumbprint)
     {
-        Set-SafeguardSslCertificate -AccessToken $AccessToken -Appliance $Appliance $NewCertificate.Thumbprint
+        Set-SafeguardSslCertificate -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $NewCertificate.Thumbprint
     }
 }
 
@@ -298,6 +318,9 @@ IP address or hostname of a Safeguard appliance.
 
 .PARAMETER AccessToken
 A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER Thumbprint
 A string containing the thumbprint of the certificate.
@@ -321,6 +344,8 @@ function Uninstall-SafeguardSslCertificate
         [string]$Appliance,
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
         [string]$Thumbprint
     )
@@ -329,12 +354,12 @@ function Uninstall-SafeguardSslCertificate
 
     if (-not $Thumbprint)
     {
-        $CurrentThumbprints = (Get-SafeguardSslCertificate -AccessToken $AccessToken -Appliance $Appliance).Thumbprint -join ", "
+        $CurrentThumbprints = (Get-SafeguardSslCertificate -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure).Thumbprint -join ", "
         Write-Host "Currently Installed SSL Certificates: [ $CurrentThumbprints ]"
         $Thumbprint = (Read-Host "Thumbprint")
     }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance Core DELETE "SslCertificates/$Thumbprint"
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "SslCertificates/$Thumbprint"
 }
 
 <#
@@ -350,6 +375,9 @@ IP address or hostname of a Safeguard appliance.
 
 .PARAMETER AccessToken
 A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
 
 .INPUTS
 None.
@@ -369,12 +397,14 @@ function Get-SafeguardSslCertificate
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
         [Parameter(Mandatory=$false)]
-        [object]$AccessToken
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
     )
 
     $ErrorActionPreference = "Stop"
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance Core GET SslCertificates
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET SslCertificates
 }
 
 <#
@@ -391,6 +421,9 @@ IP address or hostname of a Safeguard appliance.
 
 .PARAMETER AccessToken
 A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER Thumbprint
 A string containing the thumbprint of the SSL certificate.
@@ -417,6 +450,8 @@ function Set-SafeguardSslCertificateForAppliance
         [string]$Appliance,
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
         [string]$Thumbprint,
         [Parameter(Mandatory=$false,Position=1)]
@@ -427,24 +462,24 @@ function Set-SafeguardSslCertificateForAppliance
 
     if (-not $Thumbprint)
     {
-        $CurrentThumbprints = (Get-SafeguardSslCertificate -AccessToken $AccessToken -Appliance $Appliance).Thumbprint -join ", "
+        $CurrentThumbprints = (Get-SafeguardSslCertificate -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure).Thumbprint -join ", "
         Write-Host "Currently Installed SSL Certificates: [ $CurrentThumbprints ]"
         $Thumbprint = (Read-Host "Thumbprint")
     }
 
     if (-not $ApplianceId)
     {
-        $ApplianceId = (Invoke-SafeguardMethod -Anonymous -Appliance $Appliance Notification GET Status).ApplianceId
+        $ApplianceId = (Invoke-SafeguardMethod -Anonymous -Appliance $Appliance -Insecure:$Insecure Notification GET Status).ApplianceId
     }
 
     Write-Host "Setting $Thumbprint as current SSL Certificate for $ApplianceId..."
-    $CurrentIds = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance Core GET "SslCertificates/$Thumbprint/Appliances")
+    $CurrentIds = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "SslCertificates/$Thumbprint/Appliances")
     if (-not $CurrentIds)
     {
         $CurrentIds = @()
     }
     $CurrentIds += @{ "Id" = "$ApplianceId" }
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance Core PUT "SslCertificates/$Thumbprint/Appliances" -Body $CurrentIds
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "SslCertificates/$Thumbprint/Appliances" -Body $CurrentIds
 }
 
 <#
@@ -461,6 +496,9 @@ IP address or hostname of a Safeguard appliance.
 
 .PARAMETER AccessToken
 A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER Thumbprint
 A string containing the thumbprint of the SSL certificate.
@@ -487,6 +525,8 @@ function Clear-SafeguardSslCertificateForAppliance
         [string]$Appliance,
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
         [string]$Thumbprint,
         [Parameter(Mandatory=$false,Position=1)]
@@ -497,24 +537,24 @@ function Clear-SafeguardSslCertificateForAppliance
 
     if (-not $Thumbprint)
     {
-        $CurrentThumbprints = (Get-SafeguardSslCertificate -AccessToken $AccessToken -Appliance $Appliance).Thumbprint -join ", "
+        $CurrentThumbprints = (Get-SafeguardSslCertificate -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure).Thumbprint -join ", "
         Write-Host "Currently Installed SSL Certificates: [ $CurrentThumbprints ]"
         $Thumbprint = (Read-Host "Thumbprint")
     }
 
     if (-not $ApplianceId)
     {
-        $ApplianceId = (Invoke-SafeguardMethod -Anonymous -Appliance $Appliance Notification GET Status).ApplianceId
+        $ApplianceId = (Invoke-SafeguardMethod -Anonymous -Appliance $Appliance -Insecure:$Insecure Notification GET Status).ApplianceId
     }
 
     Write-Host "Clearing $Thumbprint as current SSL Certificate for $ApplianceId..."
-    $CurrentIds = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance Core GET "SslCertificates/$Thumbprint/Appliances")
+    $CurrentIds = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "SslCertificates/$Thumbprint/Appliances")
     $NewIds = $CurrentIds | Where-Object { $_.Id -ne $ApplianceId }
     if (-not $NewIds)
     {
         $NewIds = @()
     }
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance Core PUT "SslCertificates/$Thumbprint/Appliances" -Body $NewIds
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "SslCertificates/$Thumbprint/Appliances" -Body $NewIds
 }
 
 <#
@@ -531,6 +571,9 @@ IP address or hostname of a Safeguard appliance.
 
 .PARAMETER AccessToken
 A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER ApplianceId
 A string containing the ID of the appliance to assign the SSL certificate to.
@@ -554,6 +597,8 @@ function Get-SafeguardSslCertificateForAppliance
         [string]$Appliance,
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=1)]
         [string]$ApplianceId
     )
@@ -562,12 +607,12 @@ function Get-SafeguardSslCertificateForAppliance
 
     if (-not $ApplianceId)
     {
-        $ApplianceId = (Invoke-SafeguardMethod -Anonymous -Appliance $Appliance Notification GET Status).ApplianceId
+        $ApplianceId = (Invoke-SafeguardMethod -Anonymous -Appliance $Appliance -Insecure:$Insecure Notification GET Status).ApplianceId
     }
 
-    $Certificates = (Get-SafeguardSslCertificate -AccessToken $AccessToken -Appliance $Appliance)
+    $Certificates = (Get-SafeguardSslCertificate -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
     $Certificates | ForEach-Object {
-        if (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance Core GET "SslCertificates/$($_.Thumbprint)/Appliances" | Where-Object {
+        if (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "SslCertificates/$($_.Thumbprint)/Appliances" | Where-Object {
             $_.Id -eq $ApplianceId
         })
         {
