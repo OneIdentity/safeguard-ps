@@ -90,10 +90,13 @@ FunctionsToExport = @(
     # desktopclient.psm1
     'Install-SafeguardDesktopClient',
     # maintenance.psm1
-    'Get-SafeguardStatus','Get-SafeguardTime','Get-SafeguardHealth',
+    'Get-SafeguardStatus','Get-SafeguardVersion','Get-SafeguardTime','Get-SafeguardHealth',
     'Get-SafeguardApplianceName','Set-SafeguardApplianceName',
     'Invoke-SafeguardApplianceShutdown','Invoke-SafeguardApplianceReboot','Invoke-SafeguardApplianceFactoryReset',
-    'Get-SafeguardSupportBundle'
+    'Get-SafeguardSupportBundle','Install-SafeguardPatch',
+    'New-SafeguardBackup','Remove-SafeguardBackup','Export-SafeguardBackup','Import-SafeguardBackup',
+    'Restore-SafeguardBackup','Save-SafeguardBackupToArchive','Get-SafeguardBackupHistory'
+    # diagnostics.psm1
     )
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.

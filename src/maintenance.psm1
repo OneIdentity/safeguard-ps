@@ -41,6 +41,47 @@ function Get-SafeguardStatus
 
 <#
 .SYNOPSIS
+Get the version of a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Get the version information from a Safeguard appliance which will 
+be returned as an object containing major.minor.revision.build
+portions separated into different properties.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardVersion
+
+.EXAMPLE
+Get-SafeguardVersion -Appliance 10.5.32.54 -Insecure
+#>
+function Get-SafeguardVersion
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    Invoke-SafeguardMethod -Anonymous -Appliance $Appliance -Insecure:$Insecure Appliance GET Version
+}
+
+<#
+.SYNOPSIS
 Get the current time on a Safeguard appliance via the Web API.
 
 .DESCRIPTION
@@ -571,15 +612,227 @@ function Get-SafeguardSupportBundle
         $Timeout = $DefaultTimeout
     }
 
-    # Use the WebClient class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
-    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
-    Add-ExWebClientExType
+    try
+    {
+        if ($Insecure)
+        {
+            Disable-SslVerification
+        }
+        # Use the WebClient class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
+        Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+        Add-ExWebClientExType
 
-    $WebClient = (New-Object Ex.WebClientEx -ArgumentList @($Timeout))
-    $WebClient.Headers.Add("Accept", "application/octet-stream")
-    $WebClient.Headers.Add("Content-type", "application/json")
-    $WebClient.Headers.Add("Authorization", "Bearer $AccessToken")
-    Write-Host "This operation may take several minutes..."
-    Write-Host "Downloading support bundle to: $OutFile"
-    $WebClient.DownloadFile($Url, $OutFile)
+        $WebClient = (New-Object Ex.WebClientEx -ArgumentList @($Timeout))
+        $WebClient.Headers.Add("Accept", "application/octet-stream")
+        $WebClient.Headers.Add("Content-type", "application/json")
+        $WebClient.Headers.Add("Authorization", "Bearer $AccessToken")
+        Write-Host "This operation may take several minutes..."
+        Write-Host "Downloading support bundle to: $OutFile"
+        $WebClient.DownloadFile($Url, $OutFile)
+    }
+    finally
+    {
+        if ($Insecure)
+        {
+            Enable-SslVerification
+        }
+    }
 }
+
+<#
+.SYNOPSIS
+Install patch on Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Upload a patch to a Safeguard appliance via the Web API, and then call
+the POST action to install it.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.PARAMETER Version
+Version of the Web API you are using (default: 1).
+
+.PARAMETER Patch
+A string containing the path to a patch.
+
+.PARAMETER Timeout
+A timeout value in seconds for uploading (default: 600s or 10m)
+
+.INPUTS
+None.
+
+.OUTPUTS
+Script output as strings.
+
+.EXAMPLE
+Install-SafeguardPatch.ps1 -AccessToken $token -Patch XX.sgp -Appliance 10.5.32.54.
+#>
+function Install-SafeguardPatch
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [int]$Version = 2,
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Patch,
+        [Parameter(Mandatory=$false)]
+        [int]$Timeout = 600
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    if ($SafeguardSession)
+    {
+        $Insecure = $SafeguardSession["Insecure"]
+    }
+    if (-not $Appliance -and $SafeguardSession)
+    {
+        $Appliance = $SafeguardSession["Appliance"]
+    }
+    if (-not $AccessToken -and $SafeguardSession)
+    {
+        $AccessToken = $SafeguardSession["AccessToken"]
+    }
+    if (-not $Appliance)
+    {
+        $Appliance = (Read-Host "Appliance")
+    }
+    if (-not $AccessToken)
+    {
+        $AccessToken = (Connect-Safeguard -Appliance $Appliance -Insecure:$Insecure -NoSessionVariable)
+    }
+
+    $Response = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance `
+                     -Insecure:$Insecure Appliance GET Patch)
+    if ($Response)
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance `
+            -Insecure:$Insecure Appliance DELETE Patch
+        if ($LastExitCode -ne 0)
+        {
+            throw "Failed to delete existing patch"
+        }
+    }
+
+    try
+    {
+        if ($Insecure)
+        {
+            Disable-SslVerification
+        }
+        # Use the WebClient class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
+        Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+        Add-ExWebClientExType
+
+        $WebClient = (New-Object Ex.WebClientEx -ArgumentList @($Timeout))
+        $WebClient.Headers.Add("Accept", "application/json")
+        $WebClient.Headers.Add("Content-type", "application/octet-stream")
+        $WebClient.Headers.Add("Authorization", "Bearer $AccessToken")
+        Write-Host "POSTing patch to Safeguard. This operation may take several minutes..."
+        try
+        {
+            $Bytes = [System.IO.File]::ReadAllBytes($Patch);
+            $ResponseBytes = $WebClient.UploadData("https://$Appliance/service/appliance/v$Version/Patch", "POST", $Bytes) | Out-Null
+            if ($ResponseBytes)
+            {
+                [System.Text.Encoding]::UTF8.GetString($ResponseBytes)
+            }
+        }
+        catch [System.Net.WebException]
+        {
+            if ($_.Exception.Response)
+            {
+                $Response = $_.Exception.Response
+                $Reader = New-Object System.IO.StreamReader -ArgumentList @($Response.GetResponseStream())
+                Write-Error $Reader.ReadToEnd()
+            }
+            else
+            {
+                Write-Error $_
+            }
+            throw "Failure returned from POSTing patch to Safeguard"
+        }
+        catch
+        {
+            Write-Error $_
+            throw "Failed to POST patch to Safeguard"
+        }
+    }
+    finally
+    {
+        if ($Insecure)
+        {
+            Enable-SslVerification
+        }
+    }
+
+    try
+    {
+        (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance `
+            -Insecure:$Insecure Appliance GET Patch).Metadata
+    }
+    catch
+    {}
+    
+    Write-Output "Requesting patch install action..."
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance `
+        -Insecure:$Insecure Appliance POST Patch/Install
+    if ($? -ne 0 -or $LastExitCode -eq 0)
+    {
+        Write-Output "Patch is currently installing..."
+    }
+}
+
+
+function New-SafeguardBackup
+{
+
+}
+
+
+function Remove-SafeguardBackup
+{
+
+}
+
+
+function Export-SafeguardBackup
+{
+
+}
+
+
+function Import-SafeguardBackup
+{
+
+}
+
+
+function Restore-SafeguardBackup
+{
+
+}
+
+
+function Save-SafeguardBackupToArchive
+{
+
+}
+
+function Get-SafeguardBackupHistory
+{
+
+}
+
