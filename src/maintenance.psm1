@@ -780,15 +780,13 @@ function Install-SafeguardPatch
 
     try
     {
-        (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance `
-            -Insecure:$Insecure Appliance GET Patch).Metadata
+        (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET Patch).Metadata
     }
     catch
     {}
     
     Write-Output "Requesting patch install action..."
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance `
-        -Insecure:$Insecure Appliance POST Patch/Install
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST Patch/Install
     if ($? -ne 0 -or $LastExitCode -eq 0)
     {
         Write-Output "Patch is currently installing..."
@@ -796,15 +794,111 @@ function Install-SafeguardPatch
 }
 
 
+<#
+.SYNOPSIS
+Create a new backup on a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+This cmdlet will initiate the creation of a new backup on a Safeguard
+appliance.  The backup can be downloaded using the Export-SafeguardBackup
+cmdlet or archived using the Save-SafeguardBackupToArchive cmdlet. The
+Import-SafeguardBackup cmdlet can be used to upload the backup later
+to a Safeguard appliance. The Restore-SafeguardBackup cmdlet can be used
+to restore a backup that has been uploaded.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+New-SafeguardBackup
+
+.EXAMPLE
+New-SafeguardBackup -Appliance 10.5.32.54 -AccessToken $token -Insecure
+#>
 function New-SafeguardBackup
 {
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
 
+    $ErrorActionPreference = "Stop"
+
+    Write-Host "Starting a backup operation..."
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST Backups
 }
 
+<#
+.SYNOPSIS
+Delete a backup from a Safeguard appliance via the Web API.
 
+.DESCRIPTION
+This cmdlet will delete a backup stored on a Safeguard appliance.  Only
+delete backups that you have either downloaded or archived.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER BackupId
+A string containing a backup ID, which is a GUID.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardBackup -BackupId "c6f9a3b4-7a75-406d-ba5a-830e44c1c94d"
+
+.EXAMPLE
+Remove-SafeguardBackup -Appliance 10.5.32.54 -AccessToken $token -Insecure
+#>
 function Remove-SafeguardBackup
 {
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [string]$BackupId
+    )
 
+    $ErrorActionPreference = "Stop"
+
+    if (-not $BackupId)
+    {
+        $CurrentBackupIds = (Get-SafeguardBackupHistory -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure).Id -join ", "
+        Write-Host "Backups: [ $CurrentBackupIds ]"
+        $BackupId = (Read-Host "BackupId")
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance DELETE "Backups/$BackupId"
 }
 
 
@@ -819,20 +913,177 @@ function Import-SafeguardBackup
 
 }
 
+<#
+.SYNOPSIS
+Restore a backup that was created on or uploaded to a Safeguard appliance via the Web API.
 
+.DESCRIPTION
+This cmdlet will restore a backup stored on a Safeguard appliance. The backup
+needs to already be on the appliance
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER BackupId
+A string containing a backup ID, which is a GUID.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Restore-SafeguardBackup -BackupId "c6f9a3b4-7a75-406d-ba5a-830e44c1c94d"
+
+.EXAMPLE
+Restore-SafeguardBackup -Appliance 10.5.32.54 -AccessToken $token -Insecure
+#>
 function Restore-SafeguardBackup
 {
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [string]$BackupId
+    )
 
+    $ErrorActionPreference = "Stop"
+
+    if (-not $BackupId)
+    {
+        $CurrentBackupIds = (Get-SafeguardBackupHistory -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure).Id -join ", "
+        Write-Host "Backups: [ $CurrentBackupIds ]"
+        $BackupId = (Read-Host "BackupId")
+    }
+
+    Write-Host "Starting restore operation for backup..."
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST "Backups/$BackupId/Restore"
 }
 
+<#
+.SYNOPSIS
+Delete a backup from a Safeguard appliance via the Web API.
 
+.DESCRIPTION
+This cmdlet will delete a backup stored on a Safeguard appliance.  Only
+delete backups that you have either downloaded or archived.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER BackupId
+A string containing a backup ID, which is a GUID.
+
+.PARAMETER ArchiveServerId
+An integer containing the archive server ID.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Save-SafeguardBackupToArchive -BackupId "c6f9a3b4-7a75-406d-ba5a-830e44c1c94d"
+
+.EXAMPLE
+Save-SafeguardBackupToArchive -Appliance 10.5.32.54 -AccessToken $token -Insecure
+#>
 function Save-SafeguardBackupToArchive
 {
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [string]$BackupId,
+        [Parameter(Mandatory=$false)]
+        [int]$ArchiveServerId
+    )
 
+    $ErrorActionPreference = "Stop"
+
+    if (-not $BackupId)
+    {
+        $CurrentBackupIds = (Get-SafeguardBackupHistory -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure).Id -join ", "
+        Write-Host "Backups: [ $CurrentBackupIds ]"
+        $BackupId = (Read-Host "BackupId")
+    }
+
+    if (-not $ArchiveServerId)
+    {
+        $ArchiveServerIds = (Get-SafeguardArchiveServer -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure).Id -join ", "
+        Write-Host "Archive servers: [ $ArchiveServerIds ]"
+        $ArchiveServerId = (Read-Host "ArchiveServerId")
+    }
+
+    Write-Host "Moving backup to archive server..."
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST "Backups/$BackupId/Archive" -Body @{
+            ArchiveServerId = $ArchiveServerId
+    }
 }
 
+<#
+.SYNOPSIS
+Get backup history on a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+This cmdlet will return information about backups that have occurred on
+the appliance. Backups that are archived are no longer stored on Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardBackupHistory
+
+.EXAMPLE
+Get-SafeguardBackupHistory -Appliance 10.5.32.54 -AccessToken $token -Insecure
+#>
 function Get-SafeguardBackupHistory
 {
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
 
+    $ErrorActionPreference = "Stop"
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET Backups
 }
-

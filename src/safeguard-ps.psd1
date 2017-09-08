@@ -95,8 +95,10 @@ FunctionsToExport = @(
     'Invoke-SafeguardApplianceShutdown','Invoke-SafeguardApplianceReboot','Invoke-SafeguardApplianceFactoryReset',
     'Get-SafeguardSupportBundle','Install-SafeguardPatch',
     'New-SafeguardBackup','Remove-SafeguardBackup','Export-SafeguardBackup','Import-SafeguardBackup',
-    'Restore-SafeguardBackup','Save-SafeguardBackupToArchive','Get-SafeguardBackupHistory'
+    'Restore-SafeguardBackup','Save-SafeguardBackupToArchive','Get-SafeguardBackupHistory',
     # diagnostics.psm1
+    # archives.psm1
+    'Get-SafeguardArchiveServer'
     )
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
