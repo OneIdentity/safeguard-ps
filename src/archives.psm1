@@ -1,3 +1,44 @@
+# Helper
+function Invoke-ArchiveServerSshHostKeyDiscovery
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$ArchiveServer,
+        [Parameter(Mandatory=$false)]
+        [object]$AcceptSshHostKey
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    Write-Host "Discovering SSH host key..."
+    $SshHostKey = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                       POST "ArchiveServers/$($ArchiveServer.Id)/DiscoverSshHostKey")
+    $ArchiveServer.SshHostKey = $SshHostKey.SshHostKey
+    if ($AcceptSshHostKey)
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            PUT "ArchiveServers/$($ArchiveServer.Id)" -Body $ArchiveServer
+    }
+    else
+    {
+        if (Show-SshHostKeyPrompt $SshHostKey.SshHostKey $SshHostKey.Fingerprint)
+        {
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                PUT "ArchiveServers/$($ArchiveServer.Id)" -Body $ArchiveServer
+        }
+        else
+        {
+            throw "SSH host key not accepted"
+        }
+    }
+}
+
 <#
 .SYNOPSIS
 Get archive servers defined in Safeguard via the Web API.
@@ -14,6 +55,9 @@ A string containing the bearer token to be used with Safeguard Web API.
 
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ArchiveServerId
+An integer containing ID of the archive server to return.
 
 .INPUTS
 None.
@@ -35,12 +79,21 @@ function Get-SafeguardArchiveServer
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [int]$ArchiveServerId = -999
     )
 
     $ErrorActionPreference = "Stop"
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET ArchiveServers
+    if ($ArchiveServerId -eq -999)
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET ArchiveServers
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "ArchiveServers/$ArchiveServerId"
+    }
 }
 
 <#
@@ -126,7 +179,7 @@ function New-SafeguardArchiveServer
         [Parameter(Mandatory=$false)]
         [string]$StoragePath,
         [Parameter(Mandatory=$true)]
-        [ValidateSet("None","Password","SshKey","DirectoryPassword","LocalHostPassword","AccessKey","AccountPassword")]
+        [ValidateSet("None","Password","SshKey","DirectoryPassword","LocalHostPassword","AccessKey","AccountPassword",IgnoreCase=$true)]
         [string]$ServiceAccountCredentialType,
         [Parameter(Mandatory=$false)]
         [string]$ServiceAccountDomainName,
@@ -193,32 +246,11 @@ function New-SafeguardArchiveServer
 
     $NewArchiveServer = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
                              POST ArchiveServers -Body $Body)
-
     try
     {
         if ($TransferProtocol -ieq "Scp" -or $TransferProtocol -ieq "Sftp")
         {
-            Write-Host "Discovering SSH host key..."
-            $SshHostKey = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-                               POST "ArchiveServers/$($NewArchiveServer.Id)/DiscoverSshHostKey")
-            $NewArchiveServer.SshHostKey = $SshHostKey.SshHostKey
-            if ($AcceptSshHostKey)
-            {
-                Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-                    PUT "ArchiveServers/$($NewArchiveServer.Id)" -Body $NewArchiveServer
-            }
-            else
-            {
-                if (Show-SshHostKeyPrompt $SshHostKey.SshHostKey $SshHostKey.Fingerprint)
-                {
-                    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-                        PUT "ArchiveServers/$($NewArchiveServer.Id)" -Body $NewArchiveServer
-                }
-                else
-                {
-                    throw "SSH host key not accepted"
-                }
-            }
+            Invoke-ArchiveServerSshHostKeyDiscovery -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $NewArchiveServer -AcceptSshHostKey:$AcceptSshHostKey
         }
         else
         {
@@ -251,7 +283,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER ArchiveServerId
-An integer containing the archive server ID to test connection to.
+An integer containing the ID of the archive server to test connection to.
 
 .INPUTS
 None.
@@ -303,7 +335,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER ArchiveServerId
-An integer containing the archive server ID to remove.
+An integer containing the ID of archive server to remove.
 
 .INPUTS
 None.
@@ -336,9 +368,164 @@ function Remove-SafeguardArchiveServer
         DELETE "ArchiveServers/$ArchiveServerId"
 }
 
-# Use parameter sets here to also allow editing the object rather than tons of individual attributes
-# Do we support partial attributes?
+<#
+.SYNOPSIS
+Get archive servers defined in Safeguard via the Web API.
+
+.DESCRIPTION
+Get the archive servers defined in Safeguard that can be used for archiving
+backups and session recordings.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER DisplayName
+A string containing the display name for this archive server. Optional, unless
+NetworkAddress is an IP address rather than a DNS name.
+
+.PARAMETER Description
+A string containing a description for this archive server.
+
+.PARAMETER NetworkAddress
+A string containing the network address for this archive server.
+
+.PARAMETER TransferProtocol
+A string containing the protocol (options: Smb, Scp, Sftp)
+
+.PARAMETER Port
+An integer containing the port for this archive server (defaults: Smb=445, Scp=22, Sftp=22)
+
+.PARAMETER StoragePath
+A string containing the path on the archive server to use for storage.
+
+.PARAMETER ServiceAccountDomainName
+A string containing the service account domain name if it has one.
+
+.PARAMETER ServiceAccountName
+A string containing the service account name.
+
+.PARAMETER ServiceAccountPassword
+A SecureString containing the password to use for the service account
+
+.PARAMETER AcceptSshHostKey
+Whether or not to auto-accept SSH host key for Scp and Sftp.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Edit-SafeguardArchiveServer -AccessToken $token -Appliance 10.5.32.54 -Insecure 10 -TransferProtocol Sftp
+
+.EXAMPLE
+Edit-SafeguardArchiveServer 10 -DisplayName "linux-ubuntu" -Description "My Linux Archive Server"
+#>
 function Edit-SafeguardArchiveServer
 {
+    [CmdletBinding(DefaultParameterSetName="Object")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$true,Position=0)]
+        [int]$ArchiveServerId,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$DisplayName,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$Description,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$NetworkAddress,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [ValidateSet("Smb","Scp","Sftp",IgnoreCase=$true)]
+        [string]$TransferProtocol,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [int]$Port,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$StoragePath,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [ValidateSet("None","Password","SshKey","DirectoryPassword","LocalHostPassword","AccessKey","AccountPassword",IgnoreCase=$true)]
+        [string]$ServiceAccountCredentialType,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$ServiceAccountDomainName,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$ServiceAccountName,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [SecureString]$ServiceAccountPassword,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [switch]$AcceptSshHostKey = $false,
+        [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
+        [object]$ArchiveServer
+    )
 
+    $ErrorActionPreference = "Stop"
+    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+
+    if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
+    {
+        $ArchiveServer = (Get-SafeguardArchiveServer -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ArchiveServerId)
+
+        # ConnectionProperties
+        if ($TransferProtocol)
+        {
+            $OldTransferProtocol = $ArchiveServer.ConnectionProperties.TransferProtocolType
+            if ($TransferProtocol -ieq "Scp" -or $TransferProtocol -ieq "Sftp")
+            {
+                if (-not ($OldTransferProtocol -ieq "Scp" -or $OldTransferProtocol -ieq "Sftp"))
+                {
+                    $DoSshHostKeyDiscovery = $true
+                }
+            }
+            else
+            {
+                $ArchiveServer.SshHostKey = $null
+            }
+            $ArchiveServer.ConnectionProperties.TransferProtocolType = "$TransferProtocol"
+        }
+        if ($Port) { $ArchiveServer.ConnectionProperties.Port = $Port }
+        if ($ServiceAccountCredentialType) { $ArchiveServer.ConnectionProperties.ServiceAccountCredentialType = "$ServiceAccountCredentialType" }
+        if ($ServiceAccountDomainName) { $ArchiveServer.ConnectionProperties.ServiceAccountDomainName = "$ServiceAccountDomainName" }
+        if ($ServiceAccountName) { $ArchiveServer.ConnectionProperties.ServiceAccountName = "$ServiceAccountName" }
+        if ($ServiceAccountPassword)
+        {
+            $ArchiveServer.ConnectionProperties.ServiceAccountName = `
+            [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($ServiceAccountPassword))
+        }
+        # Body
+        if ($DisplayName) { $ArchiveServer.Name = "$DisplayName" }
+        if ($Description) { $ArchiveServer.Description = "$Description" }
+        if ($NetworkAddress) { $ArchiveServer.NetworkAddress = "$NetworkAddress" }
+        if ($StoragePath) { $ArchiveServer.StoragePath = "$StoragePath" }
+    }
+    $ArchiveServer = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                          PUT "ArchiveServers/$($ArchiveServer.Id)" -Body $ArchiveServer)
+    try
+    {
+        if ($DoSshHostKeyDiscovery)
+        {
+            Invoke-ArchiveServerSshHostKeyDiscovery -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ArchiveServer -AcceptSshHostKey:$AcceptSshHostKey
+        }
+        else
+        {
+            $ArchiveServer
+        }
+    }
+    catch
+    {
+        Write-Host -ForegroundColor Yellow "Error setting up SSH host key, resetting to previous transfer protocol '$OldTransferProtocol'..."
+        $DoSshHostKeyDiscovery = $false
+        Edit-SafeguardArchiveServer -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ArchiveServer.Id -TransferProtocol $OldTransferProtocol
+        throw
+    }
+    
 }
