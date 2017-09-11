@@ -281,7 +281,7 @@ function Test-SafeguardArchiveServer
     $ErrorActionPreference = "Stop"
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-        POST "ArchiveServers/$ArchiveServerId/TestConnection"
+        POST "ArchiveServers/$ArchiveServerId/TestConnection" -LongRunningTask
 }
 
 <#
