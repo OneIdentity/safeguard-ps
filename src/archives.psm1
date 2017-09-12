@@ -81,12 +81,12 @@ function Get-SafeguardArchiveServer
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [int]$ArchiveServerId = -999
+        [int]$ArchiveServerId
     )
 
     $ErrorActionPreference = "Stop"
 
-    if ($ArchiveServerId -eq -999)
+    if (-not $PSBoundParameters.ContainsKey("ArchiveServerId"))
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET ArchiveServers
     }
@@ -306,11 +306,18 @@ function Test-SafeguardArchiveServer
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true,Position=0)]
+        [Parameter(Mandatory=$false,Position=0)]
         [int]$ArchiveServerId
     )
 
     $ErrorActionPreference = "Stop"
+
+    if (-not $PSBoundParameters.ContainsKey("ArchiveServerId"))
+    {
+        $ArchiveServerIds = ((Get-SafeguardArchiveServer -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure) | %{ "$($_.Id): $($_.Name)" }) -join ", "
+        Write-Host "Archive servers: [ $ArchiveServerIds ]"
+        $ArchiveServerId = (Read-Host "ArchiveServerId")
+    }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
         POST "ArchiveServers/$ArchiveServerId/TestConnection" -LongRunningTask
@@ -358,11 +365,18 @@ function Remove-SafeguardArchiveServer
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true,Position=0)]
+        [Parameter(Mandatory=$false,Position=0)]
         [int]$ArchiveServerId
     )
 
     $ErrorActionPreference = "Stop"
+
+    if (-not $PSBoundParameters.ContainsKey("ArchiveServerId"))
+    {
+        $ArchiveServerIds = ((Get-SafeguardArchiveServer -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure) | %{ "$($_.Id): $($_.Name)" }) -join ", "
+        Write-Host "Archive servers: [ $ArchiveServerIds ]"
+        $ArchiveServerId = (Read-Host "ArchiveServerId")
+    }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
         DELETE "ArchiveServers/$ArchiveServerId"
@@ -430,7 +444,7 @@ Edit-SafeguardArchiveServer 10 -DisplayName "linux-ubuntu" -Description "My Linu
 #>
 function Edit-SafeguardArchiveServer
 {
-    [CmdletBinding(DefaultParameterSetName="Object")]
+    [CmdletBinding(DefaultParameterSetName="Attributes")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -438,7 +452,7 @@ function Edit-SafeguardArchiveServer
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(ParameterSetName="Attributes",Mandatory=$true,Position=0)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false,Position=0)]
         [int]$ArchiveServerId,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$DisplayName,
@@ -471,12 +485,19 @@ function Edit-SafeguardArchiveServer
     $ErrorActionPreference = "Stop"
     Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
 
+    if (-not $PSBoundParameters.ContainsKey("ArchiveServerId"))
+    {
+        $ArchiveServerIds = ((Get-SafeguardArchiveServer -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure) | %{ "$($_.Id): $($_.Name)" }) -join ", "
+        Write-Host "Archive servers: [ $ArchiveServerIds ]"
+        $ArchiveServerId = (Read-Host "ArchiveServerId")
+    }
+
     if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
     {
         $ArchiveServer = (Get-SafeguardArchiveServer -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ArchiveServerId)
 
         # ConnectionProperties
-        if ($TransferProtocol)
+        if ($PSBoundParameters.ContainsKey("TransferProtocol"))
         {
             $OldTransferProtocol = $ArchiveServer.ConnectionProperties.TransferProtocolType
             if ($TransferProtocol -ieq "Scp" -or $TransferProtocol -ieq "Sftp")
@@ -492,20 +513,20 @@ function Edit-SafeguardArchiveServer
             }
             $ArchiveServer.ConnectionProperties.TransferProtocolType = "$TransferProtocol"
         }
-        if ($Port) { $ArchiveServer.ConnectionProperties.Port = $Port }
-        if ($ServiceAccountCredentialType) { $ArchiveServer.ConnectionProperties.ServiceAccountCredentialType = "$ServiceAccountCredentialType" }
-        if ($ServiceAccountDomainName) { $ArchiveServer.ConnectionProperties.ServiceAccountDomainName = "$ServiceAccountDomainName" }
-        if ($ServiceAccountName) { $ArchiveServer.ConnectionProperties.ServiceAccountName = "$ServiceAccountName" }
-        if ($ServiceAccountPassword)
+        if ($PSBoundParameters.ContainsKey("Port")) { $ArchiveServer.ConnectionProperties.Port = $Port }
+        if ($PSBoundParameters.ContainsKey("ServiceAccountCredentialType")) { $ArchiveServer.ConnectionProperties.ServiceAccountCredentialType = "$ServiceAccountCredentialType" }
+        if ($PSBoundParameters.ContainsKey("ServiceAccountDomainName")) { $ArchiveServer.ConnectionProperties.ServiceAccountDomainName = "$ServiceAccountDomainName" }
+        if ($PSBoundParameters.ContainsKey("ServiceAccountName")) { $ArchiveServer.ConnectionProperties.ServiceAccountName = "$ServiceAccountName" }
+        if ($PSBoundParameters.ContainsKey("ServiceAccountPassword"))
         {
             $ArchiveServer.ConnectionProperties.ServiceAccountName = `
             [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($ServiceAccountPassword))
         }
         # Body
-        if ($DisplayName) { $ArchiveServer.Name = "$DisplayName" }
-        if ($Description) { $ArchiveServer.Description = "$Description" }
-        if ($NetworkAddress) { $ArchiveServer.NetworkAddress = "$NetworkAddress" }
-        if ($StoragePath) { $ArchiveServer.StoragePath = "$StoragePath" }
+        if ($PSBoundParameters.ContainsKey("DisplayName")) { $ArchiveServer.Name = "$DisplayName" }
+        if ($PSBoundParameters.ContainsKey("Description")) { $ArchiveServer.Description = "$Description" }
+        if ($PSBoundParameters.ContainsKey("NetworkAddress")) { $ArchiveServer.NetworkAddress = "$NetworkAddress" }
+        if ($PSBoundParameters.ContainsKey("StoragePath")) { $ArchiveServer.StoragePath = "$StoragePath" }
     }
     $ArchiveServer = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
                           PUT "ArchiveServers/$($ArchiveServer.Id)" -Body $ArchiveServer)
@@ -527,5 +548,4 @@ function Edit-SafeguardArchiveServer
         Edit-SafeguardArchiveServer -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ArchiveServer.Id -TransferProtocol $OldTransferProtocol
         throw
     }
-    
 }
