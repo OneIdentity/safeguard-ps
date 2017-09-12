@@ -6,6 +6,12 @@ One Identity Safeguard Powershell module and scripting resources.
 - Connect-Safeguard
 - Disconnect-Safeguard
 - Invoke-SafeguardMethod
+### Data Types
+- Get-SafeguardIdentityProviderType
+- Get-SafeguardPlatform
+- Find-SafeguardPlatform
+- Get-SafeguardTimeZone
+- Get-SafeguardTransferProtocol
 ### Licensing
 - Install-SafeguardLicense
 - Uninstall-SafeguardLicense
@@ -47,5 +53,22 @@ One Identity Safeguard Powershell module and scripting resources.
 - Invoke-SafeguardSessionsPing
 - Invoke-SafeguardTelnet
 - Invoke-SafeguardSessionsTelnet
-### Archives (Incomplete)
+### Archive Servers
 - Get-SafeguardArchiveServer
+- New-SafeguardArchiveServer
+- Test-SafeguardArchiveServer
+- Remove-SafeguardArchiveServer
+- Edit-SafeguardArchiveServer
+### Access Requests
+- Get-SafeguardAccessRequest
+- Find-SafeguardAccessRequest
+- New-SafeguardAccessRequest
+- Edit-SafeguardAccessRequest
+- Get-SafeguardActionableRequest
+- Get-SafeguardRequestableAccount
+- Find-SafeguardRequestableAccount
+### Assets (Incomplete)
+- Get-SafeguardAsset
+- Find-SafeguardAsset
+- New-SafeguardAsset
+
