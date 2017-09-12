@@ -74,7 +74,9 @@ NestedModules = @(
     'desktopclient.psm1',
     'maintenance.psm1',
     'diagnostics.psm1',
-    'archives.psm1'
+    'archives.psm1',
+    'requests.psm1',
+    'assets.psm1'
     )
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
@@ -91,7 +93,7 @@ FunctionsToExport = @(
     'Install-SafeguardTrustedCertificate','Uninstall-SafeguardTrustedCertificate','Get-SafeguardTrustedCertificate',
     'Install-SafeguardSslCertificate','Uninstall-SafeguardSslCertificate','Get-SafeguardSslCertificate',
     'Set-SafeguardSslCertificateForAppliance','Clear-SafeguardSslCertificateForAppliance','Get-SafeguardSslCertificateForAppliance',
-    'New-SafeguardTestCertificates',
+    'New-SafeguardTestCertificatePki',
     # desktopclient.psm1
     'Install-SafeguardDesktopClient',
     # maintenance.psm1
@@ -105,7 +107,12 @@ FunctionsToExport = @(
     'Invoke-SafeguardPing','Invoke-SafeguardSessionsPing','Invoke-SafeguardTelnet','Invoke-SafeguardSessionsTelnet',
     # archives.psm1
     'Get-SafeguardArchiveServer','New-SafeguardArchiveServer','Test-SafeguardArchiveServer',
-    'Remove-SafeguardArchiveServer','Edit-SafeguardArchiveServer'
+    'Remove-SafeguardArchiveServer','Edit-SafeguardArchiveServer',
+    # requests.psm1
+    'Get-SafeguardAccessRequest','Find-SafeguardAccessRequest','New-SafeguardAccessRequest','Edit-SafeguardAccessRequest'
+    'Get-SafeguardActionableRequest','Get-SafeguardRequestableAccount','Find-SafeguardRequestableAccount',
+    # assets.psm1
+    'Get-SafeguardAsset','Find-SafeguardAsset','New-SafeguardAsset'
     )
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.

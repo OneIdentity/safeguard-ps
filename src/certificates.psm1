@@ -652,7 +652,7 @@ New-SafeguardTestCertificates -SubjectBaseDn "OU=petrsnd,O=OneIdentityInc,C=US"
 .EXAMPLE
 New-SafeguardTestCertificates 
 #>
-function New-SafeguardTestCertificates
+function New-SafeguardTestCertificatePki
 {
     Param(
         [Parameter(Mandatory=$true)]
