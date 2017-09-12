@@ -11,7 +11,7 @@
 RootModule = 'safeguard-ps.psm1'
 
 # Version number of this module.
-ModuleVersion = '1.0'
+ModuleVersion = '2.1.0'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -32,7 +32,7 @@ Copyright = '(c) 2017 One Identity LLC. All rights reserved.'
 Description = 'Scripting tools for interacting with the One Identity Safeguard API.'
 
 # Minimum version of the Windows PowerShell engine required by this module
-PowerShellVersion = '3.0'
+PowerShellVersion = '5.0'
 
 # Name of the Windows PowerShell host required by this module
 # PowerShellHostName = ''
@@ -68,12 +68,15 @@ PowerShellVersion = '3.0'
 NestedModules = @(
     'sslhandling.psm1',
     'ps-utilities.psm1',
+    'datatypes.psm1',
     'licensing.psm1',
     'certificates.psm1',
     'desktopclient.psm1',
     'maintenance.psm1',
     'diagnostics.psm1',
-    'archives.psm1'
+    'archives.psm1',
+    'requests.psm1',
+    'assets.psm1'
     )
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
@@ -82,13 +85,15 @@ FunctionsToExport = @(
     # ps-utilities.psm1 is just a helper module -- no functions exported
     # safeguard-ps.psm1
     'Connect-Safeguard','Disconnect-Safeguard','Invoke-SafeguardMethod',
+    # datatypes.psm1
+    'Get-SafeguardIdentityProviderType','Get-SafeguardPlatform','Find-SafeguardPlatform','Get-SafeguardTimeZone','Get-SafeguardTransferProtocol',
     # licensing.psm1
     'Install-SafeguardLicense','Uninstall-SafeguardLicense','Get-SafeguardLicense',
     # certificates.psm1
     'Install-SafeguardTrustedCertificate','Uninstall-SafeguardTrustedCertificate','Get-SafeguardTrustedCertificate',
     'Install-SafeguardSslCertificate','Uninstall-SafeguardSslCertificate','Get-SafeguardSslCertificate',
     'Set-SafeguardSslCertificateForAppliance','Clear-SafeguardSslCertificateForAppliance','Get-SafeguardSslCertificateForAppliance',
-    'New-SafeguardTestCertificates',
+    'New-SafeguardTestCertificatePki',
     # desktopclient.psm1
     'Install-SafeguardDesktopClient',
     # maintenance.psm1
@@ -101,7 +106,13 @@ FunctionsToExport = @(
     # diagnostics.psm1
     'Invoke-SafeguardPing','Invoke-SafeguardSessionsPing','Invoke-SafeguardTelnet','Invoke-SafeguardSessionsTelnet',
     # archives.psm1
-    'Get-SafeguardArchiveServer'
+    'Get-SafeguardArchiveServer','New-SafeguardArchiveServer','Test-SafeguardArchiveServer',
+    'Remove-SafeguardArchiveServer','Edit-SafeguardArchiveServer',
+    # requests.psm1
+    'Get-SafeguardAccessRequest','Find-SafeguardAccessRequest','New-SafeguardAccessRequest','Edit-SafeguardAccessRequest'
+    'Get-SafeguardActionableRequest','Get-SafeguardRequestableAccount','Find-SafeguardRequestableAccount',
+    # assets.psm1
+    'Get-SafeguardAsset','Find-SafeguardAsset','New-SafeguardAsset'
     )
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.

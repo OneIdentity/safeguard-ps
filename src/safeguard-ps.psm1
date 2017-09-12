@@ -15,20 +15,98 @@ function New-SafeguardUrl
     }
     $Url
 }
+function Wait-LongRunningTask
+{
+    Param(
+        [Parameter(Mandatory=$true)]
+        [object]$Response,
+        [Parameter(Mandatory=$true)]
+        [int]$Timeout
+    )
+
+    if (-not $Response.Headers.Location)
+    {
+        throw "Trying to track long running task, but response did not include a Location header"
+    }
+
+    $StartTime = (Get-Date)
+    $TaskResult = $null
+    $TaskToPoll = $Response.Headers.Location
+    do {
+        $TaskResponse = (Invoke-RestMethod -Method GET -Headers $Headers -Uri $TaskToPoll)
+        if (-not $TaskResponse.RequestStatus)
+        {
+            throw "Trying to track long running task, but Location URL did not return a long running task"
+        }
+        $TaskStatus = $TaskResponse.RequestStatus
+        if ($TaskStatus.PercentComplete -eq 100)
+        {
+            Write-Progress -Activity "Waiting for long-running task" -Status "Step: $($TaskStatus.Message)" -PercentComplete $TaskStatus.PercentComplete
+            $TaskResult = $TaskStatus.Message
+        }
+        else
+        {
+            $Percent = 0
+            if ($TaskStatus.PercentComplete)
+            {
+                $Percent = $TaskStatus.PercentComplete
+            }
+            Write-Progress -Activity "Waiting for long-running task" -Status "Step: $($TaskStatus.Message)" -PercentComplete $Percent
+            if ((((Get-Date) - $StartTime).Seconds) -gt $Timeout)
+            {
+                throw "Timed out waiting for long-running task, timeout was $Timeout seconds"
+            }
+        }
+        Start-Sleep 1
+    } until ($TaskResult)
+    if ($TaskStatus.State -ieq "Failure")
+    {
+        throw $TaskResult
+    }
+    $TaskResult
+}
 function Invoke-WithoutBody
 {
     if ($InFile)
     {
-        Invoke-RestMethod -Method $Method -Headers $Headers -Uri (New-SafeguardUrl) -InFile $InFile -OutFile $OutFile -TimeoutSec $Timeout
+        if ($LongRunningTask)
+        {
+            $Response = (Invoke-WebRequest -Method $Method -Headers $Headers -Uri (New-SafeguardUrl) `
+                             -InFile $InFile -OutFile $OutFile -TimeoutSec $Timeout)
+            Wait-LongRunningTask $Response $Timeout
+        }
+        else
+        {
+            Invoke-RestMethod -Method $Method -Headers $Headers -Uri (New-SafeguardUrl) -InFile $InFile -OutFile $OutFile -TimeoutSec $Timeout
+        }
     }
     else
     {
-        Invoke-RestMethod -Method $Method -Headers $Headers -Uri (New-SafeguardUrl) -OutFile $OutFile -TimeoutSec $Timeout
+        if ($LongRunningTask)
+        {
+            $Response = $(Invoke-RestMethod -Method $Method -Headers $Headers -Uri (New-SafeguardUrl) `
+                              -OutFile $OutFile -TimeoutSec $Timeout)
+            Wait-LongRunningTask $Response $Timeout
+        }
+        else
+        {
+            Invoke-RestMethod -Method $Method -Headers $Headers -Uri (New-SafeguardUrl) -OutFile $OutFile -TimeoutSec $Timeout
+        }
     }
 }
 function Invoke-WithBody
 {
-    Invoke-RestMethod -Method $Method -Headers $Headers -Uri (New-SafeguardUrl) -Body (ConvertTo-Json -InputObject $Body) -OutFile $OutFile -TimeoutSec $Timeout
+    if ($LongRunningTask)
+    {
+        $Response = (Invoke-WebRequest -Method $Method -Headers $Headers -Uri (New-SafeguardUrl) `
+                         -Body (ConvertTo-Json -InputObject $Body) -OutFile $OutFile -TimeoutSec $Timeout)
+        Wait-LongRunningTask $Response $Timeout
+    }
+    else
+    {
+        Invoke-RestMethod -Method $Method -Headers $Headers -Uri (New-SafeguardUrl) -Body (ConvertTo-Json -InputObject $Body) `
+            -OutFile $OutFile -TimeoutSec $Timeout
+    }
 }
 
 <#
@@ -387,6 +465,9 @@ A file to read for the body of a POST or PUT request.
 .PARAMETER Timeout
 A timeout value in seconds (default: 300s or 5m)
 
+.PARAMETER LongRunningTask
+A switch to specify that this method call should be handled synchronously as a long-running task.
+
 .INPUTS
 None.
 
@@ -449,7 +530,9 @@ function Invoke-SafeguardMethod
         [Parameter(Mandatory=$false)]
         [string]$InFile = $null,
         [Parameter(Mandatory=$false)]
-        [int]$Timeout = 300
+        [int]$Timeout = 300,
+        [Parameter(Mandatory=$false)]
+        [switch]$LongRunningTask
     )
 
     $ErrorActionPreference = "Stop"

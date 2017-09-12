@@ -903,7 +903,7 @@ function Remove-SafeguardBackup
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,Position=0)]
         [string]$BackupId
     )
 
@@ -1228,7 +1228,7 @@ function Restore-SafeguardBackup
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,Position=0)]
         [string]$BackupId
     )
 
@@ -1278,7 +1278,7 @@ JSON response from Safeguard Web API.
 Save-SafeguardBackupToArchive -BackupId "c6f9a3b4-7a75-406d-ba5a-830e44c1c94d"
 
 .EXAMPLE
-Save-SafeguardBackupToArchive -Appliance 10.5.32.54 -AccessToken $token -Insecure
+Save-SafeguardBackupToArchive -Appliance 10.5.32.54 -AccessToken $token -Insecure "c6f9a3b4-7a75-406d-ba5a-830e44c1c94d" 12
 #>
 function Save-SafeguardBackupToArchive
 {
@@ -1289,9 +1289,9 @@ function Save-SafeguardBackupToArchive
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,Position=0)]
         [string]$BackupId,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,Position=1)]
         [int]$ArchiveServerId
     )
 
@@ -1319,7 +1319,7 @@ function Save-SafeguardBackupToArchive
 
 <#
 .SYNOPSIS
-Get backup history on a Safeguard appliance via the Web API.
+Get backups on a Safeguard appliance via the Web API.
 
 .DESCRIPTION
 This cmdlet will return information about backups that have occurred on
@@ -1341,7 +1341,7 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardBackup
+Get-SafeguardBackup "c6f9a3b4-7a75-406d-ba5a-830e44c1c94d"
 
 .EXAMPLE
 Get-SafeguardBackup -Appliance 10.5.32.54 -AccessToken $token -Insecure
@@ -1354,10 +1354,20 @@ function Get-SafeguardBackup
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [string]$BackupId
     )
 
     $ErrorActionPreference = "Stop"
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET Backups
+    if ($BackupId)
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET "Backups/$BackupId"
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET Backups
+    }
+    
 }

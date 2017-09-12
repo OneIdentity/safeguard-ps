@@ -25,6 +25,22 @@ function Get-Confirmation
     }
 }
 
+function Show-SshHostKeyPrompt
+{
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$PublicKey,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$Fingerprint
+    )
+    Write-Host "SSH Host Key:"
+    Write-Host "$PublicKey"
+    Write-Host "Fingerprint:"
+    Write-Host "$Fingerprint"
+    Get-Confirmation "SSH Host Key" "Would you like to accept this SSH host key?" `
+        "Accept SSH host key and add complete operation." "Deny SSH host key and revert operation."
+}
+
 function Add-ExWebClientExType
 {
     if (-not ([System.Management.Automation.PSTypeName]"Ex.WebClientEx").Type)
@@ -53,4 +69,14 @@ namespace Ex
 }
 "@
     }
+}
+
+function Test-IpAddress
+{
+    Param(
+        [Parameter(Mandatory=$true)]
+        [string]$IpAddress
+    )
+
+    [bool]($IpAddress -as [IPAddress])
 }
