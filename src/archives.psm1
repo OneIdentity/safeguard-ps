@@ -384,10 +384,10 @@ function Remove-SafeguardArchiveServer
 
 <#
 .SYNOPSIS
-Get archive servers defined in Safeguard via the Web API.
+Get archive servers that have been added to Safeguard via the Web API.
 
 .DESCRIPTION
-Get the archive servers defined in Safeguard that can be used for archiving
+Get archive servers in Safeguard that can be used for archiving
 backups and session recordings.
 
 .PARAMETER Appliance

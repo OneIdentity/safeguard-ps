@@ -68,6 +68,7 @@ PowerShellVersion = '5.0'
 NestedModules = @(
     'sslhandling.psm1',
     'ps-utilities.psm1',
+    'datatypes.psm1',
     'licensing.psm1',
     'certificates.psm1',
     'desktopclient.psm1',
@@ -82,6 +83,8 @@ FunctionsToExport = @(
     # ps-utilities.psm1 is just a helper module -- no functions exported
     # safeguard-ps.psm1
     'Connect-Safeguard','Disconnect-Safeguard','Invoke-SafeguardMethod',
+    # datatypes.psm1
+    'Get-SafeguardIdentityProviderType','Get-SafeguardPlatform','Find-SafeguardPlatform','Get-SafeguardTimeZone','Get-SafeguardTransferProtocol',
     # licensing.psm1
     'Install-SafeguardLicense','Uninstall-SafeguardLicense','Get-SafeguardLicense',
     # certificates.psm1
