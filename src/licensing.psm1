@@ -19,6 +19,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER LicenseFile
 A string containing the path to a Safeguard license file.
 
+.PARAMETER StageOnly
+A flag meaning to only stage the license, not installed it (only works with -LicenseFile)
+
 .PARAMETER Key
 A string containing the license key (e.g. 123-123-123)
 
@@ -46,6 +49,8 @@ function Install-SafeguardLicense
         [switch]$Insecure,
         [Parameter(ParameterSetName="File",Mandatory=$true,Position=0)]
         [string]$LicenseFile,
+        [Parameter(ParameterSetName="File",Mandatory=$false)]
+        [switch]$StageOnly,
         [Parameter(ParameterSetName="Key",Mandatory=$true)]
         [string]$Key
     )
@@ -56,18 +61,28 @@ function Install-SafeguardLicense
     {
         $local:LicenseContents = (Get-Content $LicenseFile)
         $local:LicenseBase64 = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($local:LicenseContents))
-        
         Write-Host "Uploading license file..."
         $local:StagedLicense = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Licenses -Body @{
                 Base64Data = "$($local:LicenseBase64)" 
             })
-        $Key = ($local:StagedLicense.Key)
+
+        if ($StageOnly)
+        {
+            $local:StagedLicense
+        }
+        else
+        {
+            $Key = ($local:StagedLicense.Key)
+        }
     }
 
-    try 
+    try
     {
-        Write-Host "Installing license with key '$Key'..."
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Licenses/$Key/Install"
+        if (-not $StageOnly)
+        {
+            Write-Host "Installing license with key '$Key'..."
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Licenses/$Key/Install"
+        }
     }
     catch
     {
