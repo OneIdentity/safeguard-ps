@@ -19,6 +19,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER LicenseFile
 A string containing the path to a Safeguard license file.
 
+.PARAMETER Key
+A string containing the license key (e.g. 123-123-123)
+
 .INPUTS
 None.
 
@@ -33,6 +36,7 @@ Install-SafeguardLicense C:\license.dlv
 #>
 function Install-SafeguardLicense
 {
+    [CmdletBinding(DefaultParameterSetName="File")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -40,23 +44,40 @@ function Install-SafeguardLicense
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true,Position=0)]
-        [string]$LicenseFile
+        [Parameter(ParameterSetName="File",Mandatory=$true,Position=0)]
+        [string]$LicenseFile,
+        [Parameter(ParameterSetName="Key",Mandatory=$true)]
+        [string]$Key
     )
 
     $ErrorActionPreference = "Stop"
 
-    $LicenseContents = (Get-Content $LicenseFile)
-    $LicenseBase64 = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($LicenseContents))
-    
-    Write-Host "Uploading License File..."
-    $StagedLicense = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Licenses -Body @{
-            Base64Data = "$LicenseBase64" 
-        })
-    $StagedLicense
+    if ($PSBoundParameters.ContainsKey("LicenseFile"))
+    {
+        $local:LicenseContents = (Get-Content $LicenseFile)
+        $local:LicenseBase64 = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($local:LicenseContents))
+        
+        Write-Host "Uploading license file..."
+        $local:StagedLicense = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Licenses -Body @{
+                Base64Data = "$($local:LicenseBase64)" 
+            })
+        $Key = ($local:StagedLicense.Key)
+    }
 
-    Write-Host "Installing License $($StagedLicense.Key)..."
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Licenses/$($StagedLicense.Key)/Install"
+    try 
+    {
+        Write-Host "Installing license with key '$Key'..."
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Licenses/$Key/Install"
+    }
+    catch
+    {
+        if ($PSBoundParameters.ContainsKey("LicenseFile"))
+        {
+            Write-Host "License was only staged..."
+            $local:StagedLicense
+        }
+        throw
+    }
 }
 
 <#
@@ -107,12 +128,13 @@ function Uninstall-SafeguardLicense
 
     $ErrorActionPreference = "Stop"
 
-    if (-not $Key)
+    if (-not $PSBoundParameters.ContainsKey("Key"))
     {
         $CurrentKeys = (Get-SafeguardLicense -AccessToken $AccessToken -Appliance $Appliance).Key -join ", "
         Write-Host "Currently Installed Licenses: [ $CurrentKeys ]"
         $Key = (Read-Host "Key")
     }
+    Write-Host "Removing license with key '$Key'..."
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Licenses/$Key"
 }
 
@@ -150,10 +172,19 @@ function Get-SafeguardLicense
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [string]$Key
     )
 
     $ErrorActionPreference = "Stop"
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Licenses
+    if ($PSBoundParameters.ContainsKey("Key"))
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Licenses/$Key"
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Licenses
+    }
 }
