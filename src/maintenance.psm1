@@ -1306,7 +1306,7 @@ function Save-SafeguardBackupToArchive
 
     if (-not $ArchiveServerId)
     {
-        $ArchiveServerIds = (Get-SafeguardArchiveServer -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure).Id -join ", "
+        $ArchiveServerIds = ((Get-SafeguardArchiveServer -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure) | %{ "$($_.Id): $($_.Name)" }) -join ", "
         Write-Host "Archive servers: [ $ArchiveServerIds ]"
         $ArchiveServerId = (Read-Host "ArchiveServerId")
     }

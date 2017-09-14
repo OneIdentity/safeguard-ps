@@ -76,6 +76,7 @@ NestedModules = @(
     'diagnostics.psm1',
     'archives.psm1',
     'requests.psm1',
+    'users.psm1',
     'assets.psm1'
     )
 
@@ -111,6 +112,9 @@ FunctionsToExport = @(
     # requests.psm1
     'Get-SafeguardAccessRequest','Find-SafeguardAccessRequest','New-SafeguardAccessRequest','Edit-SafeguardAccessRequest'
     'Get-SafeguardActionableRequest','Get-SafeguardRequestableAccount','Find-SafeguardRequestableAccount',
+    # users.psm1
+    'Get-SafeguardIdentityProvider',
+    'Get-SafeguardUser','Find-SafeguardUser','New-SafeguardUser','Remove-SafeguardUser','Set-SafeguardUserPassword',
     # assets.psm1
     'Get-SafeguardAsset','Find-SafeguardAsset','New-SafeguardAsset'
     )

@@ -46,7 +46,7 @@ function Get-SafeguardAccessRequest
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance Insecure:$Insecure Core GET "AccessRequests"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AccessRequests"
     }
 }
 
@@ -91,7 +91,7 @@ function Find-SafeguardAccessRequest
 
     $ErrorActionPreference = "Stop"
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance Insecure:$Insecure Core GET "AccessRequests" `
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AccessRequests" `
         -Parameters @{ q = $SearchString }
 }
 

@@ -20,7 +20,7 @@ function Get-SafeguardAsset
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance Insecure:$Insecure Core GET "Assets"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Assets"
     }
 }
 
@@ -40,7 +40,7 @@ function Find-SafeguardAsset
 
     $ErrorActionPreference = "Stop"
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance Insecure:$Insecure Core GET "Assets" `
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Assets" `
         -Parameters @{ q = $SearchString }
 }
 
@@ -78,6 +78,8 @@ function New-SafeguardAsset
             $DisplayName = $NetworkAddress
         }
     }
+
+    # TODO: Platform Id
 
     $ConnectionProperties = @{
         Port = $Port
