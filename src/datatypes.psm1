@@ -1,3 +1,83 @@
+# Helpers (also imported locally and used in other modules)
+function Resolve-SafeguardPlatform
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Platform
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    while (-not $($Platform -as [int]))
+    {
+        Write-Host "Searching for platforms with '$Platform'"
+        $local:Platforms = @(Find-SafeguardPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure "$Platform")
+        if (-not $local:Platforms)
+        {
+            throw "Unable to find platform matching '$Platform'..."
+        }
+        if ($local:Platforms.Count -ne 1)
+        {
+            Write-Host "Found $($local:Platforms.Count) platforms matching '$Platform':"
+            Write-Host "["
+            $local:Platforms | ForEach-Object {
+                Write-Host ("    {0,3} - {1}" -f $_.Id,$_.DisplayName)
+            }
+            Write-Host "]"
+            $Platform = (Read-Host "Enter platform ID or search string")
+        }
+        else
+        {
+            $Platform = $local:Platforms[0].Id
+        }
+    }
+    $Platform
+}
+function Resolve-SafeguardServiceAccountCredentialType
+{
+    Param(
+        [switch]$IsNew
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    $local:CredentialTypes = @(
+        @{ Name = "None"; Description = "No service account" },
+        @{ Name = "Password"; Description = "User name and password" },
+        @{ Name = "SshKey"; Description = "SSH public key authentication" },
+        @{ Name = "DirectoryPassword"; Description = "Existing directory account and password" },
+        @{ Name = "LocalHostPassword"; Description = "Local host-based password" },
+        @{ Name = "AccessKey"; Description = "API access key" }
+    )
+    if ($IsNew)
+    {
+        $local:CredentialTypes += @{ Name = "AccountPassword"; Description = "Use an existing account" }
+    }
+    do
+    {
+        Write-Host "Service account credential types:"
+        Write-Host "["
+        $local:i = 0
+        $local:CredentialTypes | ForEach-Object {
+            Write-Host ("    ({0}) - {1}" -f $local:i,$_.Description)
+            $local:i += 1
+        }
+        Write-Host "]"
+        $local:i = (Read-Host "Select option (0-$($local:CredentialTypes.Count - 1))")
+        if (($local:i -as [int]) -ge 0 -and ($local:i -as [int]) -lt $local:CredentialTypes.Count)
+        {
+            $local:Selection = $local:CredentialTypes[$local:i]
+        }
+    } until ($local:Selection)
+    $local:Selection.Name
+}
+
 <#
 .SYNOPSIS
 Get the identity provider types defined in Safeguard via the Web API.
@@ -72,8 +152,8 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
-.PARAMETER Id
-A integer containing the platform ID.
+.PARAMETER Platform
+A string with the platform name or an integer containing the platform ID.
 
 .INPUTS
 None.
@@ -97,14 +177,16 @@ function Get-SafeguardPlatform
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [int]$Id
+        [object]$Platform
     )
 
     $ErrorActionPreference = "Stop"
 
-    if ($PSBoundParameters.ContainsKey("Id"))
+
+    if ($PSBoundParameters.ContainsKey("Platform"))
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Platforms/$Id"
+        $local:PlatformId = (Resolve-SafeguardPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Platform)
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Platforms/$($local:PlatformId)"
     }
     else
     {
@@ -139,10 +221,10 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardPlatform -AccessToken $token -Appliance 10.5.32.54 -Insecure
+Find-SafeguardPlatform -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
-Get-SafeguardPlatform
+Find-SafeguardPlatform
 #>
 function Find-SafeguardPlatform
 {
@@ -157,8 +239,21 @@ function Find-SafeguardPlatform
         [string]$SearchString
     )
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
-        -Parameters @{ q = $SearchString }
+    $ErrorActionPreference = "Stop"
+
+    try
+    {
+        $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
+                                -Parameters @{ filter = "DisplayName ieq '$SearchString' or Name ieq '$SearchString'" })
+    }
+    catch
+    {}
+    if (-not $local:Platforms)
+    {
+        $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
+                                -Parameters @{ q = "$SearchString" })
+    }
+    $local:Platforms
 }
 
 <#

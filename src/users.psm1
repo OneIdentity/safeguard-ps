@@ -2,6 +2,12 @@
 function Resolve-SafeguardUser
 {
     Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$User
     )
@@ -10,12 +16,17 @@ function Resolve-SafeguardUser
 
     if (-not ($User -as [int]))
     {
-        $UserId = (Find-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $User)[0].Id
-        if (-not $UserId)
+        $local:Users = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
+                              -Parameters @{ filter = "UserName ieq '$User'" })
+        if (-not $local:Users)
         {
             throw "Unable to find user matching '$User'"
         }
-        $UserId
+        if ($local:Users.Count -ne 1)
+        {
+            throw "Found $($local:Users.Count) users matching '$User'"
+        }
+        $local:Users[0].Id
     }
     else
     {
@@ -46,7 +57,7 @@ function Get-SafeguardIdentityProvider
         else
         {
             Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
-                -Parameters @{ q = $Provider }
+                -Parameters @{ filter = "Name ieq '$Provider'" }
         }
     }
     else
@@ -73,7 +84,7 @@ function Get-SafeguardUser
 
     if ($PSBoundParameters.ContainsKey("User"))
     {
-        $UserId = Resolve-SafeguardUser $User
+        $UserId = Resolve-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $User
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Users/$UserId"
     }
     else
@@ -117,32 +128,36 @@ function New-SafeguardUser
         [Parameter(Mandatory=$true,Position=1)]
         [string]$NewUserName,
         [Parameter(Mandatory=$false)]
-        [string]$FirstName,
+        [string]$FirstName = $null,
         [Parameter(Mandatory=$false)]
-        [string]$LastName,
+        [string]$LastName = $null,
         [Parameter(Mandatory=$false)]
-        [string]$Description,
+        [string]$Description = $null,
         [Parameter(Mandatory=$false)]
-        [string]$EmailAddress,
+        [string]$EmailAddress = $null,
         [Parameter(Mandatory=$false)]
-        [string]$WorkPhone,
+        [string]$WorkPhone = $null,
         [Parameter(Mandatory=$false)]
-        [string]$MobilePhone,
+        [string]$MobilePhone = $null,
         [Parameter(Mandatory=$false)]
-        [ValidateSet('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')]
-        [string[]]$AdminRoles
+        [ValidateSet('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin','All',IgnoreCase=$true)]
+        [string[]]$AdminRoles = $null
     )
 
     $ErrorActionPreference = "Stop"
 
-    $AllProviders = (Get-SafeguardIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
-    $ProviderIds = ($AllProviders | ForEach-Object{ "$($_.Id): $($_.Name)" }) -join ", "
-    $LocalProviderId = ($AllProviders | Where-Object { $_.Name -eq "Local" }).Id
-    $CertificateProviderId = ($AllProviders | Where-Object { $_.Name -eq "Certificate" }).Id
+    $local:AllProviders = (Get-SafeguardIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
+    $local:LocalProviderId = ($AllProviders | Where-Object { $_.Name -eq "Local" }).Id
+    $local:CertificateProviderId = ($AllProviders | Where-Object { $_.Name -eq "Certificate" }).Id
     if (-not $PSBoundParameters.ContainsKey("Provider"))
     {
-        Write-Host "Identity providers: [ $ProviderIds ]"
-        $Provider = (Read-Host "Provider")
+        Write-Host "Identity providers:"
+        Write-Host "["
+        $local:AllProviders | ForEach-Object {
+            Write-Host ("    {0,3} - {1}" -f $_.Id,$_.Name)
+        }
+        Write-Host "]"
+        $Provider = (Read-Host "Select an identity provider")
     }
     if (-not ($Provider -as [int]))
     {
@@ -154,19 +169,25 @@ function New-SafeguardUser
         $Provider = $ProviderResolved
     }
 
+    if ($AdminRoles -contains "All")
+    {
+        $AdminRoles = @('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
+    }
+
     if ($Provider -eq $LocalProviderId -or $Provider -eq $CertificateProviderId)
     {
-        $NewUser = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Users -Body @{
+        $Body = @{
             PrimaryAuthenticationProviderId = $Provider;
             UserName = $NewUserName;
-            FirstName = $FirstName;
-            LastName = $LastName;
-            Description = $Description;
-            EmailAddress = $EmailAddress;
-            WorkPhone = $WorkPhone;
-            MobilePhone = $MobilePhone;
             AdminRoles = $AdminRoles
-        })
+        }
+        if ($PSBoundParameters.ContainsKey("FirstName")) { $Body["FirstName"] = $FirstName }
+        if ($PSBoundParameters.ContainsKey("LastName")) { $Body["LastName"] = $LastName }
+        if ($PSBoundParameters.ContainsKey("Description")) { $Body["Description"] = $Description }
+        if ($PSBoundParameters.ContainsKey("EmailAddress")) { $Body["EmailAddress"] = $EmailAddress }
+        if ($PSBoundParameters.ContainsKey("WorkPhone")) { $Body["WorkPhone"] = $WorkPhone }
+        if ($PSBoundParameters.ContainsKey("MobilePhone")) { $Body["MobilePhone"] = $MobilePhone }
+        $NewUser = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Users -Body $Body)
         if ($Provider = $LocalProviderId)
         {
             Write-Host "Setting password for new user..."
@@ -205,7 +226,7 @@ function Remove-SafeguardUser
         $User = (Read-Host "User to delete")
 
     }
-    $UserId = Resolve-SafeguardUser $User
+    $UserId = Resolve-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $User
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Users/$UserId"
 }
@@ -232,7 +253,7 @@ function Set-SafeguardUserPassword
         $User = (Read-Host "User to delete")
 
     }
-    $UserId = Resolve-SafeguardUser $User
+    $UserId = Resolve-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $User
     if (-not $PSBoundParameters.ContainsKey("Password"))
     { 
         $Password = (Read-Host "Password" -AsSecureString)
