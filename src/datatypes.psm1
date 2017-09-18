@@ -41,24 +41,17 @@ function Resolve-SafeguardPlatform
 }
 function Resolve-SafeguardServiceAccountCredentialType
 {
-    Param(
-        [switch]$IsNew
-    )
-
     $ErrorActionPreference = "Stop"
 
     $local:CredentialTypes = @(
         @{ Name = "None"; Description = "No service account" },
-        @{ Name = "Password"; Description = "User name and password" },
+        @{ Name = "Password"; Description = "User name and password--either new or existing user" },
         @{ Name = "SshKey"; Description = "SSH public key authentication" },
-        @{ Name = "DirectoryPassword"; Description = "Existing directory account and password" },
-        @{ Name = "LocalHostPassword"; Description = "Local host-based password" },
-        @{ Name = "AccessKey"; Description = "API access key" }
+        @{ Name = "DirectoryPassword"; Description = "Existing directory account under management" },
+        @{ Name = "LocalHostPassword"; Description = "Existing asset account from asset where application is hosted" },
+        @{ Name = "AccessKey"; Description = "User name and API access key (for AWS, etc.)" },
+        @{ Name = "AccountPassword"; Description = "Use target account password (for web accounts--Twitter,Facebook,etc.)" }
     )
-    if ($IsNew)
-    {
-        $local:CredentialTypes += @{ Name = "AccountPassword"; Description = "Use an existing account" }
-    }
     do
     {
         Write-Host "Service account credential types:"

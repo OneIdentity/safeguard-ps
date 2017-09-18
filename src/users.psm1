@@ -1,5 +1,5 @@
 # Helper
-function Resolve-SafeguardUser
+function Resolve-SafeguardUserId
 {
     Param(
         [Parameter(Mandatory=$false)]
@@ -84,7 +84,7 @@ function Get-SafeguardUser
 
     if ($PSBoundParameters.ContainsKey("User"))
     {
-        $UserId = Resolve-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $User
+        $UserId = Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $User
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Users/$UserId"
     }
     else
@@ -226,7 +226,7 @@ function Remove-SafeguardUser
         $User = (Read-Host "User to delete")
 
     }
-    $UserId = Resolve-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $User
+    $UserId = Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $User
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Users/$UserId"
 }
@@ -253,7 +253,7 @@ function Set-SafeguardUserPassword
         $User = (Read-Host "User to delete")
 
     }
-    $UserId = Resolve-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $User
+    $UserId = Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $User
     if (-not $PSBoundParameters.ContainsKey("Password"))
     { 
         $Password = (Read-Host "Password" -AsSecureString)

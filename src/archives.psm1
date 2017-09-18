@@ -98,10 +98,10 @@ function Get-SafeguardArchiveServer
 
 <#
 .SYNOPSIS
-Get archive servers defined in Safeguard via the Web API.
+Create a new archive server in Safeguard via the Web API.
 
 .DESCRIPTION
-Get the archive servers defined in Safeguard that can be used for archiving
+Create an archive server in Safeguard that can be used for archiving
 backups and session recordings.
 
 .PARAMETER Appliance
@@ -314,8 +314,13 @@ function Test-SafeguardArchiveServer
 
     if (-not $PSBoundParameters.ContainsKey("ArchiveServerId"))
     {
-        $ArchiveServerIds = ((Get-SafeguardArchiveServer -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure) | %{ "$($_.Id): $($_.Name)" }) -join ", "
-        Write-Host "Archive servers: [ $ArchiveServerIds ]"
+        $local:AllArchiveServers = (Get-SafeguardArchiveServer -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
+        Write-Host "Archive servers:"
+        Write-Host "["
+        $local:AllArchiveServers | ForEach-Object {
+            Write-Host ("    {0,2} - {1}" -f $_.Id,$_.Name)
+        }
+        Write-Host "]"
         $ArchiveServerId = (Read-Host "ArchiveServerId")
     }
 
@@ -373,8 +378,13 @@ function Remove-SafeguardArchiveServer
 
     if (-not $PSBoundParameters.ContainsKey("ArchiveServerId"))
     {
-        $ArchiveServerIds = ((Get-SafeguardArchiveServer -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure) | %{ "$($_.Id): $($_.Name)" }) -join ", "
-        Write-Host "Archive servers: [ $ArchiveServerIds ]"
+        $local:AllArchiveServers = (Get-SafeguardArchiveServer -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
+        Write-Host "Archive servers:"
+        Write-Host "["
+        $local:AllArchiveServers | ForEach-Object {
+            Write-Host ("    {0,2} - {1}" -f $_.Id,$_.Name)
+        }
+        Write-Host "]"
         $ArchiveServerId = (Read-Host "ArchiveServerId")
     }
 
@@ -487,8 +497,13 @@ function Edit-SafeguardArchiveServer
 
     if (-not $PSBoundParameters.ContainsKey("ArchiveServerId"))
     {
-        $ArchiveServerIds = ((Get-SafeguardArchiveServer -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure) | %{ "$($_.Id): $($_.Name)" }) -join ", "
-        Write-Host "Archive servers: [ $ArchiveServerIds ]"
+        $local:AllArchiveServers = (Get-SafeguardArchiveServer -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
+        Write-Host "Archive servers:"
+        Write-Host "["
+        $local:AllArchiveServers | ForEach-Object {
+            Write-Host ("    {0,2} - {1}" -f $_.Id,$_.Name)
+        }
+        Write-Host "]"
         $ArchiveServerId = (Read-Host "ArchiveServerId")
     }
 
