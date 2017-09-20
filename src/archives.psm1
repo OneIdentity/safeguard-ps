@@ -17,9 +17,9 @@ function Invoke-ArchiveServerSshHostKeyDiscovery
     $ErrorActionPreference = "Stop"
 
     Write-Host "Discovering SSH host key..."
-    $SshHostKey = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+    $local:SshHostKey = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
                        POST "ArchiveServers/$($ArchiveServer.Id)/DiscoverSshHostKey")
-    $ArchiveServer.SshHostKey = $SshHostKey.SshHostKey
+    $ArchiveServer.SshHostKey = $local:SshHostKey.SshHostKey
     if ($AcceptSshHostKey)
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
@@ -27,7 +27,7 @@ function Invoke-ArchiveServerSshHostKeyDiscovery
     }
     else
     {
-        if (Show-SshHostKeyPrompt $SshHostKey.SshHostKey $SshHostKey.Fingerprint)
+        if (Show-SshHostKeyPrompt $local:SshHostKey.SshHostKey $local:SshHostKey.Fingerprint)
         {
             Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
                 PUT "ArchiveServers/$($ArchiveServer.Id)" -Body $ArchiveServer
@@ -178,7 +178,7 @@ function New-SafeguardArchiveServer
         [int]$Port,
         [Parameter(Mandatory=$false)]
         [string]$StoragePath,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$false)]
         [ValidateSet("None","Password","SshKey","DirectoryPassword","LocalHostPassword","AccessKey","AccountPassword",IgnoreCase=$true)]
         [string]$ServiceAccountCredentialType,
         [Parameter(Mandatory=$false)]
@@ -193,12 +193,19 @@ function New-SafeguardArchiveServer
 
     $ErrorActionPreference = "Stop"
     Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+    Import-Module -Name "$PSScriptRoot\datatypes.psm1" -Scope Local
 
-    if (-not $ServiceAccountPassword)
+    if (-not $PSBoundParameters.ContainsKey("ServiceAccountCredentialType"))
+    {
+        $ServiceAccountCredentialType = (Resolve-SafeguardServiceAccountCredentialType)
+    }
+    
+
+    if (-not $PSBoundParameters.ContainsKey("ServiceAccountPassword"))
     {
         $ServiceAccountPassword = (Read-Host "ServiceAccountPassword" -AsSecureString)
     }
-    if (-not $Port)
+    if (-not $PSBoundParameters.ContainsKey("Port"))
     {
         switch ($TransferProtocol)
         {
@@ -207,7 +214,7 @@ function New-SafeguardArchiveServer
             "Sftp" { $Port = 22 }
         }
     }
-    if (-not $DisplayName)
+    if (-not $PSBoundParameters.ContainsKey("DisplayName"))
     {
         if (Test-IpAddress $NetworkAddress)
         {
@@ -218,12 +225,12 @@ function New-SafeguardArchiveServer
             $DisplayName = $NetworkAddress
         }
     }
-    if (-not $StoragePath -and $TransferProtocol -eq "Smb")
+    if (-not $PSBoundParameters.ContainsKey("StoragePath") -and $TransferProtocol -eq "Smb")
     {
         $StoragePath = (Read-Host "StoragePath")
     }
 
-    $ConnectionProperties = @{
+    $local:ConnectionProperties = @{
         TransferProtocolType = "$TransferProtocol";
         Port = $Port;
         ServiceAccountCredentialType = $ServiceAccountCredentialType;
@@ -231,36 +238,36 @@ function New-SafeguardArchiveServer
         ServiceAccountPassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($ServiceAccountPassword))
     }
 
-    if ($ServiceAccountDomainName)
+    if ($PSBoundParameters.ContainsKey("ServiceAccountDomainName"))
     {
-        $ConnectionProperties["ServiceAccountDomainName"] = "$ServiceAccountDomainName"
+        $ConnectionProperties.ServiceAccountDomainName = "$ServiceAccountDomainName"
     }
 
-    $Body = @{
+    $local:Body = @{
         Name = "$DisplayName";
         Description = "$Description";
         NetworkAddress = "$NetworkAddress";
         StoragePath = "$StoragePath";
-        ConnectionProperties = $ConnectionProperties
+        ConnectionProperties = $local:ConnectionProperties
     }
 
-    $NewArchiveServer = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-                             POST ArchiveServers -Body $Body)
+    $local:NewArchiveServer = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                             POST ArchiveServers -Body $local:Body)
     try
     {
         if ($TransferProtocol -ieq "Scp" -or $TransferProtocol -ieq "Sftp")
         {
-            Invoke-ArchiveServerSshHostKeyDiscovery -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $NewArchiveServer -AcceptSshHostKey:$AcceptSshHostKey
+            Invoke-ArchiveServerSshHostKeyDiscovery -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:NewArchiveServer -AcceptSshHostKey:$AcceptSshHostKey
         }
         else
         {
-            $NewArchiveServer
+            $local:NewArchiveServer
         }
     }
     catch
     {
         Write-Host -ForegroundColor Yellow "Error setting up SSH host key, removing archive server..."
-        Remove-SafeguardArchiveServer  -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $NewArchiveServer.Id
+        Remove-SafeguardArchiveServer  -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:NewArchiveServer.Id
         throw
     }
 }
@@ -394,11 +401,11 @@ function Remove-SafeguardArchiveServer
 
 <#
 .SYNOPSIS
-Get archive servers that have been added to Safeguard via the Web API.
+Edit an archive server that has been added to Safeguard via the Web API.
 
 .DESCRIPTION
-Get archive servers in Safeguard that can be used for archiving
-backups and session recordings.
+Edit an archive server to change properties.  Accept as parameters either an object that as
+been modified or an ID and the properties to change.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -420,10 +427,10 @@ A string containing a description for this archive server.
 A string containing the network address for this archive server.
 
 .PARAMETER TransferProtocol
-A string containing the protocol (options: Smb, Scp, Sftp)
+A string containing the protocol (options: Smb, Scp, Sftp).
 
 .PARAMETER Port
-An integer containing the port for this archive server (defaults: Smb=445, Scp=22, Sftp=22)
+An integer containing the port for this archive server (defaults: Smb=445, Scp=22, Sftp=22).
 
 .PARAMETER StoragePath
 A string containing the path on the archive server to use for storage.
@@ -435,10 +442,13 @@ A string containing the service account domain name if it has one.
 A string containing the service account name.
 
 .PARAMETER ServiceAccountPassword
-A SecureString containing the password to use for the service account
+A SecureString containing the password to use for the service account.
 
 .PARAMETER AcceptSshHostKey
 Whether or not to auto-accept SSH host key for Scp and Sftp.
+
+.PARAMETER ArchiveServerObject
+An object containing the existing archive server with desired properties set.
 
 .INPUTS
 None.
@@ -489,13 +499,18 @@ function Edit-SafeguardArchiveServer
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [switch]$AcceptSshHostKey = $false,
         [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
-        [object]$ArchiveServer
+        [object]$ArchiveServerObject
     )
 
     $ErrorActionPreference = "Stop"
     Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
 
-    if (-not $PSBoundParameters.ContainsKey("ArchiveServerId"))
+    if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $ArchiveServerObject)
+    {
+        throw "ArchiveServerObject must not be null"
+    }
+
+    if ($PsCmdlet.ParameterSetName -eq "Attributes" -and -not $PSBoundParameters.ContainsKey("ArchiveServerId"))
     {
         $local:AllArchiveServers = (Get-SafeguardArchiveServer -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
         Write-Host "Archive servers:"
@@ -509,58 +524,59 @@ function Edit-SafeguardArchiveServer
 
     if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
     {
-        $ArchiveServer = (Get-SafeguardArchiveServer -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ArchiveServerId)
+        $ArchiveServerObject = (Get-SafeguardArchiveServer -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ArchiveServerId)
 
         # ConnectionProperties
+        if (-not $ArchiveServerObject.ConnectionProperties) { $ArchiveServerObject.ConnectionProperties = @{} }
         if ($PSBoundParameters.ContainsKey("TransferProtocol"))
         {
-            $OldTransferProtocol = $ArchiveServer.ConnectionProperties.TransferProtocolType
+            $local:OldTransferProtocol = $ArchiveServerObject.ConnectionProperties.TransferProtocolType
             if ($TransferProtocol -ieq "Scp" -or $TransferProtocol -ieq "Sftp")
             {
-                if (-not ($OldTransferProtocol -ieq "Scp" -or $OldTransferProtocol -ieq "Sftp"))
+                if (-not ($local:OldTransferProtocol -ieq "Scp" -or $local:OldTransferProtocol -ieq "Sftp"))
                 {
-                    $DoSshHostKeyDiscovery = $true
+                    $local:DoSshHostKeyDiscovery = $true
                 }
             }
             else
             {
-                $ArchiveServer.SshHostKey = $null
+                $ArchiveServerObject.SshHostKey = $null
             }
-            $ArchiveServer.ConnectionProperties.TransferProtocolType = "$TransferProtocol"
+            $ArchiveServerObject.ConnectionProperties.TransferProtocolType = "$TransferProtocol"
         }
-        if ($PSBoundParameters.ContainsKey("Port")) { $ArchiveServer.ConnectionProperties.Port = $Port }
-        if ($PSBoundParameters.ContainsKey("ServiceAccountCredentialType")) { $ArchiveServer.ConnectionProperties.ServiceAccountCredentialType = "$ServiceAccountCredentialType" }
-        if ($PSBoundParameters.ContainsKey("ServiceAccountDomainName")) { $ArchiveServer.ConnectionProperties.ServiceAccountDomainName = "$ServiceAccountDomainName" }
-        if ($PSBoundParameters.ContainsKey("ServiceAccountName")) { $ArchiveServer.ConnectionProperties.ServiceAccountName = "$ServiceAccountName" }
+        if ($PSBoundParameters.ContainsKey("Port")) { $ArchiveServerObject.ConnectionProperties.Port = $Port }
+        if ($PSBoundParameters.ContainsKey("ServiceAccountCredentialType")) { $ArchiveServerObject.ConnectionProperties.ServiceAccountCredentialType = "$ServiceAccountCredentialType" }
+        if ($PSBoundParameters.ContainsKey("ServiceAccountDomainName")) { $ArchiveServerObject.ConnectionProperties.ServiceAccountDomainName = "$ServiceAccountDomainName" }
+        if ($PSBoundParameters.ContainsKey("ServiceAccountName")) { $ArchiveServerObject.ConnectionProperties.ServiceAccountName = "$ServiceAccountName" }
         if ($PSBoundParameters.ContainsKey("ServiceAccountPassword"))
         {
-            $ArchiveServer.ConnectionProperties.ServiceAccountName = `
-            [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($ServiceAccountPassword))
+            $ArchiveServerObject.ConnectionProperties.ServiceAccountName = `
+                [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($ServiceAccountPassword))
         }
         # Body
-        if ($PSBoundParameters.ContainsKey("DisplayName")) { $ArchiveServer.Name = "$DisplayName" }
-        if ($PSBoundParameters.ContainsKey("Description")) { $ArchiveServer.Description = "$Description" }
-        if ($PSBoundParameters.ContainsKey("NetworkAddress")) { $ArchiveServer.NetworkAddress = "$NetworkAddress" }
-        if ($PSBoundParameters.ContainsKey("StoragePath")) { $ArchiveServer.StoragePath = "$StoragePath" }
+        if ($PSBoundParameters.ContainsKey("DisplayName")) { $ArchiveServerObject.Name = "$DisplayName" }
+        if ($PSBoundParameters.ContainsKey("Description")) { $ArchiveServerObject.Description = "$Description" }
+        if ($PSBoundParameters.ContainsKey("NetworkAddress")) { $ArchiveServerObject.NetworkAddress = "$NetworkAddress" }
+        if ($PSBoundParameters.ContainsKey("StoragePath")) { $ArchiveServerObject.StoragePath = "$StoragePath" }
     }
-    $ArchiveServer = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-                          PUT "ArchiveServers/$($ArchiveServer.Id)" -Body $ArchiveServer)
+    $ArchiveServerObject = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                                PUT "ArchiveServers/$($ArchiveServerObject.Id)" -Body $ArchiveServerObject)
     try
     {
-        if ($DoSshHostKeyDiscovery)
+        if ($local:DoSshHostKeyDiscovery)
         {
-            Invoke-ArchiveServerSshHostKeyDiscovery -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ArchiveServer -AcceptSshHostKey:$AcceptSshHostKey
+            Invoke-ArchiveServerSshHostKeyDiscovery -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ArchiveServerObject -AcceptSshHostKey:$AcceptSshHostKey
         }
         else
         {
-            $ArchiveServer
+            $ArchiveServerObject
         }
     }
     catch
     {
-        Write-Host -ForegroundColor Yellow "Error setting up SSH host key, resetting to previous transfer protocol '$OldTransferProtocol'..."
-        $DoSshHostKeyDiscovery = $false
-        Edit-SafeguardArchiveServer -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ArchiveServer.Id -TransferProtocol $OldTransferProtocol
+        Write-Host -ForegroundColor Yellow "Error setting up SSH host key, resetting to previous transfer protocol '$($local:OldTransferProtocol)'..."
+        $local:DoSshHostKeyDiscovery = $false
+        Edit-SafeguardArchiveServer -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ArchiveServerObject.Id -TransferProtocol $local:OldTransferProtocol
         throw
     }
 }

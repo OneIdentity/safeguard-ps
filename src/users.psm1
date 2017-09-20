@@ -181,12 +181,12 @@ function New-SafeguardUser
             UserName = $NewUserName;
             AdminRoles = $AdminRoles
         }
-        if ($PSBoundParameters.ContainsKey("FirstName")) { $Body["FirstName"] = $FirstName }
-        if ($PSBoundParameters.ContainsKey("LastName")) { $Body["LastName"] = $LastName }
-        if ($PSBoundParameters.ContainsKey("Description")) { $Body["Description"] = $Description }
-        if ($PSBoundParameters.ContainsKey("EmailAddress")) { $Body["EmailAddress"] = $EmailAddress }
-        if ($PSBoundParameters.ContainsKey("WorkPhone")) { $Body["WorkPhone"] = $WorkPhone }
-        if ($PSBoundParameters.ContainsKey("MobilePhone")) { $Body["MobilePhone"] = $MobilePhone }
+        if ($PSBoundParameters.ContainsKey("FirstName")) { $Body.FirstName = $FirstName }
+        if ($PSBoundParameters.ContainsKey("LastName")) { $Body.LastName = $LastName }
+        if ($PSBoundParameters.ContainsKey("Description")) { $Body.Description = $Description }
+        if ($PSBoundParameters.ContainsKey("EmailAddress")) { $Body.EmailAddress = $EmailAddress }
+        if ($PSBoundParameters.ContainsKey("WorkPhone")) { $Body.WorkPhone = $WorkPhone }
+        if ($PSBoundParameters.ContainsKey("MobilePhone")) { $Body.MobilePhone = $MobilePhone }
         $NewUser = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Users -Body $Body)
         if ($Provider = $LocalProviderId)
         {

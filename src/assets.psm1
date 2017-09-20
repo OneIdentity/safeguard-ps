@@ -56,9 +56,9 @@ function Invoke-AssetSshHostKeyDiscovery
     $ErrorActionPreference = "Stop"
 
     Write-Host "Discovering SSH host key..."
-    $SshHostKey = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+    $local:SshHostKey = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
                        POST "Assets/$($Asset.Id)/DiscoverSshHostKey")
-    $Asset.SshHostKey = $SshHostKey.SshHostKey
+    $Asset.SshHostKey = $local:SshHostKey.SshHostKey
     if ($AcceptSshHostKey)
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
@@ -66,7 +66,7 @@ function Invoke-AssetSshHostKeyDiscovery
     }
     else
     {
-        if (Show-SshHostKeyPrompt $SshHostKey.SshHostKey $SshHostKey.Fingerprint)
+        if (Show-SshHostKeyPrompt $local:SshHostKey.SshHostKey $local:SshHostKey.Fingerprint)
         {
             Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
                 PUT "Assets/$($Asset.Id)" -Body $Asset
@@ -95,7 +95,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
-.PARAMETER Asset
+.PARAMETER AssetToGet
 An integer containing ID of the archive server to return.
 
 .INPUTS
@@ -120,15 +120,15 @@ function Get-SafeguardAsset
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [object]$Asset
+        [object]$AssetToGet
     )
 
     $ErrorActionPreference = "Stop"
 
-    if ($PSBoundParameters.ContainsKey("Asset"))
+    if ($PSBoundParameters.ContainsKey("AssetToGet"))
     {
-        $AssetId = Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Asset
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Assets/$AssetId"
+        $local:AssetId = Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToGet
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Assets/$($local:AssetId)"
     }
     else
     {
@@ -189,11 +189,10 @@ function Find-SafeguardAsset
 
 <#
 .SYNOPSIS
-Get assets from Safeguard via the Web API.
+Create new asset in Safeguard via the Web API.
 
 .DESCRIPTION
-Get assets from Safeguard that can be used for archiving
-backups and session recordings.
+Create a new asset in Safeguard that can be used to manage accounts.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -317,7 +316,7 @@ function New-SafeguardAsset
         ServiceAccountCredentialType = $ServiceAccountCredentialType;
     }
 
-    if ($PSBoundParameters.ContainsKey("Port")) { $local:ConnectionProperties["Port"] = $Port }
+    if ($PSBoundParameters.ContainsKey("Port")) { $local:ConnectionProperties.Port = $Port }
     switch ($ServiceAccountCredentialType.ToLower())
     {
         {$_ -in "password","accountpassword","accesskey"} {
@@ -325,14 +324,14 @@ function New-SafeguardAsset
             {
                 $ServiceAccountName = (Read-Host "ServiceAccountName")
             }
-            $local:ConnectionProperties["ServiceAccountName"] = $ServiceAccountName
+            $local:ConnectionProperties.ServiceAccountName = $ServiceAccountName
             if ($ServiceAccountCredentialType -eq "AccessKey")
             {
                 if (-not $PSBoundParameters.ContainsKey("ServiceAccountSecretKey"))
                 {
                     $ServiceAccountSecretKey = (Read-Host "ServiceAccountSecretKey")
                 }
-                $local:ConnectionProperties["SecretKey"] = $ServiceAccountSecretKey
+                $local:ConnectionProperties.SecretKey = $ServiceAccountSecretKey
             }
             else
             {
@@ -340,7 +339,8 @@ function New-SafeguardAsset
                 {
                     $ServiceAccountPassword = (Read-Host -AsSecureString "ServiceAccountPassword")
                 }
-                $local:ConnectionProperties["ServiceAccountPassword"] = $ServiceAccountPassword
+                $local:ConnectionProperties.ServiceAccountPassword = `
+                    [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($ServiceAccountPassword))
             }
         }
         "sshkey" {
@@ -350,9 +350,9 @@ function New-SafeguardAsset
             throw "$ServiceAccountCredentialType are not supported yet"
         }
     }
-    if ($PSBoundParameters.ContainsKey("Port")) { $local:ConnectionProperties["Port"] = $Port }
+    if ($PSBoundParameters.ContainsKey("Port")) { $local:ConnectionProperties.Port = $Port }
 
-    $Body = @{
+    $local:Body = @{
         Name = "$DisplayName";
         Description = "$Description";
         NetworkAddress = "$NetworkAddress";
@@ -361,18 +361,18 @@ function New-SafeguardAsset
         ConnectionProperties = $local:ConnectionProperties
     }
 
-    $NewAsset = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-                     POST Assets -Body $Body)
+    $local:NewAsset = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                     POST Assets -Body $local:Body)
 
     try
     {
-        if ($NewAsset.Platform.ConnectionProperties.SupportsSshTransport)
+        if ($local:NewAsset.Platform.ConnectionProperties.SupportsSshTransport)
         {
-            Invoke-AssetSshHostKeyDiscovery -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $NewAsset -AcceptSshHostKey:$AcceptSshHostKey
+            Invoke-AssetSshHostKeyDiscovery -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:NewAsset -AcceptSshHostKey:$AcceptSshHostKey
         }
         else
         {
-            $NewAsset
+            $local:NewAsset
         }
     }
     catch
@@ -401,7 +401,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
-.PARAMETER Asset
+.PARAMETER AssetToTest
 An integer containing the ID of the asset to test connection to or a string containing the name.
 
 .INPUTS
@@ -426,19 +426,19 @@ function Test-SafeguardAsset
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [object]$Asset
+        [object]$AssetToTest
     )
 
     $ErrorActionPreference = "Stop"
 
-    if (-not $PSBoundParameters.ContainsKey("Asset"))
+    if (-not $PSBoundParameters.ContainsKey("AssetToTest"))
     {
-        $Asset = (Read-Host "Asset to delete")
+        $AssetToTest = (Read-Host "AssetToTest")
     }
-    $AssetId = Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Asset
+    $local:AssetId = Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToTest
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-        POST "Assets/$AssetId/TestConnection" -LongRunningTask
+        POST "Assets/$($local:AssetId)/TestConnection" -LongRunningTask
 }
 
 <#
@@ -458,7 +458,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
-.PARAMETER Asset
+.PARAMETER AssetToDelete
 An integer containing the ID of the asset to remove or a string containing the name.
 
 .INPUTS
@@ -483,16 +483,157 @@ function Remove-SafeguardAsset
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [object]$Asset
+        [object]$AssetToDelete
     )
 
     $ErrorActionPreference = "Stop"
 
-    if (-not $PSBoundParameters.ContainsKey("Asset"))
+    if (-not $PSBoundParameters.ContainsKey("AssetToDelete"))
     {
-        $Asset = (Read-Host "Asset to delete")
+        $AssetToDelete = (Read-Host "AssetToDelete")
     }
 
-    $AssetId = Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Asset
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Assets/$AssetId"
+    $local:AssetId = Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToDelete
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Assets/$($local:AssetId)"
+}
+
+<#
+.SYNOPSIS
+Edit existing asset in Safeguard via the Web API.
+
+.DESCRIPTION
+Edit an existing asset in Safeguard that can be used to manage accounts.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER DisplayName
+A string containing the display name for this asset. Optional, unless
+NetworkAddress is an IP address rather than a DNS name.
+
+.PARAMETER Description
+A string containing a description for this asset.
+
+.PARAMETER NetworkAddress
+A string containing the network address for this asset.
+
+.PARAMETER Port
+An integer containing the port for this asset.
+
+.PARAMETER Platform
+A platform ID for a specific platform type or a string to search for desired platform type.
+
+.PARAMETER ServiceAccountDomainName
+A string containing the service account domain name if it has one.
+
+.PARAMETER ServiceAccountName
+A string containing the service account name.
+
+.PARAMETER ServiceAccountPassword
+A SecureString containing the password to use for the service account.
+
+.PARAMETER ServiceAccountSecretKey
+A string containing an API access key for the service account.
+
+.PARAMETER AssetObject
+An object containing the existing asset with desired properties set.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+New-SafeguardAsset -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+New-SafeguardAsset winserver.domain.corp 31 archie
+#>
+function Edit-SafeguardAsset
+{
+    [CmdletBinding(DefaultParameterSetName="Attributes")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false,Position=0)]
+        [object]$AssetToEdit,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$DisplayName,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$Description,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$true,Position=0)]
+        [string]$NetworkAddress,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false,Position=1)]
+        [object]$Platform,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [int]$Port,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [ValidateSet("None","Password","SshKey","DirectoryPassword","LocalHostPassword","AccessKey","AccountPassword",IgnoreCase=$true)]
+        [string]$ServiceAccountCredentialType,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$ServiceAccountDomainName,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$true,Position=2)]
+        [string]$ServiceAccountName,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false,Position=3)]
+        [SecureString]$ServiceAccountPassword,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$ServiceAccountSecretKey,
+        [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
+        [object]$AssetObject
+    )
+
+    $ErrorActionPreference = "Stop"
+    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+    
+    if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $AssetObject)
+    {
+        throw "AssetObject must not be null"
+    }
+
+    if ($PsCmdlet.ParameterSetName -eq "Attributes" -and -not $PSBoundParameters.ContainsKey("AssetToEdit"))
+    {
+        $AssetToEdit = (Read-Host "AssetToEdit")
+        $local:AssetId = Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToEdit
+    }
+
+    if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
+    {
+        $AssetObject = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:AssetId)
+
+        # Connection Properties
+        if (-not $AssetObject.ConnectionProperties) { $AssetObject.ConnectionProperties = @{} }
+        if ($PSBoundParameters.ContainsKey("Port")) { $AssetObject.ConnectionProperties.Port = $Port }
+        if ($PSBoundParameters.ContainsKey("ServiceAccountCredentialType")) { $AssetObject.ConnectionProperties.ServiceAccountCredentialType = $ServiceAccountCredentialType }
+        if ($PSBoundParameters.ContainsKey("ServiceAccountDomainName")) { $AssetObject.ConnectionProperties.ServiceAccountDomainName = $ServiceAccountDomainName }
+        if ($PSBoundParameters.ContainsKey("ServiceAccountName")) { $AssetObject.ConnectionProperties.ServiceAccountName = $ServiceAccountName }
+        if ($PSBoundParameters.ContainsKey("ServiceAccountPassword"))
+        {
+            $AssetObject.ConnectionProperties.ServiceAccountPassword = `
+                [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($ServiceAccountPassword))
+        }
+        if ($PSBoundParameters.ContainsKey("ServiceAccountSecretKey")) { AssetObject.ConnectionProperties.ServiceAccountSecretKey = $ServiceAccountSecretKey }
+
+        # Body
+        if ($PSBoundParameters.ContainsKey("DisplayName")) { $AssetObject.DisplayName = $DisplayName }
+        if ($PSBoundParameters.ContainsKey("Description")) { $AssetObject.Description = $Description }
+        if ($PSBoundParameters.ContainsKey("NetworkAddress")) { $AssetObject.NetworkAddress = $NetworkAddress }
+        if ($PSBoundParameters.ContainsKey("Platform"))
+        {
+            $local:PlatformId = Resolve-SafeguardPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Platform
+            $AssetObject.PlatformId = $local:PlatformId
+        }
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Assets/$($AssetObject.Id)" -Body $AssetObject
 }
