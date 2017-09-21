@@ -77,7 +77,8 @@ NestedModules = @(
     'archives.psm1',
     'requests.psm1',
     'users.psm1',
-    'assets.psm1'
+    'assets.psm1',
+    'managementShell.psm1'
     )
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
@@ -116,7 +117,9 @@ FunctionsToExport = @(
     'Get-SafeguardIdentityProvider',
     'Get-SafeguardUser','Find-SafeguardUser','New-SafeguardUser','Remove-SafeguardUser','Set-SafeguardUserPassword',
     # assets.psm1
-    'Get-SafeguardAsset','Find-SafeguardAsset','New-SafeguardAsset','Remove-SafeguardAsset'
+    'Get-SafeguardAsset','Find-SafeguardAsset','New-SafeguardAsset','Remove-SafeguardAsset',
+    # managementShell.psm1
+    'Get-SafeguardCommand', 'Get-SafeguardBanner'
     )
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.

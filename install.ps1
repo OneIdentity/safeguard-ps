@@ -1,8 +1,16 @@
-$TargetDir = (($env:PSModulePath -split ';') | Where-Object { $_.StartsWith($env:UserProfile) })
+Param(
+  [string]$TargetDir
+)
+
 if (-not $TargetDir)
 {
-    throw "Unable to find a PSModulePath in your user profile (" + $env:UserProfile + "), PSModulePath: " + $env:PSModulePath
+    $TargetDir = (($env:PSModulePath -split ';') | Where-Object { $_.StartsWith($env:UserProfile) })
+    if (-not $TargetDir)
+    {
+        throw "Unable to find a PSModulePath in your user profile (" + $env:UserProfile + "), PSModulePath: " + $env:PSModulePath
+    }
 }
+
 if (-not (Test-Path $TargetDir))
 {
     New-Item -Path $TargetDir -ItemType Container -Force | Out-Null
