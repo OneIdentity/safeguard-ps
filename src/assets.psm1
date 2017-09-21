@@ -551,10 +551,10 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-New-SafeguardAsset -AccessToken $token -Appliance 10.5.32.54 -Insecure
+Edit-SafeguardAsset -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
-New-SafeguardAsset winserver.domain.corp 31 archie
+Edit-SafeguardAsset winserver.domain.corp 31 archie
 #>
 function Edit-SafeguardAsset
 {
@@ -595,7 +595,7 @@ function Edit-SafeguardAsset
 
     $ErrorActionPreference = "Stop"
     Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
-    
+
     if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $AssetObject)
     {
         throw "AssetObject must not be null"

@@ -34,7 +34,40 @@ function Resolve-SafeguardUserId
     }
 }
 
+<#
+.SYNOPSIS
+Get indentity providers configured in Safeguard via the Web API.
 
+.DESCRIPTION
+Get the identity providers that have been configured in Safeguard.  Based on
+these identity providers you can add users that can log into Safeguard.  All
+users can request access to passwords or sessions based on policy.  Depending
+on permissions (admin roles) some users can manage different aspects of Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ProviderToGet
+An integer containing an ID  or a string containing the name of the identity provider to return.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardIdentityProvider -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardIdentityProvider
+#>
 function Get-SafeguardIdentityProvider
 {
     Param(
@@ -45,19 +78,19 @@ function Get-SafeguardIdentityProvider
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [object]$Provider
+        [object]$ProviderToGet
     )
 
-    if ($PSBoundParameters.ContainsKey("Provider"))
+    if ($PSBoundParameters.ContainsKey("ProviderToGet"))
     {
-        if ($Provider -as [int])
+        if ($ProviderToGet -as [int])
         {
-            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "IdentityProviders/$Provider"
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "IdentityProviders/$ProviderToGet"
         }
         else
         {
             Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
-                -Parameters @{ filter = "Name ieq '$Provider'" }
+                -Parameters @{ filter = "Name ieq '$ProviderToGet'" }
         }
     }
     else
@@ -66,7 +99,42 @@ function Get-SafeguardIdentityProvider
     }
 }
 
+<#
+.SYNOPSIS
+Get users in Safeguard via the Web API.
 
+.DESCRIPTION
+Get the users that have been added to Safeguard.  Users can log into Safeguard.  All
+users can request access to passwords or sessions based on policy.  Depending
+on permissions (admin roles) some users can manage different aspects of Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER UserToGet
+An integer containing an ID  or a string containing the name of the user to return.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardUser -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardUser petrsnd
+
+.EXAMPLE
+Get-SafeguardUser 123
+#>
 function Get-SafeguardUser
 {
     Param(
@@ -77,15 +145,15 @@ function Get-SafeguardUser
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [object]$User
+        [object]$UserToGet
     )
 
     $ErrorActionPreference = "Stop"
 
-    if ($PSBoundParameters.ContainsKey("User"))
+    if ($PSBoundParameters.ContainsKey("UserToGet"))
     {
-        $UserId = Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $User
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Users/$UserId"
+        $local:UserId = Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToGet
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Users/$local:UserId"
     }
     else
     {
@@ -93,7 +161,38 @@ function Get-SafeguardUser
     }
 }
 
+<#
+.SYNOPSIS
+Search for a user in Safeguard via the Web API.
 
+.DESCRIPTION
+Search for a user in Safeguard for any string fields containing
+the SearchString.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER SearchString
+A string to search for in the user (caseless).
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Find-SafeguardUser -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Find-SafeguardUser "Peterson"
+#>
 function Find-SafeguardUser
 {
     Param(
@@ -113,7 +212,68 @@ function Find-SafeguardUser
         -Parameters @{ q = $SearchString }
 }
 
+<#
+.SYNOPSIS
+Create a new user in Safeguard via the Web API.
 
+.DESCRIPTION
+Create a new user in Safeguard.  Users can log into Safeguard.  All
+users can request access to passwords or sessions based on policy.  Depending
+on permissions (admin roles) some users can manage different aspects of Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Provider
+An integer containing an ID  or a string containing the name of the identity provider.
+
+.PARAMETER NewUserName
+A string containing the name to give to the new user.  Names must be unique per identity provider.
+
+.PARAMETER FirstName
+A string containing the first name of the user.  Combined with last name to form a user's DisplayName.
+
+.PARAMETER LastName
+A string containing the last name of the user.  Combined with first name to form a user's DisplayName.
+
+.PARAMETER Description
+A string containing a description for the user.
+
+.PARAMETER EmailAddress
+A string containing a email address for the user.
+
+.PARAMETER WorkPhone
+A string containing a work phone number for the user.
+
+.PARAMETER MobilePhone
+A string containing a mobile phone number for the user.
+
+.PARAMETER AdminRoles
+An array of strings containing the permissions (admin roles) to assign to the user.  You may also specify
+'All' to grant all permissions. Other permissions are: 'GlobalAdmin', 'DirectoryAdmin', 'Auditor',
+'AssetAdmin', 'ApplianceAdmin', 'PolicyAdmin', 'UserAdmin', 'HelpdeskAdmin', 'OperationsAdmin'.
+
+.PARAMETER Password
+SecureString containing the password.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+New-SafeguardUser -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+New-SafeguardUser local petrsnd -AdminRoles 'AssetAdmin','ApplianceAdmin'
+#>
 function New-SafeguardUser
 {
     Param(
@@ -141,7 +301,9 @@ function New-SafeguardUser
         [string]$MobilePhone = $null,
         [Parameter(Mandatory=$false)]
         [ValidateSet('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin','All',IgnoreCase=$true)]
-        [string[]]$AdminRoles = $null
+        [string[]]$AdminRoles = $null,
+        [Parameter(Mandatory=$false)]
+        [SecureString]$Password
     )
 
     $ErrorActionPreference = "Stop"
@@ -161,12 +323,12 @@ function New-SafeguardUser
     }
     if (-not ($Provider -as [int]))
     {
-        $ProviderResolved = (Get-SafeguardIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Provider)[0].Id
-        if (-not $ProviderResolved)
+        $local:ProviderResolved = (Get-SafeguardIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Provider)[0].Id
+        if (-not $local:ProviderResolved)
         {
             throw "Unable to find identity provider that matches '$Provider'"
         }
-        $Provider = $ProviderResolved
+        $Provider = $local:ProviderResolved
     }
 
     if ($AdminRoles -contains "All")
@@ -174,26 +336,33 @@ function New-SafeguardUser
         $AdminRoles = @('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
     }
 
-    if ($Provider -eq $LocalProviderId -or $Provider -eq $CertificateProviderId)
+    if ($Provider -eq $local:LocalProviderId -or $Provider -eq $local:CertificateProviderId)
     {
-        $Body = @{
+        $local:Body = @{
             PrimaryAuthenticationProviderId = $Provider;
             UserName = $NewUserName;
             AdminRoles = $AdminRoles
         }
-        if ($PSBoundParameters.ContainsKey("FirstName")) { $Body.FirstName = $FirstName }
-        if ($PSBoundParameters.ContainsKey("LastName")) { $Body.LastName = $LastName }
-        if ($PSBoundParameters.ContainsKey("Description")) { $Body.Description = $Description }
-        if ($PSBoundParameters.ContainsKey("EmailAddress")) { $Body.EmailAddress = $EmailAddress }
-        if ($PSBoundParameters.ContainsKey("WorkPhone")) { $Body.WorkPhone = $WorkPhone }
-        if ($PSBoundParameters.ContainsKey("MobilePhone")) { $Body.MobilePhone = $MobilePhone }
-        $NewUser = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Users -Body $Body)
-        if ($Provider = $LocalProviderId)
+        if ($PSBoundParameters.ContainsKey("FirstName")) { $local:Body.FirstName = $FirstName }
+        if ($PSBoundParameters.ContainsKey("LastName")) { $local:Body.LastName = $LastName }
+        if ($PSBoundParameters.ContainsKey("Description")) { $local:Body.Description = $Description }
+        if ($PSBoundParameters.ContainsKey("EmailAddress")) { $local:Body.EmailAddress = $EmailAddress }
+        if ($PSBoundParameters.ContainsKey("WorkPhone")) { $local:Body.WorkPhone = $WorkPhone }
+        if ($PSBoundParameters.ContainsKey("MobilePhone")) { $local:Body.MobilePhone = $MobilePhone }
+        $local:NewUser = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Users -Body $local:Body)
+        if ($Provider -eq $local:LocalProviderId)
         {
             Write-Host "Setting password for new user..."
-            Set-SafeguardUserPassword -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $NewUser.Id
+            if ($PSBoundParameters.ContainsKey("Password"))
+            {
+                Set-SafeguardUserPassword -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:NewUser.Id $Password
+            }
+            else
+            {
+                Set-SafeguardUserPassword -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:NewUser.Id
+            }
         }
-        $NewUser
+        $local:NewUser
     }
     else
     {
@@ -206,6 +375,41 @@ function New-SafeguardUser
     }
 }
 
+<#
+.SYNOPSIS
+Delete a user from Safeguard via the Web API.
+
+.DESCRIPTION
+Delete a user from Safeguard.  The user will no longer be able tolog into Safeguard.
+All audit history for that user will be retained.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER UserToDelete
+An integer containing an ID  or a string containing the name of the user to delete.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardUser -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Remove-SafeguardUser petrsnd
+
+.EXAMPLE
+Remove-SafeguardUser 123
+#>
 function Remove-SafeguardUser
 {
     Param(
@@ -216,21 +420,59 @@ function Remove-SafeguardUser
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [object]$User
+        [object]$UserToDelete
     )
 
     $ErrorActionPreference = "Stop"
 
-    if (-not $PSBoundParameters.ContainsKey("User"))
+    if (-not $PSBoundParameters.ContainsKey("UserToDelete"))
     {
-        $User = (Read-Host "User to delete")
+        $UserToDelete = (Read-Host "UserToDelete")
 
     }
-    $UserId = Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $User
+    $local:UserId = Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToDelete
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Users/$UserId"
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Users/$($local:UserId)"
 }
 
+<#
+.SYNOPSIS
+Delete a user from Safeguard via the Web API.
+
+.DESCRIPTION
+Delete a user from Safeguard.  The user will no longer be able tolog into Safeguard.
+All audit history for that user will be retained.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER UserToEdit
+An integer containing an ID or a string containing the name of the user.
+
+.PARAMETER Password
+SecureString containing the password.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Set-SafeguardUserPassword -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Set-SafeguardUserPassword petrsnd
+
+.EXAMPLE
+Set-SafeguardUserPassword 123 $newpassword
+#>
 function Set-SafeguardUserPassword
 {
     Param(
@@ -241,26 +483,156 @@ function Set-SafeguardUserPassword
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [object]$User,
+        [object]$UserToEdit,
         [Parameter(Mandatory=$false,Position=1)]
         [SecureString]$Password
     )
 
     $ErrorActionPreference = "Stop"
 
-    if (-not $PSBoundParameters.ContainsKey("User"))
+    if (-not $PSBoundParameters.ContainsKey("UserToEdit"))
     {
-        $User = (Read-Host "User to delete")
+        $UserToEdit = (Read-Host "UserToEdit")
 
     }
-    $UserId = Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $User
-    if (-not $PSBoundParameters.ContainsKey("Password"))
+    $local:UserId = Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit
+    if (-not $PSBoundParameters.ContainsKey("Password") -or $Password -eq $null)
     { 
         $Password = (Read-Host "Password" -AsSecureString)
     }
 
     $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$UserId/Password" `
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$($local:UserId)/Password" `
         -Body $local:PasswordPlainText
+}
+
+<#
+.SYNOPSIS
+Edit an existing user in Safeguard via the Web API.
+
+.DESCRIPTION
+Edit an existing user in Safeguard.  Users can log into Safeguard.  All
+users can request access to passwords or sessions based on policy.  Depending
+on permissions (admin roles) some users can manage different aspects of Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER UserToEdit
+An integer containing an ID or a string containing the name of the user.
+
+.PARAMETER FirstName
+A string containing the first name of the user.  Combined with last name to form a user's DisplayName.
+
+.PARAMETER LastName
+A string containing the last name of the user.  Combined with first name to form a user's DisplayName.
+
+.PARAMETER Description
+A string containing a description for the user.
+
+.PARAMETER EmailAddress
+A string containing a email address for the user.
+
+.PARAMETER WorkPhone
+A string containing a work phone number for the user.
+
+.PARAMETER MobilePhone
+A string containing a mobile phone number for the user.
+
+.PARAMETER AdminRoles
+An array of strings containing the permissions (admin roles) to assign to the user.  You may also specify
+'All' to grant all permissions. Other permissions are: 'GlobalAdmin', 'DirectoryAdmin', 'Auditor',
+'AssetAdmin', 'ApplianceAdmin', 'PolicyAdmin', 'UserAdmin', 'HelpdeskAdmin', 'OperationsAdmin'.
+
+.PARAMETER UserObject
+An object containing the existing user with desired properties set.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Edit-SafeguardUser -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Edit-SafeguardUser petrsnd -AdminRoles 'AssetAdmin','ApplianceAdmin' -FirstName 'Dan'
+
+.EXAMPLE
+Edit-SafeguardUser -UserObject $obj
+#>
+function Edit-SafeguardUser
+{
+    [CmdletBinding(DefaultParameterSetName="Attributes")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$true,Position=0)]
+        [object]$UserToEdit,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$FirstName = $null,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$LastName = $null,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$Description = $null,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$EmailAddress = $null,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$WorkPhone = $null,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$MobilePhone = $null,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [ValidateSet('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin','All',IgnoreCase=$true)]
+        [string[]]$AdminRoles = $null,
+        [Parameter(ParameterSetName="Object",Mandatory=$false)]
+        [object]$UserObject
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $UserObject)
+    {
+        throw "UserObject must not be null"
+    }
+
+    if ($PsCmdlet.ParameterSetName -eq "Attributes" -and -not $PSBoundParameters.ContainsKey("UserObject"))
+    {
+        $UserToEdit = (Read-Host "UserObject")
+        $local:UserId = Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit
+    }
+
+    if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
+    {
+        $UserObject = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:UserId)
+
+        if ($PSBoundParameters.ContainsKey("FirstName")) { $UserObject.FirstName = $FirstName }
+        if ($PSBoundParameters.ContainsKey("LastName")) { $UserObject.LastName = $LastName }
+        if ($PSBoundParameters.ContainsKey("Description")) { $UserObject.Description = $Description }
+        if ($PSBoundParameters.ContainsKey("EmailAddress")) { $UserObject.EmailAddress = $EmailAddress }
+        if ($PSBoundParameters.ContainsKey("WorkPhone")) { $UserObject.WorkPhone = $WorkPhone }
+        if ($PSBoundParameters.ContainsKey("MobilePhone")) { $UserObject.MobilePhone = $MobilePhone }
+
+        if ($PSBoundParameters.ContainsKey("AdminRoles"))
+        {
+            if ($AdminRoles -contains "All")
+            {
+                $AdminRoles = @('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
+            }
+            $UserObject.AdminRoles = $AdminRoles
+        }
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$($UserObject.Id)" -Body $UserObject
 }

@@ -143,7 +143,7 @@ Powershell credential to be used for username and password.
 The username to authenticate as when not using Powershell credential.
 
 .PARAMETER Password
-SecureString containing the password when not using a Powershell credential.
+SecureString containing the password.
 
 .PARAMETER Thumbprint
 Client certificate thumbprint to use to authenticate the connection to the RSTS.
