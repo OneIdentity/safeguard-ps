@@ -437,11 +437,11 @@ function Remove-SafeguardUser
 
 <#
 .SYNOPSIS
-Delete a user from Safeguard via the Web API.
+Set the password for a user in Safeguard via the Web API.
 
 .DESCRIPTION
-Delete a user from Safeguard.  The user will no longer be able tolog into Safeguard.
-All audit history for that user will be retained.
+Set the password for a user in Safeguard.  This operation only works for
+users from the local identity provider.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -493,7 +493,6 @@ function Set-SafeguardUserPassword
     if (-not $PSBoundParameters.ContainsKey("UserToEdit"))
     {
         $UserToEdit = (Read-Host "UserToEdit")
-
     }
     $local:UserId = Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit
     if (-not $PSBoundParameters.ContainsKey("Password") -or $Password -eq $null)
@@ -635,4 +634,194 @@ function Edit-SafeguardUser
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$($UserObject.Id)" -Body $UserObject
+}
+
+<#
+.SYNOPSIS
+Enable a user in Safeguard via the Web API.
+
+.DESCRIPTION
+Enable a user in Safeguard.  This operation only works for
+users from the local and certificate identity providers.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER UserToEdit
+An integer containing an ID or a string containing the name of the user.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Enable-SafeguardUser -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Enable-SafeguardUser petrsnd
+
+.EXAMPLE
+Enable-SafeguardUser 123
+#>
+function Enable-SafeguardUser
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$UserToEdit
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    if (-not $PSBoundParameters.ContainsKey("UserToEdit"))
+    {
+        $UserToEdit = (Read-Host "UserToEdit")
+    }
+    $local:UserId = Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit
+    $local:UserObject = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:UserId)
+    $local:UserObject.Disabled = $false
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$($UserObject.Id)" -Body $local:UserObject
+}
+
+<#
+.SYNOPSIS
+Disable a user in Safeguard via the Web API.
+
+.DESCRIPTION
+Disable a user in Safeguard.  This operation only works for
+users from the local and certificate identity providers.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER UserToEdit
+An integer containing an ID or a string containing the name of the user.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Disable-SafeguardUser -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Disable-SafeguardUser petrsnd
+
+.EXAMPLE
+Disable-SafeguardUser 123
+#>
+function Disable-SafeguardUser
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$UserToEdit
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    if (-not $PSBoundParameters.ContainsKey("UserToEdit"))
+    {
+        $UserToEdit = (Read-Host "UserToEdit")
+    }
+    $local:UserId = Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit
+    $local:UserObject = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:UserId)
+    $local:UserObject.Disabled = $true
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$($UserObject.Id)" -Body $local:UserObject
+}
+
+<#
+.SYNOPSIS
+Rename a user in Safeguard via the Web API.
+
+.DESCRIPTION
+Rename a user in Safeguard.  This operation only works for
+users from the local and certificate identity providers.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER UserToEdit
+An integer containing an ID or a string containing the name of the user.
+
+.PARAMETER NewUserName
+A string containing the new name for the user.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Rename-SafeguardUser -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Rename-SafeguardUser petrsnd dpeterso
+
+.EXAMPLE
+Rename-SafeguardUser 123 "bob jackson"
+#>
+function Rename-SafeguardUser
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$UserToEdit,
+        [Parameter(Mandatory=$false,Position=1)]
+        [string]$NewUserName
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    if (-not $PSBoundParameters.ContainsKey("UserToEdit"))
+    {
+        $UserToEdit = (Read-Host "UserToEdit")
+    }
+    $local:UserId = Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit
+    if (-not $PSBoundParameters.ContainsKey("NewUserName") -or -not $NewUserName)
+    { 
+        $NewUserName = (Read-Host "NewUserName")
+    }
+
+    $local:UserObject = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:UserId)
+    $local:UserObject.UserName = $NewUserName
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$($UserObject.Id)" -Body $local:UserObject
 }
