@@ -116,8 +116,10 @@ FunctionsToExport = @(
     # users.psm1
     'Get-SafeguardIdentityProvider',
     'Get-SafeguardUser','Find-SafeguardUser','New-SafeguardUser','Remove-SafeguardUser','Set-SafeguardUserPassword',
+    'Edit-SafeguardUser','Enable-SafeguardUser','Disable-SafeguardUser','Rename-SafeguardUser',
     # assets.psm1
-    'Get-SafeguardAsset','Find-SafeguardAsset','New-SafeguardAsset','Remove-SafeguardAsset',
+    'Get-SafeguardAsset','Find-SafeguardAsset','New-SafeguardAsset','Test-SafeguardAsset',
+    'Remove-SafeguardAsset','Edit-SafeguardAsset',
     # managementShell.psm1
     'Get-SafeguardCommand', 'Get-SafeguardBanner'
     )
