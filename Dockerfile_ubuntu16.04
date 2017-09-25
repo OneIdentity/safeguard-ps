@@ -1,0 +1,10 @@
+FROM microsoft/powershell:ubuntu16.04
+MAINTAINER support@oneidentity.com
+
+COPY ["install.ps1", "/tmp/safeguard/"]
+COPY ["src/", "/tmp/safeguard/src/"]
+
+RUN powershell -NoProfile -Command "/tmp/safeguard/install.ps1 '/usr/local/share/powershell/Modules'; Remove-Item -Path /tmp/safeguard -recurse"
+
+ENTRYPOINT [ "powershell" ]
+CMD ["-NoExit", "-Command", "Get-SafeguardBanner"]
