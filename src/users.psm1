@@ -262,6 +262,9 @@ An array of strings containing the permissions (admin roles) to assign to the us
 .PARAMETER Password
 SecureString containing the password.
 
+.PARAMETER Thumbprint
+String containing a SHA-1 thumbprint of certificate to use for authentication.
+
 .INPUTS
 None.
 
@@ -303,7 +306,9 @@ function New-SafeguardUser
         [ValidateSet('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin','All',IgnoreCase=$true)]
         [string[]]$AdminRoles = $null,
         [Parameter(Mandatory=$false)]
-        [SecureString]$Password
+        [SecureString]$Password,
+        [Parameter(Mandatory=$false)]
+        [string]$Thumbprint
     )
 
     $ErrorActionPreference = "Stop"
@@ -331,6 +336,11 @@ function New-SafeguardUser
         $Provider = $local:ProviderResolved
     }
 
+    if ($Provider -eq $local:CertificateProviderId -and -not ($PSBoundParameters.ContainsKey("Thumbprint")))
+    {
+        $Thumbprint = (Read-Host "Thumbprint")
+    }
+
     if ($AdminRoles -contains "All")
     {
         $AdminRoles = @('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
@@ -349,6 +359,10 @@ function New-SafeguardUser
         if ($PSBoundParameters.ContainsKey("EmailAddress")) { $local:Body.EmailAddress = $EmailAddress }
         if ($PSBoundParameters.ContainsKey("WorkPhone")) { $local:Body.WorkPhone = $WorkPhone }
         if ($PSBoundParameters.ContainsKey("MobilePhone")) { $local:Body.MobilePhone = $MobilePhone }
+        if ($Provider -eq $local:CertificateProviderId)
+        {
+            $local:Body.PrimaryAuthenticationIdentity = $Thumbprint
+        }
         $local:NewUser = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Users -Body $local:Body)
         if ($Provider -eq $local:LocalProviderId)
         {
