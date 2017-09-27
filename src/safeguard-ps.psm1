@@ -1,26 +1,51 @@
 # Global session variable for login information
-New-Variable -Name "SafeguardSession" -Scope Global -Value $null
+try 
+{
+    Get-Variable -Name "SafeguardSession" -Scope Global
+    Set-Variable -Name "SafeguardSession" -Scope Global -Value $null
+}
+catch
+{
+    New-Variable -Name "SafeguardSession" -Scope Global -Value $null
+}
+$MyInvocation.MyCommand.ScriptBlock.Module.OnRemove = {
+    Set-Variable -Name "SafeguardSession" -Scope Global -Value $null
+}
 
 # Helpers for calling Safeguard Web APIs
 function New-SafeguardUrl
 {
-    $Url = "https://$Appliance/service/$($Service.ToLower())/v$Version/$RelativeUrl"
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$Service,
+        [Parameter(Mandatory=$true,Position=2)]
+        [int]$Version,
+        [Parameter(Mandatory=$true,Position=3)]
+        [string]$RelativeUrl,
+        [Parameter(Mandatory=$false)]
+        [object]$Parameters
+    )
+    $local:Url = "https://$Appliance/service/$($Service.ToLower())/v$Version/$RelativeUrl"
     if ($Parameters -and $Parameters.Length -gt 0)
     {
-        $Url += "?"
+        $local:Url += "?"
         $Parameters.Keys | ForEach-Object {
-            $Url += ($_ + "=" + $Parameters.Item($_) + "&")
+            $local:Url += ($_ + "=" + $Parameters.Item($_) + "&")
         }
-        $Url = $Url -replace ".$"
+        $local:Url = $local:Url -replace ".$"
     }
-    $Url
+    $local:Url
 }
 function Wait-LongRunningTask
 {
     Param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true,Position=0)]
         [object]$Response,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true,Position=1)]
+        [object]$Headers,
+        [Parameter(Mandatory=$true,Position=2)]
         [int]$Timeout
     )
 
@@ -29,82 +54,132 @@ function Wait-LongRunningTask
         throw "Trying to track long running task, but response did not include a Location header"
     }
 
-    $StartTime = (Get-Date)
-    $TaskResult = $null
-    $TaskToPoll = $Response.Headers.Location
+    $local:StartTime = (Get-Date)
+    $local:TaskResult = $null
+    $local:TaskToPoll = $Response.Headers.Location
     do {
-        $TaskResponse = (Invoke-RestMethod -Method GET -Headers $Headers -Uri $TaskToPoll)
-        if (-not $TaskResponse.RequestStatus)
+        $local:TaskResponse = (Invoke-RestMethod -Method GET -Headers $Headers -Uri $local:TaskToPoll)
+        if (-not $local:TaskResponse.RequestStatus)
         {
             throw "Trying to track long running task, but Location URL did not return a long running task"
         }
-        $TaskStatus = $TaskResponse.RequestStatus
-        if ($TaskStatus.PercentComplete -eq 100)
+        $local:TaskStatus = $local:TaskResponse.RequestStatus
+        if ($local:TaskStatus.PercentComplete -eq 100)
         {
-            Write-Progress -Activity "Waiting for long-running task" -Status "Step: $($TaskStatus.Message)" -PercentComplete $TaskStatus.PercentComplete
-            $TaskResult = $TaskStatus.Message
+            Write-Progress -Activity "Waiting for long-running task" -Status "Step: $($local:TaskStatus.Message)" -PercentComplete $local:TaskStatus.PercentComplete
+            $local:TaskResult = $local:TaskStatus.Message
         }
         else
         {
-            $Percent = 0
-            if ($TaskStatus.PercentComplete)
+            $local:Percent = 0
+            if ($local:TaskStatus.PercentComplete)
             {
-                $Percent = $TaskStatus.PercentComplete
+                $local:Percent = $local:TaskStatus.PercentComplete
             }
-            Write-Progress -Activity "Waiting for long-running task" -Status "Step: $($TaskStatus.Message)" -PercentComplete $Percent
-            if ((((Get-Date) - $StartTime).Seconds) -gt $Timeout)
+            Write-Progress -Activity "Waiting for long-running task" -Status "Step: $($local:TaskStatus.Message)" -PercentComplete $local:Percent
+            if ((((Get-Date) - $local:StartTime).Seconds) -gt $Timeout)
             {
                 throw "Timed out waiting for long-running task, timeout was $Timeout seconds"
             }
         }
         Start-Sleep 1
-    } until ($TaskResult)
-    if ($TaskStatus.State -ieq "Failure")
+    } until ($local:TaskResult)
+    if ($local:TaskStatus.State -ieq "Failure")
     {
-        throw $TaskResult
+        throw $local:TaskResult
     }
-    $TaskResult
+    $local:TaskResult
 }
 function Invoke-WithoutBody
 {
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$Service,
+        [Parameter(Mandatory=$true,Position=2)]
+        [string]$Method,
+        [Parameter(Mandatory=$true,Position=3)]
+        [int]$Version,
+        [Parameter(Mandatory=$true,Position=4)]
+        [string]$RelativeUrl,
+        [Parameter(Mandatory=$true,Position=5)]
+        [object]$Headers,
+        [Parameter(Mandatory=$false)]
+        [object]$Parameters,
+        [Parameter(Mandatory=$false)]
+        [string]$InFile,
+        [Parameter(Mandatory=$false)]
+        [string]$OutFile,
+        [Parameter(Mandatory=$false)]
+        [switch]$LongRunningTask,
+        [Parameter(Mandatory=$false)]
+        [int]$Timeout
+    )
+
+    $local:Url = (New-SafeguardUrl $Appliance $Service $Version $RelativeUrl -Parameters $Parameters)
     if ($InFile)
     {
         if ($LongRunningTask)
         {
-            $Response = (Invoke-WebRequest -Method $Method -Headers $Headers -Uri (New-SafeguardUrl) `
-                             -InFile $InFile -OutFile $OutFile -TimeoutSec $Timeout)
-            Wait-LongRunningTask $Response $Timeout
+            $local:Response = (Invoke-WebRequest -Method $Method -Headers $Headers -Uri $local:Url `
+                                   -InFile $InFile -OutFile $OutFile -TimeoutSec $Timeout)
+            Wait-LongRunningTask $local:Response $Headers $Timeout
         }
         else
         {
-            Invoke-RestMethod -Method $Method -Headers $Headers -Uri (New-SafeguardUrl) -InFile $InFile -OutFile $OutFile -TimeoutSec $Timeout
+            Invoke-RestMethod -Method $Method -Headers $Headers -Uri $local:Url -InFile $InFile -OutFile $OutFile -TimeoutSec $Timeout
         }
     }
     else
     {
         if ($LongRunningTask)
         {
-            $Response = $(Invoke-RestMethod -Method $Method -Headers $Headers -Uri (New-SafeguardUrl) `
-                              -OutFile $OutFile -TimeoutSec $Timeout)
-            Wait-LongRunningTask $Response $Timeout
+            $local:Response = $(Invoke-RestMethod -Method $Method -Headers $Headers -Uri $local:Url `
+                                    -InFile $InFile -OutFile $OutFile -TimeoutSec $Timeout)
+            Wait-LongRunningTask $local:Response $Headers $Timeout
         }
         else
         {
-            Invoke-RestMethod -Method $Method -Headers $Headers -Uri (New-SafeguardUrl) -OutFile $OutFile -TimeoutSec $Timeout
+            Invoke-RestMethod -Method $Method -Headers $Headers -Uri $local:Url -OutFile $OutFile -TimeoutSec $Timeout
         }
     }
 }
 function Invoke-WithBody
 {
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$Service,
+        [Parameter(Mandatory=$true,Position=2)]
+        [string]$Method,
+        [Parameter(Mandatory=$true,Position=3)]
+        [int]$Version,
+        [Parameter(Mandatory=$true,Position=4)]
+        [string]$RelativeUrl,
+        [Parameter(Mandatory=$true,Position=5)]
+        [object]$Headers,
+        [Parameter(Mandatory=$false)]
+        [object]$Parameters,
+        [Parameter(Mandatory=$false)]
+        [string]$OutFile,
+        [Parameter(Mandatory=$false)]
+        [switch]$LongRunningTask,
+        [Parameter(Mandatory=$false)]
+        [int]$Timeout
+    )
+
+    $local:Url = (New-SafeguardUrl $Appliance $Service $Version $RelativeUrl -Parameters $Parameters)
     if ($LongRunningTask)
     {
-        $Response = (Invoke-WebRequest -Method $Method -Headers $Headers -Uri (New-SafeguardUrl) `
+        $local:Response = (Invoke-WebRequest -Method $Method -Headers $Headers -Uri $local:Url `
                          -Body (ConvertTo-Json -InputObject $Body) -OutFile $OutFile -TimeoutSec $Timeout)
-        Wait-LongRunningTask $Response $Timeout
+        Wait-LongRunningTask $local:Response $Headers $Timeout
     }
     else
     {
-        Invoke-RestMethod -Method $Method -Headers $Headers -Uri (New-SafeguardUrl) -Body (ConvertTo-Json -InputObject $Body) `
+        Invoke-RestMethod -Method $Method -Headers $Headers -Uri $local:Url -Body (ConvertTo-Json -InputObject $Body) `
             -OutFile $OutFile -TimeoutSec $Timeout
     }
 }
@@ -143,7 +218,10 @@ Powershell credential to be used for username and password.
 The username to authenticate as when not using Powershell credential.
 
 .PARAMETER Password
-SecureString containing the password when not using a Powershell credential.
+SecureString containing the password.
+
+.PARAMETER CertificateFile
+Path to a PFX (PKCS12) file containing the client certificate to use to connect to the RSTS.
 
 .PARAMETER Thumbprint
 Client certificate thumbprint to use to authenticate the connection to the RSTS.
@@ -203,7 +281,7 @@ function Connect-Safeguard
         [string]$Appliance,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure = $false,
-        [Parameter(ParameterSetName="Username",Mandatory=$false,Position=1)]
+        [Parameter(Mandatory=$false,Position=1)]
         [string]$IdentityProvider,
         [Parameter(ParameterSetName="PSCredential",Position=2)]
         [PSCredential]$Credential,
@@ -211,7 +289,9 @@ function Connect-Safeguard
         [string]$Username,
         [Parameter(ParameterSetName="Username",Position=3)]
         [SecureString]$Password,
-        [Parameter(ParameterSetName="Certificate",Mandatory=$true)]
+        [Parameter(ParameterSetName="Certificate",Mandatory=$false)]
+        [string]$CertificateFile,
+        [Parameter(ParameterSetName="Certificate",Mandatory=$false)]
         [string]$Thumbprint,
         [Parameter(Mandatory=$false)]
         [int]$Version = 2,
@@ -227,26 +307,33 @@ function Connect-Safeguard
         {
             Disable-SslVerification
         }
-        $GetPrimaryProvidersRelativeURL = "RSTS/UserLogin/LoginController?response_type=token&redirect_uri=urn:InstalledApplication&loginRequestStep=1"
-        $IdentityProviders = ,"certificate" + `
-            (Invoke-RestMethod -Method GET -Uri "https://$Appliance/$GetPrimaryProvidersRelativeURL").Providers.Id
-        if (-not $IdentityProvider -and -not $Thumbprint)
+        $local:GetPrimaryProvidersRelativeURL = "RSTS/UserLogin/LoginController?response_type=token&redirect_uri=urn:InstalledApplication&loginRequestStep=1"
+        $local:IdentityProviders = ,"certificate" + `
+            (Invoke-RestMethod -Method GET -Uri "https://$Appliance/$($local:GetPrimaryProvidersRelativeURL)").Providers.Id
+        if (-not $IdentityProvider)
         {
-            Write-Host "($($IdentityProviders -join ", "))"
-            $IdentityProvider = (Read-Host "Provider")
+            if ($PSBoundParameters.ContainsKey("Thumbprint") -or $PSBoundParameters.ContainsKey("CertificateFile"))
+            {
+                $IdentityProvider = "certificate"
+            }
+            else
+            {
+                Write-Host "($($local:IdentityProviders -join ", "))"
+                $IdentityProvider = (Read-Host "Provider")
+            }
         }
-        if (-not $Thumbprint -and $IdentityProviders -notcontains $IdentityProvider.ToLower())
+        if ($local:IdentityProviders -notcontains $IdentityProvider.ToLower())
         {
-            throw "IdentityProvider '$IdentityProvider' not found in ($($IdentityProviders -join ", "))"
+            throw "IdentityProvider '$($local:IdentityProvider)' not found in ($($local:IdentityProviders -join ", "))"
         }
     
         if ($IdentityProvider -ieq "certificate")
         {
-            if (-not $Thumbprint)
+            if (-not $Thumbprint -and -not $CertificateFile)
             {
                 $Thumbprint = (Read-Host "Thumbprint")
             }
-            $Scope = "rsts:sts:primaryproviderid:certificate"
+            $local:Scope = "rsts:sts:primaryproviderid:certificate"
         }
         else
         {
@@ -261,24 +348,24 @@ function Connect-Safeguard
                     { 
                         $Password = (Read-Host "Password" -AsSecureString)
                     }
-                    $PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
+                    $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
                     break
                 }
                 "PSCredential" {
                     $Username = $Credential.UserName
-                    $PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Credential.Password))
+                    $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Credential.Password))
                     break
                 }
                 "Certificate" {
                     $IdentityProvider = "certificate"
-                    $Scope = "rsts:sts:primaryproviderid:certificate"
+                    $local:Scope = "rsts:sts:primaryproviderid:certificate"
                 }
             }
         }
     
         if ($Username)
         {
-            $Scope = "rsts:sts:primaryproviderid:$($IdentityProvider.ToLower())"
+            $local:Scope = "rsts:sts:primaryproviderid:$($IdentityProvider.ToLower())"
             $RstsResponse = (Invoke-RestMethod -Method POST -Headers @{
                 "Accept" = "application/json";
                 "Content-type" = "application/json"
@@ -286,49 +373,73 @@ function Connect-Safeguard
 {
     "grant_type": "password",
     "username": "$Username",
-    "password": "$PasswordPlainText",
-    "scope": "$Scope"
+    "password": "$($local:PasswordPlainText)",
+    "scope": "$($local:Scope)"
 }
 "@)
         }
-        else
+        else # Assume Client Certificate Authentication
         {
-            $RstsResponse = (Invoke-RestMethod -CertificateThumbprint $Thumbprint -Method POST -Headers @{
-                "Accept" = "application/json";
-                "Content-type" = "application/json"
-            } -Uri "https://$Appliance/RSTS/oauth2/token" -Body @"
+            if (-not $Thumbprint)
+            {
+                # From PFX file
+                $local:ClientCertificate = (Get-PfxCertificate -FilePath $CertificateFile)
+                $local:RstsResponse = (Invoke-RestMethod -Certificate $local:ClientCertificate -Method POST -Headers @{
+                    "Accept" = "application/json";
+                    "Content-type" = "application/json"
+                } -Uri "https://$Appliance/RSTS/oauth2/token" -Body @"
 {
     "grant_type": "client_credentials",
-    "scope": "$Scope"
+    "scope": "$($local:Scope)"
 }
 "@)
+            }
+            else
+            {
+                # From thumbprint in Windows Certificate Store
+                $local:RstsResponse = (Invoke-RestMethod -CertificateThumbprint $Thumbprint -Method POST -Headers @{
+                    "Accept" = "application/json";
+                    "Content-type" = "application/json"
+                } -Uri "https://$Appliance/RSTS/oauth2/token" -Body @"
+{
+    "grant_type": "client_credentials",
+    "scope": "$($local:Scope)"
+}
+"@)
+            }
         }
-        
-        $LoginResponse = (Invoke-RestMethod -Method POST -Headers @{
+
+        $local:LoginResponse = (Invoke-RestMethod -Method POST -Headers @{
             "Accept" = "application/json";
             "Content-type" = "application/json"
         } -Uri "https://$Appliance/service/core/v$Version/Token/LoginResponse" -Body @"
 {
-    "StsAccessToken": "$($RstsResponse.access_token)"
+    "StsAccessToken": "$($local:RstsResponse.access_token)"
 }
 "@)
         
-        if ($LoginResponse.Status -ine "Success")
+        if ($local:LoginResponse.Status -ine "Success")
         {
-            throw $LoginResponse
+            throw $local:LoginResponse
         }
         
         if ($NoSessionVariable)
         {
-            $LoginResponse.UserToken
+            $local:LoginResponse.UserToken
         }
         else
         {
+            if ($CertificateFile)
+            {
+                try { $CertificateFile = (Resolve-Path $CertificateFile).Path } catch {}
+            }
             Set-Variable -Name "SafeguardSession" -Scope Global -Value @{
                 "Appliance" = $Appliance;
+                "Version" = $Version
                 "IdentityProvider" = $IdentityProvider;
-                "AccessToken" = $LoginResponse.UserToken;
+                "AccessToken" = $local:LoginResponse.UserToken;
                 "Thumbprint" = $Thumbprint;
+                "CertificateFile" = $CertificateFile;
                 "Insecure" = $Insecure;
             }
             Write-Host "Login Successful."
@@ -352,6 +463,18 @@ using the Web API.
 This utility will invalidate your token and remove the session variable
 that was created by the Connect-Safeguard cmdlet.
 
+.PARAMETER Appliance
+Which appliance to contact when not using session variable.
+
+.PARAMETER AccessToken
+Invalidate specific access token rather than the session variable.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Version
+Version of the Web API you are using (default: 2).
+
 .INPUTS
 None.
 
@@ -366,44 +489,79 @@ Log out Successful.
 #>
 function Disconnect-Safeguard
 {
+    [CmdletBinding(DefaultParameterSetName='None')]
     Param(
+        [Parameter(ParameterSetName="AccessToken",Mandatory=$true,Position=0)]
+        [string]$Appliance,
+        [Parameter(ParameterSetName="AccessToken",Mandatory=$true,Position=1)]
+        [object]$AccessToken,
+        [Parameter(ParameterSetName="AccessToken",Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(ParameterSetName="AccessToken",Mandatory=$false)]
+        [int]$Version = 2
     )
 
     $ErrorActionPreference = "Stop"
 
-    try
+    if ($PsCmdlet.ParameterSetName -eq "AccessToken")
     {
-        if (-not $SafeguardSession)
+        try
         {
-            Write-Host "Not logged in."
-        }
-        else
-        {
-            $Version = 2
-            $Appliance = $SafeguardSession["Appliance"]
-            $AccessToken = $SafeguardSession["AccessToken"]
-            $Insecure = $SafeguardSession["Insecure"]
             if ($Insecure)
             {
                 Disable-SslVerification
             }
-            $Headers = @{
+            $local:Headers = @{
                 "Accept" = "application/json";
                 "Content-type" = "application/json";
                 "Authorization" = "Bearer $AccessToken"
             }
-            Invoke-RestMethod -Method POST -Headers $Headers -Uri "https://$Appliance/service/core/v$Version/Token/Logout"
-            
+            Invoke-RestMethod -Method POST -Headers $local:Headers -Uri "https://$Appliance/service/core/v$Version/Token/Logout"
+            Write-Host "Log out Successful."
         }
-        Write-Host "Log out Successful."
-    }
-    finally
-    {
-        Write-Host "Session variable removed."
-        Set-Variable -Name "SafeguardSession" -Scope Global -Value $null
-        if ($Insecure)
+        finally
         {
-            Enable-SslVerification
+            if ($Insecure)
+            {
+                Enable-SslVerification
+            }
+        }
+    }
+    else
+    {
+        try
+        {
+            if (-not $SafeguardSession)
+            {
+                Write-Host "Not logged in."
+            }
+            else
+            {
+                $Appliance = $SafeguardSession["Appliance"]
+                $Version = $SafeguardSession["Version"]
+                $AccessToken = $SafeguardSession["AccessToken"]
+                $Insecure = $SafeguardSession["Insecure"]
+                if ($Insecure)
+                {
+                    Disable-SslVerification
+                }
+                $local:Headers = @{
+                    "Accept" = "application/json";
+                    "Content-type" = "application/json";
+                    "Authorization" = "Bearer $AccessToken"
+                }
+                Invoke-RestMethod -Method POST -Headers $local:Headers -Uri "https://$Appliance/service/core/v$Version/Token/Logout"
+            }
+            Write-Host "Log out Successful."
+        }
+        finally
+        {
+            Write-Host "Session variable removed."
+            Set-Variable -Name "SafeguardSession" -Scope Global -Value $null
+            if ($Insecure)
+            {
+                Enable-SslVerification
+            }
         }
     }
 }
@@ -585,14 +743,14 @@ function Invoke-SafeguardMethod
         Disable-SslVerification
     }
 
-    $Headers = @{
+    $local:Headers = @{
             "Accept" = $Accept;
             "Content-type" = $ContentType;
         }
     
     if (-not $Anonymous)
     {
-        $Headers["Authorization"] = "Bearer $AccessToken"
+        $local:Headers["Authorization"] = "Bearer $AccessToken"
     }
 
     try
@@ -600,17 +758,20 @@ function Invoke-SafeguardMethod
         switch ($Method.ToLower())
         {
             {$_ -in "get","delete"} {
-                Invoke-WithoutBody
+                Invoke-WithoutBody $Appliance $Service $Method $Version $RelativeUrl $local:Headers `
+                    -Parameters $Parameters -InFile $InFile -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout 
                 break
             }
             {$_ -in "put","post"} {
                 if ($InFile)
                 {
-                    Invoke-WithoutBody
+                    Invoke-WithoutBody $Appliance $Service $Method $Version $RelativeUrl $local:Headers `
+                        -Parameters $Parameters -InFile $InFile -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout
                 }
                 else
                 {
-                    Invoke-WithBody
+                    Invoke-WithBody $Appliance $Service $Method $Version $RelativeUrl $local:Headers `
+                        -Parameters $Parameters -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout
                 }
                 break
             }

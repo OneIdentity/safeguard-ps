@@ -46,4 +46,5 @@ Install-SafeguardLicense -Appliance $Appliance -AccessToken $AccessToken -Insecu
 Uninstall-SafeguardLicense -Appliance $Appliance -AccessToken $AccessToken -Insecure $local:PasswordLicense.Key
 Uninstall-SafeguardLicense -Appliance $Appliance -AccessToken $AccessToken -Insecure $local:SessionsLicense.Key
 
+Disconnect-Safeguard -Insecure $Appliance $local:AccessToken
 Write-Host "Test completed successfully"

@@ -8,8 +8,8 @@ function Get-CertificateFileContents
 
     try 
     {
-        $CertificateFullPath = (Resolve-Path $CertificateFile).ToString()
-        if ((Get-Item $CertificateFullPath).Length -gt 100kb)
+        $local:CertificateFullPath = (Resolve-Path $CertificateFile).ToString()
+        if ((Get-Item $local:CertificateFullPath).Length -gt 100kb)
         {
             throw "'$CertificateFile' appears to be too large to be a certificate"
         }
@@ -18,29 +18,32 @@ function Get-CertificateFileContents
     {
         throw "'$CertificateFile' does not exist"
     }
-    $CertificateContents = [string](Get-Content $CertificateFullPath)
+    $local:CertificateContents = [string](Get-Content $local:CertificateFullPath)
     if (-not ($CertificateContents.StartsWith("-----BEGIN CERTIFICATE-----")))
     {
         Write-Host "Converting to Base64..."
-        $CertificateContents = [System.IO.File]::ReadAllBytes($CertificateFullPath)
-        $CertificateContents = [System.Convert]::ToBase64String($CertificateContents)
+        $local:CertificateContents = [System.IO.File]::ReadAllBytes($local:CertificateFullPath)
+        $local:CertificateContents = [System.Convert]::ToBase64String($local:CertificateContents)
     }
 
-    $CertificateContents
+    $local:CertificateContents
 }
 # Helper function for finding tools to generate certificates
-function Get-Tool {
+function Get-Tool
+{
     Param(
         [Parameter(Mandatory=$true, Position=0)]
         [string[]]$Paths,
         [Parameter(Mandatory=$true, Position=1)]
         [string]$Tool
     )
-    foreach ($path in $Paths) {
-        Write-Host "Searching $path for $Tool"
-        $makecerts = (Get-ChildItem -Recurse -EA SilentlyContinue $path | ?{ $_.Name -eq $Tool })
-        if ($makecerts.Length -gt 0) {
-            $makecerts[-1].Fullname
+    foreach ($local:SearchPath in $Paths)
+    {
+        Write-Host "Searching $($local:SearchPath) for $Tool"
+        $local:ToolPath = (Get-ChildItem -Recurse -EA SilentlyContinue $local:SearchPath | Where-Object { $_.Name -eq $Tool })
+        if ($local:ToolPath.Length -gt 0) 
+        {
+            $local:ToolPath[-1].Fullname
             return
         }
     }
@@ -95,7 +98,7 @@ function Install-SafeguardTrustedCertificate
 
     $ErrorActionPreference = "Stop"
 
-    $CertificateContents = (Get-CertificateFileContents $CertificateFile)
+    $local:CertificateContents = (Get-CertificateFileContents $CertificateFile)
     if (-not $CertificateContents)
     {
         throw "No valid certificate to upload"
@@ -104,7 +107,7 @@ function Install-SafeguardTrustedCertificate
     Write-Host "Uploading Certificate..."
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
         POST TrustedCertificates -Body @{
-            Base64CertificateData = "$CertificateContents" 
+            Base64CertificateData = "$($local:CertificateContents)"
         }
 }
 
@@ -157,8 +160,8 @@ function Uninstall-SafeguardTrustedCertificate
 
     if (-not $Thumbprint)
     {
-        $CurrentThumbprints = (Get-SafeguardTrustedCertificate -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure).Thumbprint -join ", "
-        Write-Host "Currently Installed Trusted Certificates: [ $CurrentThumbprints ]"
+        $local:CurrentThumbprints = (Get-SafeguardTrustedCertificate -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure).Thumbprint -join ", "
+        Write-Host "Currently Installed Trusted Certificates: [ $($local:CurrentThumbprints) ]"
         $Thumbprint = (Read-Host "Thumbprint")
     }
 
@@ -167,10 +170,10 @@ function Uninstall-SafeguardTrustedCertificate
 
 <#
 .SYNOPSIS
-Get all trusted certificate from Safeguard via the Web API.
+Get trusted certificates from Safeguard via the Web API.
 
 .DESCRIPTION
-Retrieve all trusted certificates that were previously added to Safeguard via
+Retrieve trusted certificates that were previously added to Safeguard via
 the Web API.  These will be only the user-added trusted certificates.
 
 .PARAMETER Appliance
@@ -181,6 +184,9 @@ A string containing the bearer token to be used with Safeguard Web API.
 
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Thumbprint
+A string containing the thumbprint of the certificate.
 
 .INPUTS
 None.
@@ -202,12 +208,21 @@ function Get-SafeguardTrustedCertificate
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [string]$Thumbprint
     )
 
     $ErrorActionPreference = "Stop"
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET TrustedCertificates
+    if ($PSBoundParameters.ContainsKey("Thumbprint"))
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "TrustedCertificates/$Thumbprint"
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET TrustedCertificates
+    }
 }
 
 <#
@@ -262,12 +277,14 @@ function Install-SafeguardSslCertificate
         [Parameter(Mandatory=$true,Position=0)]
         [string]$CertificateFile,
         [Parameter(Mandatory=$false,Position=1)]
-        [SecureString]$Password
+        [SecureString]$Password,
+        [Parameter(Mandatory=$false)]
+        [switch]$Assign
     )
 
     $ErrorActionPreference = "Stop"
 
-    $CertificateContents = (Get-CertificateFileContents $CertificateFile)
+    $local:CertificateContents = (Get-CertificateFileContents $CertificateFile)
     if (-not $CertificateContents)
     {
         throw "No valid certificate to upload"
@@ -277,31 +294,31 @@ function Install-SafeguardSslCertificate
     {
         Write-Host "For no password just press enter..."
         $Password = (Read-host "Password" -AsSecureString)
-        $PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
     }
+    $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
 
     Write-Host "Uploading Certificate..."
-    if ($PasswordPlainText)
+    if ($local:PasswordPlainText)
     {
-        $NewCertificate = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        $local:NewCertificate = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
             POST SslCertificates -Body @{
-                Base64CertificateData = "$CertificateContents";
-                Passphrase = "$PasswordPlainText"
+                Base64CertificateData = "$($local:CertificateContents)";
+                Passphrase = "$($local:PasswordPlainText)"
             })
     }
     else
     {
-        $NewCertificate = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        $local:NewCertificate = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
             POST SslCertificates -Body @{
-                Base64CertificateData = "$CertificateContents" 
+                Base64CertificateData = "$($local:CertificateContents)" 
             })
     }
 
-    $NewCertificate
+    $local:NewCertificate
 
-    if ($Assign -and $NewCertificate.Thumbprint)
+    if ($Assign -and $local:NewCertificate.Thumbprint)
     {
-        Set-SafeguardSslCertificate -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $NewCertificate.Thumbprint
+        Set-SafeguardSslCertificateForAppliance -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:NewCertificate.Thumbprint
     }
 }
 
@@ -354,8 +371,8 @@ function Uninstall-SafeguardSslCertificate
 
     if (-not $Thumbprint)
     {
-        $CurrentThumbprints = (Get-SafeguardSslCertificate -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure).Thumbprint -join ", "
-        Write-Host "Currently Installed SSL Certificates: [ $CurrentThumbprints ]"
+        $local:CurrentThumbprints = (Get-SafeguardSslCertificate -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure).Thumbprint -join ", "
+        Write-Host "Currently Installed SSL Certificates: [ $($local:CurrentThumbprints) ]"
         $Thumbprint = (Read-Host "Thumbprint")
     }
 
@@ -364,11 +381,11 @@ function Uninstall-SafeguardSslCertificate
 
 <#
 .SYNOPSIS
-Get all trusted certificate from Safeguard via the Web API.
+Get SSL certificates from Safeguard via the Web API.
 
 .DESCRIPTION
-Retrieve all trusted certificates that were previously added to Safeguard via
-the Web API.  These will be only the user-added trusted certificates.
+Retrieve SSL certificates that were previously added to Safeguard via
+the Web API.  These will also include the default SSL certificates.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -378,6 +395,9 @@ A string containing the bearer token to be used with Safeguard Web API.
 
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Thumbprint
+A string containing the thumbprint of the certificate.
 
 .INPUTS
 None.
@@ -399,12 +419,21 @@ function Get-SafeguardSslCertificate
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [string]$Thumbprint
     )
 
     $ErrorActionPreference = "Stop"
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET SslCertificates
+    if ($PSBoundParameters.ContainsKey("Thumbprint"))
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "SslCertificates/$Thumbprint"
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET SslCertificates
+    }
 }
 
 <#
@@ -438,10 +467,10 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Set-SafeguardTrustedCertificateForAppliance -AccessToken $token -Appliance 10.5.32.54
+Set-SafeguardSslCertificateForAppliance -AccessToken $token -Appliance 10.5.32.54
 
 .EXAMPLE
-Set-SafeguardTrustedCertificateForAppliance -Thumbprint 3E1A99AE7ACFB163DEE3CCAC00A437D675937FCA -ApplianceId 00155D26E342
+Set-SafeguardSslCertificateForAppliance -Thumbprint 3E1A99AE7ACFB163DEE3CCAC00A437D675937FCA -ApplianceId 00155D26E342
 #>
 function Set-SafeguardSslCertificateForAppliance
 {
@@ -462,8 +491,8 @@ function Set-SafeguardSslCertificateForAppliance
 
     if (-not $Thumbprint)
     {
-        $CurrentThumbprints = (Get-SafeguardSslCertificate -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure).Thumbprint -join ", "
-        Write-Host "Currently Installed SSL Certificates: [ $CurrentThumbprints ]"
+        $local:CurrentThumbprints = (Get-SafeguardSslCertificate -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure).Thumbprint -join ", "
+        Write-Host "Currently Installed SSL Certificates: [ $($local:CurrentThumbprints) ]"
         $Thumbprint = (Read-Host "Thumbprint")
     }
 
@@ -473,13 +502,13 @@ function Set-SafeguardSslCertificateForAppliance
     }
 
     Write-Host "Setting $Thumbprint as current SSL Certificate for $ApplianceId..."
-    $CurrentIds = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "SslCertificates/$Thumbprint/Appliances")
-    if (-not $CurrentIds)
+    $local:CurrentIds = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "SslCertificates/$Thumbprint/Appliances")
+    if (-not $local:CurrentIds)
     {
-        $CurrentIds = @()
+        $local:CurrentIds = @()
     }
-    $CurrentIds += @{ "Id" = "$ApplianceId" }
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "SslCertificates/$Thumbprint/Appliances" -Body $CurrentIds
+    $local:CurrentIds += @{ "Id" = "$ApplianceId" }
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "SslCertificates/$Thumbprint/Appliances" -Body $local:CurrentIds
 }
 
 <#
@@ -513,10 +542,10 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Clear-SafeguardTrustedCertificateForAppliance -AccessToken $token -Appliance 10.5.32.54
+Clear-SafeguardSslCertificateForAppliance -AccessToken $token -Appliance 10.5.32.54
 
 .EXAMPLE
-Clear-SafeguardTrustedCertificateForAppliance -Thumbprint 3E1A99AE7ACFB163DEE3CCAC00A437D675937FCA -ApplianceId 00155D26E342
+Clear-SafeguardSslCertificateForAppliance -Thumbprint 3E1A99AE7ACFB163DEE3CCAC00A437D675937FCA -ApplianceId 00155D26E342
 #>
 function Clear-SafeguardSslCertificateForAppliance
 {
@@ -537,8 +566,8 @@ function Clear-SafeguardSslCertificateForAppliance
 
     if (-not $Thumbprint)
     {
-        $CurrentThumbprints = (Get-SafeguardSslCertificate -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure).Thumbprint -join ", "
-        Write-Host "Currently Installed SSL Certificates: [ $CurrentThumbprints ]"
+        $local:CurrentThumbprints = (Get-SafeguardSslCertificate -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure).Thumbprint -join ", "
+        Write-Host "Currently Installed SSL Certificates: [ $($local:CurrentThumbprints) ]"
         $Thumbprint = (Read-Host "Thumbprint")
     }
 
@@ -548,13 +577,13 @@ function Clear-SafeguardSslCertificateForAppliance
     }
 
     Write-Host "Clearing $Thumbprint as current SSL Certificate for $ApplianceId..."
-    $CurrentIds = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "SslCertificates/$Thumbprint/Appliances")
-    $NewIds = $CurrentIds | Where-Object { $_.Id -ne $ApplianceId }
-    if (-not $NewIds)
+    $local:CurrentIds = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "SslCertificates/$Thumbprint/Appliances")
+    $local:NewIds = $local:CurrentIds | Where-Object { $_.Id -ne $ApplianceId }
+    if (-not $local:NewIds)
     {
-        $NewIds = @()
+        $local:NewIds = @()
     }
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "SslCertificates/$Thumbprint/Appliances" -Body $NewIds
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "SslCertificates/$Thumbprint/Appliances" -Body $local:NewIds
 }
 
 <#
@@ -585,10 +614,10 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardTrustedCertificateForAppliance -AccessToken $token -Appliance 10.5.32.54
+Get-SafeguardSslCertificateForAppliance -AccessToken $token -Appliance 10.5.32.54
 
 .EXAMPLE
-Get-SafeguardTrustedCertificateForAppliance -ApplianceId 00155D26E342
+Get-SafeguardSslCertificateForAppliance -ApplianceId 00155D26E342
 #>
 function Get-SafeguardSslCertificateForAppliance
 {
@@ -610,8 +639,8 @@ function Get-SafeguardSslCertificateForAppliance
         $ApplianceId = (Invoke-SafeguardMethod -Anonymous -Appliance $Appliance -Insecure:$Insecure Notification GET Status).ApplianceId
     }
 
-    $Certificates = (Get-SafeguardSslCertificate -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
-    $Certificates | ForEach-Object {
+    $local:Certificates = (Get-SafeguardSslCertificate -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
+    $local:Certificates | ForEach-Object {
         if (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "SslCertificates/$($_.Thumbprint)/Appliances" | Where-Object {
             $_.Id -eq $ApplianceId
         })
@@ -667,7 +696,7 @@ function New-SafeguardTestCertificatePki
 
     if (-not $OutputDirectory)
     {
-        $OutputDirectory = (Join-Path $(Get-Location) + ("CERTS-{0}" -f (Get-Date -format s) -replace ':','-'))
+        $OutputDirectory = (Join-Path (Get-Location) ("CERTS-{0}" -f (Get-Date -format s) -replace ':','-'))
     }
     else
     {
@@ -675,9 +704,9 @@ function New-SafeguardTestCertificatePki
     }
 
     Write-Host -ForegroundColor Yellow "Locating tools"
-    $MakeCert = (Get-Tool @("C:\Program Files (x86)\Windows Kits", "C:\Program Files (x86)\Microsoft SDKs\Windows") "makecert.exe")
-    $Pvk2Pfx = (Get-Tool @("C:\Program Files (x86)\Windows Kits", "C:\Program Files (x86)\Microsoft SDKs\Windows") "pvk2pfx.exe")
-    $CertUtil = (Join-Path $env:windir "system32\certutil.exe")
+    $local:MakeCert = (Get-Tool @("C:\Program Files (x86)\Windows Kits", "C:\Program Files (x86)\Microsoft SDKs\Windows") "makecert.exe")
+    $local:Pvk2Pfx = (Get-Tool @("C:\Program Files (x86)\Windows Kits", "C:\Program Files (x86)\Microsoft SDKs\Windows") "pvk2pfx.exe")
+    $local:CertUtil = (Join-Path $env:windir "system32\certutil.exe")
 
     Write-Host "Creating Directory: $OutputDirectory"
     New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
@@ -685,40 +714,40 @@ function New-SafeguardTestCertificatePki
     Write-Host -ForegroundColor Yellow "Generating Certificates"
     Write-Host "This cmdlet can be annoying because you have to type your password a lot... this is a limitation of the underlying tools"
     Write-Host -ForegroundColor Yellow "Just type the same password at all of the prompts!!! It can be as simple as one letter."
-    $PasswordSecure = (Read-Host "Password" -AsSecureString)
-    $Password = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($PasswordSecure))
+    $local:PasswordSecure = (Read-Host "Password" -AsSecureString)
+    $local:Password = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($local:PasswordSecure))
 
-    $Name = "RootCA"
-    $Subject = "CN=$Name,$SubjectBaseDn"
-    Write-Host "Creating Root CA Certificate as $Subject"
-    Invoke-Expression ("& '$MakeCert' -n '$Subject' -r -a sha256 -len $KeySize -m 240 -cy authority -sky signature -sv '$OutputDirectory\$Name.pvk' '$OutputDirectory\$Name.cer'")
-    Invoke-Expression ("& '$certutil' -encode '$OutputDirectory\$Name.cer' '$OutputDirectory\$Name.pem'")
-    Invoke-Expression ("& '$pvk2pfx' -pvk '$OutputDirectory\$Name.pvk' -spc '$OutputDirectory\$Name.cer' -pfx '$OutputDirectory\$Name.pfx' -pi $Password")
+    $local:Name = "RootCA"
+    $local:Subject = "CN=$($local:Name),$($local:SubjectBaseDn)"
+    Write-Host "Creating Root CA Certificate as $($local:Subject)"
+    Invoke-Expression ("& '$($local:MakeCert)' -n '$($local:Subject)' -r -a sha256 -len $($local:KeySize) -m 240 -cy authority -sky signature -sv '$OutputDirectory\$($local:Name).pvk' '$OutputDirectory\$($local:Name).cer'")
+    Invoke-Expression ("& '$($local:CertUtil)' -encode '$OutputDirectory\$($local:Name).cer' '$OutputDirectory\$($local:Name).pem'")
+    Invoke-Expression ("& '$($local:Pvk2Pfx)' -pvk '$OutputDirectory\$($local:Name).pvk' -spc '$OutputDirectory\$($local:Name).cer' -pfx '$OutputDirectory\$($local:Name).pfx' -pi $($local:Password)")
 
-    $Issuer = "RootCA"
-    $Name = "IntermediateCA"
-    $Subject = "CN=$Name,$SubjectBaseDn"
-    Write-Host "Creating Intermediate CA Certificate as $Subject"
-    Invoke-Expression ("& '$MakeCert' -n '$Subject' -a sha256 -len $KeySize -m 240 -cy authority -sky signature -iv '$OutputDirectory\$Issuer.pvk' -ic '$OutputDirectory\$Issuer.cer' -sv '$OutputDirectory\$Name.pvk' '$OutputDirectory\$Name.cer'")
-    Invoke-Expression ("& '$certutil' -encode '$OutputDirectory\$Name.cer' '$OutputDirectory\$Name.pem'")
-    Invoke-Expression ("& '$pvk2pfx' -pvk '$OutputDirectory\$Name.pvk' -spc '$OutputDirectory\$Name.cer' -pfx '$OutputDirectory\$Name.pfx' -pi $Password")
+    $local:Issuer = "RootCA"
+    $local:Name = "IntermediateCA"
+    $local:Subject = "CN=$($local:Name),$SubjectBaseDn"
+    Write-Host "Creating Intermediate CA Certificate as $($local:Subject)"
+    Invoke-Expression ("& '$($local:MakeCert)' -n '$($local:Subject)' -a sha256 -len $KeySize -m 240 -cy authority -sky signature -iv '$OutputDirectory\$($local:Issuer).pvk' -ic '$OutputDirectory\$($local:Issuer).cer' -sv '$OutputDirectory\$($local:Name).pvk' '$OutputDirectory\$($local:Name).cer'")
+    Invoke-Expression ("& '$($local:CertUtil)' -encode '$OutputDirectory\$($local:Name).cer' '$OutputDirectory\$($local:Name).pem'")
+    Invoke-Expression ("& '$($local:Pvk2Pfx)' -pvk '$OutputDirectory\$($local:Name).pvk' -spc '$OutputDirectory\$($local:Name).cer' -pfx '$OutputDirectory\$($local:Name).pfx' -pi $($local:Password)")
 
-    $Issuer = "IntermediateCA"
-    $Name = "UserCert"
-    $Subject = "CN=$Name,$SubjectBaseDn"
-    Write-Host "Creating User Certificate as $Subject"
-    Invoke-Expression ("& '$MakeCert' -n '$Subject' -a sha256 -len $KeySize -m 120 -cy end -sky exchange -eku '1.3.6.1.4.1.311.10.3.4,1.3.6.1.5.5.7.3.4,1.3.6.1.5.5.7.3.2' -iv '$OutputDirectory\$Issuer.pvk' -ic '$OutputDirectory\$Issuer.cer' -sv '$OutputDirectory\$Name.pvk' '$OutputDirectory\$Name.cer'")
-    Invoke-Expression ("& '$certutil' -encode '$OutputDirectory\$Name.cer' '$OutputDirectory\$Name.pem'")
-    Invoke-Expression ("& '$pvk2pfx' -pvk '$OutputDirectory\$Name.pvk' -spc '$OutputDirectory\$Name.cer' -pfx '$OutputDirectory\$Name.pfx' -pi $Password")
+    $local:Issuer = "IntermediateCA"
+    $local:Name = "UserCert"
+    $local:Subject = "CN=$($local:Name),$SubjectBaseDn"
+    Write-Host "Creating User Certificate as $($local:Subject)"
+    Invoke-Expression ("& '$($local:MakeCert)' -n '$($local:Subject)' -a sha256 -len $KeySize -m 120 -cy end -sky exchange -eku '1.3.6.1.4.1.311.10.3.4,1.3.6.1.5.5.7.3.4,1.3.6.1.5.5.7.3.2' -iv '$OutputDirectory\$($local:Issuer).pvk' -ic '$OutputDirectory\$($local:Issuer).cer' -sv '$OutputDirectory\$($local:Name).pvk' '$OutputDirectory\$($local:Name).cer'")
+    Invoke-Expression ("& '$($local:CertUtil)' -encode '$OutputDirectory\$($local:Name).cer' '$OutputDirectory\$($local:Name).pem'")
+    Invoke-Expression ("& '$($local:Pvk2Pfx)' -pvk '$OutputDirectory\$($local:Name).pvk' -spc '$OutputDirectory\$($local:Name).cer' -pfx '$OutputDirectory\$($local:Name).pfx' -pi $($local:Password)")
 
-    $Issuer = "IntermediateCA"
+    $local:Issuer = "IntermediateCA"
     Write-Host "The IP address of your host is necessary to define the SSL Certificate subject name"
-    $Name = Read-Host "IPAddress"
-    $Subject = "CN=$Name,$SubjectBaseDn"
-    Write-Host "Creating User Certificate as $Subject"
-    Invoke-Expression ("& '$MakeCert' -n '$Subject' -a sha256 -len $KeySize -m 120 -cy end -sky exchange -eku '1.3.6.1.5.5.7.3.1' -iv '$OutputDirectory\$Issuer.pvk' -ic '$OutputDirectory\$Issuer.cer' -sv '$OutputDirectory\$Name.pvk' '$OutputDirectory\$Name.cer'")
-    Invoke-Expression ("& '$certutil' -encode '$OutputDirectory\$Name.cer' '$OutputDirectory\$Name.pem'")
-    Invoke-Expression ("& '$pvk2pfx' -pvk '$OutputDirectory\$Name.pvk' -spc '$OutputDirectory\$Name.cer' -pfx '$OutputDirectory\$Name.pfx' -pi $Password")
+    $local:Name = Read-Host "IPAddress"
+    $local:Subject = "CN=$($local:Name),$SubjectBaseDn"
+    Write-Host "Creating User Certificate as $($local:Subject)"
+    Invoke-Expression ("& '$($local:MakeCert)' -n '$($local:Subject)' -a sha256 -len $KeySize -m 120 -cy end -sky exchange -eku '1.3.6.1.5.5.7.3.1' -iv '$OutputDirectory\$($local:Issuer).pvk' -ic '$OutputDirectory\$($local:Issuer).cer' -sv '$OutputDirectory\$($local:Name).pvk' '$OutputDirectory\$($local:Name).cer'")
+    Invoke-Expression ("& '$($local:CertUtil)' -encode '$OutputDirectory\$($local:Name).cer' '$OutputDirectory\$($local:Name).pem'")
+    Invoke-Expression ("& '$($local:Pvk2Pfx)' -pvk '$OutputDirectory\$($local:Name).pvk' -spc '$OutputDirectory\$($local:Name).cer' -pfx '$OutputDirectory\$($local:Name).pfx' -pi $($local:Password)")
 
     Write-Host -ForegroundColor Yellow "You now have four certificates in $OutputDirectory."
     Write-Host -ForegroundColor Green "To setup Safeguard SSL:"
