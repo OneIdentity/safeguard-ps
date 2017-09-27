@@ -693,11 +693,12 @@ function Edit-SafeguardAsset
 
 <#
 .SYNOPSIS
-Get assets managed by Safeguard via the Web API.
+Get accounts on assets managed by Safeguard via the Web API.
 
 .DESCRIPTION
-Get the assets managed by Safeguard.  Accounts can be added to these assets,
-and Safeguard can be configured to manage their passwords.
+Get accounts on assets managed by Safeguard.  Accounts passwords can be managed,
+and Safeguard can be configured to check and change those passwords.  Policy can
+be created to allow access to passwords and sessions based on those passwords.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -770,7 +771,45 @@ function Get-SafeguardAssetAccount
     }
 }
 
+<#
+.SYNOPSIS
+Create a new account on an asset managed by Safeguard via the Web API.
 
+.DESCRIPTION
+Create a representation of an account on a managed asset.  Accounts passwords can
+be managed, and Safeguard can be configured to check and change those passwords.  
+Policy can be created to allow access to passwords and sessions based on those passwords.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ParentAsset
+An integer containing the ID of the asset to get accounts from or a string containing the name.
+
+.PARAMETER NewAccountName
+A string containing the name for the account.
+
+.PARAMETER Description
+A string containing the description for the account.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+New-SafeguardAssetAccount -AccessToken $token -Appliance 10.5.32.54 -Insecure windows.blah.corp administrator
+
+.EXAMPLE
+New-SafeguardAssetAccount linux.server.corp oracle -Description "Oracle database service account"
+#>
 function New-SafeguardAssetAccount
 {
     Param(
@@ -800,4 +839,365 @@ function New-SafeguardAssetAccount
     if ($PSBoundParameters.ContainsKey("Description")) { $local:Body.Description = $Description }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts" -Body $local:Body
+}
+
+<#
+.SYNOPSIS
+Edit an existing account on an asset managed by Safeguard via the Web API.
+
+.DESCRIPTION
+Edit an existing account in Safeguard.  Accounts passwords can be managed,
+and Safeguard can be configured to check and change those passwords.
+Policy can be created to allow access to passwords and sessions based
+on those passwords.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetToEdit
+An integer containing the ID of the asset to edit the account of or a string containing the name.
+
+.PARAMETER AccountToEdit
+An integer containing the ID of the account to edit or a string containing the name.
+
+.PARAMETER Description
+A string containing the description for the account.
+
+.PARAMETER AccountObject
+An object containing the existing asset account with desired properties set.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Edit-SafeguardAssetAccount -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Edit-SafeguardAssetAccount mysystem.domain.com root -Description "ADMIN"
+
+.EXAMPLE
+Edit-SafeguardAssetAccount -AccountObject $obj
+#>
+function Edit-SafeguardAssetAccount
+{
+    [CmdletBinding(DefaultParameterSetName="Attributes")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false,Position=0)]
+        [object]$AssetToEdit,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$true,Position=1)]
+        [object]$AccountToEdit,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$Description,
+        [Parameter(ParameterSetName="Object",Mandatory=$true)]
+        [object]$AccountObject
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $AccountObject)
+    {
+        throw "AccountObject must not be null"
+    }
+
+    if ($PsCmdlet.ParameterSetName -eq "Attributes")
+    {
+        if ($PSBoundParameters.ContainsKey("AssetToEdit"))
+        {
+            $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToEdit)
+            $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToEdit)
+        }
+        else
+        {
+            $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToEdit)
+        }
+    }
+
+    if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
+    {
+        $AccountObject = (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:AccountId)
+
+        if ($PSBoundParameters.ContainsKey("Description")) { $AccountObject.Description = $Description }
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AssetAccounts/$($AccountObject.Id)" -Body $AccountObject
+}
+
+<#
+.SYNOPSIS
+Set account password inside Safeguard for assets under management via the Web API.
+
+.DESCRIPTION
+Set the password in Safeguard for an account on an asset under management.  This
+just modifies what is stored in Safeguard.  It does not change the actual password
+of the account.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetToSet
+An integer containing the ID of the asset to set account password on or a string containing the name.
+
+.PARAMETER AccountToSet
+An integer containing the ID of the account to set password on or a string containing the name.
+
+.PARAMETER NewPassword
+A SecureString containing the new password to set.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Set-SafeguardAssetAccountPassword -AccessToken $token -Appliance 10.5.32.54 -Insecure windows.blah.corp administrator
+
+.EXAMPLE
+Set-SafeguardAssetAccountPassword -AccountToSet oracle -NewPassword $pass
+#>
+function Set-SafeguardAssetAccountPassword
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$AssetToSet,
+        [Parameter(Mandatory=$true,Position=1)]
+        [object]$AccountToSet,
+        [Parameter(Mandatory=$false,Position=2)]
+        [SecureString]$NewPassword
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    if ($PSBoundParameters.ContainsKey("AssetToSet"))
+    {
+        $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToSet)
+        $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToSet)
+    }
+    else
+    {
+        $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToSet)
+    }
+    if (-not $NewPassword)
+    {
+        $NewPassword = (Read-Host -AsSecureString "NewPassword")
+    }
+    $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($NewPassword))
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AssetAccounts/$($local:AccountId)/Password" `
+        -Body $local:PasswordPlainText
+}
+
+<#
+.SYNOPSIS
+Generate an account password based on profile via the Web API.
+
+.DESCRIPTION
+Generate an account password based on profile.  The password is not actually stored in
+Safeguard, but it could be stored using Set-SafeguardAssetAccountPassword.  This can
+be used to facilitate manual password management.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetToUse
+An integer containing the ID of the asset to generate password for or a string containing the name.
+
+.PARAMETER AccountToUse
+An integer containing the ID of the account to generate password for or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+New-SafeguardAssetAccountRandomPassword -AccessToken $token -Appliance 10.5.32.54 -Insecure windows.blah.corp administrator
+
+.EXAMPLE
+New-SafeguardAssetAccountRandomPassword -AccountToUse oracle
+#>
+function New-SafeguardAssetAccountRandomPassword
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$AssetToUse,
+        [Parameter(Mandatory=$true,Position=1)]
+        [object]$AccountToUse
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    if ($PSBoundParameters.ContainsKey("AssetToUse"))
+    {
+        $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToUse)
+        $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
+    }
+    else
+    {
+        $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToUse)
+    }
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts/$($local:AccountId)/GeneratePassword"
+}
+
+<#
+.SYNOPSIS
+Run check password on an account managed by Safeguard via the Web API.
+
+.DESCRIPTION
+Run a task to check whether Safeguard still has the correct password for
+an account on a managed asset.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetToUse
+An integer containing the ID of the asset to check password for or a string containing the name.
+
+.PARAMETER AccountToUse
+An integer containing the ID of the account to check password for or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Test-SafeguardAssetAccountPassword -AccessToken $token -Appliance 10.5.32.54 -Insecure windows.blah.corp administrator
+
+.EXAMPLE
+Test-SafeguardAssetAccountPassword -AccountToUse oracle
+#>
+function Test-SafeguardAssetAccountPassword
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$AssetToUse,
+        [Parameter(Mandatory=$true,Position=1)]
+        [object]$AccountToUse
+    )
+
+    if ($PSBoundParameters.ContainsKey("AssetToUse"))
+    {
+        $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToUse)
+        $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
+    }
+    else
+    {
+        $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToUse)
+    }
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts/$($local:AccountId)/CheckPassword" -LongRunningTask
+}
+
+<#
+.SYNOPSIS
+Run change password on an account managed by Safeguard via the Web API.
+
+.DESCRIPTION
+Run a task to change the password on an account managed by Safeguard.  This rotates the
+password on the actual asset and stores the new value in Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetToUse
+An integer containing the ID of the asset to change password for or a string containing the name.
+
+.PARAMETER AccountToUse
+An integer containing the ID of the account to change password for or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Invoke-SafeguardAssetAccountPasswordChange -AccessToken $token -Appliance 10.5.32.54 -Insecure windows.blah.corp administrator
+
+.EXAMPLE
+Invoke-SafeguardAssetAccountPasswordChange -AccountToUse oracle
+#>
+function Invoke-SafeguardAssetAccountPasswordChange
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$AssetToUse,
+        [Parameter(Mandatory=$true,Position=1)]
+        [object]$AccountToUse
+    )
+
+    if ($PSBoundParameters.ContainsKey("AssetToUse"))
+    {
+        $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToUse)
+        $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
+    }
+    else
+    {
+        $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToUse)
+    }
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts/$($local:AccountId)/ChangePassword" -LongRunningTask
 }
