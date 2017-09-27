@@ -49,7 +49,19 @@ if (-not (Get-SafeguardSslCertificate -Appliance $Appliance -AccessToken $local:
     throw "Unable to get SSL cert by thumbprint '$($local:SslCert.Thumbprint)'"
 }
 
+Write-Host -ForegroundColor Yellow "Creating certificate user--need password for PFX"
+New-SafeguardUser -Appliance $Appliance -AccessToken $local:AccessToken -Insecure "certificate" "CertyMcCertface" -Thumbprint (Get-PfxCertificate $local:UserCertFile).Thumbprint
+Write-Host -ForegroundColor Yellow "Trying to authenticate as certificate user--need password for PFX"
+# As a hack you have to have the issuing cert in your intermediate CA store
+# It seems to be due to a Microsoft SChannel negotiation bug--this ought to be removed when fixed!
+Import-Certificate -CertStoreLocation Cert:\CurrentUser\CA -FilePath $local:IntermediateCAFile
+$local:CertUserToken = (Connect-Safeguard -Insecure $Appliance -CertificateFile $local:UserCertFile -NoSessionVariable)
+Remove-Item "Cert:\CurrentUser\CA\$($local:IntermediateCA.Thumbprint)"
+Disconnect-Safeguard -Insecure $Appliance $local:CertUserToken
+
 Write-Host -ForegroundColor Yellow "Clean Up"
+Write-Host -ForegroundColor Yellow "Deleting certificate user"
+Remove-SafeguardUser -Appliance $Appliance -AccessToken $local:AccessToken -Insecure "CertyMcCertface"
 Write-Host -ForegroundColor Yellow "Clearing SSL Certificate for this Appliance"
 Clear-SafeguardSslCertificateForAppliance -Appliance $Appliance -AccessToken $local:AccessToken -Insecure "$($local:SslCert.Thumbprint)"
 Write-Host -ForegroundColor Yellow "Uninstalling SSL Certificate"
@@ -58,3 +70,6 @@ Write-Host -ForegroundColor Yellow "Uninstalling Intermediate CA"
 Uninstall-SafeguardTrustedCertificate -Appliance $Appliance -AccessToken $local:AccessToken -Insecure "$($local:IntermediateCA.Thumbprint)"
 Write-Host -ForegroundColor Yellow "Uninstalling Root CA"
 Uninstall-SafeguardTrustedCertificate -Appliance $Appliance -AccessToken $local:AccessToken -Insecure "$($local:RootCA.Thumbprint)"
+
+Disconnect-Safeguard -Insecure $Appliance $local:AccessToken
+Write-Host "Test completed successfully"
