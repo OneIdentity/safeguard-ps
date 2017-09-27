@@ -429,13 +429,17 @@ function Connect-Safeguard
         }
         else
         {
+            if ($CertificateFile)
+            {
+                try { $CertificateFile = (Resolve-Path $CertificateFile).Path } catch {}
+            }
             Set-Variable -Name "SafeguardSession" -Scope Global -Value @{
                 "Appliance" = $Appliance;
                 "Version" = $Version
                 "IdentityProvider" = $IdentityProvider;
                 "AccessToken" = $local:LoginResponse.UserToken;
                 "Thumbprint" = $Thumbprint;
-                "CertificateFile" = (Resolve-Path $CertificateFile).Path;
+                "CertificateFile" = $CertificateFile;
                 "Insecure" = $Insecure;
             }
             Write-Host "Login Successful."

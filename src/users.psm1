@@ -620,15 +620,18 @@ function Edit-SafeguardUser
         throw "UserObject must not be null"
     }
 
-    if ($PsCmdlet.ParameterSetName -eq "Attributes" -and -not $PSBoundParameters.ContainsKey("UserObject"))
+    if ($PsCmdlet.ParameterSetName -eq "Attributes")
     {
-        $UserToEdit = (Read-Host "UserObject")
+        if (-not $PSBoundParameters.ContainsKey("UserToEdit"))
+        {
+            $UserToEdit = (Read-Host "UserToEdit")
+        }
         $local:UserId = Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit
     }
-
+    
     if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
     {
-        $UserObject = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:UserId)
+        $UserObject = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:UserId)
 
         if ($PSBoundParameters.ContainsKey("FirstName")) { $UserObject.FirstName = $FirstName }
         if ($PSBoundParameters.ContainsKey("LastName")) { $UserObject.LastName = $LastName }
