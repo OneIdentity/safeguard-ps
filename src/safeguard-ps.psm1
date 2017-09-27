@@ -463,6 +463,18 @@ using the Web API.
 This utility will invalidate your token and remove the session variable
 that was created by the Connect-Safeguard cmdlet.
 
+.PARAMETER Appliance
+Which appliance to contact when not using session variable.
+
+.PARAMETER AccessToken
+Invalidate specific access token rather than the session variable.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Version
+Version of the Web API you are using (default: 2).
+
 .INPUTS
 None.
 
@@ -477,44 +489,79 @@ Log out Successful.
 #>
 function Disconnect-Safeguard
 {
+    [CmdletBinding(DefaultParameterSetName='None')]
     Param(
+        [Parameter(ParameterSetName="AccessToken",Mandatory=$true,Position=0)]
+        [string]$Appliance,
+        [Parameter(ParameterSetName="AccessToken",Mandatory=$true,Position=1)]
+        [object]$AccessToken,
+        [Parameter(ParameterSetName="AccessToken",Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(ParameterSetName="AccessToken",Mandatory=$false)]
+        [int]$Version = 2
     )
 
     $ErrorActionPreference = "Stop"
 
-    try
+    if ($PsCmdlet.ParameterSetName -eq "AccessToken")
     {
-        if (-not $SafeguardSession)
+        try
         {
-            Write-Host "Not logged in."
-        }
-        else
-        {
-            $local:Appliance = $SafeguardSession["Appliance"]
-            $local:Version = $SafeguardSession["Version"]
-            $local:AccessToken = $SafeguardSession["AccessToken"]
-            $local:Insecure = $SafeguardSession["Insecure"]
-            if ($local:Insecure)
+            if ($Insecure)
             {
                 Disable-SslVerification
             }
             $local:Headers = @{
                 "Accept" = "application/json";
                 "Content-type" = "application/json";
-                "Authorization" = "Bearer $($local:AccessToken)"
+                "Authorization" = "Bearer $AccessToken"
             }
-            Invoke-RestMethod -Method POST -Headers $local:Headers -Uri "https://$($local:Appliance)/service/core/v$($local:Version)/Token/Logout"
-            
+            Invoke-RestMethod -Method POST -Headers $local:Headers -Uri "https://$Appliance/service/core/v$Version/Token/Logout"
+            Write-Host "Log out Successful."
         }
-        Write-Host "Log out Successful."
-    }
-    finally
-    {
-        Write-Host "Session variable removed."
-        Set-Variable -Name "SafeguardSession" -Scope Global -Value $null
-        if ($local:Insecure)
+        finally
         {
-            Enable-SslVerification
+            if ($Insecure)
+            {
+                Enable-SslVerification
+            }
+        }
+    }
+    else
+    {
+        try
+        {
+            if (-not $SafeguardSession)
+            {
+                Write-Host "Not logged in."
+            }
+            else
+            {
+                $Appliance = $SafeguardSession["Appliance"]
+                $Version = $SafeguardSession["Version"]
+                $AccessToken = $SafeguardSession["AccessToken"]
+                $Insecure = $SafeguardSession["Insecure"]
+                if ($Insecure)
+                {
+                    Disable-SslVerification
+                }
+                $local:Headers = @{
+                    "Accept" = "application/json";
+                    "Content-type" = "application/json";
+                    "Authorization" = "Bearer $AccessToken"
+                }
+                Invoke-RestMethod -Method POST -Headers $local:Headers -Uri "https://$Appliance/service/core/v$Version/Token/Logout"
+            }
+            Write-Host "Log out Successful."
+        }
+        finally
+        {
+            Write-Host "Session variable removed."
+            Set-Variable -Name "SafeguardSession" -Scope Global -Value $null
+            if ($Insecure)
+            {
+                Enable-SslVerification
+            }
         }
     }
 }
