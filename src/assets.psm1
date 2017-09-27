@@ -572,9 +572,9 @@ function Edit-SafeguardAsset
         [string]$DisplayName,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$Description,
-        [Parameter(ParameterSetName="Attributes",Mandatory=$true,Position=0)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$NetworkAddress,
-        [Parameter(ParameterSetName="Attributes",Mandatory=$false,Position=1)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [object]$Platform,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [int]$Port,
@@ -583,9 +583,9 @@ function Edit-SafeguardAsset
         [string]$ServiceAccountCredentialType,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$ServiceAccountDomainName,
-        [Parameter(ParameterSetName="Attributes",Mandatory=$true,Position=2)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$ServiceAccountName,
-        [Parameter(ParameterSetName="Attributes",Mandatory=$false,Position=3)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [SecureString]$ServiceAccountPassword,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$ServiceAccountSecretKey,
@@ -601,9 +601,12 @@ function Edit-SafeguardAsset
         throw "AssetObject must not be null"
     }
 
-    if ($PsCmdlet.ParameterSetName -eq "Attributes" -and -not $PSBoundParameters.ContainsKey("AssetToEdit"))
+    if ($PsCmdlet.ParameterSetName -eq "Attributes")
     {
-        $AssetToEdit = (Read-Host "AssetToEdit")
+        if (-not $PSBoundParameters.ContainsKey("AssetToEdit"))
+        {
+            $AssetToEdit = (Read-Host "AssetToEdit")
+        }
         $local:AssetId = Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToEdit
     }
 
