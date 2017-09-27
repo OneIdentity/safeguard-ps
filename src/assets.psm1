@@ -770,3 +770,34 @@ function Get-SafeguardAssetAccount
     }
 }
 
+
+function New-SafeguardAssetAccount
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$ParentAsset,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$NewAccountName,
+        [Parameter(Mandatory=$false)]
+        [string]$Description
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ParentAsset)
+
+    $local:Body = @{
+        "AssetId" = $local:AssetId;
+        "Name" = $NewAccountName
+    }
+
+    if ($PSBoundParameters.ContainsKey("Description")) { $local:Body.Description = $Description }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts" -Body $local:Body
+}

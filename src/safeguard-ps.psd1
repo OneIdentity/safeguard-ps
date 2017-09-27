@@ -120,7 +120,7 @@ FunctionsToExport = @(
     # assets.psm1
     'Get-SafeguardAsset','Find-SafeguardAsset','New-SafeguardAsset','Test-SafeguardAsset',
     'Remove-SafeguardAsset','Edit-SafeguardAsset',
-    'Get-SafeguardAssetAccount',
+    'Get-SafeguardAssetAccount','New-SafeguardAssetAccount',
     # managementShell.psm1
     'Get-SafeguardCommand', 'Get-SafeguardBanner'
     )
