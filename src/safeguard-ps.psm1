@@ -13,6 +13,74 @@ $MyInvocation.MyCommand.ScriptBlock.Module.OnRemove = {
 }
 
 # Helpers for calling Safeguard Web APIs
+$script:ClientId = "00000000-0000-0000-0000-000000000000"
+$script:RedirectUri = "urn%3AInstalledApplication"
+function Show-RstsWindow
+{
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    try
+    {
+        Add-Type -AssemblyName System.Windows.Forms
+        $local:Form = New-Object -TypeName System.Windows.Forms.Form -Property @{
+            Text = "$Appliance - Safeguard Login";
+            Width = 640;
+            Height = 720;
+            StartPosition = [System.Windows.Forms.FormStartPosition]::CenterParent
+        }
+        $local:Browser = New-Object -TypeName System.Windows.Forms.WebBrowser -Property @{
+            Dock = [System.Windows.Forms.DockStyle]::Fill;
+            Url = "https://$Appliance/RSTS/Login?response_type=code&client_id=$($script:ClientId)&redirect_uri=$($script:RedirectUri)"
+        }
+
+        $local:Browser.ScriptErrorsSuppressed = $true
+        Register-ObjectEvent -EventName "DocumentTitleChanged" -InputObject $local:Browser -SourceIdentifier "WebBrowserDocumentTitleChanged" -Action {
+            if ($Sender.DocumentTitle -match "error=[^&]*|code=[^&]*")
+            {
+                $global:AuthorizationCode = $Sender.DocumentTitle.Substring(5)
+            }
+        } | Out-Null
+        $local:Form.Controls.Add($local:Browser)
+        $local:Form.ShowDialog() | Out-Null
+    }
+    finally
+    {
+        Unregister-Event -SourceIdentifier "WebBrowserDocumentTitleChanged" -Force -ErrorAction "SilentlyContinue"
+    }
+}
+function Get-RstsTokenFromGui
+{
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    Show-RstsWindow $Appliance
+    $local:Code = $global:AuthorizationCode
+    Remove-Variable -Name AuthorizationCode -Scope Global -Force -ErrorAction "SilentlyContinue"
+    if (-not $local:Code)
+    {
+        throw "Unable to obtain authorization code"
+    }
+    Invoke-RestMethod -Method POST -Headers @{
+        "Accept" = "application/json";
+        "Content-type" = "application/json"
+    } -Uri "https://$Appliance/RSTS/oauth2/token" -Body @"
+{
+"grant_type": "authorization_code",
+"client_id": "$($script:ClientId)",
+"redirect_uri": "$($script:RedirectUri)",
+"code": "$($local:Code)"
+}
+"@
+}
 function New-SafeguardUrl
 {
     Param(
@@ -229,6 +297,9 @@ Client certificate thumbprint to use to authenticate the connection to the RSTS.
 .PARAMETER Version
 Version of the Web API you are using (default: 2).
 
+.PARAMETER Gui
+Display redistributable STS login window in a browser.
+
 .PARAMETER NoSessionVariable
 If this switch is sent the access token will be returned and a login session context variable will not be created.
 
@@ -273,7 +344,7 @@ Connect-Safeguard 10.5.32.162 local Admin Admin123 -NoSessionVariable
 eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1Ni...
 
 #>
-function Connect-Safeguard 
+function Connect-Safeguard
 {
     [CmdletBinding(DefaultParameterSetName="Username")]
     Param(
@@ -294,6 +365,8 @@ function Connect-Safeguard
         [Parameter(ParameterSetName="Certificate",Mandatory=$false)]
         [string]$Thumbprint,
         [Parameter(Mandatory=$false)]
+        [switch]$Gui,
+        [Parameter(Mandatory=$false)]
         [int]$Version = 2,
         [Parameter(Mandatory=$false)]
         [switch]$NoSessionVariable = $false
@@ -307,69 +380,75 @@ function Connect-Safeguard
         {
             Disable-SslVerification
         }
-        $local:GetPrimaryProvidersRelativeURL = "RSTS/UserLogin/LoginController?response_type=token&redirect_uri=urn:InstalledApplication&loginRequestStep=1"
-        $local:IdentityProviders = ,"certificate" + `
-            (Invoke-RestMethod -Method GET -Uri "https://$Appliance/$($local:GetPrimaryProvidersRelativeURL)").Providers.Id
-        if (-not $IdentityProvider)
+        if ($Gui)
         {
-            if ($PSBoundParameters.ContainsKey("Thumbprint") -or $PSBoundParameters.ContainsKey("CertificateFile"))
-            {
-                $IdentityProvider = "certificate"
-            }
-            else
-            {
-                Write-Host "($($local:IdentityProviders -join ", "))"
-                $IdentityProvider = (Read-Host "Provider")
-            }
-        }
-        if ($local:IdentityProviders -notcontains $IdentityProvider.ToLower())
-        {
-            throw "IdentityProvider '$($local:IdentityProvider)' not found in ($($local:IdentityProviders -join ", "))"
-        }
-    
-        if ($IdentityProvider -ieq "certificate")
-        {
-            if (-not $Thumbprint -and -not $CertificateFile)
-            {
-                $Thumbprint = (Read-Host "Thumbprint")
-            }
-            $local:Scope = "rsts:sts:primaryproviderid:certificate"
+            $local:RstsResponse = (Get-RstsTokenFromGui $Appliance)
         }
         else
         {
-            switch ($PsCmdlet.ParameterSetName)
+            $local:GetPrimaryProvidersRelativeURL = "RSTS/UserLogin/LoginController?response_type=token&redirect_uri=urn:InstalledApplication&loginRequestStep=1"
+            $local:IdentityProviders = ,"certificate" + `
+                (Invoke-RestMethod -Method GET -Uri "https://$Appliance/$($local:GetPrimaryProvidersRelativeURL)").Providers.Id
+            if (-not $IdentityProvider)
             {
-                "Username" {
-                    if (-not $Username)
-                    {
-                        $Username = (Read-Host "Username")
-                    }
-                    if (-not $Password)
-                    { 
-                        $Password = (Read-Host "Password" -AsSecureString)
-                    }
-                    $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
-                    break
-                }
-                "PSCredential" {
-                    $Username = $Credential.UserName
-                    $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Credential.Password))
-                    break
-                }
-                "Certificate" {
+                if ($Thumbprint -or $CertificateFile)
+                {
                     $IdentityProvider = "certificate"
-                    $local:Scope = "rsts:sts:primaryproviderid:certificate"
+                }
+                else
+                {
+                    Write-Host "($($local:IdentityProviders -join ", "))"
+                    $IdentityProvider = (Read-Host "Provider")
                 }
             }
-        }
+            if ($local:IdentityProviders -notcontains $IdentityProvider.ToLower())
+            {
+                throw "IdentityProvider '$($local:IdentityProvider)' not found in ($($local:IdentityProviders -join ", "))"
+            }
     
-        if ($Username)
-        {
-            $local:Scope = "rsts:sts:primaryproviderid:$($IdentityProvider.ToLower())"
-            $RstsResponse = (Invoke-RestMethod -Method POST -Headers @{
-                "Accept" = "application/json";
-                "Content-type" = "application/json"
-            } -Uri "https://$Appliance/RSTS/oauth2/token" -Body @"
+            if ($IdentityProvider -ieq "certificate")
+            {
+                if (-not $Thumbprint -and -not $CertificateFile)
+                {
+                    $Thumbprint = (Read-Host "Thumbprint")
+                }
+                $local:Scope = "rsts:sts:primaryproviderid:certificate"
+            }
+            else
+            {
+                switch ($PsCmdlet.ParameterSetName)
+                {
+                    "Username" {
+                        if (-not $Username)
+                        {
+                            $Username = (Read-Host "Username")
+                        }
+                        if (-not $Password)
+                        { 
+                            $Password = (Read-Host "Password" -AsSecureString)
+                        }
+                        $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
+                        break
+                    }
+                    "PSCredential" {
+                        $Username = $Credential.UserName
+                        $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Credential.Password))
+                        break
+                    }
+                    "Certificate" {
+                        $IdentityProvider = "certificate"
+                        $local:Scope = "rsts:sts:primaryproviderid:certificate"
+                    }
+                }
+            }
+        
+            if ($Username)
+            {
+                $local:Scope = "rsts:sts:primaryproviderid:$($IdentityProvider.ToLower())"
+                $RstsResponse = (Invoke-RestMethod -Method POST -Headers @{
+                    "Accept" = "application/json";
+                    "Content-type" = "application/json"
+                } -Uri "https://$Appliance/RSTS/oauth2/token" -Body @"
 {
     "grant_type": "password",
     "username": "$Username",
@@ -377,36 +456,42 @@ function Connect-Safeguard
     "scope": "$($local:Scope)"
 }
 "@)
+            }
+            else # Assume Client Certificate Authentication
+            {
+                if (-not $Thumbprint)
+                {
+                    # From PFX file
+                    $local:ClientCertificate = (Get-PfxCertificate -FilePath $CertificateFile)
+                    $local:RstsResponse = (Invoke-RestMethod -Certificate $local:ClientCertificate -Method POST -Headers @{
+                        "Accept" = "application/json";
+                        "Content-type" = "application/json"
+                    } -Uri "https://$Appliance/RSTS/oauth2/token" -Body @"
+{
+    "grant_type": "client_credentials",
+    "scope": "$($local:Scope)"
+}
+"@)
+                }
+                else
+                {
+                    # From thumbprint in Windows Certificate Store
+                    $local:RstsResponse = (Invoke-RestMethod -CertificateThumbprint $Thumbprint -Method POST -Headers @{
+                        "Accept" = "application/json";
+                        "Content-type" = "application/json"
+                    } -Uri "https://$Appliance/RSTS/oauth2/token" -Body @"
+{
+    "grant_type": "client_credentials",
+    "scope": "$($local:Scope)"
+}
+"@)
+                }
+            }
         }
-        else # Assume Client Certificate Authentication
+
+        if (-not $local:RstsResponse)
         {
-            if (-not $Thumbprint)
-            {
-                # From PFX file
-                $local:ClientCertificate = (Get-PfxCertificate -FilePath $CertificateFile)
-                $local:RstsResponse = (Invoke-RestMethod -Certificate $local:ClientCertificate -Method POST -Headers @{
-                    "Accept" = "application/json";
-                    "Content-type" = "application/json"
-                } -Uri "https://$Appliance/RSTS/oauth2/token" -Body @"
-{
-    "grant_type": "client_credentials",
-    "scope": "$($local:Scope)"
-}
-"@)
-            }
-            else
-            {
-                # From thumbprint in Windows Certificate Store
-                $local:RstsResponse = (Invoke-RestMethod -CertificateThumbprint $Thumbprint -Method POST -Headers @{
-                    "Accept" = "application/json";
-                    "Content-type" = "application/json"
-                } -Uri "https://$Appliance/RSTS/oauth2/token" -Body @"
-{
-    "grant_type": "client_credentials",
-    "scope": "$($local:Scope)"
-}
-"@)
-            }
+            throw "Failed to get RSTS token response"
         }
 
         $local:LoginResponse = (Invoke-RestMethod -Method POST -Headers @{
@@ -417,12 +502,12 @@ function Connect-Safeguard
     "StsAccessToken": "$($local:RstsResponse.access_token)"
 }
 "@)
-        
+
         if ($local:LoginResponse.Status -ine "Success")
         {
             throw $local:LoginResponse
         }
-        
+
         if ($NoSessionVariable)
         {
             $local:LoginResponse.UserToken
@@ -437,10 +522,12 @@ function Connect-Safeguard
                 "Appliance" = $Appliance;
                 "Version" = $Version
                 "IdentityProvider" = $IdentityProvider;
+                "Username" = $Username;
                 "AccessToken" = $local:LoginResponse.UserToken;
                 "Thumbprint" = $Thumbprint;
                 "CertificateFile" = $CertificateFile;
                 "Insecure" = $Insecure;
+                "Gui" = $Gui;
             }
             Write-Host "Login Successful."
         }
@@ -783,5 +870,155 @@ function Invoke-SafeguardMethod
         {
             Enable-SslVerification
         }
+    }
+}
+
+<#
+.SYNOPSIS
+Get the time remaining on your current Safeguard session via the Web API.
+
+.DESCRIPTION
+This utility calls the Safeguard Web API and looks at the headers to determine
+the remaining lifetime of the current access token.  If the access token is
+already expired, it will throw an error.
+
+By default, this cmdlet uses the Safeguard session variable, but it may be
+used to check any access token by passing in the Appliance and AccessToken
+parameters.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Raw
+When provided this cmdlet returns a Timespan object rather than a message.
+
+.INPUTS
+None.
+
+.OUTPUTS
+Text or Timespan object for Raw option.
+
+.EXAMPLE
+Get-SafeguardAccessTokenStatus
+
+.EXAMPLE
+Get-SafeguardAccessTokenStatus -Raw
+#>
+function Get-SafeguardAccessTokenStatus
+{
+    [CmdletBinding(DefaultParameterSetName="None")]
+    Param(
+        [Parameter(ParameterSetName="Token",Mandatory=$true,Position=0)]
+        [string]$Appliance,
+        [Parameter(ParameterSetName="Token",Mandatory=$true,Position=1)]
+        [object]$AccessToken,
+        [Parameter(ParameterSetName="Token",Mandatory=$false)]
+        [switch]$Insecure = $false,
+        [Parameter(Mandatory=$false)]
+        [switch]$Raw
+    )
+    $ErrorActionPreference = "Stop"
+
+    if ($PSCmdlet.ParameterSetName -ne "Token")
+    {
+        if (-not $SafeguardSession)
+        {
+            throw "No current Safeguard login session."
+        }
+        $Appliance = $SafeguardSession.Appliance
+        $AccessToken = $SafeguardSession.AccessToken
+        $Insecure = $SafeguardSession.Insecure
+    }
+
+    try
+    {
+        if ($Insecure)
+        {
+            Disable-SslVerification
+        }
+        $local:Response = (Invoke-WebRequest -Method GET -Headers @{ 
+                "Authorization" = "Bearer $AccessToken"
+            } -Uri "https://$Appliance/service/core/v2/Me")
+        $local:TimeRemaining = (New-TimeSpan -Minutes $local:Response.Headers["X-TokenLifetimeRemaining"])
+        if ($Raw)
+        {
+            $local:TimeRemaining
+        }
+        else
+        {
+            Write-Host ("Token lifetime remaining: {0} hours {1} minutes" -f [Math]::Floor($local:TimeRemaining.TotalHours),$local:TimeRemaining.Minutes)
+        }
+    }
+    catch
+    {
+        Write-Warning "Your token may be expired."
+        throw $_
+    }
+    finally
+    {
+        if ($Insecure)
+        {
+            Enable-SslVerification
+        }
+    }
+}
+
+<#
+.SYNOPSIS
+Refresh the access token in your current Safeguard session via the Web API.
+
+.DESCRIPTION
+This utility calls the Safeguard Web API using the information in your Safeguard
+session variable to refresh your access token.  It can be made completely
+non-interactive when using the certificate provider.
+
+.PARAMETER Raw
+When provided this cmdlet returns a Timespan object rather than a message.
+
+.INPUTS
+None.
+
+.OUTPUTS
+Text or Timespan object for Raw option.
+
+.EXAMPLE
+Update-SafeguardAccessToken
+#>
+function Update-SafeguardAccessToken
+{
+    $ErrorActionPreference = "Stop"
+
+    if (-not $SafeguardSession)
+    {
+        throw "No current Safeguard login session."
+    }
+
+    if ($SafeguardSession.Gui)
+    {
+        Connect-Safeguard -Appliance $SafeguardSession.Appliance -Insecure:$SafeguardSession.Insecure -Gui -Version $SafeguardSession.Version
+    }
+    elseif ($SafeguardSession.IdentityProvider -ieq "certificate")
+    {
+        if ($SafeguardSession.CertificateFile)
+        {
+            Connect-Safeguard -Appliance $SafeguardSession.Appliance -Insecure:$SafeguardSession.Insecure -Version $SafeguardSession.Version `
+                -IdentityProvider $SafeguardSession.IdentityProvider -CertificateFile $SafeguardSession.CertificateFile
+        }
+        else
+        {
+            Connect-Safeguard -Appliance $SafeguardSession.Appliance -Insecure:$SafeguardSession.Insecure -Version $SafeguardSession.Version `
+                -IdentityProvider $SafeguardSession.IdentityProvider -CertificateFile $SafeguardSession.Thumbprint
+        }
+    }
+    else
+    {
+        Connect-Safeguard -Appliance $SafeguardSession.Appliance -Insecure:$SafeguardSession.Insecure -Version $SafeguardSession.Version `
+            -IdentityProvider $SafeguardSession.IdentityProvider -Username $SafeguardSession.Username
     }
 }
