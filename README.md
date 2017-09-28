@@ -52,7 +52,11 @@ When you are finished, you can close the session or call the
 `Disconnect-Safeguard` cmdlet to invalidate and remove your access token.
 
 ## Powershell cmdlets
-### Core
+The following cmdlets are currently supported.  More will be added to this
+list over time.  Every cmdlet in the list supports `Get-Help` to provide
+additional information as to how it can be called.
+
+### Core Functionality
 - Connect-Safeguard
 - Disconnect-Safeguard
 - Invoke-SafeguardMethod
