@@ -58,9 +58,15 @@ function Get-RstsTokenFromGui
         [string]$Appliance
     )
 
+    $ErrorActionPreference = "Stop"
+
     Show-RstsWindow $Appliance
     $local:Code = $global:AuthorizationCode
     Remove-Variable -Name AuthorizationCode -Scope Global -Force -ErrorAction "SilentlyContinue"
+    if (-not $local:Code)
+    {
+        throw "Unable to obtain authorization code"
+    }
     Invoke-RestMethod -Method POST -Headers @{
         "Accept" = "application/json";
         "Content-type" = "application/json"
