@@ -2,6 +2,9 @@
 One Identity Safeguard Powershell module and scripting resources.
 
 ## Getting Started
+This Powershell module is published to [PowerShell Gallery](https://www.powershellgallery.com/)
+to facilitate install.
+
 Once you have loaded the module, you can connect to Safeguard using the
 `Connect-Safeguard` cmdlet.  If you do not have SSL properly configured, you
 must use the `-Insecure` parameter to avoid SSL trust errors.
@@ -55,6 +58,9 @@ When you are finished, you can close the session or call the
 The following cmdlets are currently supported.  More will be added to this
 list over time.  Every cmdlet in the list supports `Get-Help` to provide
 additional information as to how it can be called.
+
+Please file GitHub Issues for cmdlets that are not working and to request
+cmdlets for functionality that is missing.
 
 ### Core Functionality
 - Connect-Safeguard
