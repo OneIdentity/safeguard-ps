@@ -7,3 +7,4 @@ problems with command line parameter handling could creep in.
 
 ## Test Scripts
 - licensing-test.ps1
+- certificates-test.ps1
