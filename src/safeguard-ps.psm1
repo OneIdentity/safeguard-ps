@@ -27,10 +27,13 @@ function Show-RstsWindow
     try
     {
         Add-Type -AssemblyName System.Windows.Forms
-        $global:Form = New-Object -TypeName System.Windows.Forms.Form -Property @{ Width = 600; Height = 600 }
+        $global:Form = New-Object -TypeName System.Windows.Forms.Form -Property @{ 
+            Width = 640;
+            Height = 720;
+            StartPosition = [System.Windows.Forms.FormStartPosition]::CenterParent
+        }
         $local:Browser = New-Object -TypeName System.Windows.Forms.WebBrowser -Property @{
-            Width = 580;
-            Height = 540;
+            Dock = [System.Windows.Forms.DockStyle]::Fill;
             Url = "https://$Appliance/RSTS/Login?response_type=code&client_id=$($script:ClientId)&redirect_uri=$($script:RedirectUri)"
         }
 
