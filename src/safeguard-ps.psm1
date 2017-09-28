@@ -1,15 +1,8 @@
 # Global session variable for login information
-try 
-{
-    Get-Variable -Name "SafeguardSession" -Scope Global
-    Set-Variable -Name "SafeguardSession" -Scope Global -Value $null
-}
-catch
-{
-    New-Variable -Name "SafeguardSession" -Scope Global -Value $null
-}
+Remove-Variable -Name "SafeguardSession" -Scope Global -ErrorAction "SilentlyContinue"
+New-Variable -Name "SafeguardSession" -Scope Global -Value $null
 $MyInvocation.MyCommand.ScriptBlock.Module.OnRemove = {
-    Set-Variable -Name "SafeguardSession" -Scope Global -Value $null
+    Set-Variable -Name "SafeguardSession" -Scope Global -Value $null -ErrorAction "SilentlyContinue"
 }
 
 # Helpers for calling Safeguard Web APIs

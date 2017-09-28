@@ -11,7 +11,7 @@
 RootModule = 'safeguard-ps.psm1'
 
 # Version number of this module.
-ModuleVersion = '2.1.0.a'
+ModuleVersion = '2.1.0.1'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -164,7 +164,7 @@ PrivateData = @{
 
         # ReleaseNotes of this module
         ReleaseNotes = @"
-safeguard-ps 2.1.0.a Release Notes:
+safeguard-ps 2.1.0.1 Release Notes:
 
 - Initial version of safeguard-ps Powershell module
 - Allow non-SSL verified connections with -Insecure flag
