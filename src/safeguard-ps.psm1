@@ -27,7 +27,8 @@ function Show-RstsWindow
     try
     {
         Add-Type -AssemblyName System.Windows.Forms
-        $global:Form = New-Object -TypeName System.Windows.Forms.Form -Property @{ 
+        $local:Form = New-Object -TypeName System.Windows.Forms.Form -Property @{
+            Text = "$Appliance - Safeguard Login";
             Width = 640;
             Height = 720;
             StartPosition = [System.Windows.Forms.FormStartPosition]::CenterParent
@@ -42,16 +43,14 @@ function Show-RstsWindow
             if ($Sender.DocumentTitle -match "error=[^&]*|code=[^&]*")
             {
                 $global:AuthorizationCode = $Sender.DocumentTitle.Substring(5)
-                $global:Form.Close()
             }
         } | Out-Null
-        $global:Form.Controls.Add($local:Browser)
-        $global:Form.ShowDialog() | Out-Null
+        $local:Form.Controls.Add($local:Browser)
+        $local:Form.ShowDialog() | Out-Null
     }
     finally
     {
         Unregister-Event -SourceIdentifier "WebBrowserDocumentTitleChanged" -Force -ErrorAction "SilentlyContinue"
-        Remove-Variable -Name Form -Scope Global -Force -ErrorAction "SilentlyContinue"
     }
 }
 function Get-RstsTokenFromGui
@@ -392,7 +391,7 @@ function Connect-Safeguard
                 (Invoke-RestMethod -Method GET -Uri "https://$Appliance/$($local:GetPrimaryProvidersRelativeURL)").Providers.Id
             if (-not $IdentityProvider)
             {
-                if ($PSBoundParameters.ContainsKey("Thumbprint") -or $PSBoundParameters.ContainsKey("CertificateFile"))
+                if ($Thumbprint -or $CertificateFile)
                 {
                     $IdentityProvider = "certificate"
                 }
@@ -523,10 +522,12 @@ function Connect-Safeguard
                 "Appliance" = $Appliance;
                 "Version" = $Version
                 "IdentityProvider" = $IdentityProvider;
+                "Username" = $Username;
                 "AccessToken" = $local:LoginResponse.UserToken;
                 "Thumbprint" = $Thumbprint;
                 "CertificateFile" = $CertificateFile;
                 "Insecure" = $Insecure;
+                "Gui" = $Gui;
             }
             Write-Host "Login Successful."
         }
@@ -869,5 +870,155 @@ function Invoke-SafeguardMethod
         {
             Enable-SslVerification
         }
+    }
+}
+
+<#
+.SYNOPSIS
+Get the time remaining on your current Safeguard session via the Web API.
+
+.DESCRIPTION
+This utility calls the Safeguard Web API and looks at the headers to determine
+the remaining lifetime of the current access token.  If the access token is
+already expired, it will throw an error.
+
+By default, this cmdlet uses the Safeguard session variable, but it may be
+used to check any access token by passing in the Appliance and AccessToken
+parameters.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Raw
+When provided this cmdlet returns a Timespan object rather than a message.
+
+.INPUTS
+None.
+
+.OUTPUTS
+Text or Timespan object for Raw option.
+
+.EXAMPLE
+Get-SafeguardAccessTokenStatus
+
+.EXAMPLE
+Get-SafeguardAccessTokenStatus -Raw
+#>
+function Get-SafeguardAccessTokenStatus
+{
+    [CmdletBinding(DefaultParameterSetName="None")]
+    Param(
+        [Parameter(ParameterSetName="Token",Mandatory=$true,Position=0)]
+        [string]$Appliance,
+        [Parameter(ParameterSetName="Token",Mandatory=$true,Position=1)]
+        [object]$AccessToken,
+        [Parameter(ParameterSetName="Token",Mandatory=$false)]
+        [switch]$Insecure = $false,
+        [Parameter(Mandatory=$false)]
+        [switch]$Raw
+    )
+    $ErrorActionPreference = "Stop"
+
+    if ($PSCmdlet.ParameterSetName -ne "Token")
+    {
+        if (-not $SafeguardSession)
+        {
+            throw "No current Safeguard login session."
+        }
+        $Appliance = $SafeguardSession.Appliance
+        $AccessToken = $SafeguardSession.AccessToken
+        $Insecure = $SafeguardSession.Insecure
+    }
+
+    try
+    {
+        if ($Insecure)
+        {
+            Disable-SslVerification
+        }
+        $local:Response = (Invoke-WebRequest -Method GET -Headers @{ 
+                "Authorization" = "Bearer $AccessToken"
+            } -Uri "https://$Appliance/service/core/v2/Me")
+        $local:TimeRemaining = (New-TimeSpan -Minutes $local:Response.Headers["X-TokenLifetimeRemaining"])
+        if ($Raw)
+        {
+            $local:TimeRemaining
+        }
+        else
+        {
+            Write-Host ("Token lifetime remaining: {0} hours {1} minutes" -f [Math]::Floor($local:TimeRemaining.TotalHours),$local:TimeRemaining.Minutes)
+        }
+    }
+    catch
+    {
+        Write-Warning "Your token may be expired."
+        throw $_
+    }
+    finally
+    {
+        if ($Insecure)
+        {
+            Enable-SslVerification
+        }
+    }
+}
+
+<#
+.SYNOPSIS
+Refresh the access token in your current Safeguard session via the Web API.
+
+.DESCRIPTION
+This utility calls the Safeguard Web API using the information in your Safeguard
+session variable to refresh your access token.  It can be made completely
+non-interactive when using the certificate provider.
+
+.PARAMETER Raw
+When provided this cmdlet returns a Timespan object rather than a message.
+
+.INPUTS
+None.
+
+.OUTPUTS
+Text or Timespan object for Raw option.
+
+.EXAMPLE
+Update-SafeguardAccessToken
+#>
+function Update-SafeguardAccessToken
+{
+    $ErrorActionPreference = "Stop"
+
+    if (-not $SafeguardSession)
+    {
+        throw "No current Safeguard login session."
+    }
+
+    if ($SafeguardSession.Gui)
+    {
+        Connect-Safeguard -Appliance $SafeguardSession.Appliance -Insecure:$SafeguardSession.Insecure -Gui -Version $SafeguardSession.Version
+    }
+    elseif ($SafeguardSession.IdentityProvider -ieq "certificate")
+    {
+        if ($SafeguardSession.CertificateFile)
+        {
+            Connect-Safeguard -Appliance $SafeguardSession.Appliance -Insecure:$SafeguardSession.Insecure -Version $SafeguardSession.Version `
+                -IdentityProvider $SafeguardSession.IdentityProvider -CertificateFile $SafeguardSession.CertificateFile
+        }
+        else
+        {
+            Connect-Safeguard -Appliance $SafeguardSession.Appliance -Insecure:$SafeguardSession.Insecure -Version $SafeguardSession.Version `
+                -IdentityProvider $SafeguardSession.IdentityProvider -CertificateFile $SafeguardSession.Thumbprint
+        }
+    }
+    else
+    {
+        Connect-Safeguard -Appliance $SafeguardSession.Appliance -Insecure:$SafeguardSession.Insecure -Version $SafeguardSession.Version `
+            -IdentityProvider $SafeguardSession.IdentityProvider -Username $SafeguardSession.Username
     }
 }
