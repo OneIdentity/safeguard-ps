@@ -11,7 +11,7 @@
 RootModule = 'safeguard-ps.psm1'
 
 # Version number of this module.
-ModuleVersion = '2.1.0.1'
+ModuleVersion = '2.1.0.2'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -29,7 +29,7 @@ CompanyName = 'One Identity LLC'
 Copyright = '(c) 2017 One Identity LLC. All rights reserved.'
 
 # Description of the functionality provided by this module
-Description = 'Scripting tools for interacting with the One Identity Safeguard API.'
+Description = 'Scripting tools for interacting with the One Identity Safeguard Web API.'
 
 # Minimum version of the Windows PowerShell engine required by this module
 PowerShellVersion = '5.0'
@@ -154,17 +154,17 @@ PrivateData = @{
         Tags = @('OneIdentity', 'Safeguard', 'Powershell', 'CLI')
 
         # A URL to the license for this module.
-        LicenseUri = 'https://github.com/OneIdentityInc/safeguard-ps/blob/master/LICENSE'
+        LicenseUri = 'https://github.com/OneIdentity/safeguard-ps/blob/master/LICENSE'
 
         # A URL to the main website for this project.
-        ProjectUri = 'https://github.com/OneIdentityInc/safeguard-ps'
+        ProjectUri = 'https://github.com/OneIdentity/safeguard-ps'
 
         # A URL to an icon representing this module.
         # IconUri = ''
 
         # ReleaseNotes of this module
         ReleaseNotes = @"
-safeguard-ps 2.1.0.1 Release Notes:
+safeguard-ps 2.1.0 Release Notes:
 
 - Initial version of safeguard-ps Powershell module
 - Allow non-SSL verified connections with -Insecure flag
