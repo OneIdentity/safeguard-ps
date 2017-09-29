@@ -82,6 +82,46 @@ function Get-SafeguardVersion
 
 <#
 .SYNOPSIS
+Get the system verification information on a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+System verification information about a Safeguard appliance used during
+manufacturing.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardApplianceVerification
+
+.EXAMPLE
+Get-SafeguardApplianceVerification -Appliance 10.5.32.54 -Insecure
+#>
+function Get-SafeguardApplianceVerification
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    Invoke-SafeguardMethod -Anonymous -Appliance $Appliance -Insecure:$Insecure Notification GET SystemVerification/Manufacturing
+}
+
+<#
+.SYNOPSIS
 Get the current time on a Safeguard appliance via the Web API.
 
 .DESCRIPTION
