@@ -1,15 +1,39 @@
 # safeguard-ps
 One Identity Safeguard Powershell module and scripting resources.
 
-## Getting Started
-This Powershell module is published to [PowerShell Gallery](https://www.powershellgallery.com/)
-to facilitate install.
+## Installation
+This Powershell module is published to the 
+[PowerShell Gallery](https://www.powershellgallery.com/packages/safeguard-ps)
+to facilitate install via `Import-Module`.  It can be updated using the
+`Update-Module` to get the latest functionality.
 
+By default Powershell modules are installed for all users, and you need to be 
+running as Administrator to install them.  The following one-liners are helpful:
+
+```Powershell
+> Start-Process powershell.exe -ArgumentList "Install-Module safeguard-ps -Verbose; pause" -Verb RunAs -Wait
+```
+
+```Powershell
+> Start-Process powershell.exe -ArgumentList "Update-Module safeguard-ps -Verbose; pause" -Verb RunAs -Wait
+```
+
+Or, you can install them just for you:
+
+```Powershell
+> Install-Module safeguard-ps -Scope CurrentUser -Verbose
+```
+
+```Powershell
+> Update-Module safeguard-ps -Scope CurrentUser -Verbose
+```
+
+## Getting Started
 Once you have loaded the module, you can connect to Safeguard using the
 `Connect-Safeguard` cmdlet.  If you do not have SSL properly configured, you
 must use the `-Insecure` parameter to avoid SSL trust errors.
 
-Authentication in Safeguard is based on OAuth2.  In most cases, the
+Authentication in Safeguard is based on OAuth2.  In most cases the
 `Connect-Safeguard` cmdlet uses the Resource Owner Grant of OAuth2.
 
 ```Powershell
@@ -54,6 +78,8 @@ Invoke-RestMethod : {"Code":60108,"Message":"Authorization is required for this 
 When you are finished, you can close the session or call the
 `Disconnect-Safeguard` cmdlet to invalidate and remove your access token.
 
+You can run the `Get-SafeguardCommand` cmdlet to see all available cmdlets.
+
 ## Powershell cmdlets
 The following cmdlets are currently supported.  More will be added to this
 list over time.  Every cmdlet in the list supports `Get-Help` to provide
@@ -68,6 +94,7 @@ cmdlets for functionality that is missing.
 - Invoke-SafeguardMethod
 - Get-SafeguardAccessTokenStatus
 - Update-SafeguardAccessToken
+- Get-SafeguardLoggedInUser
 ### Data Types
 - Get-SafeguardIdentityProviderType
 - Get-SafeguardPlatform
@@ -94,6 +121,7 @@ cmdlets for functionality that is missing.
 ### Maintenance
 - Get-SafeguardStatus
 - Get-SafeguardVersion
+- Get-SafeguardApplianceVerification
 - Get-SafeguardTime
 - Get-SafeguardHealth
 - Get-SafeguardApplianceName
