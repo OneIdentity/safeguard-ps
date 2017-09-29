@@ -2,6 +2,8 @@ Param(
   [string]$TargetDir
 )
 
+$ErrorActionPreference = "Stop"
+
 if (-not $TargetDir)
 {
     $TargetDir = (($env:PSModulePath -split ';') | Where-Object { $_.StartsWith($env:UserProfile) })
@@ -25,6 +27,7 @@ if (-not (Test-Path $ModuleDir))
 {
     New-Item -Path $ModuleDir -ItemType Container -Force | Out-Null
 }
+Remove-Item -Recurse -Force (Join-Path $ModuleDir "*")
 $VersionDir = (Join-Path $ModuleDir $ModuleDef["ModuleVersion"])
 if (-not (Test-Path $VersionDir))
 {
