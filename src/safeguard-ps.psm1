@@ -1015,3 +1015,50 @@ function Update-SafeguardAccessToken
             -IdentityProvider $SafeguardSession.IdentityProvider -Username $SafeguardSession.Username
     }
 }
+
+<#
+.SYNOPSIS
+Get information about logged in user via the Safeguard Web API.
+
+.DESCRIPTION
+Get information about the user currently logged into Safeguard.  By default this
+gets the information based on the SafeguardSession variable, or else you can pass
+an access token in to override it or to specify a user other than the one in the
+current session.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardLoggedInUser -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardLoggedInUser
+#>
+function Get-SafeguardLoggedInUser
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Me
+}

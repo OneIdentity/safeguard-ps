@@ -86,9 +86,12 @@ FunctionsToExport = @(
     # sslhandling.psm1 is just a helper module -- no functions exported
     # ps-utilities.psm1 is just a helper module -- no functions exported
     # safeguard-ps.psm1
-    'Connect-Safeguard','Disconnect-Safeguard','Invoke-SafeguardMethod','Get-SafeguardAccessTokenStatus','Update-SafeguardAccessToken',
+    'Connect-Safeguard','Disconnect-Safeguard','Invoke-SafeguardMethod',
+    'Get-SafeguardAccessTokenStatus','Update-SafeguardAccessToken',
+    'Get-SafeguardLoggedInUser',
     # datatypes.psm1
-    'Get-SafeguardIdentityProviderType','Get-SafeguardPlatform','Find-SafeguardPlatform','Get-SafeguardTimeZone','Get-SafeguardTransferProtocol',
+    'Get-SafeguardIdentityProviderType','Get-SafeguardPlatform','Find-SafeguardPlatform',
+    'Get-SafeguardTimeZone','Get-SafeguardTransferProtocol',
     # licensing.psm1
     'Install-SafeguardLicense','Uninstall-SafeguardLicense','Get-SafeguardLicense',
     # certificates.psm1
