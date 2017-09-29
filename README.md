@@ -1,28 +1,39 @@
 # safeguard-ps
 One Identity Safeguard Powershell module and scripting resources.
 
-## Getting Started
+## Installation
 This Powershell module is published to the 
 [PowerShell Gallery](https://www.powershellgallery.com/packages/safeguard-ps)
 to facilitate install via `Import-Module`.  It can be updated using the
 `Update-Module` to get the latest functionality.
 
-You need to be running as Administrator to install Powershell Modules.  The
-following one-liners are helpful:
+By default Powershell modules are installed for all users, and you need to be 
+running as Administrator to install them.  The following one-liners are helpful:
 
 ```Powershell
-> Start-Process powershell.exe -ArgumentList "Install-Module safeguard-ps; pause" -Verb RunAs -Wait
+> Start-Process powershell.exe -ArgumentList "Install-Module safeguard-ps -Verbose; pause" -Verb RunAs -Wait
 ```
 
 ```Powershell
-> Start-Process powershell.exe -ArgumentList "Update-Module safeguard-ps; pause" -Verb RunAs -Wait
+> Start-Process powershell.exe -ArgumentList "Update-Module safeguard-ps -Verbose; pause" -Verb RunAs -Wait
 ```
 
+Or, you can install them just for you:
+
+```Powershell
+> Install-Module safeguard-ps -Scope CurrentUser -Verbose
+```
+
+```Powershell
+> Update-Module safeguard-ps -Scope CurrentUser -Verbose
+```
+
+## Getting Started
 Once you have loaded the module, you can connect to Safeguard using the
 `Connect-Safeguard` cmdlet.  If you do not have SSL properly configured, you
 must use the `-Insecure` parameter to avoid SSL trust errors.
 
-Authentication in Safeguard is based on OAuth2.  In most cases, the
+Authentication in Safeguard is based on OAuth2.  In most cases the
 `Connect-Safeguard` cmdlet uses the Resource Owner Grant of OAuth2.
 
 ```Powershell
