@@ -1,10 +1,10 @@
 FROM microsoft/powershell:nanoserver
 MAINTAINER support@oneidentity.com
 
-COPY ["install.ps1", "C:/safeguard/"]
+COPY ["install-local.ps1", "C:/safeguard/"]
 COPY ["src/", "C:/safeguard/src/"]
 
-RUN "C:\safeguard\install.ps1 'C:\Program Files\PowerShell\Modules'; Remove-Item -Path c:\safeguard -recurse"
+RUN "C:\safeguard\install-local.ps1 'C:\Program Files\PowerShell\Modules'; Remove-Item -Path c:\safeguard -recurse"
 
 ENTRYPOINT [ "powershell" ]
 CMD ["-NoExit", "-Command", "Get-SafeguardBanner"]
