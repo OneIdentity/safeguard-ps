@@ -21,7 +21,7 @@ None.
 function Install-SafeguardDesktopClient
 {
     Param(
-        [Parameter(Mandatory=$true,Position=0)]
+        [Parameter(Mandatory=$false,Position=0)]
         [string]$Appliance,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure
@@ -30,9 +30,25 @@ function Install-SafeguardDesktopClient
     $ErrorActionPreference = "Stop"
     Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
 
+    if ($SafeguardSession)
+    {
+        $Insecure = $SafeguardSession["Insecure"]
+    }
     if ($Insecure)
     {
         Disable-SslVerification
+    }
+
+    if (-not $Appliance)
+    {
+        if ($SafeguardSession)
+        {
+            $Appliance = $SafeguardSession["Appliance"]
+        }
+        else
+        {
+            $Appliance = (Read-Host "Appliance")
+        }
     }
 
     try
