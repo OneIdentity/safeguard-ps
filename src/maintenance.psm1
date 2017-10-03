@@ -1409,5 +1409,4 @@ function Get-SafeguardBackup
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET Backups
     }
-    
 }

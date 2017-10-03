@@ -68,9 +68,11 @@ PowerShellVersion = '5.0'
 NestedModules = @(
     'sslhandling.psm1',
     'ps-utilities.psm1',
+    'sg-utilities.psm1',
     'datatypes.psm1',
     'licensing.psm1',
     'certificates.psm1',
+    'networking.psm1',
     'desktopclient.psm1',
     'maintenance.psm1',
     'diagnostics.psm1',
@@ -99,6 +101,8 @@ FunctionsToExport = @(
     'Install-SafeguardSslCertificate','Uninstall-SafeguardSslCertificate','Get-SafeguardSslCertificate',
     'Set-SafeguardSslCertificateForAppliance','Clear-SafeguardSslCertificateForAppliance','Get-SafeguardSslCertificateForAppliance',
     'New-SafeguardTestCertificatePki',
+    # networking.psm1
+    'Get-SafeguardNetworkInterface','Set-SafeguardNetworkInterface','Get-SafeguardDnsSuffix','Set-SafeguardDnsSuffix',
     # desktopclient.psm1
     'Install-SafeguardDesktopClient',
     # maintenance.psm1
