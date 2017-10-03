@@ -116,6 +116,11 @@ cmdlets for functionality that is missing.
 - Clear-SafeguardSslCertificateForAppliance
 - Get-SafeguardSslCertificateForAppliance
 - New-SafeguardTestCertificatePki
+### Networking
+- Get-SafeguardNetworkInterface
+- Set-SafeguardNetworkInterface
+- Get-SafeguardDnsSuffix
+- Set-SafeguardDnsSuffix
 ### Desktop Client
 - Install-SafeguardDesktopClient
 ### Maintenance
