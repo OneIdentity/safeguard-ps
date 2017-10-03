@@ -138,7 +138,7 @@ function Wait-LongRunningTask
                 $local:Percent = $local:TaskStatus.PercentComplete
             }
             Write-Progress -Activity "Waiting for long-running task" -Status "Step: $($local:TaskStatus.Message)" -PercentComplete $local:Percent
-            if ((((Get-Date) - $local:StartTime).Seconds) -gt $Timeout)
+            if ((((Get-Date) - $local:StartTime).TotalSeconds) -gt $Timeout)
             {
                 throw "Timed out waiting for long-running task, timeout was $Timeout seconds"
             }

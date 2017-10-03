@@ -22,7 +22,7 @@ function Wait-SafeguardOnlineStatus
         }
         catch {}
         Start-Sleep 2
-        $local:TimeElapsed = (((Get-Date) - $local:StartTime).Seconds)
+        $local:TimeElapsed = (((Get-Date) - $local:StartTime).TotalSeconds)
         if ($local:TimeElapsed -gt $Timeout)
         {
             throw "Timed out waiting for long-running task, timeout was $Timeout seconds"
