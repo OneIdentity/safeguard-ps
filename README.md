@@ -164,6 +164,7 @@ cmdlets for functionality that is missing.
 - Find-SafeguardRequestableAccount
 ### Users
 - Get-SafeguardIdentityProvider
+- New-SafeguardStarling2faAuthentication
 - Get-SafeguardUser
 - Find-SafeguardUser
 - New-SafeguardUser
