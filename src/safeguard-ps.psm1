@@ -222,6 +222,10 @@ function Invoke-WithBody
         [Parameter(Mandatory=$true,Position=5)]
         [object]$Headers,
         [Parameter(Mandatory=$false)]
+        [object]$Body,
+        [Parameter(Mandatory=$false)]
+        [object]$JsonBody,
+        [Parameter(Mandatory=$false)]
         [object]$Parameters,
         [Parameter(Mandatory=$false)]
         [string]$OutFile,
@@ -231,8 +235,8 @@ function Invoke-WithBody
         [int]$Timeout
     )
 
-    $local:BodyInternal = $Body
-    if (-not ($local:BodyInternal -is [string]))
+    $local:BodyInternal = $JsonBody
+    if ($Body)
     {
         $local:BodyInternal = (ConvertTo-Json -InputObject $Body)
     }
@@ -694,7 +698,10 @@ Specify the Content-type header (default: application/json)
 A string containing the bearer token to be used with Safeguard Web API.
 
 .PARAMETER Body
-A hash table containing an object to PUT or POST to the Url--alternatively, you may specify a pre-formatted JSON string.
+A hash table containing an object to PUT or POST to the Url.
+
+.PARAMETER JsonBody
+A pre-formatted JSON string to PUT or Post to the URl.  If -Body is also specified, this is ignored.
 It can sometimes be difficult to get arrays of objects to behave properly with hashtables in Powershell.
 
 .PARAMETER Parameters
@@ -767,6 +774,8 @@ function Invoke-SafeguardMethod
         [string]$ContentType = "application/json",
         [Parameter(Mandatory=$false)]
         [object]$Body,
+        [Parameter(Mandatory=$false)]
+        [string]$JsonBody,
         [Parameter(Mandatory=$false)]
         [HashTable]$Parameters,
         [Parameter(Mandatory=$false)]
@@ -857,6 +866,7 @@ function Invoke-SafeguardMethod
                 else
                 {
                     Invoke-WithBody $Appliance $Service $Method $Version $RelativeUrl $local:Headers `
+                        -Body $Body -JsonBody $JsonBody `
                         -Parameters $Parameters -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout
                 }
                 break

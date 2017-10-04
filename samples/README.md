@@ -4,9 +4,11 @@ to give ideas about how safeguard-ps may be used to solve
 problems.
 
 ## Sample Scripts
-- **Script Name**
+- **new-test-entitlement.ps1**
 
-  Description
+  This script creates an approver group, requester group, and an entitlement with the given name.
+  The entitlement will have a Password, an SSH, and an RDP access policy in it.  The Password
+  access policy will be auto-approved.  You just need to fill out the scopes and group memberships.
 
 - **Next Script?**
 
