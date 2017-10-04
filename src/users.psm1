@@ -307,6 +307,9 @@ A string containing the last name of the user.  Combined with first name to form
 .PARAMETER Description
 A string containing a description for the user.
 
+.PARAMETER DomainName
+A string containing the DNS name of the domain this user is in.
+
 .PARAMETER EmailAddress
 A string containing a email address for the user.
 
@@ -358,6 +361,8 @@ function New-SafeguardUser
         [string]$LastName = $null,
         [Parameter(Mandatory=$false)]
         [string]$Description = $null,
+        [Parameter(Mandatory=$false)]
+        [string]$DomainName = $null,
         [Parameter(Mandatory=$false)]
         [string]$EmailAddress = $null,
         [Parameter(Mandatory=$false)]
@@ -442,11 +447,16 @@ function New-SafeguardUser
     }
     else
     {
+        if (-not $PSBoundParameters.ContainsKey("DomainName"))
+        {
+            $DomainName = (Read-Host "DomainName")
+        }
         # For directory accounts, lots of attributes are mapped from the directory
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Users -Body @{
             PrimaryAuthenticationProviderId = $Provider;
             UserName = $NewUserName;
-            AdminRoles = $AdminRoles
+            AdminRoles = $AdminRoles;
+            DirectoryProperties = @{ DomainName = $DomainName }
         }
     }
 }
