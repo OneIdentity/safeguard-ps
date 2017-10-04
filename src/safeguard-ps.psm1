@@ -138,7 +138,7 @@ function Wait-LongRunningTask
                 $local:Percent = $local:TaskStatus.PercentComplete
             }
             Write-Progress -Activity "Waiting for long-running task" -Status "Step: $($local:TaskStatus.Message)" -PercentComplete $local:Percent
-            if ((((Get-Date) - $local:StartTime).Seconds) -gt $Timeout)
+            if ((((Get-Date) - $local:StartTime).TotalSeconds) -gt $Timeout)
             {
                 throw "Timed out waiting for long-running task, timeout was $Timeout seconds"
             }
@@ -231,16 +231,21 @@ function Invoke-WithBody
         [int]$Timeout
     )
 
+    $local:BodyInternal = $Body
+    if (-not ($local:BodyInternal -is [string]))
+    {
+        $local:BodyInternal = (ConvertTo-Json -InputObject $Body)
+    }
     $local:Url = (New-SafeguardUrl $Appliance $Service $Version $RelativeUrl -Parameters $Parameters)
     if ($LongRunningTask)
     {
         $local:Response = (Invoke-WebRequest -Method $Method -Headers $Headers -Uri $local:Url `
-                         -Body (ConvertTo-Json -InputObject $Body) -OutFile $OutFile -TimeoutSec $Timeout)
+                         -Body $local:BodyInternal -OutFile $OutFile -TimeoutSec $Timeout)
         Wait-LongRunningTask $local:Response $Headers $Timeout
     }
     else
     {
-        Invoke-RestMethod -Method $Method -Headers $Headers -Uri $local:Url -Body (ConvertTo-Json -InputObject $Body) `
+        Invoke-RestMethod -Method $Method -Headers $Headers -Uri $local:Url -Body $local:BodyInternal `
             -OutFile $OutFile -TimeoutSec $Timeout
     }
 }
@@ -689,7 +694,8 @@ Specify the Content-type header (default: application/json)
 A string containing the bearer token to be used with Safeguard Web API.
 
 .PARAMETER Body
-A hash table containing an object to PUT or POST to the Url.
+A hash table containing an object to PUT or POST to the Url--alternatively, you may specify a pre-formatted JSON string.
+It can sometimes be difficult to get arrays of objects to behave properly with hashtables in Powershell.
 
 .PARAMETER Parameters
 A hash table containing the HTTP query parameters to add to the Url.

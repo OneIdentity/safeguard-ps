@@ -36,7 +36,7 @@ function Resolve-SafeguardUserId
 
 <#
 .SYNOPSIS
-Get indentity providers configured in Safeguard via the Web API.
+Get identity providers configured in Safeguard via the Web API.
 
 .DESCRIPTION
 Get the identity providers that have been configured in Safeguard.  Based on
@@ -81,6 +81,8 @@ function Get-SafeguardIdentityProvider
         [object]$ProviderToGet
     )
 
+    $ErrorActionPreference = "Stop"
+
     if ($PSBoundParameters.ContainsKey("ProviderToGet"))
     {
         if ($ProviderToGet -as [int])
@@ -97,6 +99,66 @@ function Get-SafeguardIdentityProvider
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders
     }
+}
+
+<#
+.SYNOPSIS
+Create new Starling 2FA secondary authentication provider in Safeguard via the Web API.
+
+.DESCRIPTION
+Create a new identity provider in Safeguard to enable adding Starling 2FA as a secondary
+authentication method for users.  After this is configured you can add Starling 2FA to
+existing users.  Those users must have an email address and mobile phone number.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ProviderName
+A string containing the name to give this new identity provider.
+
+.PARAMETER ApiKey
+A string containing the API Key obtained from Starling 2FA console.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+New-SafeguardStarling2faAuthentication "Company 2FA" $ApiKey
+#>
+function New-SafeguardStarling2faAuthentication
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$ProviderName,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$ApiKey
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    $local:ProviderObject = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+        Core POST IdentityProviders -Body @{
+            Name = $ProviderName; 
+            TypeReferenceName = "StarlingTwoFactor" 
+        })
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+        Core PUT "IdentityProviders/$($local:ProviderObject.Id)/ApiKey" -Body $ApiKey
+    Get-SafeguardIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:ProviderObject.Id
 }
 
 <#
@@ -245,6 +307,9 @@ A string containing the last name of the user.  Combined with first name to form
 .PARAMETER Description
 A string containing a description for the user.
 
+.PARAMETER DomainName
+A string containing the DNS name of the domain this user is in.
+
 .PARAMETER EmailAddress
 A string containing a email address for the user.
 
@@ -296,6 +361,8 @@ function New-SafeguardUser
         [string]$LastName = $null,
         [Parameter(Mandatory=$false)]
         [string]$Description = $null,
+        [Parameter(Mandatory=$false)]
+        [string]$DomainName = $null,
         [Parameter(Mandatory=$false)]
         [string]$EmailAddress = $null,
         [Parameter(Mandatory=$false)]
@@ -380,11 +447,16 @@ function New-SafeguardUser
     }
     else
     {
+        if (-not $PSBoundParameters.ContainsKey("DomainName"))
+        {
+            $DomainName = (Read-Host "DomainName")
+        }
         # For directory accounts, lots of attributes are mapped from the directory
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Users -Body @{
             PrimaryAuthenticationProviderId = $Provider;
             UserName = $NewUserName;
-            AdminRoles = $AdminRoles
+            AdminRoles = $AdminRoles;
+            DirectoryProperties = @{ DomainName = $DomainName }
         }
     }
 }
