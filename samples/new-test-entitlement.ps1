@@ -31,7 +31,7 @@ Invoke-SafeguardMethod Core PUT "Roles/$($local:EntitlementId)/Members" -Body @(
     Id = $local:RequesterGroupId;
     PrincipalKind = "Group"
 })
-Invoke-SafeguardMethod Core POST AccessPolicies -Body "{
+Invoke-SafeguardMethod Core POST AccessPolicies -JsonBody "{
     `"Name`": `"Basic Password`",
     `"RoleId`": $local:EntitlementId,
     `"AccessRequestProperties`": {
@@ -42,7 +42,7 @@ Invoke-SafeguardMethod Core POST AccessPolicies -Body "{
         `"RequireApproval`": false
     }
 }"
-Invoke-SafeguardMethod Core POST AccessPolicies -Body "{
+Invoke-SafeguardMethod Core POST AccessPolicies -JsonBody "{
     `"Name`": `"Basic SSH`",
     `"RoleId`": $local:EntitlementId,
     `"AccessRequestProperties`": {
@@ -60,7 +60,7 @@ Invoke-SafeguardMethod Core POST AccessPolicies -Body "{
         }]
     }]
 }"
-Invoke-SafeguardMethod Core POST AccessPolicies -Body "{
+Invoke-SafeguardMethod Core POST AccessPolicies -JsonBody "{
     `"Name`": `"Basic RDP`",
     `"RoleId`": $local:EntitlementId,
     `"AccessRequestProperties`": {
