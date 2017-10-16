@@ -76,6 +76,7 @@ NestedModules = @(
     'desktopclient.psm1',
     'maintenance.psm1',
     'diagnostics.psm1',
+    'sessionmodule.psm1',
     'archives.psm1',
     'requests.psm1',
     'users.psm1',
@@ -114,6 +115,9 @@ FunctionsToExport = @(
     'Restore-SafeguardBackup','Save-SafeguardBackupToArchive','Get-SafeguardBackup',
     # diagnostics.psm1
     'Invoke-SafeguardPing','Invoke-SafeguardSessionsPing','Invoke-SafeguardTelnet','Invoke-SafeguardSessionsTelnet',
+    # sessionmodule.psm1
+    'Get-SafeguardSessionContainerStatus','Get-SafeguardSessionModuleStatus','Get-SafeguardSessionModuleVersion',
+    'Reset-SafeguardSessionModule','Repair-SafeguardSessionModule',
     # archives.psm1
     'Get-SafeguardArchiveServer','New-SafeguardArchiveServer','Test-SafeguardArchiveServer',
     'Remove-SafeguardArchiveServer','Edit-SafeguardArchiveServer',

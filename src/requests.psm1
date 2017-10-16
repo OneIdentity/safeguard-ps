@@ -1,3 +1,82 @@
+# Helper
+function Resolve-SafeguardRequestableAssetId
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Asset
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    if (-not ($Asset -as [int]))
+    {
+        $local:Assets = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/RequestableAssets" `
+                              -Parameters @{ filter = "Name ieq '$Asset'" })
+        if (-not $local:Assets)
+        {
+            $local:Assets = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/RequestableAssets" `
+                                  -Parameters @{ filter = "NetworkAddress ieq '$Asset'" })
+        }
+        if (-not $local:Assets)
+        {
+            throw "Unable to find a requestable asset matching '$Asset'"
+        }
+        if ($local:Assets.Count -ne 1)
+        {
+            throw "Found $($local:Assets.Count) requestable assets matching '$Asset'"
+        }
+        $local:Assets[0].Id
+    }
+    else
+    {
+        $Asset
+    }
+}
+function Resolve-SafeguardRequestableAccountId
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true)]
+        [int]$AssetId,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Account
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    if (-not ($Account -as [int]))
+    {
+        $local:RelativeUrl = "Me/RequestableAssets/$AssetId/Accounts"
+        $local:Accounts = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
+                                -Parameters @{ filter = "Name ieq '$Account'" })
+        if (-not $local:Accounts)
+        {
+            throw "Unable to find a requestable account matching '$Account'"
+        }
+        if ($local:Accounts.Count -ne 1)
+        {
+            throw "Found $($local:Accounts.Count) requestable accounts matching '$Account'"
+        }
+        $local:Accounts[0].Id
+    }
+    else
+    {
+        $Account
+    }
+
+}
+
 <#
 .SYNOPSIS
 Get an access request or all access requests via the Web API.
@@ -112,11 +191,11 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
-.PARAMETER AssetId
-An integer with the ID of the asset to request.
+.PARAMETER AssetToUse
+An integer containing the ID of the asset to request or a string containing the name.
 
-.PARAMETER AccountId
-An integer with the ID of the account to request.
+.PARAMETER AccountToUse
+An integer containing the ID of the account to request or a string containing the name.
 
 .PARAMETER AccessRequestType
 A string containing the access request type: Password, Ssh, RemoteDesktop.
@@ -137,19 +216,27 @@ function New-SafeguardAccessRequest
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$true, Position=0)]
-        [int]$AssetId,
+        [object]$AssetToUse,
         [Parameter(Mandatory=$true, Position=1)]
-        [int]$AccountId,
+        [object]$AccountToUse,
         [Parameter(Mandatory=$true, Position=2)]
-        [ValidateSet("Password", "Ssh", "RemoteDesktop", IgnoreCase=$true)]
+        [ValidateSet("Password", "SSH", "RemoteDesktop", "RDP", IgnoreCase=$true)]
         [string]$AccessRequestType
     )
 
     $ErrorActionPreference = "Stop"
 
+    if ($AccessRequestType -ieq "RDP")
+    {
+        $AccessRequestType = "RemoteDesktop"
+    }
+
+    $local:AssetId = (Resolve-SafeguardRequestableAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToUse)
+    $local:AccountId = (Resolve-SafeguardRequestableAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
+
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AccessRequests" -Body @{
-        SystemId = $AssetId;
-        AccountId = $AccountId;
+        SystemId = $local:AssetId;
+        AccountId = $local:AccountId;
         AccessRequestType = "$AccessRequestType"
     }
 }
@@ -200,7 +287,7 @@ function Edit-SafeguardAccessRequest
         [Parameter(Mandatory=$true, Position=0)]
         [string]$RequestId,
         [Parameter(Mandatory=$true, Position=1)]
-        [ValidateSet("Approve", "Deny", "Review", "Cancel", "Close", "CheckIn", "CheckOutPassword", "InitializeSession", "Acknowledge", IgnoreCase=$true)]
+        [ValidateSet("Approve", "Deny", "Review", "Cancel", "Close", "CheckIn", "CheckOutPassword", "CheckOut", "InitializeSession", "Acknowledge", IgnoreCase=$true)]
         [string]$Action,
         [Parameter(Mandatory=$false)]
         [string]$Comment
@@ -217,6 +304,7 @@ function Edit-SafeguardAccessRequest
         "cancel" { $Action = "Cancel"; break }
         "close" { $Action = "Close"; break }
         "checkin" { $Action = "CheckIn"; break }
+        "checkout" { $Action = "CheckOutPassword"; break }
         "checkoutpassword" { $Action = "CheckOutPassword"; break }
         "initializesession" { $Action = "InitializeSession"; break }
         "acknowledge" { $Action = "Acknowledge"; break }
