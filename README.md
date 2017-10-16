@@ -148,6 +148,12 @@ cmdlets for functionality that is missing.
 - Invoke-SafeguardSessionsPing
 - Invoke-SafeguardTelnet
 - Invoke-SafeguardSessionsTelnet
+### Session Module
+- Get-SafeguardSessionContainerStatus
+- Get-SafeguardSessionModuleStatus
+- Get-SafeguardSessionModuleVersion
+- Reset-SafeguardSessionModule
+- Repair-SafeguardSessionModule
 ### Archive Servers
 - Get-SafeguardArchiveServer
 - New-SafeguardArchiveServer
