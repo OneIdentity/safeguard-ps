@@ -38,7 +38,7 @@ function Resolve-SafeguardAssetId
         $Asset
     }
 }
-function Resolve-SafeguardAccountId
+function Resolve-SafeguardAssetAccountId
 {
     Param(
         [Parameter(Mandatory=$false)]
@@ -81,7 +81,6 @@ function Resolve-SafeguardAccountId
     {
         $Account
     }
-
 }
 function Invoke-AssetSshHostKeyDiscovery
 {
@@ -749,7 +748,7 @@ function Get-SafeguardAssetAccount
         $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToGet)
         if ($PSBoundParameters.ContainsKey("AccountToGet"))
         {
-            $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToGet)
+            $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToGet)
             Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts/$($local:AccountId)"
         }
         else
@@ -761,7 +760,7 @@ function Get-SafeguardAssetAccount
     {
         if ($PSBoundParameters.ContainsKey("AccountToGet"))
         {
-            $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToGet)
+            $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToGet)
             Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts/$($local:AccountId)"
         }
         else
@@ -919,11 +918,11 @@ function Edit-SafeguardAssetAccount
         if ($PSBoundParameters.ContainsKey("AssetToEdit"))
         {
             $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToEdit)
-            $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToEdit)
+            $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToEdit)
         }
         else
         {
-            $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToEdit)
+            $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToEdit)
         }
     }
 
@@ -998,11 +997,11 @@ function Set-SafeguardAssetAccountPassword
     if ($PSBoundParameters.ContainsKey("AssetToSet"))
     {
         $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToSet)
-        $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToSet)
+        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToSet)
     }
     else
     {
-        $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToSet)
+        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToSet)
     }
     if (-not $NewPassword)
     {
@@ -1069,11 +1068,11 @@ function New-SafeguardAssetAccountRandomPassword
     if ($PSBoundParameters.ContainsKey("AssetToUse"))
     {
         $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToUse)
-        $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
+        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
     }
     else
     {
-        $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToUse)
+        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToUse)
     }
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts/$($local:AccountId)/GeneratePassword"
 }
@@ -1131,11 +1130,11 @@ function Test-SafeguardAssetAccountPassword
     if ($PSBoundParameters.ContainsKey("AssetToUse"))
     {
         $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToUse)
-        $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
+        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
     }
     else
     {
-        $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToUse)
+        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToUse)
     }
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts/$($local:AccountId)/CheckPassword" -LongRunningTask
 }
@@ -1193,11 +1192,11 @@ function Invoke-SafeguardAssetAccountPasswordChange
     if ($PSBoundParameters.ContainsKey("AssetToUse"))
     {
         $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToUse)
-        $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
+        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
     }
     else
     {
-        $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToUse)
+        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToUse)
     }
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts/$($local:AccountId)/ChangePassword" -LongRunningTask
 }
