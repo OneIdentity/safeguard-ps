@@ -51,7 +51,7 @@ function Get-SafeguardDirectory
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true,Position=0)]
+        [Parameter(Mandatory=$false,Position=0)]
         [object]$DirectoryToGet
     )
 
@@ -138,7 +138,7 @@ function New-SafeguardDirectory
         $local:Body = @{
             PlatformId = $local:AdPlatformId;
             ConnectionProperties = @{
-                ServiceAccountDomain = $ServiceAccountDomain;
+                ServiceAccountDomainName = $ServiceAccountDomain;
                 ServiceAccountName = $ServiceAccountName;
                 ServiceAccountPassword = `
                     [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($ServiceAccountPassword))
@@ -209,7 +209,7 @@ function Edit-SafeguardDirectory
 
 function Get-SafeguardDirectoryAccount
 {
-    
+
 }
 
 function New-SafeguardDirectoryAccount
