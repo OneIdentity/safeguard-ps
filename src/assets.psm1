@@ -409,7 +409,7 @@ function New-SafeguardAsset
     }
 
     $local:NewAsset = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-                     POST Assets -Body $local:Body)
+                           POST Assets -Body $local:Body)
 
     try
     {
