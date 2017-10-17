@@ -139,7 +139,7 @@ FunctionsToExport = @(
     # directories.psm1
     'Get-SafeguardDirectory','New-SafeguardDirectory','Test-SafeguardDirectory',
     'Remove-SafeguardDirectory','Edit-SafeguardDirectory','Sync-SafeguardDirectory',
-    'Get-SafeguardDirectoryAccount','New-SafeguardDirectoryAccount','Edit-SafeguardDirectoryAccount',
+    'Get-SafeguardDirectoryAccount','New-SafeguardDirectoryAccount',
     'Set-SafeguardDirectoryAccountPassword','New-SafeguardDirectoryAccountRandomPassword',
     'Test-SafeguardDirectoryAccountPassword','Invoke-SafeguardDirectoryAccountPasswordChange',
     'Remove-SafeguardDirectoryAccount',

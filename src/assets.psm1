@@ -1218,8 +1218,8 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
-.PARAMETER AssetToDelete
-An integer containing the ID of the asset to remove or a string containing the name.
+.PARAMETER AssetToUse
+An integer containing the ID of the asset to remove the account from or a string containing the name.
 
 .PARAMETER AccountToDelete
 An integer containing the ID of the asset account to remove or a string containing the name.
@@ -1246,16 +1246,16 @@ function Remove-SafeguardAssetAccount
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [object]$AssetToDelete,
+        [object]$AssetToUse,
         [Parameter(Mandatory=$true,Position=1)]
         [object]$AccountToDelete
     )
 
     $ErrorActionPreference = "Stop"
 
-    if ($PSBoundParameters.ContainsKey("AssetToDelete"))
+    if ($PSBoundParameters.ContainsKey("AssetToUse"))
     {
-        $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToDelete)
+        $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToUse)
         $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToDelete)
     }
     else
