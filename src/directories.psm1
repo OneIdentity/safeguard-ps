@@ -18,21 +18,21 @@ function Resolve-SafeguardDirectoryId
                                    -Parameters @{ filter = "Name ieq '$Directory'" })
         if (-not $local:Directories)
         {
-            $local:Directories = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Assets `
+            $local:Directories = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Directories `
                                        -Parameters @{ filter = "NetworkAddress ieq '$Directory'" })
         }
         if (-not $local:Directories)
         {
-            $local:Directories = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Assets `
+            $local:Directories = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Directories `
                                        -Parameters @{ filter = "Domains.DomainName ieq '$Directory'" })
         }
         if (-not $local:Directories)
         {
-            throw "Unable to find asset matching '$Directory'"
+            throw "Unable to find directory matching '$Directory'"
         }
         if ($local:Directories.Count -ne 1)
         {
-            throw "Found $($local:Directories.Count) assets matching '$Directory'"
+            throw "Found $($local:Directories.Count) directories matching '$Directory'"
         }
         $local:Directories[0].Id
     }
@@ -41,6 +41,53 @@ function Resolve-SafeguardDirectoryId
         $Directory
     }
 }
+
+
+function Resolve-SafeguardDirectoryAccountId
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [int]$DirectoryId,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Account
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    if (-not ($Account -as [int]))
+    {
+        if ($PSBoundParameters.ContainsKey("DirectoryId"))
+        {
+            $local:RelativeUrl = "Directories/$DirectoryId/Accounts"
+        }
+        else
+        {
+            $local:RelativeUrl = "DirectoryAccounts"
+        }
+        $local:Accounts = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
+                                -Parameters @{ filter = "Name ieq '$Account'" })
+        if (-not $local:Accounts)
+        {
+            throw "Unable to find account matching '$Account'"
+        }
+        if ($local:Accounts.Count -ne 1)
+        {
+            throw "Found $($local:Accounts.Count) accounts matching '$Account'"
+        }
+        $local:Accounts[0].Id
+    }
+    else
+    {
+        $Account
+    }
+}
+
 
 function Get-SafeguardDirectory
 {
@@ -68,6 +115,7 @@ function Get-SafeguardDirectory
     }
 }
 
+
 function New-SafeguardDirectory
 {
     [CmdletBinding(DefaultParameterSetName="Ad")]
@@ -79,7 +127,7 @@ function New-SafeguardDirectory
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$true,ParameterSetName="Ad",Position=0)]
-        [string]$ServiceAccountDomain,
+        [string]$ServiceAccountDomainName,
         [Parameter(Mandatory=$true,ParameterSetName="Ad",Position=1)]
         [string]$ServiceAccountName,
         [Parameter(Mandatory=$true,ParameterSetName="Ldap",Position=0)]
@@ -89,6 +137,8 @@ function New-SafeguardDirectory
         [SecureString]$ServiceAccountPassword,
         [Parameter(Mandatory=$false,ParameterSetName="Ldap")]
         [string]$NetworkAddress,
+        [Parameter(Mandatory=$false,ParameterSetName="Ldap")]
+        [int]$Port,
         [Parameter(Mandatory=$false,ParameterSetName="Ldap")]
         [switch]$NoSslEncryption,
         [Parameter(Mandatory=$false,ParameterSetName="Ldap")]
@@ -122,6 +172,10 @@ function New-SafeguardDirectory
         {
             $local:Body.ConnectionProperties.NetworkAddress = $NetworkAddress
         }
+        if ($PSBoundParameters.ContainsKey("Port"))
+        {
+            $local:Body.ConnectionProperties.Port = $Port
+        }
         if ($NoSslEncryption)
         {
             $local:Body.ConnectionProperties.UseSslEncryption = $false
@@ -138,7 +192,7 @@ function New-SafeguardDirectory
         $local:Body = @{
             PlatformId = $local:AdPlatformId;
             ConnectionProperties = @{
-                ServiceAccountDomainName = $ServiceAccountDomain;
+                ServiceAccountDomainName = $ServiceAccountDomainName;
                 ServiceAccountName = $ServiceAccountName;
                 ServiceAccountPassword = `
                     [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($ServiceAccountPassword))
@@ -149,6 +203,7 @@ function New-SafeguardDirectory
     {
         $local:Body.Description = $Description
     }
+
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Directories -Body $local:Body
 }
 
@@ -204,17 +259,135 @@ function Remove-SafeguardDirectory
 
 function Edit-SafeguardDirectory
 {
+    [CmdletBinding(DefaultParameterSetName="Attributes")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false,Position=0)]
+        [object]$DirectoryToEdit,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$ServiceAccountDomainName,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$ServiceAccountName,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$ServiceAccountDistinguishedName,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [SecureString]$ServiceAccountPassword,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$NetworkAddress,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [int]$Port,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [switch]$NoSslEncryption,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [switch]$DoNotVerifyServerSslCertificate,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$Description,
+        [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
+        [object]$DirectoryObject
+    )
 
+    if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $DirectoryObject)
+    {
+        throw "DirectoryObject must not be null"
+    }
+
+    if ($PsCmdlet.ParameterSetName -eq "Attributes")
+    {
+        if (-not $PSBoundParameters.ContainsKey("DirectoryToEdit"))
+        {
+            $DirectoryToEdit = (Read-Host "DirectoryToEdit")
+        }
+        $local:DirectoryId = Resolve-SafeguardDirectoryId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToEdit
+    }
+
+    if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
+    {
+        $DirectoryObject = (Get-SafeguardDirectory -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:DirectoryId)
+
+        # Connection Properties
+        if (-not $DirectoryObject.ConnectionProperties) { $DirectoryObject.ConnectionProperties = @{} }
+        if ($PSBoundParameters.ContainsKey("Port")) { $DirectoryObject.ConnectionProperties.Port = $Port }
+
+        if ($PSBoundParameters.ContainsKey("ServiceAccountDomainName")) { $DirectoryObject.ConnectionProperties.ServiceAccountDomainName = $ServiceAccountDomainName }
+        if ($PSBoundParameters.ContainsKey("ServiceAccountName")) { $DirectoryObject.ConnectionProperties.ServiceAccountName = $ServiceAccountName }
+        if ($PSBoundParameters.ContainsKey("ServiceAccountPassword"))
+        {
+            $DirectoryObject.ConnectionProperties.ServiceAccountPassword = `
+                [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($ServiceAccountPassword))
+        }
+        if ($PSBoundParameters.ContainsKey("ServiceAccountDistinguishedName")) { $DirectoryObject.ConnectionProperties.ServiceAccountDistinguishedName = $ServiceAccountDistinguishedName }
+        if ($NoSslEncryption)
+        {
+            $DirectoryObject.ConnectionProperties.UseSslEncryption = $false
+            $DirectoryObject.ConnectionProperties.VerifySslCertificate = $false
+        }
+        if ($DoNotVerifyServerSslCertificate)
+        {
+            $DirectoryObject.ConnectionProperties.VerifySslCertificate = $false
+        }
+
+         # Body
+         if ($PSBoundParameters.ContainsKey("Description")) { $DirectoryObject.Description = $Description }
+         if ($PSBoundParameters.ContainsKey("NetworkAddress")) { $DirectoryObject.NetworkAddress = $NetworkAddress }
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Directories/$($DirectoryObject.Id)" -Body $DirectoryObject
 }
 
 function Get-SafeguardDirectoryAccount
 {
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$DirectoryToGet,
+        [Parameter(Mandatory=$false,Position=1)]
+        [object]$AccountToGet
+    )
 
+    $ErrorActionPreference = "Stop"
+
+    if ($PSBoundParameters.ContainsKey("DirectoryToGet"))
+    {
+        $local:DirectoryId = (Resolve-SafeguardDirectoryId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToGet)
+        if ($PSBoundParameters.ContainsKey("DirectoryToGet"))
+        {
+            $local:AccountId = (Resolve-SafeguardDirectoryAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -DirectoryId $local:DirectoryId $AccountToGet)
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "DirectoryAccounts/$($local:AccountId)"
+        }
+        else
+        {
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Directories/$($local:DirectoryId)/Accounts"
+        }
+    }
+    else
+    {
+        if ($PSBoundParameters.ContainsKey("AccountToGet"))
+        {
+            $local:AccountId = (Resolve-SafeguardDirectoryAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToGet)
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "DirectoryAccounts/$($local:AccountId)"
+        }
+        else
+        {
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "DirectoryAccounts"
+        }
+    }
 }
+
 
 function New-SafeguardDirectoryAccount
 {
 }
+
 
 function Edit-SafeguardDirectoryAccount
 {
