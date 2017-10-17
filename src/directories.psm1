@@ -41,8 +41,6 @@ function Resolve-SafeguardDirectoryId
         $Directory
     }
 }
-
-
 function Resolve-SafeguardDirectoryAccountId
 {
     Param(
@@ -339,6 +337,30 @@ function Edit-SafeguardDirectory
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Directories/$($DirectoryObject.Id)" -Body $DirectoryObject
 }
 
+function Sync-SafeguardDirectory
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$DirectoryToSync
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    if (-not $PSBoundParameters.ContainsKey("DirectoryToSync"))
+    {
+        $DirectoryToSync = (Read-Host "DirectoryToSync")
+    }
+
+    $local:DirectoryId = Resolve-SafeguardDirectoryId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToSync
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Directories/$($local:DirectoryId)/Synchronize"
+}
+
 function Get-SafeguardDirectoryAccount
 {
     Param(
@@ -386,6 +408,29 @@ function Get-SafeguardDirectoryAccount
 
 function New-SafeguardDirectoryAccount
 {
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$ParentDirectory,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$NewAccountName
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    $local:DirectoryId = (Resolve-SafeguardDirectoryId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ParentDirectory)
+
+    $local:Body = @{
+        "DirectoryId" = $local:DirectoryId;
+        "Name" = $NewAccountName
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "DirectoryAccounts" -Body $local:Body
 }
 
 
@@ -408,6 +453,11 @@ function Test-SafeguardDirectoryAccountPassword
 }
 
 function Invoke-SafeguardDirectoryAccountPasswordChange
+{
+
+}
+
+function Remove-SafeguardDirectoryAccount
 {
 
 }
