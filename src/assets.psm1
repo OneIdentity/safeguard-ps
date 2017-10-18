@@ -600,7 +600,7 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Edit-SafeguardAsset -AccessToken $token -Appliance 10.5.32.54 -Insecure
+Edit-SafeguardAsset -AccessToken $token -Appliance 10.5.32.54 -Insecure -AssetObject $obj
 
 .EXAMPLE
 Edit-SafeguardAsset winserver.domain.corp 31 archie

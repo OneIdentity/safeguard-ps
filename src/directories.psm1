@@ -414,7 +414,74 @@ function Remove-SafeguardDirectory
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Directories/$($local:DirectoryId)"
 }
 
+<#
+.SYNOPSIS
+Edit existing directory in Safeguard via the Web API.
 
+.DESCRIPTION
+Edit an existing directory in Safeguard that can be used to manage accounts.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER DirectoryToEdit
+An integer containing the ID of the directory to edit or a string containing the name.
+
+.PARAMETER ServiceAccountDomainName
+A string containing the service account domain name if it has one.  This is used
+for creating AD directories.
+
+.PARAMETER ServiceAccountName
+A string containing the service account name.  This is used for creating AD directories.
+
+.PARAMETER ServiceAccountDistinguishedName
+A string containing the LDAP distinguished name of a service account.  This is used for
+creating LDAP directories.
+
+.PARAMETER ServiceAccountPassword
+A SecureString containing the password to use for the service account.
+
+.PARAMETER NetworkAddress
+A string containing the network address for this directory.  This is used for creating
+LDAP directories.
+
+.PARAMETER Port
+An integer containing the port for this directory.  This is used for creating
+LDAP directories.
+
+.PARAMETER NoSslEncryption
+Do not use SSL encryption for LDAP directory.
+
+.PARAMETER DoNotVerifyServerSslCertificate
+Do not verify Server SSL certificate of LDAP directory.
+
+.PARAMETER Description
+A string containing a description for this directory.
+
+.PARAMETER DirectoryObject
+An object containing the existing directory with desired properties set.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Edit-SafeguardDirectory -AccessToken $token -Appliance 10.5.32.54 -Insecure internal.domain.corp
+
+.EXAMPLE
+Edit-SafeguardDirectory ldap.domain.corp -ServiceAccountDistinguishedName "cn=dev-sa,ou=people,dc=ldap,dc=domain,dc=corp" -NoSslEncryption
+
+.EXAMPLE
+Edit-SafeguardDirectory -DirectoryObject $obj
+#>
 function Edit-SafeguardDirectory
 {
     [CmdletBinding(DefaultParameterSetName="Attributes")]
@@ -497,6 +564,38 @@ function Edit-SafeguardDirectory
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Directories/$($DirectoryObject.Id)" -Body $DirectoryObject
 }
 
+<#
+.SYNOPSIS
+Remove a directory from Safeguard via the Web API.
+
+.DESCRIPTION
+Remove a directory from Safeguard. Make sure it is not in use before
+you remove it.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER DirectoryToSync
+An integer containing the ID of the directory to synchronize or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Sync-SafeguardDirectory -AccessToken $token -Appliance 10.5.32.54 -Insecure 5
+
+.EXAMPLE
+Sync-SafeguardDirectory internal.domain.corp
+#>
 function Sync-SafeguardDirectory
 {
     Param(
@@ -517,10 +616,47 @@ function Sync-SafeguardDirectory
         $DirectoryToSync = (Read-Host "DirectoryToSync")
     }
 
-    $local:DirectoryId = Resolve-SafeguardDirectoryId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToSync
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Directories/$($local:DirectoryId)/Synchronize"
+    $local:Directory = Get-SafeguardDirectory -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToSync
+    Write-Host "Triggered sync for directory: $($local:Directory.Name)"
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Directories/$($local:Directory.Id)/Synchronize"
 }
 
+<#
+.SYNOPSIS
+Get accounts on directories managed by Safeguard via the Web API.
+
+.DESCRIPTION
+Get accounts on directories managed by Safeguard.  Accounts passwords can be managed,
+and Safeguard can be configured to check and change those passwords.  Policy can
+be created to allow access to passwords and sessions based on those passwords.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER DirectoryToGet
+An integer containing the ID of the directory to get accounts from or a string containing the name.
+
+.PARAMETER AccountToGet
+An integer containing the ID of the account to get or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardDirectoryAccount -AccessToken $token -Appliance 10.5.32.54 -Insecure domain.blah.corp administrator
+
+.EXAMPLE
+Get-SafeguardDirectoryAccount -AccountToGet adm-domain-a
+#>
 function Get-SafeguardDirectoryAccount
 {
     Param(
@@ -565,7 +701,48 @@ function Get-SafeguardDirectoryAccount
     }
 }
 
+<#
+.SYNOPSIS
+Create a new account on an directory managed by Safeguard via the Web API.
 
+.DESCRIPTION
+Create a representation of an account on a managed directory.  Accounts passwords can
+be managed, and Safeguard can be configured to check and change those passwords.  
+Policy can be created to allow access to passwords and sessions based on those passwords.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ParentDirectory
+An integer containing the ID of the directory to get accounts from or a string containing the name.
+
+.PARAMETER NewAccountName
+A string containing the name for the account.
+
+.PARAMETER DomainName
+A string containing the domain name for the account if different from parent directory.
+
+.PARAMETER DistinguishedName
+A string containing the distinguished name of the new account in LDAP.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+New-SafeguardDirectoryAccount -AccessToken $token -Appliance 10.5.32.54 -Insecure blah.corp administrator -DomainName sub.blah.corp
+
+.EXAMPLE
+New-SafeguardDirectoryAccount ldap.company.corp administrator -DistinguishedName "cn=administrator,dc=ldap,dc=company,dc=corp"
+#>
 function New-SafeguardDirectoryAccount
 {
     Param(
@@ -578,22 +755,90 @@ function New-SafeguardDirectoryAccount
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ParentDirectory,
         [Parameter(Mandatory=$true,Position=1)]
-        [string]$NewAccountName
+        [string]$NewAccountName,
+        [Parameter(Mandatory=$false)]
+        [string]$DomainName,
+        [Parameter(Mandatory=$false)]
+        [string]$DistinguishedName
     )
 
     $ErrorActionPreference = "Stop"
 
-    $local:DirectoryId = (Resolve-SafeguardDirectoryId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ParentDirectory)
+    $local:Directory = (Get-SafeguardDirectory -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ParentDirectory)
 
     $local:Body = @{
-        "DirectoryId" = $local:DirectoryId;
-        "Name" = $NewAccountName
+        "Name" = $NewAccountName;
+        "DirectoryProperties" = @{
+            "DirectoryId" = $local:Directory.Id;
+        }
+    }
+
+    if ($PSBoundParameters.ContainsKey("DomainName"))
+    {
+        $local:Body.DirectoryProperties.DomainName = $DomainName
+    }
+    elseif ($PSBoundParameters.ContainsKey("DistinguishedName"))
+    {
+        $local:Body.DirectoryProperties.DistinguishedName = $DistinguishedName
+    }
+    else
+    {
+        if ($ParentDirectory -as [string])
+        {
+            $local:MatchedDomain = ($local:Directory.Domains | Where-Object { $_.DomainName -ieq ([string]$ParentDirectory) })
+        }
+        if ($local:MatchedDomain)
+        {
+            $local:Body.DirectoryProperties.DomainName = $local:MatchedDomain.DomainName
+        }
+        else
+        {
+            $local:Body.DirectoryProperties.DomainName = $local:Directory.Domains[0].DomainName
+        }
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "DirectoryAccounts" -Body $local:Body
 }
 
+<#
+.SYNOPSIS
+Set account password inside Safeguard for directory under management via the Web API.
 
+.DESCRIPTION
+Set the password in Safeguard for an account on a directory under management.  This
+just modifies what is stored in Safeguard.  It does not change the actual password
+of the account.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER DirectoryToSet
+An integer containing the ID of the directory to set account password on or a string containing the name.
+
+.PARAMETER AccountToSet
+An integer containing the ID of the account to set password on or a string containing the name.
+
+.PARAMETER NewPassword
+A SecureString containing the new password to set.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Set-SafeguardDirectoryAccountPassword -AccessToken $token -Appliance 10.5.32.54 -Insecure internal.blah.corp administrator
+
+.EXAMPLE
+Set-SafeguardDirectoryAccountPassword -AccountToSet oracle -NewPassword $pass
+#>
 function Set-SafeguardDirectoryAccountPassword
 {
     Param(
@@ -631,7 +876,42 @@ function Set-SafeguardDirectoryAccountPassword
         -Body $local:PasswordPlainText
 }
 
+<#
+.SYNOPSIS
+Generate a directory account password based on profile via the Web API.
 
+.DESCRIPTION
+Generate a directory account password based on profile.  The password is not actually stored in
+Safeguard, but it could be stored using Set-SafeguardDirectoryAccountPassword.  This can
+be used to facilitate manual password management.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER DirectoryToUse
+An integer containing the ID of the directory to generate password for or a string containing the name.
+
+.PARAMETER AccountToUse
+An integer containing the ID of the account to generate password for or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+New-SafeguardDirectoryAccountRandomPassword -AccessToken $token -Appliance 10.5.32.54 -Insecure domain.blah.corp administrator
+
+.EXAMPLE
+New-SafeguardDirectoryAccountRandomPassword -AccountToUse administrator
+#>
 function New-SafeguardDirectoryAccountRandomPassword
 {
     Param(
@@ -661,7 +941,41 @@ function New-SafeguardDirectoryAccountRandomPassword
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "DirectoryAccounts/$($local:AccountId)/GeneratePassword"
 }
 
+<#
+.SYNOPSIS
+Run check password on a directory account managed by Safeguard via the Web API.
 
+.DESCRIPTION
+Run a task to check whether Safeguard still has the correct password for
+an account on a managed directory.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER DirectoryToUse
+An integer containing the ID of the directory to check password for or a string containing the name.
+
+.PARAMETER AccountToUse
+An integer containing the ID of the account to check password for or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Test-SafeguardDirectoryAccountPassword -AccessToken $token -Appliance 10.5.32.54 -Insecure domain.blah.corp administrator
+
+.EXAMPLE
+Test-SafeguardDirectoryAccountPassword -AccountToUse administrator
+#>
 function Test-SafeguardDirectoryAccountPassword
 {
     Param(
@@ -689,7 +1003,41 @@ function Test-SafeguardDirectoryAccountPassword
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "DirectoryAccounts/$($local:AccountId)/CheckPassword" -LongRunningTask
 }
 
+<#
+.SYNOPSIS
+Run change password on a directory account managed by Safeguard via the Web API.
 
+.DESCRIPTION
+Run a task to change the password on a directory account managed by Safeguard.  This rotates the
+password on the actual directory and stores the new value in Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER DirectoryToUse
+An integer containing the ID of the directory to change password for or a string containing the name.
+
+.PARAMETER AccountToUse
+An integer containing the ID of the account to change password for or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Invoke-SafeguardDomainAccountPasswordChange -AccessToken $token -Appliance 10.5.32.54 -Insecure domain.blah.corp administrator
+
+.EXAMPLE
+Invoke-SafeguardDomainAccountPasswordChange -AccountToUse administrator
+#>
 function Invoke-SafeguardDirectoryAccountPasswordChange
 {
     Param(
@@ -717,7 +1065,41 @@ function Invoke-SafeguardDirectoryAccountPasswordChange
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "DirectoryAccounts/$($local:AccountId)/ChangePassword" -LongRunningTask
 }
 
+<#
+.SYNOPSIS
+Remove a directory account from Safeguard via the Web API.
 
+.DESCRIPTION
+Remove a directory account from Safeguard. Make sure it is not in use before
+you remove it.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER DirectoryToUse
+An integer containing the ID of the directory to remove the account from or a string containing the name.
+
+.PARAMETER AccountToDelete
+An integer containing the ID of the directory account to remove or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardDirectoryAccount -AccessToken $token -Appliance 10.5.32.54 -Insecure 5 23
+
+.EXAMPLE
+Remove-SafeguardDirectoryAccount my.domain.com administrator
+#>
 function Remove-SafeguardDirectoryAccount
 {
     Param(
