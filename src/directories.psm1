@@ -86,7 +86,40 @@ function Resolve-SafeguardDirectoryAccountId
     }
 }
 
+<#
+.SYNOPSIS
+Get directories managed by Safeguard via the Web API.
 
+.DESCRIPTION
+Get the directories managed by Safeguard.  Accounts can be added to these directories,
+and Safeguard can be configured to manage their passwords.  Once a directory is added
+to Safeguard, a user administrator can create a Safeguard user from the directory
+identity provider.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER DirectoryToGet
+An integer containing the ID of the directory to get or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardDirectory -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardDirectory x.domain.corp
+#>
 function Get-SafeguardDirectory
 {
     Param(
@@ -113,7 +146,69 @@ function Get-SafeguardDirectory
     }
 }
 
+<#
+.SYNOPSIS
+Create new directory in Safeguard via the Web API.
 
+.DESCRIPTION
+Create a new directory in Safeguard that can be used to manage accounts and
+enables the creation of Safeguard users from that directory.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ServiceAccountDomainName
+A string containing the service account domain name if it has one.  This is used
+for creating AD directories.
+
+.PARAMETER ServiceAccountName
+A string containing the service account name.  This is used for creating AD directories.
+
+.PARAMETER ServiceAccountDistinguishedName
+A string containing the LDAP distinguished name of a service account.  This is used for
+creating LDAP directories.
+
+.PARAMETER ServiceAccountPassword
+A SecureString containing the password to use for the service account.
+
+.PARAMETER NetworkAddress
+A string containing the network address for this directory.  This is used for creating
+LDAP directories.
+
+.PARAMETER Port
+An integer containing the port for this directory.  This is used for creating
+LDAP directories.
+
+.PARAMETER NoSslEncryption
+Do not use SSL encryption for LDAP directory.
+
+.PARAMETER DoNotVerifyServerSslCertificate
+Do not verify Server SSL certificate of LDAP directory.
+
+.PARAMETER Description
+A string containing a description for this directory.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+New-SafeguardDirectory -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+New-SafeguardDirectory internal.domain.corp svc-user
+
+.EXAMPLE
+New-SafeguardDirectory -ServiceAccountDistinguishedName "cn=dev-sa,ou=people,dc=ldap,dc=domain,dc=corp" -NoSslEncryption
+#>
 function New-SafeguardDirectory
 {
     [CmdletBinding(DefaultParameterSetName="Ad")]
@@ -205,6 +300,39 @@ function New-SafeguardDirectory
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Directories -Body $local:Body
 }
 
+<#
+.SYNOPSIS
+Test connection to a directory in Safeguard via the Web API.
+
+.DESCRIPTION
+Test the connection to a directory by attempting to determine whether or
+not the configured service account can manage passwords for this directory.
+This is an asynchronous task in Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER DirectoryToTest
+An integer containing the ID of the directory to test connection to or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Test-SafeguardDirectory -AccessToken $token -Appliance 10.5.32.54 -Insecure 5
+
+.EXAMPLE
+Test-SafeguardDirectory internal.domain.corp
+#>
 function Test-SafeguardDirectory
 {
     Param(
@@ -230,7 +358,38 @@ function Test-SafeguardDirectory
         POST "Directories/$($local:DirectoryId)/TestConnection" -LongRunningTask
 }
 
+<#
+.SYNOPSIS
+Remove a directory from Safeguard via the Web API.
 
+.DESCRIPTION
+Remove a directory from Safeguard. Make sure it is not in use before
+you remove it.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER DirectoryToDelete
+An integer containing the ID of the directory to remove or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardDirectory -AccessToken $token -Appliance 10.5.32.54 -Insecure 5
+
+.EXAMPLE
+Remove-SafeguardDirectory internal.domain.corp
+#>
 function Remove-SafeguardDirectory
 {
     Param(
@@ -254,6 +413,7 @@ function Remove-SafeguardDirectory
     $local:DirectoryId = Resolve-SafeguardDirectoryId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToDelete
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Directories/$($local:DirectoryId)"
 }
+
 
 function Edit-SafeguardDirectory
 {
