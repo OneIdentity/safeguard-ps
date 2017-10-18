@@ -82,6 +82,7 @@ NestedModules = @(
     'users.psm1',
     'assets.psm1',
     'directories.psm1',
+    'policies.psm1',
     'managementShell.psm1'
     )
 
@@ -143,6 +144,8 @@ FunctionsToExport = @(
     'Set-SafeguardDirectoryAccountPassword','New-SafeguardDirectoryAccountRandomPassword',
     'Test-SafeguardDirectoryAccountPassword','Invoke-SafeguardDirectoryAccountPasswordChange',
     'Remove-SafeguardDirectoryAccount',
+    # policies.psm1
+    'Get-SafeguardPolicyAsset','Get-SafeguardPolicyAccount',
     # managementShell.psm1
     'Get-SafeguardCommand', 'Get-SafeguardBanner'
     )
