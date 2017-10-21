@@ -25,3 +25,30 @@ function Enable-SslVerification
         [TrustEverything]::UnsetCallback()
     }
 }
+function Edit-SslVersionSupport
+{
+    # Remove SSLv3, if present
+    if ([bool]([System.Net.ServicePointManager]::SecurityProtocol -band [System.Net.SecurityProtocolType]::Ssl3))
+    {
+        [System.Net.ServicePointManager]::SecurityProtocol = `
+            [System.Net.ServicePointManager]::SecurityProtocol -band (-bnot [System.Net.SecurityProtocolType]::Ssl3)
+    }
+    # Add TLS 1.0, if missing
+    if (-not ([bool]([System.Net.ServicePointManager]::SecurityProtocol -band [System.Net.SecurityProtocolType]::Tls)))
+    {
+        [System.Net.ServicePointManager]::SecurityProtocol = `
+            [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls
+    }
+    # Add TLS 1.1, if missing
+    if (-not ([bool]([System.Net.ServicePointManager]::SecurityProtocol -band [System.Net.SecurityProtocolType]::Tls11)))
+    {
+        [System.Net.ServicePointManager]::SecurityProtocol = `
+            [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls11
+    }
+    # Add TLS 1.2, if missing
+    if (-not ([bool]([System.Net.ServicePointManager]::SecurityProtocol -band [System.Net.SecurityProtocolType]::Tls12)))
+    {
+        [System.Net.ServicePointManager]::SecurityProtocol = `
+            [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12
+    }
+}
