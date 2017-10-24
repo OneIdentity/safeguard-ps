@@ -83,7 +83,40 @@ function Resolve-SafeguardPolicyAccountId
     }
 }
 
+<#
+.SYNOPSIS
+Get assets and directories managed by Safeguard for which policy can be created
+via the Web API.
 
+.DESCRIPTION
+Policy assets are those that may be used by policy administrators to create entitlements
+and access policies to grant privileged access to Safeguard users.  Policy assets include
+both assets and directories.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetToGet
+An integer containing the ID of the asset or directory to get or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardPolicyAsset -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardPolicyAsset "example.domain"
+#>
 function Get-SafeguardPolicyAsset
 {
     Param(
@@ -110,7 +143,40 @@ function Get-SafeguardPolicyAsset
     }
 }
 
+<#
+.SYNOPSIS
+Search for a policy asset in Safeguard via the Web API.
 
+.DESCRIPTION
+Search for a policy asset in Safeguard for any string fields containing the SearchString.
+Policy assets are those that may be used by policy administrators to create entitlements
+and access policies to grant privileged access to Safeguard users.  Policy assets include
+both assets and directories.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER SearchString
+A string to search for in the policy asset.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Find-SafeguardPolicyAsset -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Find-SafeguardPolicyAsset "HP-UX"
+#>
 function Find-SafeguardPolicyAsset
 {
     Param(
@@ -130,7 +196,46 @@ function Find-SafeguardPolicyAsset
         -Parameters @{ q = $SearchString }
 }
 
+<#
+.SYNOPSIS
+Get accounts from assets and directories managed by Safeguard for which policy can be created
+via the Web API.
 
+.DESCRIPTION
+Policy accounts are those that may be used by policy administrators to create entitlements
+and access policies to grant privileged access to Safeguard users.  Policy assets include
+both assets and directories.  Policy accounts contain both asset accounts and directory accounts.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetToGet
+An integer containing the ID of the asset or directory to get or a string containing the name.
+
+.PARAMETER AccountToGet
+An integer containing the ID of the account to get or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardPolicyAccount -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardPolicyAccount "example.domain" "Administrator"
+
+.EXAMPLE
+Get-SafeguardPolicyAccount "aix232lc.my.domain" "dbadmin"
+#>
 function Get-SafeguardPolicyAccount
 {
     Param(
@@ -175,7 +280,40 @@ function Get-SafeguardPolicyAccount
     }
 }
 
+<#
+.SYNOPSIS
+Search for a policy account in Safeguard via the Web API.
 
+.DESCRIPTION
+Search for a policy account in Safeguard for any string fields containing the SearchString.
+Policy accounts are those that may be used by policy administrators to create entitlements
+and access policies to grant privileged access to Safeguard users.  Policy assets include
+both assets and directories.  Policy accounts contain both asset accounts and directory accounts.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER SearchString
+A string to search for in the policy account.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Find-SafeguardPolicyAccount -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Find-SafeguardPolicyAccount "root"
+#>
 function Find-SafeguardPolicyAccount
 {
     Param(

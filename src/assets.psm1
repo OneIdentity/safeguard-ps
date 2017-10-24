@@ -198,7 +198,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER SearchString
-A string to search for in the asset (caseless).
+A string to search for in the asset.
 
 .INPUTS
 None.
@@ -788,7 +788,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER SearchString
-A string to search for in the asset account (caseless).
+A string to search for in the asset account.
 
 .INPUTS
 None.

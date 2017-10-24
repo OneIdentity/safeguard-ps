@@ -719,7 +719,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER SearchString
-A string to search for in the directory account (caseless).
+A string to search for in the directory account.
 
 .INPUTS
 None.
