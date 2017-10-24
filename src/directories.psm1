@@ -14,17 +14,17 @@ function Resolve-SafeguardDirectoryId
 
     if (-not ($Directory -as [int]))
     {
-        $local:Directories = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Directories `
-                                   -Parameters @{ filter = "Name ieq '$Directory'" })
+        $local:Directories = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Directories `
+                                                     -Parameters @{ filter = "Name ieq '$Directory'" })
         if (-not $local:Directories)
         {
-            $local:Directories = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Directories `
-                                       -Parameters @{ filter = "NetworkAddress ieq '$Directory'" })
+            $local:Directories = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Directories `
+                                                         -Parameters @{ filter = "NetworkAddress ieq '$Directory'" })
         }
         if (-not $local:Directories)
         {
-            $local:Directories = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Directories `
-                                       -Parameters @{ filter = "Domains.DomainName ieq '$Directory'" })
+            $local:Directories = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Directories `
+                                                         -Parameters @{ filter = "Domains.DomainName ieq '$Directory'" })
         }
         if (-not $local:Directories)
         {
@@ -68,8 +68,8 @@ function Resolve-SafeguardDirectoryAccountId
         {
             $local:RelativeUrl = "DirectoryAccounts"
         }
-        $local:Accounts = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
-                                -Parameters @{ filter = "Name ieq '$Account'" })
+        $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
+                                                  -Parameters @{ filter = "Name ieq '$Account'" })
         if (-not $local:Accounts)
         {
             throw "Unable to find account matching '$Account'"

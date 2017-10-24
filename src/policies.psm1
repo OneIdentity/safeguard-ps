@@ -16,12 +16,12 @@ function Resolve-SafeguardPolicyAssetId
 
     if (-not ($Asset -as [int]))
     {
-        $local:Assets = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET PolicyAssets `
-                              -Parameters @{ filter = "Name ieq '$Asset'" })
+        $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET PolicyAssets `
+                                                -Parameters @{ filter = "Name ieq '$Asset'" })
         if (-not $local:Assets)
         {
-            $local:Assets = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET PolicyAssets `
-                                  -Parameters @{ filter = "NetworkAddress ieq '$Asset'" })
+            $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET PolicyAssets `
+                                                    -Parameters @{ filter = "NetworkAddress ieq '$Asset'" })
         }
         if (-not $local:Assets)
         {
@@ -65,8 +65,8 @@ function Resolve-SafeguardPolicyAccountId
         {
             $local:RelativeUrl = "PolicyAccounts"
         }
-        $local:Accounts = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
-                                -Parameters @{ filter = "Name ieq '$Account'" })
+        $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
+                                                  -Parameters @{ filter = "Name ieq '$Account'" })
         if (-not $local:Accounts)
         {
             throw "Unable to find policy account matching '$Account'"

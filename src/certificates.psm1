@@ -502,7 +502,7 @@ function Set-SafeguardSslCertificateForAppliance
     }
 
     Write-Host "Setting $Thumbprint as current SSL Certificate for $ApplianceId..."
-    $local:CurrentIds = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "SslCertificates/$Thumbprint/Appliances")
+    $local:CurrentIds = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "SslCertificates/$Thumbprint/Appliances")
     if (-not $local:CurrentIds)
     {
         $local:CurrentIds = @()
@@ -577,7 +577,7 @@ function Clear-SafeguardSslCertificateForAppliance
     }
 
     Write-Host "Clearing $Thumbprint as current SSL Certificate for $ApplianceId..."
-    $local:CurrentIds = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "SslCertificates/$Thumbprint/Appliances")
+    $local:CurrentIds = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "SslCertificates/$Thumbprint/Appliances")
     $local:NewIds = $local:CurrentIds | Where-Object { $_.Id -ne $ApplianceId }
     if (-not $local:NewIds)
     {

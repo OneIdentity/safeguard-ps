@@ -16,8 +16,8 @@ function Resolve-SafeguardUserId
 
     if (-not ($User -as [int]))
     {
-        $local:Users = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
-                              -Parameters @{ filter = "UserName ieq '$User'" })
+        $local:Users = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
+                                               -Parameters @{ filter = "UserName ieq '$User'" })
         if (-not $local:Users)
         {
             throw "Unable to find user matching '$User'"
