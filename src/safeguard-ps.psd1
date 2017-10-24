@@ -146,6 +146,9 @@ FunctionsToExport = @(
     'Remove-SafeguardDirectoryAccount',
     # policies.psm1
     'Get-SafeguardPolicyAsset','Find-SafeguardPolicyAsset','Get-SafeguardPolicyAccount','Find-SafeguardPolicyAccount',
+    'Get-SafeguardUserGroup',
+    'Get-SafeguardAssetGroup',
+    'Get-SafeguardAccountGroup',
     # managementShell.psm1
     'Get-SafeguardCommand', 'Get-SafeguardBanner'
     )
@@ -204,6 +207,8 @@ safeguard-ps 2.1.0 Release Notes:
   - User management
   - Asset management
   - Asset account management
+  - Directory management
+  - Policy management
 "@
 
     } # End of PSData hashtable

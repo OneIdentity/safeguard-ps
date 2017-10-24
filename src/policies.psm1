@@ -82,6 +82,53 @@ function Resolve-SafeguardPolicyAccountId
         $Account
     }
 }
+function Resolve-SafeguardGroupId
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [ValidateSet("User", "Asset", "Account", IgnoreCase=$true)]
+        [string]$GroupType,
+        [Parameter(Mandatory=$true,Position=1)]
+        [object]$Group
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    # Allow case insensitive group types to translate to appropriate case sensitive URL path
+    switch ($GroupType)
+    {
+        "user" { $GroupType = "User"; break }
+        "asset" { $Action = "Asset"; break }
+        "Account" { $Action = "Account"; break }
+    }
+
+    $local:RelativeUrl = "$($Group)Groups"
+
+    if (-not ($Group -as [int]))
+    {
+        $local:Groups = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
+                                                -Parameters @{ filter = "Name ieq '$Group'" })
+        if (-not $local:Groups)
+        {
+            throw "Unable to find $($GroupType.ToLower()) group matching '$Group'"
+        }
+        if ($local:Groups.Count -ne 1)
+        {
+            throw "Found $($local:Groups.Count) $($GroupType.ToLower()) groups matching '$Group'"
+        }
+        $local:Groups[0].Id
+    }
+    else
+    {
+        $Group
+    }
+}
 
 <#
 .SYNOPSIS
@@ -331,4 +378,96 @@ function Find-SafeguardPolicyAccount
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET PolicyAccounts `
         -Parameters @{ q = $SearchString }
+}
+
+
+function Get-SafeguardUserGroup
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$GroupToGet
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    if ($PSBoundParameters.ContainsKey("GroupToGet"))
+    {
+        $local:GroupId = Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure User $GroupToGet
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "UserGroups/$($local:GroupId)"
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET UserGroups
+    }
+}
+
+
+
+
+
+
+
+function Get-SafeguardAssetGroup
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$GroupToGet
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    if ($PSBoundParameters.ContainsKey("GroupToGet"))
+    {
+        $local:GroupId = Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $GroupToGet
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetGroups/$($local:GroupId)"
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AssetGroups
+    }
+}
+
+
+
+
+
+
+
+
+function Get-SafeguardAccountGroup
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$GroupToGet
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    if ($PSBoundParameters.ContainsKey("GroupToGet"))
+    {
+        $local:GroupId = Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToGet
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AccountGroups/$($local:GroupId)"
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AccountGroups
+    }
 }
