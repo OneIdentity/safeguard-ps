@@ -88,6 +88,10 @@ additional information as to how it can be called.
 Please file GitHub Issues for cmdlets that are not working and to request
 cmdlets for functionality that is missing.
 
+
+### ManagementShell
+- Get-SafeguardCommand
+- Get-SafeguardBanner
 ### Core Functionality
 - Connect-Safeguard
 - Disconnect-Safeguard
@@ -189,9 +193,31 @@ cmdlets for functionality that is missing.
 - Edit-SafeguardAsset
 ### Asset Accounts
 - Get-SafeguardAssetAccount
+- Find-SafeguardAssetAccount
 - New-SafeguardAssetAccount
 - Edit-SafeguardAssetAccount
 - Set-SafeguardAssetAccountPassword
 - New-SafeguardAssetAccountRandomPassword
 - Test-SafeguardAssetAccountPassword
 - Invoke-SafeguardAssetAccountPasswordChange
+### Directories
+- Get-SafeguardDirectory
+- New-SafeguardDirectory
+- Test-SafeguardDirectory
+- Remove-SafeguardDirectory
+- Edit-SafeguardDirectory
+- Sync-SafeguardDirectory
+### Directory Accounts
+- Get-SafeguardDirectoryAccount
+- Find-SafeguardDirectoryAccount
+- New-SafeguardDirectoryAccount
+- Set-SafeguardDirectoryAccountPassword
+- New-SafeguardDirectoryAccountRandomPassword
+- Test-SafeguardDirectoryAccountPassword
+- Invoke-SafeguardDirectoryAccountPasswordChange
+- Remove-SafeguardDirectoryAccount
+### Policy Assets and Policy Accounts (all those available for use in policy)
+- Get-SafeguardPolicyAsset
+- Find-SafeguardPolicyAsset
+- Get-SafeguardPolicyAccount
+- Find-SafeguardPolicyAccount

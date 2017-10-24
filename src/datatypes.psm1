@@ -17,7 +17,12 @@ function Resolve-SafeguardPlatform
     while (-not $($Platform -as [int]))
     {
         Write-Host "Searching for platforms with '$Platform'"
-        $local:Platforms = @(Find-SafeguardPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure "$Platform")
+        $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
+                                                   -Parameters @{ Filter = "DisplayName icontains '$Platform'" })
+        if (-not $local:Platforms)
+        {
+            $local:Platforms = (Find-SafeguardPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure "$Platform")
+        }
         if (-not $local:Platforms)
         {
             throw "Unable to find platform matching '$Platform'..."
@@ -205,7 +210,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER SearchString
-A string to search for in the platform definitions (caseless).
+A string to search for in the platform definitions.
 
 .INPUTS
 None.

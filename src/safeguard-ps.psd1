@@ -81,6 +81,8 @@ NestedModules = @(
     'requests.psm1',
     'users.psm1',
     'assets.psm1',
+    'directories.psm1',
+    'policies.psm1',
     'managementShell.psm1'
     )
 
@@ -131,9 +133,19 @@ FunctionsToExport = @(
     # assets.psm1
     'Get-SafeguardAsset','Find-SafeguardAsset','New-SafeguardAsset','Test-SafeguardAsset',
     'Remove-SafeguardAsset','Edit-SafeguardAsset',
-    'Get-SafeguardAssetAccount','New-SafeguardAssetAccount','Edit-SafeguardAssetAccount',
+    'Get-SafeguardAssetAccount','Find-SafeguardAssetAccount','New-SafeguardAssetAccount','Edit-SafeguardAssetAccount',
     'Set-SafeguardAssetAccountPassword','New-SafeguardAssetAccountRandomPassword',
     'Test-SafeguardAssetAccountPassword','Invoke-SafeguardAssetAccountPasswordChange',
+    'Remove-SafeguardAssetAccount',
+    # directories.psm1
+    'Get-SafeguardDirectory','New-SafeguardDirectory','Test-SafeguardDirectory',
+    'Remove-SafeguardDirectory','Edit-SafeguardDirectory','Sync-SafeguardDirectory',
+    'Get-SafeguardDirectoryAccount','Find-SafeguardDirectoryAccount','New-SafeguardDirectoryAccount',
+    'Set-SafeguardDirectoryAccountPassword','New-SafeguardDirectoryAccountRandomPassword',
+    'Test-SafeguardDirectoryAccountPassword','Invoke-SafeguardDirectoryAccountPasswordChange',
+    'Remove-SafeguardDirectoryAccount',
+    # policies.psm1
+    'Get-SafeguardPolicyAsset','Find-SafeguardPolicyAsset','Get-SafeguardPolicyAccount','Find-SafeguardPolicyAccount',
     # managementShell.psm1
     'Get-SafeguardCommand', 'Get-SafeguardBanner'
     )

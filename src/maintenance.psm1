@@ -654,6 +654,7 @@ function Get-SafeguardSupportBundle
 
     try
     {
+        Edit-SslVersionSupport
         if ($Insecure)
         {
             Disable-SslVerification
@@ -788,6 +789,7 @@ function Install-SafeguardPatch
 
     try
     {
+        Edit-SslVersionSupport
         if ($Insecure)
         {
             Disable-SslVerification
@@ -1055,6 +1057,7 @@ function Export-SafeguardBackup
 
     try
     {
+        Edit-SslVersionSupport
         if ($Insecure)
         {
             Disable-SslVerification
@@ -1178,6 +1181,7 @@ function Import-SafeguardBackup
 
     try
     {
+        Edit-SslVersionSupport
         if ($Insecure)
         {
             Disable-SslVerification

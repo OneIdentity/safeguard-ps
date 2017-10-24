@@ -4,6 +4,7 @@ New-Variable -Name "SafeguardSession" -Scope Global -Value $null
 $MyInvocation.MyCommand.ScriptBlock.Module.OnRemove = {
     Set-Variable -Name "SafeguardSession" -Scope Global -Value $null -ErrorAction "SilentlyContinue"
 }
+Edit-SslVersionSupport
 
 # Helpers for calling Safeguard Web APIs
 $script:ClientId = "00000000-0000-0000-0000-000000000000"
@@ -378,6 +379,7 @@ function Connect-Safeguard
 
     try
     {
+        Edit-SslVersionSupport
         if ($Insecure)
         {
             Disable-SslVerification
@@ -389,8 +391,26 @@ function Connect-Safeguard
         else
         {
             $local:GetPrimaryProvidersRelativeURL = "RSTS/UserLogin/LoginController?response_type=token&redirect_uri=urn:InstalledApplication&loginRequestStep=1"
-            $local:IdentityProviders = ,"certificate" + `
-                (Invoke-RestMethod -Method GET -Uri "https://$Appliance/$($local:GetPrimaryProvidersRelativeURL)").Providers.Id
+            try
+            {
+                $local:ConfiguredProviders = (Invoke-RestMethod -Method POST -Uri "https://$Appliance/$($local:GetPrimaryProvidersRelativeURL)" `
+                                              -Headers @{ "Content-type" = "application/x-www-form-urlencoded" } `
+                                              -Body "RelayState=" `
+                                              -ErrorAction SilentlyContinue).Providers.Id
+            }
+            catch
+            {}
+            if (-not $local:ConfiguredProviders)
+            {
+                try
+                {
+                    $local:ConfiguredProviders = (Invoke-RestMethod -Method GET -Uri "https://$Appliance/$($local:GetPrimaryProvidersRelativeURL)" `
+                                                  -ErrorAction SilentlyContinue).Providers.Id
+                }
+                catch
+                {}
+            }
+            $local:IdentityProviders = ,"certificate" + $local:ConfiguredProviders
             if (-not $IdentityProvider)
             {
                 if ($Thumbprint -or $CertificateFile)
@@ -399,11 +419,18 @@ function Connect-Safeguard
                 }
                 else
                 {
-                    Write-Host "($($local:IdentityProviders -join ", "))"
+                    if ($local:ConfiguredProviders)
+                    {
+                        Write-Host "($($local:IdentityProviders -join ", "))"
+                    }
+                    else 
+                    {
+                        Write-Warning "Unable to detect identity providers -- report this as an issue"
+                    }
                     $IdentityProvider = (Read-Host "Provider")
                 }
             }
-            if ($local:IdentityProviders -notcontains $IdentityProvider.ToLower())
+            if ($local:ConfiguredProviders -and ($local:IdentityProviders -notcontains $IdentityProvider.ToLower()))
             {
                 throw "IdentityProvider '$($local:IdentityProvider)' not found in ($($local:IdentityProviders -join ", "))"
             }
@@ -596,6 +623,7 @@ function Disconnect-Safeguard
     {
         try
         {
+            Edit-SslVersionSupport
             if ($Insecure)
             {
                 Disable-SslVerification
@@ -630,6 +658,7 @@ function Disconnect-Safeguard
                 $Version = $SafeguardSession["Version"]
                 $AccessToken = $SafeguardSession["AccessToken"]
                 $Insecure = $SafeguardSession["Insecure"]
+                Edit-SslVersionSupport
                 if ($Insecure)
                 {
                     Disable-SslVerification
@@ -833,6 +862,7 @@ function Invoke-SafeguardMethod
         }
     }
 
+    Edit-SslVersionSupport
     if ($Insecure)
     {
         Disable-SslVerification
@@ -947,6 +977,7 @@ function Get-SafeguardAccessTokenStatus
 
     try
     {
+        Edit-SslVersionSupport
         if ($Insecure)
         {
             Disable-SslVerification

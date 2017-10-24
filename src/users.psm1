@@ -16,8 +16,8 @@ function Resolve-SafeguardUserId
 
     if (-not ($User -as [int]))
     {
-        $local:Users = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
-                              -Parameters @{ filter = "UserName ieq '$User'" })
+        $local:Users = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
+                                               -Parameters @{ filter = "UserName ieq '$User'" })
         if (-not $local:Users)
         {
             throw "Unable to find user matching '$User'"
@@ -241,7 +241,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER SearchString
-A string to search for in the user (caseless).
+A string to search for in the user.
 
 .INPUTS
 None.

@@ -34,6 +34,7 @@ function Install-SafeguardDesktopClient
     {
         $Insecure = $SafeguardSession["Insecure"]
     }
+    Edit-SslVersionSupport
     if ($Insecure)
     {
         Disable-SslVerification

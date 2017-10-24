@@ -16,12 +16,12 @@ function Resolve-SafeguardAssetId
 
     if (-not ($Asset -as [int]))
     {
-        $local:Assets = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Assets `
-                              -Parameters @{ filter = "Name ieq '$Asset'" })
+        $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Assets `
+                                                -Parameters @{ filter = "Name ieq '$Asset'" })
         if (-not $local:Assets)
         {
-            $local:Assets = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Assets `
-                                  -Parameters @{ filter = "NetworkAddress ieq '$Asset'" })
+            $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Assets `
+                                                    -Parameters @{ filter = "NetworkAddress ieq '$Asset'" })
         }
         if (-not $local:Assets)
         {
@@ -38,7 +38,7 @@ function Resolve-SafeguardAssetId
         $Asset
     }
 }
-function Resolve-SafeguardAccountId
+function Resolve-SafeguardAssetAccountId
 {
     Param(
         [Parameter(Mandatory=$false)]
@@ -65,8 +65,8 @@ function Resolve-SafeguardAccountId
         {
             $local:RelativeUrl = "AssetAccounts"
         }
-        $local:Accounts = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
-                                -Parameters @{ filter = "Name ieq '$Account'" })
+        $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
+                                                  -Parameters @{ filter = "Name ieq '$Account'" })
         if (-not $local:Accounts)
         {
             throw "Unable to find account matching '$Account'"
@@ -81,7 +81,6 @@ function Resolve-SafeguardAccountId
     {
         $Account
     }
-
 }
 function Invoke-AssetSshHostKeyDiscovery
 {
@@ -199,7 +198,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER SearchString
-A string to search for in the asset (caseless).
+A string to search for in the asset.
 
 .INPUTS
 None.
@@ -409,7 +408,7 @@ function New-SafeguardAsset
     }
 
     $local:NewAsset = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-                     POST Assets -Body $local:Body)
+                           POST Assets -Body $local:Body)
 
     try
     {
@@ -601,7 +600,7 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Edit-SafeguardAsset -AccessToken $token -Appliance 10.5.32.54 -Insecure
+Edit-SafeguardAsset -AccessToken $token -Appliance 10.5.32.54 -Insecure -AssetObject $obj
 
 .EXAMPLE
 Edit-SafeguardAsset winserver.domain.corp 31 archie
@@ -749,7 +748,7 @@ function Get-SafeguardAssetAccount
         $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToGet)
         if ($PSBoundParameters.ContainsKey("AccountToGet"))
         {
-            $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToGet)
+            $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToGet)
             Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts/$($local:AccountId)"
         }
         else
@@ -761,7 +760,7 @@ function Get-SafeguardAssetAccount
     {
         if ($PSBoundParameters.ContainsKey("AccountToGet"))
         {
-            $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToGet)
+            $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToGet)
             Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts/$($local:AccountId)"
         }
         else
@@ -769,6 +768,57 @@ function Get-SafeguardAssetAccount
             Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts"
         }
     }
+}
+
+<#
+.SYNOPSIS
+Search for an asset account in Safeguard via the Web API.
+
+.DESCRIPTION
+Search for an asset account in Safeguard for any string fields containing
+the SearchString.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER SearchString
+A string to search for in the asset account.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Find-SafeguardAssetAccount -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Find-SafeguardAssetAccount "root"
+#>
+function Find-SafeguardAssetAccount
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$SearchString
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts" `
+        -Parameters @{ q = $SearchString }
 }
 
 <#
@@ -919,11 +969,11 @@ function Edit-SafeguardAssetAccount
         if ($PSBoundParameters.ContainsKey("AssetToEdit"))
         {
             $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToEdit)
-            $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToEdit)
+            $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToEdit)
         }
         else
         {
-            $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToEdit)
+            $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToEdit)
         }
     }
 
@@ -998,11 +1048,11 @@ function Set-SafeguardAssetAccountPassword
     if ($PSBoundParameters.ContainsKey("AssetToSet"))
     {
         $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToSet)
-        $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToSet)
+        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToSet)
     }
     else
     {
-        $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToSet)
+        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToSet)
     }
     if (-not $NewPassword)
     {
@@ -1069,11 +1119,11 @@ function New-SafeguardAssetAccountRandomPassword
     if ($PSBoundParameters.ContainsKey("AssetToUse"))
     {
         $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToUse)
-        $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
+        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
     }
     else
     {
-        $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToUse)
+        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToUse)
     }
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts/$($local:AccountId)/GeneratePassword"
 }
@@ -1131,11 +1181,11 @@ function Test-SafeguardAssetAccountPassword
     if ($PSBoundParameters.ContainsKey("AssetToUse"))
     {
         $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToUse)
-        $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
+        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
     }
     else
     {
-        $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToUse)
+        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToUse)
     }
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts/$($local:AccountId)/CheckPassword" -LongRunningTask
 }
@@ -1193,11 +1243,75 @@ function Invoke-SafeguardAssetAccountPasswordChange
     if ($PSBoundParameters.ContainsKey("AssetToUse"))
     {
         $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToUse)
-        $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
+        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
     }
     else
     {
-        $local:AccountId = (Resolve-SafeguardAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToUse)
+        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToUse)
     }
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts/$($local:AccountId)/ChangePassword" -LongRunningTask
+}
+
+<#
+.SYNOPSIS
+Remove an asset account from Safeguard via the Web API.
+
+.DESCRIPTION
+Remove an asset account from Safeguard. Make sure it is not in use before
+you remove it.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetToUse
+An integer containing the ID of the asset to remove the account from or a string containing the name.
+
+.PARAMETER AccountToDelete
+An integer containing the ID of the asset account to remove or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardAssetAccount -AccessToken $token -Appliance 10.5.32.54 -Insecure 5 23
+
+.EXAMPLE
+Remove-SafeguardAssetAccount computer.domain.com root
+#>
+function Remove-SafeguardAssetAccount
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$AssetToUse,
+        [Parameter(Mandatory=$true,Position=1)]
+        [object]$AccountToDelete
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    if ($PSBoundParameters.ContainsKey("AssetToUse"))
+    {
+        $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToUse)
+        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToDelete)
+    }
+    else
+    {
+        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToDelete)
+    }
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "AssetAccounts/$($local:AccountId)"
 }
