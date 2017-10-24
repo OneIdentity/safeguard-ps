@@ -772,6 +772,57 @@ function Get-SafeguardAssetAccount
 
 <#
 .SYNOPSIS
+Search for an asset account in Safeguard via the Web API.
+
+.DESCRIPTION
+Search for an asset account in Safeguard for any string fields containing
+the SearchString.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER SearchString
+A string to search for in the asset account (caseless).
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Find-SafeguardAssetAccount -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Find-SafeguardAssetAccount "root"
+#>
+function Find-SafeguardAssetAccount
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$SearchString
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts" `
+        -Parameters @{ q = $SearchString }
+}
+
+<#
+.SYNOPSIS
 Create a new account on an asset managed by Safeguard via the Web API.
 
 .DESCRIPTION

@@ -193,6 +193,7 @@ cmdlets for functionality that is missing.
 - Edit-SafeguardAsset
 ### Asset Accounts
 - Get-SafeguardAssetAccount
+- Find-SafeguardAssetAccount
 - New-SafeguardAssetAccount
 - Edit-SafeguardAssetAccount
 - Set-SafeguardAssetAccountPassword
@@ -206,13 +207,17 @@ cmdlets for functionality that is missing.
 - Remove-SafeguardDirectory
 - Edit-SafeguardDirectory
 - Sync-SafeguardDirectory
+### Directory Accounts
 - Get-SafeguardDirectoryAccount
+- Find-SafeguardDirectoryAccount
 - New-SafeguardDirectoryAccount
 - Set-SafeguardDirectoryAccountPassword
 - New-SafeguardDirectoryAccountRandomPassword
 - Test-SafeguardDirectoryAccountPassword
 - Invoke-SafeguardDirectoryAccountPasswordChange
 - Remove-SafeguardDirectoryAccount
-### Policy Management
+### Policy Assets and Policy Accounts (all those available for use in policy)
 - Get-SafeguardPolicyAsset
+- Find-SafeguardPolicyAsset
 - Get-SafeguardPolicyAccount
+- Find-SafeguardPolicyAccount
