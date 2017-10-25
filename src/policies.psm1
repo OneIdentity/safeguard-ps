@@ -104,11 +104,11 @@ function Resolve-SafeguardGroupId
     switch ($GroupType)
     {
         "user" { $GroupType = "User"; break }
-        "asset" { $Action = "Asset"; break }
-        "Account" { $Action = "Account"; break }
+        "asset" { $GroupType = "Asset"; break }
+        "Account" { $GroupType = "Account"; break }
     }
 
-    $local:RelativeUrl = "$($Group)Groups"
+    $local:RelativeUrl = "$($GroupType)Groups"
 
     if (-not ($Group -as [int]))
     {
