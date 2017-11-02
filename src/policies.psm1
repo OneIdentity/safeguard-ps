@@ -380,7 +380,40 @@ function Find-SafeguardPolicyAccount
         -Parameters @{ q = $SearchString }
 }
 
+<#
+.SYNOPSIS
+Get user groups as defined by policy administrators that can added to entitlement membership
+via the Web API.
 
+.DESCRIPTION
+User groups are collections of users that can be added to an entitlement with access policies
+granting access to privileged passwords and privileged sessions.  This cmdlet returns user
+groups that have been defined by policy administrators
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER GroupToGet
+An integer containing the ID of the user group to get or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardUserGroup -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardUserGroup "Web Server Admins"
+#>
 function Get-SafeguardUserGroup
 {
     Param(
@@ -407,12 +440,40 @@ function Get-SafeguardUserGroup
     }
 }
 
+<#
+.SYNOPSIS
+Get asset groups as defined by policy administrators that can added to access policy scopes
+via the Web API.
 
+.DESCRIPTION
+Asset groups are collections of assets that can be added to an access policy to target
+privileged session access that uses directory accounts or linked accounts.  This cmdlet returns
+asset groups that have been defined by policy administrators.
 
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
 
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
 
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER GroupToGet
+An integer containing the ID of the user group to get or a string containing the name.
 
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardAssetGroup -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardAssetGroup "Linux Servers"
+#>
 function Get-SafeguardAssetGroup
 {
     Param(
@@ -439,13 +500,40 @@ function Get-SafeguardAssetGroup
     }
 }
 
+<#
+.SYNOPSIS
+Get account groups as defined by policy administrators that can added to access policy scopes
+via the Web API.
 
+.DESCRIPTION
+Account groups are collections of accounts that can be added to an access policy to target
+privileged password access or privileged session access.  This cmdlet returns account groups
+that have been defined by policy administrators.
 
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
 
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
 
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER GroupToGet
+An integer containing the ID of the user group to get or a string containing the name.
 
+.INPUTS
+None.
 
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardAccountGroup -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardAccountGroup "Linux Root Accounts"
+#>
 function Get-SafeguardAccountGroup
 {
     Param(
