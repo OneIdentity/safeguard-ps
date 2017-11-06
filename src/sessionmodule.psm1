@@ -267,11 +267,19 @@ function Repair-SafeguardSessionModule
     )
 
     $ErrorActionPreference = "Stop"
+    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
     Import-Module -name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
 
-    Write-Host "Redeploying Safeguard Session Module"
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST "SessionModuleConfig/Redeploy" | Out-Null
-    Wait-ForSessionModuleState -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure "Running" "Running" 360
+    $Confirmed = (Get-Confirmation "Repair Safeguard Session Module" `
+                                   "Repairing the Safeguard Session Module will delete any session recordings that`n" + `
+                                   "have not been securely stored on Safeguard or sent to an archive server." `
+                                   "Initiates Safeguard redeploy immediately." "Cancels this operation.")
+    if ($Confirmed)
+    {
+        Write-Host "Redeploying the Safeguard Session Module"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST "SessionModuleConfig/Redeploy" | Out-Null
+        Wait-ForSessionModuleState -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure "Running" "Running" 360
 
-    Write-Host "Safeguard Sessions are available again."
+        Write-Host "Safeguard Sessions are available again."
+    }
 }
