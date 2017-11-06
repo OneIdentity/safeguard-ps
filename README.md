@@ -216,7 +216,17 @@ cmdlets for functionality that is missing.
 - Test-SafeguardDirectoryAccountPassword
 - Invoke-SafeguardDirectoryAccountPasswordChange
 - Remove-SafeguardDirectoryAccount
-### Policy Assets and Policy Accounts (all those available for use in policy)
+### Groups (for use in entitlements & access policies)
+- Get-SafeguardUserGroup
+- New-SafeguardUserGroup
+- Remove-SafeguardUserGroup
+- Get-SafeguardAssetGroup
+- New-SafeguardAssetGroup
+- Remove-SafeguardAssetGroup
+- Get-SafeguardAccountGroup
+- New-SafeguardAccountGroup
+- Remove-SafeguardAccountGroup
+### Policy Assets and Policy Accounts (for use in entitlements & access policies)
 - Get-SafeguardPolicyAsset
 - Find-SafeguardPolicyAsset
 - Get-SafeguardPolicyAccount
