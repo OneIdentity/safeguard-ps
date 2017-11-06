@@ -117,7 +117,36 @@ function New-SafeguardGroup
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST $local:RelativeUrl -Body $local:Body
 }
+function Remove-SafeguardGroup
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [ValidateSet("User", "Asset", "Account", IgnoreCase=$true)]
+        [string]$GroupType,
+        [Parameter(Mandatory=$true,Position=1)]
+        [object]$GroupToDelete
+    )
 
+    $ErrorActionPreference = "Stop"
+
+    # Allow case insensitive group types to translate to appropriate case sensitive URL path
+    switch ($GroupType)
+    {
+        "user" { $GroupType = "User"; break }
+        "asset" { $GroupType = "Asset"; break }
+        "Account" { $GroupType = "Account"; break }
+    }
+    $local:RelativeUrl = "$($GroupType)Groups"
+    $local:GroupId = (Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $GroupType $GroupToDelete)
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "$($local:RelativeUrl)/$($local:GroupId)" -Body $local:Body
+}
 
 <#
 .SYNOPSIS
@@ -273,6 +302,25 @@ function New-SafeguardUserGroup
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST UserGroups -Body $local:Body
 }
 
+
+function Remove-SafeguardUserGroup
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$GroupToDelete
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    Remove-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure User $GroupToDelete
+}
+
 <#
 .SYNOPSIS
 Get asset groups as defined by policy administrators that can added to access policy scopes
@@ -381,6 +429,25 @@ function New-SafeguardAssetGroup
     New-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $Name $Description
 }
 
+
+function Remove-SafeguardAssetGroup
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$GroupToDelete
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    Remove-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $GroupToDelete
+}
+
 <#
 .SYNOPSIS
 Get account groups as defined by policy administrators that can added to access policy scopes
@@ -486,4 +553,23 @@ function New-SafeguardAccountGroup
     $ErrorActionPreference = "Stop"
 
     New-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $Name $Description
+}
+
+
+function Remove-SafeguardAccountGroup
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$GroupToDelete
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    Remove-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToDelete
 }

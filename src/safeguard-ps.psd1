@@ -146,9 +146,9 @@ FunctionsToExport = @(
     'Test-SafeguardDirectoryAccountPassword','Invoke-SafeguardDirectoryAccountPasswordChange',
     'Remove-SafeguardDirectoryAccount',
     # groups.psm1
-    'Get-SafeguardUserGroup','New-SafeguardUserGroup',
-    'Get-SafeguardAssetGroup','New-SafeguardAssetGroup',
-    'Get-SafeguardAccountGroup','New-SafeguardAccountGroup',
+    'Get-SafeguardUserGroup','New-SafeguardUserGroup','Remove-SafeguardUserGroup',
+    'Get-SafeguardAssetGroup','New-SafeguardAssetGroup','Remove-SafeguardAssetGroup',
+    'Get-SafeguardAccountGroup','New-SafeguardAccountGroup','Remove-SafeguardAccountGroup',
     # policies.psm1
     'Get-SafeguardPolicyAsset','Find-SafeguardPolicyAsset','Get-SafeguardPolicyAccount','Find-SafeguardPolicyAccount',
     # managementShell.psm1
