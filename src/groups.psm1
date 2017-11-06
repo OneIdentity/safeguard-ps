@@ -302,7 +302,38 @@ function New-SafeguardUserGroup
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST UserGroups -Body $local:Body
 }
 
+<#
+.SYNOPSIS
+Delete a user group from Safeguard via the Web API.
 
+.DESCRIPTION
+When a user group is deleted it is also removed from any entitlements where it may have
+been used.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER GroupToDelete
+An integer containing the ID of the user group to delete or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardAssetGroup -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Remove-SafeguardAssetGroup "Server Admins"
+#>
 function Remove-SafeguardUserGroup
 {
     Param(
@@ -312,7 +343,7 @@ function Remove-SafeguardUserGroup
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$false,Position=0)]
+        [Parameter(Mandatory=$true,Position=0)]
         [object]$GroupToDelete
     )
 
@@ -341,7 +372,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER GroupToGet
-An integer containing the ID of the user group to get or a string containing the name.
+An integer containing the ID of the asset group to get or a string containing the name.
 
 .INPUTS
 None.
@@ -429,7 +460,38 @@ function New-SafeguardAssetGroup
     New-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $Name $Description
 }
 
+<#
+.SYNOPSIS
+Delete an asset group from Safeguard via the Web API.
 
+.DESCRIPTION
+When an asset group is deleted it is also removed from any access policies where it may have
+been used.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER GroupToDelete
+An integer containing the ID of the asset group to delete or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardAssetGroup -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Remove-SafeguardAssetGroup "Linux Servers"
+#>
 function Remove-SafeguardAssetGroup
 {
     Param(
@@ -468,7 +530,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER GroupToGet
-An integer containing the ID of the user group to get or a string containing the name.
+An integer containing the ID of the account group to get or a string containing the name.
 
 .INPUTS
 None.
@@ -555,7 +617,38 @@ function New-SafeguardAccountGroup
     New-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $Name $Description
 }
 
+<#
+.SYNOPSIS
+Delete an account group from Safeguard via the Web API.
 
+.DESCRIPTION
+When an account group is deleted it is also removed from any access policies where it may have
+been used.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER GroupToDelete
+An integer containing the ID of the account group to delete or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardAccountGroup -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Remove-SafeguardAccountGroup "Linux Root Accounts"
+#>
 function Remove-SafeguardAccountGroup
 {
     Param(
