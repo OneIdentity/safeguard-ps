@@ -79,8 +79,14 @@ function Install-SafeguardDesktopClient
     $TempFile = "$env:TEMP\Safeguard.msi"
     Remove-Item -Force $TempFile -EA SilentlyContinue
     $WebClient = (New-Object System.Net.WebClient)
-    $WebClient.DownloadFile("https://$Appliance/en-US/Safeguard.msi", $TempFile)
-    
+    try
+    {
+        $WebClient.DownloadFile("https://$Appliance/en-US/Safeguard.msi", $TempFile)
+    }
+    catch
+    {
+        $WebClient.DownloadFile("https://$Appliance/Safeguard.msi", $TempFile)
+    }
     Write-Host "Uninstalling previous build..."
     try
     {

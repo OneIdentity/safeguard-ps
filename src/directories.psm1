@@ -41,6 +41,23 @@ function Resolve-SafeguardDirectoryId
         $Directory
     }
 }
+function Get-SafeguardDirectoryDomains
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [int]$DirectoryId
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Directories/1).Domains
+}
 function Resolve-SafeguardDirectoryAccountId
 {
     Param(

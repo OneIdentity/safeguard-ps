@@ -83,6 +83,7 @@ function Resolve-SafeguardPolicyAccountId
     }
 }
 
+
 <#
 .SYNOPSIS
 Get assets and directories managed by Safeguard for which policy can be created

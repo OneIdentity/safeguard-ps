@@ -82,6 +82,7 @@ NestedModules = @(
     'users.psm1',
     'assets.psm1',
     'directories.psm1',
+    'groups.psm1',
     'policies.psm1',
     'managementShell.psm1'
     )
@@ -144,6 +145,10 @@ FunctionsToExport = @(
     'Set-SafeguardDirectoryAccountPassword','New-SafeguardDirectoryAccountRandomPassword',
     'Test-SafeguardDirectoryAccountPassword','Invoke-SafeguardDirectoryAccountPasswordChange',
     'Remove-SafeguardDirectoryAccount',
+    # groups.psm1
+    'Get-SafeguardUserGroup','New-SafeguardUserGroup','Remove-SafeguardUserGroup',
+    'Get-SafeguardAssetGroup','New-SafeguardAssetGroup','Remove-SafeguardAssetGroup',
+    'Get-SafeguardAccountGroup','New-SafeguardAccountGroup','Remove-SafeguardAccountGroup',
     # policies.psm1
     'Get-SafeguardPolicyAsset','Find-SafeguardPolicyAsset','Get-SafeguardPolicyAccount','Find-SafeguardPolicyAccount',
     # managementShell.psm1
@@ -204,6 +209,8 @@ safeguard-ps 2.1.0 Release Notes:
   - User management
   - Asset management
   - Asset account management
+  - Directory management
+  - Policy management
 "@
 
     } # End of PSData hashtable
