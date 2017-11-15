@@ -308,7 +308,39 @@ function Repair-SafeguardSessionModule
     }
 }
 
+<#
+.SYNOPSIS
+Get the session-specific certificate of the given type from Safeguard via the Web API.
 
+.DESCRIPTION
+Safeguard has three session-specific certificates.  One for signing session recordings,
+one for timestamping session recordings, and one for signing certificates used in
+authenticating proxied RDP connections.  This cmdlet gets them individually from the Web API.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Type
+A string representing the type of session certificate to get.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardSessionCertificate -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardSessionCertificate TimeStamping
+#>
 function Get-SafeguardSessionCertificate
 {
     Param(
@@ -331,7 +363,45 @@ function Get-SafeguardSessionCertificate
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl
 }
 
+<#
+.SYNOPSIS
+Install a session-specific certificate of the given type into Safeguard via the Web API.
 
+.DESCRIPTION
+Safeguard has three session-specific certificates.  One for signing session recordings,
+one for timestamping session recordings, and one for signing certificates used in
+authenticating proxied RDP connections.  This cmdlet sets them individually through the Web API.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Type
+A string representing the type of session certificate to get.
+
+.PARAMETER CertificateFile
+A string containing the path to a certificate PFX file.
+
+.PARAMETER Password
+A secure string to be used as a passphrase for the certificate PFX file.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Install-SafeguardSessionCertificate -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Install-SafeguardSessionCertificate TimeStamping C:\file.pfx
+#>
 function Install-SafeguardSessionCertificate
 {
     Param(
@@ -379,6 +449,40 @@ function Install-SafeguardSessionCertificate
         }
 }
 
+<#
+.SYNOPSIS
+Reset a session-specific certificate of the given type to the default in Safeguard via the Web API.
+
+.DESCRIPTION
+Safeguard has three session-specific certificates.  One for signing session recordings,
+one for timestamping session recordings, and one for signing certificates used in
+authenticating proxied RDP connections.  This cmdlet resets them individually to the
+default through the Web API.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Type
+A string representing the type of session certificate to get.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Reset-SafeguardSessionCertificate -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Reset-SafeguardSessionCertificate TimeStamping
+#>
 function Reset-SafeguardSessionCertificate
 {
     Param(
