@@ -1,6 +1,7 @@
 # This file contains random Powershell utilities required by some modules
 # Nothing is exported from here
 
+# Confirmation helper function
 function Get-Confirmation
 {
     Param(
@@ -24,7 +25,7 @@ function Get-Confirmation
         1 {$false}
     }
 }
-
+# Show an SSH host key acceptance prompt
 function Show-SshHostKeyPrompt
 {
     Param(
@@ -40,7 +41,7 @@ function Show-SshHostKeyPrompt
     Get-Confirmation "SSH Host Key" "Would you like to accept this SSH host key?" `
         "Accept SSH host key and add complete operation." "Deny SSH host key and revert operation."
 }
-
+# Add web client type with controllable timeout
 function Add-ExWebClientExType
 {
     if (-not ([System.Management.Automation.PSTypeName]"Ex.WebClientEx").Type)
@@ -70,7 +71,7 @@ namespace Ex
 "@
     }
 }
-
+# Test whether a string is an IP address
 function Test-IpAddress
 {
     Param(
@@ -79,4 +80,61 @@ function Test-IpAddress
     )
 
     [bool]($IpAddress -as [IPAddress])
+}
+
+# Certificate helper function
+function Get-CertificateFileContents
+{
+    Param(
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]$CertificateFile
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    try 
+    {
+        $local:CertificateFullPath = (Resolve-Path $CertificateFile).ToString()
+        if ((Get-Item $local:CertificateFullPath).Length -gt 100kb)
+        {
+            throw "'$CertificateFile' appears to be too large to be a certificate"
+        }
+    }
+    catch
+    {
+        throw "'$CertificateFile' does not exist"
+    }
+    $local:CertificateContents = [string](Get-Content $local:CertificateFullPath)
+    if (-not ($CertificateContents.StartsWith("-----BEGIN CERTIFICATE-----")))
+    {
+        Write-Host "Converting to Base64..."
+        $local:CertificateContents = [System.IO.File]::ReadAllBytes($local:CertificateFullPath)
+        $local:CertificateContents = [System.Convert]::ToBase64String($local:CertificateContents)
+    }
+
+    $local:CertificateContents
+}
+# Helper function for finding tools to generate certificates
+function Get-Tool
+{
+    Param(
+        [Parameter(Mandatory=$true, Position=0)]
+        [string[]]$Paths,
+        [Parameter(Mandatory=$true, Position=1)]
+        [string]$Tool
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    foreach ($local:SearchPath in $Paths)
+    {
+        Write-Host "Searching $($local:SearchPath) for $Tool"
+        $local:ToolPath = (Get-ChildItem -Recurse -EA SilentlyContinue $local:SearchPath | Where-Object { $_.Name -eq $Tool })
+        if ($local:ToolPath.Length -gt 0) 
+        {
+            $local:ToolPath[-1].Fullname
+            return
+        }
+    }
+    throw "Unable to find $Tool"
 }

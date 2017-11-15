@@ -1,3 +1,27 @@
+# Helpers
+function Resolve-CertificateTypeParameter
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Type
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    if (-not $Type)
+    {
+        Write-Host "Certificate Types: SessionRecording, TimeStamping, RdpSigning"
+        $Type = Read-Host "Type"
+    }
+    switch ($Type.ToLower())
+    {
+        "timestamping" { $Type = "TimeStamping"; break }
+        "rdpsigning" { $Type = "RdpSigning"; break }
+        "sessionrecording" { $Type = "SessionRecording"; break }
+    }
+    $Type
+}
+
 <#
 .SYNOPSIS
 Get status of session module container running in Safeguard.
@@ -115,7 +139,7 @@ function Get-SafeguardSessionModuleStatus
     if ($PSBoundParameters.ContainsKey("Component"))
     {
         # Allow case insensitive actions to translate to appropriate case sensitive URL path
-        switch ($Component)
+        switch ($Component.ToLower())
         {
             "cpu" { $Component = "Cpu"; break }
             "disk" { $Component = "Disk"; break }
@@ -282,4 +306,97 @@ function Repair-SafeguardSessionModule
 
         Write-Host "Safeguard Sessions are available again."
     }
+}
+
+
+function Get-SafeguardSessionCertificate
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false, Position=0)]
+        [ValidateSet("TimeStamping", "RdpSigning", "SessionRecording", IgnoreCase=$true)]
+        [string]$Type
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    $Type = (Resolve-CertificateTypeParameter -Type $Type)
+    $local:RelativeUrl = "SessionCertificates/$Type"
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl
+}
+
+
+function Install-SafeguardSessionCertificate
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false, Position=0)]
+        [ValidateSet("TimeStamping", "RdpSigning", "SessionRecording", IgnoreCase=$true)]
+        [string]$Type,
+        [Parameter(Mandatory=$false, Position=1)]
+        [string]$CertificateFile,
+        [Parameter(Mandatory=$false, Position=2)]
+        [SecureString]$Password
+    )
+
+    $ErrorActionPreference = "Stop"
+    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+
+    $Type = (Resolve-CertificateTypeParameter -Type $Type)
+    $local:RelativeUrl = "SessionCertificates/$Type"
+
+    if (-not $PSBoundParameters.ContainsKey("CertificateFile"))
+    {
+        $CertificateFile = (Read-Host "CertificateFile")
+    }
+    $local:CertificateContents = (Get-CertificateFileContents $CertificateFile)
+    if (-not $CertificateContents)
+    {
+        throw "No valid certificate to upload"
+    }
+
+    if (-not $Password)
+    {
+        Write-Host "For no password just press enter..."
+        $Password = (Read-host "Password" -AsSecureString)
+    }
+    $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT $local:RelativeUrl -Body @{
+            Base64CertificateData = "$($local:CertificateContents)";
+            Passphrase = "$($local:PasswordPlainText)"
+        }
+}
+
+function Reset-SafeguardSessionCertificate
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false, Position=0)]
+        [ValidateSet("TimeStamping", "RdpSigning", "SessionRecording", IgnoreCase=$true)]
+        [string]$Type
+    )
+
+    $ErrorActionPreference = "Stop"
+
+    $Type = (Resolve-CertificateTypeParameter -Type $Type)
+    $local:RelativeUrl = "SessionCertificates/$Type"
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE $local:RelativeUrl
 }
