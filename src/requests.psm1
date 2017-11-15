@@ -1,4 +1,4 @@
-# Helper
+# Helpers
 function Resolve-SafeguardRequestableAssetId
 {
     Param(
