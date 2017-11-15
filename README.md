@@ -158,6 +158,9 @@ cmdlets for functionality that is missing.
 - Get-SafeguardSessionModuleVersion
 - Reset-SafeguardSessionModule
 - Repair-SafeguardSessionModule
+- Get-SafeguardSessionCertificate
+- Install-SafeguardSessionCertificate
+- Reset-SafeguardSessionCertificate
 ### Archive Servers
 - Get-SafeguardArchiveServer
 - New-SafeguardArchiveServer

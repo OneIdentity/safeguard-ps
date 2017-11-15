@@ -1,55 +1,3 @@
-# Certificate helper function
-function Get-CertificateFileContents
-{
-    Param(
-        [Parameter(Mandatory=$true, Position=0)]
-        [string]$CertificateFile
-    )
-
-    try 
-    {
-        $local:CertificateFullPath = (Resolve-Path $CertificateFile).ToString()
-        if ((Get-Item $local:CertificateFullPath).Length -gt 100kb)
-        {
-            throw "'$CertificateFile' appears to be too large to be a certificate"
-        }
-    }
-    catch
-    {
-        throw "'$CertificateFile' does not exist"
-    }
-    $local:CertificateContents = [string](Get-Content $local:CertificateFullPath)
-    if (-not ($CertificateContents.StartsWith("-----BEGIN CERTIFICATE-----")))
-    {
-        Write-Host "Converting to Base64..."
-        $local:CertificateContents = [System.IO.File]::ReadAllBytes($local:CertificateFullPath)
-        $local:CertificateContents = [System.Convert]::ToBase64String($local:CertificateContents)
-    }
-
-    $local:CertificateContents
-}
-# Helper function for finding tools to generate certificates
-function Get-Tool
-{
-    Param(
-        [Parameter(Mandatory=$true, Position=0)]
-        [string[]]$Paths,
-        [Parameter(Mandatory=$true, Position=1)]
-        [string]$Tool
-    )
-    foreach ($local:SearchPath in $Paths)
-    {
-        Write-Host "Searching $($local:SearchPath) for $Tool"
-        $local:ToolPath = (Get-ChildItem -Recurse -EA SilentlyContinue $local:SearchPath | Where-Object { $_.Name -eq $Tool })
-        if ($local:ToolPath.Length -gt 0) 
-        {
-            $local:ToolPath[-1].Fullname
-            return
-        }
-    }
-    throw "Unable to find $Tool"
-}
-
 <#
 .SYNOPSIS
 Upload trusted certificate to Safeguard via the Web API.
@@ -97,6 +45,7 @@ function Install-SafeguardTrustedCertificate
     )
 
     $ErrorActionPreference = "Stop"
+    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
 
     $local:CertificateContents = (Get-CertificateFileContents $CertificateFile)
     if (-not $CertificateContents)
@@ -283,6 +232,7 @@ function Install-SafeguardSslCertificate
     )
 
     $ErrorActionPreference = "Stop"
+    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
 
     $local:CertificateContents = (Get-CertificateFileContents $CertificateFile)
     if (-not $CertificateContents)
@@ -693,6 +643,7 @@ function New-SafeguardTestCertificatePki
     )
 
     $ErrorActionPreference = "Stop"
+    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
 
     if (-not $OutputDirectory)
     {
