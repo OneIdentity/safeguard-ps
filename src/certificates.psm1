@@ -45,6 +45,7 @@ function Install-SafeguardTrustedCertificate
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
 
     $local:CertificateContents = (Get-CertificateFileContents $CertificateFile)
@@ -106,6 +107,7 @@ function Uninstall-SafeguardTrustedCertificate
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if (-not $Thumbprint)
     {
@@ -163,6 +165,7 @@ function Get-SafeguardTrustedCertificate
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if ($PSBoundParameters.ContainsKey("Thumbprint"))
     {
@@ -232,6 +235,7 @@ function Install-SafeguardSslCertificate
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
 
     $local:CertificateContents = (Get-CertificateFileContents $CertificateFile)
@@ -318,6 +322,7 @@ function Uninstall-SafeguardSslCertificate
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if (-not $Thumbprint)
     {
@@ -375,6 +380,7 @@ function Get-SafeguardSslCertificate
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if ($PSBoundParameters.ContainsKey("Thumbprint"))
     {
@@ -438,6 +444,7 @@ function Set-SafeguardSslCertificateForAppliance
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if (-not $Thumbprint)
     {
@@ -513,6 +520,7 @@ function Clear-SafeguardSslCertificateForAppliance
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if (-not $Thumbprint)
     {
@@ -583,6 +591,7 @@ function Get-SafeguardSslCertificateForAppliance
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if (-not $ApplianceId)
     {
@@ -643,6 +652,7 @@ function New-SafeguardTestCertificatePki
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
 
     if (-not $OutputDirectory)

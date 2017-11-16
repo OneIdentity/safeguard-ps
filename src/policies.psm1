@@ -13,6 +13,7 @@ function Resolve-SafeguardPolicyAssetId
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if (-not ($Asset -as [int]))
     {
@@ -54,6 +55,7 @@ function Resolve-SafeguardPolicyAccountId
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if (-not ($Account -as [int]))
     {
@@ -132,6 +134,7 @@ function Get-SafeguardPolicyAsset
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if ($PSBoundParameters.ContainsKey("AssetToGet"))
     {
@@ -192,6 +195,7 @@ function Find-SafeguardPolicyAsset
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET PolicyAssets `
         -Parameters @{ q = $SearchString }
@@ -253,6 +257,7 @@ function Get-SafeguardPolicyAccount
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if ($PSBoundParameters.ContainsKey("AssetToGet"))
     {
@@ -329,6 +334,7 @@ function Find-SafeguardPolicyAccount
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET PolicyAccounts `
         -Parameters @{ q = $SearchString }

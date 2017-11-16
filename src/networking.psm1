@@ -46,6 +46,7 @@ function Get-SafeguardNetworkInterface
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if ($PSBoundParameters.ContainsKey("Interface"))
     {
@@ -150,6 +151,7 @@ function Set-SafeguardNetworkInterface
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
     Import-Module -name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
 
@@ -237,6 +239,7 @@ function Get-SafeguardDnsSuffix
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET "NetworkDnsSuffixConfig/$($Interface.ToUpper())"
 }
@@ -292,6 +295,7 @@ function Set-SafeguardDnsSuffix
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance PUT "NetworkDnsSuffixConfig/$($Interface.ToUpper())" -Body @{
         DomainNames = $DnsSuffixes

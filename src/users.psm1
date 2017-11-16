@@ -13,6 +13,7 @@ function Resolve-SafeguardUserId
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if (-not ($User -as [int]))
     {
@@ -82,6 +83,7 @@ function Get-SafeguardIdentityProvider
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if ($PSBoundParameters.ContainsKey("ProviderToGet"))
     {
@@ -150,6 +152,7 @@ function New-SafeguardStarling2faAuthentication
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:ProviderObject = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
         Core POST IdentityProviders -Body @{
@@ -211,6 +214,7 @@ function Get-SafeguardUser
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if ($PSBoundParameters.ContainsKey("UserToGet"))
     {
@@ -269,6 +273,7 @@ function Find-SafeguardUser
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
         -Parameters @{ q = $SearchString }
@@ -379,6 +384,7 @@ function New-SafeguardUser
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:AllProviders = (Get-SafeguardIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
     $local:LocalProviderId = ($AllProviders | Where-Object { $_.Name -eq "Local" }).Id
@@ -510,6 +516,7 @@ function Remove-SafeguardUser
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if (-not $PSBoundParameters.ContainsKey("UserToDelete"))
     {
@@ -575,6 +582,7 @@ function Set-SafeguardUserPassword
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if (-not $PSBoundParameters.ContainsKey("UserToEdit"))
     {
@@ -686,6 +694,7 @@ function Edit-SafeguardUser
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $UserObject)
     {
@@ -774,6 +783,7 @@ function Enable-SafeguardUser
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if (-not $PSBoundParameters.ContainsKey("UserToEdit"))
     {
@@ -834,6 +844,7 @@ function Disable-SafeguardUser
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if (-not $PSBoundParameters.ContainsKey("UserToEdit"))
     {
@@ -899,6 +910,7 @@ function Rename-SafeguardUser
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if (-not $PSBoundParameters.ContainsKey("UserToEdit"))
     {

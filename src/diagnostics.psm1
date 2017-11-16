@@ -44,6 +44,7 @@ function Invoke-SafeguardPing
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST NetworkDiagnostics/Ping -Body @{
         NetworkAddress = "$NetworkAddress"
@@ -96,6 +97,7 @@ function Invoke-SafeguardSessionsPing
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST NetworkDiagnostics/Sessions/Ping -Body @{
         NetworkAddress = "$NetworkAddress"
@@ -153,6 +155,7 @@ function Invoke-SafeguardTelnet
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST NetworkDiagnostics/Telnet -Body @{
         NetworkAddress = "$NetworkAddress";
@@ -211,6 +214,7 @@ function Invoke-SafeguardSessionsTelnet
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST NetworkDiagnostics/Sessions/Telnet -Body @{
         NetworkAddress = "$NetworkAddress";

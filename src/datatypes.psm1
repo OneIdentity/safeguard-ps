@@ -13,6 +13,7 @@ function Resolve-SafeguardPlatform
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     while (-not $($Platform -as [int]))
     {
@@ -47,6 +48,7 @@ function Resolve-SafeguardPlatform
 function Resolve-SafeguardServiceAccountCredentialType
 {
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:CredentialTypes = @(
         @{ Name = "None"; Description = "No service account" },
@@ -122,7 +124,8 @@ function Get-SafeguardIdentityProviderType
     )
 
     $ErrorActionPreference = "Stop"
-    
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
     if ($PSBoundParameters.ContainsKey("Id"))
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "IdentityProviderTypes/$Id"
@@ -179,7 +182,7 @@ function Get-SafeguardPlatform
     )
 
     $ErrorActionPreference = "Stop"
-
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if ($PSBoundParameters.ContainsKey("Platform"))
     {
@@ -238,6 +241,7 @@ function Find-SafeguardPlatform
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     try
     {
@@ -299,6 +303,7 @@ function Get-SafeguardTimeZone
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if ($PSBoundParameters.ContainsKey("Id"))
     {
@@ -356,6 +361,7 @@ function Get-SafeguardTransferProtocol
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if ($PSBoundParameters.ContainsKey("Id"))
     {

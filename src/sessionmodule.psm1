@@ -7,6 +7,7 @@ function Resolve-CertificateTypeParameter
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if (-not $Type)
     {
@@ -69,6 +70,7 @@ function Get-SafeguardSessionContainerStatus
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:RelativeUrl = "SessionModuleConfig"
     if ($PSBoundParameters.ContainsKey("Component"))
@@ -134,6 +136,7 @@ function Get-SafeguardSessionModuleStatus
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:RelativeUrl = "SessionModuleConfig/Status"
     if ($PSBoundParameters.ContainsKey("Component"))
@@ -194,6 +197,7 @@ function Get-SafeguardSessionModuleVersion
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET "SessionModuleConfig/Version"
 }
@@ -238,6 +242,7 @@ function Reset-SafeguardSessionModule
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     Import-Module -name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
 
     Write-Host "Stopping Safeguard Session Module"
@@ -291,6 +296,7 @@ function Repair-SafeguardSessionModule
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
     Import-Module -name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
 
@@ -356,6 +362,7 @@ function Get-SafeguardSessionCertificate
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $Type = (Resolve-CertificateTypeParameter -Type $Type)
     $local:RelativeUrl = "SessionCertificates/$Type"
@@ -421,6 +428,7 @@ function Install-SafeguardSessionCertificate
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
 
     $Type = (Resolve-CertificateTypeParameter -Type $Type)
@@ -498,6 +506,7 @@ function Reset-SafeguardSessionCertificate
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $Type = (Resolve-CertificateTypeParameter -Type $Type)
     $local:RelativeUrl = "SessionCertificates/$Type"

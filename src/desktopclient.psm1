@@ -28,6 +28,7 @@ function Install-SafeguardDesktopClient
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
 
     if ($SafeguardSession)
@@ -115,5 +116,4 @@ function Install-SafeguardDesktopClient
             Enable-SslVerification
         }
     }
-    
 }

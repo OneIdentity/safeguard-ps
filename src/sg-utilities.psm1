@@ -11,6 +11,9 @@ function Wait-SafeguardOnlineStatus
         [int]$Timeout = 600
     )
 
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
     $local:StartTime = (Get-Date)
     $local:Status = "Unreachable"
     $local:TimeElapsed = 10
@@ -48,6 +51,9 @@ function Wait-ForSessionModuleState
         [Parameter(Mandatory=$false,Position=2)]
         [int]$Timeout = 180
     )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:StartTime = (Get-Date)
     if ($ContainerState -and $ModuleState)

@@ -91,6 +91,7 @@ function Get-CertificateFileContents
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     try 
     {
@@ -125,6 +126,7 @@ function Get-Tool
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     foreach ($local:SearchPath in $Paths)
     {
