@@ -18,8 +18,18 @@ function Resolve-SafeguardPlatform
     while (-not $($Platform -as [int]))
     {
         Write-Host "Searching for platforms with '$Platform'"
-        $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
-                                                   -Parameters @{ Filter = "DisplayName icontains '$Platform'" })
+        try
+        {
+            $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
+                                    -Parameters @{ Filter = "DisplayName icontains '$Platform'" })
+        }
+        catch
+        {
+            Write-Verbose $_
+            Write-Verbose "Caught exception with icontains filter, trying with contains filter"
+            $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
+                                    -Parameters @{ Filter = "DisplayName contains '$Platform'" })
+        }
         if (-not $local:Platforms)
         {
             $local:Platforms = (Find-SafeguardPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure "$Platform")
@@ -252,8 +262,10 @@ function Find-SafeguardPlatform
     {}
     if (-not $local:Platforms)
     {
+        Write-Verbose $_
+        Write-Verbose "Caught exception with ieq filter, trying with q parameter"
         $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
-                                -Parameters @{ q = "$SearchString" })
+                                -Parameters @{ q = $SearchString })
     }
     $local:Platforms
 }

@@ -193,8 +193,7 @@ function Invoke-WithoutBody
 
     $local:Url = (New-SafeguardUrl $Appliance $Service $Version $RelativeUrl -Parameters $Parameters)
     Write-Verbose "Url=$($local:Url)"
-    Write-Verbose "Parameters=$Parameters"
-    Write-Verbose "Headers=$Headers"
+    Write-Verbose "Parameters=$(ConvertTo-Json -InputObject $Parameters)"
     if ($InFile)
     {
         if ($LongRunningTask)
@@ -261,8 +260,7 @@ function Invoke-WithBody
     }
     $local:Url = (New-SafeguardUrl $Appliance $Service $Version $RelativeUrl -Parameters $Parameters)
     Write-Verbose "Url=$($local:Url)"
-    Write-Verbose "Parameters=$Parameters"
-    Write-Verbose "Headers=$Headers"
+    Write-Verbose "Parameters=$(ConvertTo-Json -InputObject $Parameters)"
     Write-Verbose "Body=$($local:Body)"
     if ($LongRunningTask)
     {
@@ -897,7 +895,8 @@ function Invoke-SafeguardMethod
             "Accept" = $Accept;
             "Content-type" = $ContentType;
         }
-    
+    Write-Verbose "HeadersBeforeTokenIncluded=$(ConvertTo-Json -InputObject $Headers)"
+
     if (-not $Anonymous)
     {
         $local:Headers["Authorization"] = "Bearer $AccessToken"
