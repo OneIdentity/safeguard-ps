@@ -17,8 +17,18 @@ function Resolve-SafeguardUserId
 
     if (-not ($User -as [int]))
     {
-        $local:Users = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
-                                               -Parameters @{ filter = "UserName ieq '$User'" })
+        try
+        {
+            $local:Users = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
+                                -Parameters @{ filter = "UserName ieq '$User'" })
+        }
+        catch
+        {
+            Write-Verbose $_
+            Write-Verbose "Caught exception with ieq filter, trying with q parameter"
+            $local:Users = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
+                                -Parameters @{ q = $User })
+        }
         if (-not $local:Users)
         {
             throw "Unable to find user matching '$User'"
@@ -93,8 +103,18 @@ function Get-SafeguardIdentityProvider
         }
         else
         {
-            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
-                -Parameters @{ filter = "Name ieq '$ProviderToGet'" }
+            try
+            {
+                Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
+                    -Parameters @{ filter = "Name ieq '$ProviderToGet'" }
+            }
+            catch
+            {
+                Write-Verbose $_
+                Write-Verbose "Caught exception with ieq filter, trying with q parameter"
+                Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
+                    -Parameters @{ q = $ProviderToGet }
+            }
         }
     }
     else

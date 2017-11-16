@@ -17,12 +17,22 @@ function Resolve-SafeguardAssetId
 
     if (-not ($Asset -as [int]))
     {
-        $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Assets `
-                                                -Parameters @{ filter = "Name ieq '$Asset'" })
-        if (-not $local:Assets)
+        try
         {
             $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Assets `
-                                                    -Parameters @{ filter = "NetworkAddress ieq '$Asset'" })
+                                 -Parameters @{ filter = "Name ieq '$Asset'" })
+            if (-not $local:Assets)
+            {
+                $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Assets `
+                                     -Parameters @{ filter = "NetworkAddress ieq '$Asset'" })
+            }
+        }
+        catch
+        {
+            Write-Verbose $_
+            Write-Verbose "Caught exception with ieq filter, trying with q parameter"
+            $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Assets `
+                                 -Parameters @{ q = $Asset })
         }
         if (-not $local:Assets)
         {
@@ -67,8 +77,18 @@ function Resolve-SafeguardAssetAccountId
         {
             $local:RelativeUrl = "AssetAccounts"
         }
-        $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
-                                                  -Parameters @{ filter = "Name ieq '$Account'" })
+        try
+        {
+            $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
+                                   -Parameters @{ filter = "Name ieq '$Account'" })
+        }
+        catch
+        {
+            Write-Verbose $_
+            Write-Verbose "Caught exception with ieq filter, trying with q parameter"
+            $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
+                                   -Parameters @{ q = $Account })
+        }
         if (-not $local:Accounts)
         {
             throw "Unable to find account matching '$Account'"

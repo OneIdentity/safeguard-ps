@@ -252,8 +252,10 @@ function Find-SafeguardPlatform
     {}
     if (-not $local:Platforms)
     {
+        Write-Verbose $_
+        Write-Verbose "Caught exception with ieq filter, trying with q parameter"
         $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
-                                -Parameters @{ q = "$SearchString" })
+                                -Parameters @{ q = $SearchString })
     }
     $local:Platforms
 }

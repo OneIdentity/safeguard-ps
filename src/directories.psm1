@@ -17,17 +17,27 @@ function Resolve-SafeguardDirectoryId
 
     if (-not ($Directory -as [int]))
     {
-        $local:Directories = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Directories `
-                                                     -Parameters @{ filter = "Name ieq '$Directory'" })
-        if (-not $local:Directories)
+        try
         {
             $local:Directories = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Directories `
-                                                         -Parameters @{ filter = "NetworkAddress ieq '$Directory'" })
+                                      -Parameters @{ filter = "Name ieq '$Directory'" })
+            if (-not $local:Directories)
+            {
+                $local:Directories = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Directories `
+                                          -Parameters @{ filter = "NetworkAddress ieq '$Directory'" })
+            }
+            if (-not $local:Directories)
+            {
+                $local:Directories = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Directories `
+                                          -Parameters @{ filter = "Domains.DomainName ieq '$Directory'" })
+            }
         }
-        if (-not $local:Directories)
+        catch
         {
+            Write-Verbose $_
+            Write-Verbose "Caught exception with ieq filter, trying with q parameter"
             $local:Directories = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Directories `
-                                                         -Parameters @{ filter = "Domains.DomainName ieq '$Directory'" })
+                                      -Parameters @{ q = $Directory })
         }
         if (-not $local:Directories)
         {
@@ -90,8 +100,18 @@ function Resolve-SafeguardDirectoryAccountId
         {
             $local:RelativeUrl = "DirectoryAccounts"
         }
-        $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
-                                                  -Parameters @{ filter = "Name ieq '$Account'" })
+        try
+        {
+            $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
+                                   -Parameters @{ filter = "Name ieq '$Account'" })
+        }
+        catch
+        {
+            Write-Verbose $_
+            Write-Verbose "Caught exception with ieq filter, trying with q parameter"
+            $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
+                                   -Parameters @{ q = $Account })
+        }
         if (-not $local:Accounts)
         {
             throw "Unable to find account matching '$Account'"
