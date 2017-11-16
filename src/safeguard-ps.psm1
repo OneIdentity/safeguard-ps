@@ -17,6 +17,7 @@ function Show-RstsWindow
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     try
     {
@@ -55,6 +56,7 @@ function Get-RstsTokenFromGui
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Show-RstsWindow $Appliance
     $local:Code = $global:AuthorizationCode
@@ -89,6 +91,10 @@ function New-SafeguardUrl
         [Parameter(Mandatory=$false)]
         [object]$Parameters
     )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
     $local:Url = "https://$Appliance/service/$($Service.ToLower())/v$Version/$RelativeUrl"
     if ($Parameters -and $Parameters.Length -gt 0)
     {
@@ -110,6 +116,9 @@ function Wait-LongRunningTask
         [Parameter(Mandatory=$true,Position=2)]
         [int]$Timeout
     )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if (-not $Response.Headers.Location)
     {
@@ -179,7 +188,13 @@ function Invoke-WithoutBody
         [int]$Timeout
     )
 
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
     $local:Url = (New-SafeguardUrl $Appliance $Service $Version $RelativeUrl -Parameters $Parameters)
+    Write-Verbose "Url=$($local:Url)"
+    Write-Verbose "Parameters=$Parameters"
+    Write-Verbose "Headers=$Headers"
     if ($InFile)
     {
         if ($LongRunningTask)
@@ -236,12 +251,19 @@ function Invoke-WithBody
         [int]$Timeout
     )
 
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
     $local:BodyInternal = $JsonBody
     if ($Body)
     {
         $local:BodyInternal = (ConvertTo-Json -InputObject $Body)
     }
     $local:Url = (New-SafeguardUrl $Appliance $Service $Version $RelativeUrl -Parameters $Parameters)
+    Write-Verbose "Url=$($local:Url)"
+    Write-Verbose "Parameters=$Parameters"
+    Write-Verbose "Headers=$Headers"
+    Write-Verbose "Body=$($local:Body)"
     if ($LongRunningTask)
     {
         $local:Response = (Invoke-WebRequest -Method $Method -Headers $Headers -Uri $local:Url `
@@ -376,6 +398,7 @@ function Connect-Safeguard
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     try
     {
@@ -618,6 +641,7 @@ function Disconnect-Safeguard
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if ($PsCmdlet.ParameterSetName -eq "AccessToken")
     {
@@ -818,6 +842,7 @@ function Invoke-SafeguardMethod
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if ($SafeguardSession)
     {
@@ -962,7 +987,9 @@ function Get-SafeguardAccessTokenStatus
         [Parameter(Mandatory=$false)]
         [switch]$Raw
     )
+
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if ($PSCmdlet.ParameterSetName -ne "Token")
     {
@@ -1033,6 +1060,7 @@ Update-SafeguardAccessToken
 function Update-SafeguardAccessToken
 {
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if (-not $SafeguardSession)
     {
@@ -1106,6 +1134,7 @@ function Get-SafeguardLoggedInUser
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Me
 }

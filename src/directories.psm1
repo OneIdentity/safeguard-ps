@@ -12,6 +12,9 @@ function Resolve-SafeguardDirectoryId
         [object]$Directory
     )
 
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
     if (-not ($Directory -as [int]))
     {
         $local:Directories = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Directories `
@@ -55,6 +58,7 @@ function Get-SafeguardDirectoryDomains
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Directories/1).Domains
 }
@@ -74,6 +78,7 @@ function Resolve-SafeguardDirectoryAccountId
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if (-not ($Account -as [int]))
     {
@@ -151,6 +156,7 @@ function Get-SafeguardDirectory
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if ($PSBoundParameters.ContainsKey("DirectoryToGet"))
     {
@@ -258,6 +264,7 @@ function New-SafeguardDirectory
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     Import-Module -Name "$PSScriptRoot\datatypes.psm1" -Scope Local
 
     if (-not $PSBoundParameters.ContainsKey("ServiceAccountPassword"))
@@ -364,6 +371,7 @@ function Test-SafeguardDirectory
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if (-not $PSBoundParameters.ContainsKey("DirectoryToTest"))
     {
@@ -421,6 +429,7 @@ function Remove-SafeguardDirectory
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if (-not $PSBoundParameters.ContainsKey("DirectoryToDelete"))
     {
@@ -533,6 +542,9 @@ function Edit-SafeguardDirectory
         [object]$DirectoryObject
     )
 
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
     if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $DirectoryObject)
     {
         throw "DirectoryObject must not be null"
@@ -573,9 +585,9 @@ function Edit-SafeguardDirectory
             $DirectoryObject.ConnectionProperties.VerifySslCertificate = $false
         }
 
-         # Body
-         if ($PSBoundParameters.ContainsKey("Description")) { $DirectoryObject.Description = $Description }
-         if ($PSBoundParameters.ContainsKey("NetworkAddress")) { $DirectoryObject.NetworkAddress = $NetworkAddress }
+        # Body
+        if ($PSBoundParameters.ContainsKey("Description")) { $DirectoryObject.Description = $Description }
+        if ($PSBoundParameters.ContainsKey("NetworkAddress")) { $DirectoryObject.NetworkAddress = $NetworkAddress }
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Directories/$($DirectoryObject.Id)" -Body $DirectoryObject
@@ -627,6 +639,7 @@ function Sync-SafeguardDirectory
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if (-not $PSBoundParameters.ContainsKey("DirectoryToSync"))
     {
@@ -690,6 +703,7 @@ function Get-SafeguardDirectoryAccount
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if ($PSBoundParameters.ContainsKey("DirectoryToGet"))
     {
@@ -764,6 +778,7 @@ function Find-SafeguardDirectoryAccount
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "DirectoryAccounts" `
         -Parameters @{ q = $SearchString }
@@ -831,6 +846,7 @@ function New-SafeguardDirectoryAccount
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:Directory = (Get-SafeguardDirectory -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ParentDirectory)
 
@@ -925,6 +941,7 @@ function Set-SafeguardDirectoryAccountPassword
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if ($PSBoundParameters.ContainsKey("DirectoryToSet"))
     {
@@ -996,6 +1013,7 @@ function New-SafeguardDirectoryAccountRandomPassword
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if ($PSBoundParameters.ContainsKey("DirectoryToUse"))
     {
@@ -1059,6 +1077,9 @@ function Test-SafeguardDirectoryAccountPassword
         [object]$AccountToUse
     )
 
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
     if ($PSBoundParameters.ContainsKey("DirectoryToUse"))
     {
         $local:DirectoryId = (Resolve-SafeguardDirectoryId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToUse)
@@ -1120,6 +1141,9 @@ function Invoke-SafeguardDirectoryAccountPasswordChange
         [Parameter(Mandatory=$true,Position=1)]
         [object]$AccountToUse
     )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if ($PSBoundParameters.ContainsKey("DirectoryToUse"))
     {
@@ -1184,6 +1208,7 @@ function Remove-SafeguardDirectoryAccount
     )
 
     $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if ($PSBoundParameters.ContainsKey("DirectoryToUse"))
     {
