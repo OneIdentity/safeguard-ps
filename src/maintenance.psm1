@@ -1433,3 +1433,113 @@ function Get-SafeguardBackup
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET Backups
     }
 }
+
+
+function Get-SafeguardBmcConfiguration
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET BmcConfiguration
+}
+
+
+function Enable-SafeguardBmcConfiguration
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [string]$Ipv4Address,
+        [Parameter(Mandatory=$false,Position=1)]
+        [string]$Ipv4NetMask,
+        [Parameter(Mandatory=$false,Position=2)]
+        [string]$Ipv4Gateway,
+        [Parameter(Mandatory=$false,Position=3)]
+        [SecureString]$Password
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Body = @{
+        Enabled = $true
+    }
+    if ($PSBoundParameters.ContainsKey("Ipv4Address")) { $local:Body.Ipv4Address = $Ipv4Address }
+    if ($PSBoundParameters.ContainsKey("Ipv4NetMask")) { $local:Body.Netmask = $Ipv4NetMask }
+    if ($PSBoundParameters.ContainsKey("Ipv4Gateway")) { $local:Body.DefaultGateway = $Ipv4Gateway }
+    if ($PSBoundParameters.ContainsKey("Password"))
+    {
+        $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
+        $local:Body.AdminPassword = $local:PasswordPlainText
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance PUT BmcConfiguration -Body $local:Body
+}
+
+
+function Disable-SafeguardBmcConfiguration
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance PUT BmcConfiguration -Body @{
+        Enabled = $false
+    }
+}
+
+
+function Set-SafeguardBmcAdminPassword
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=3)]
+        [SecureString]$Password
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Body = (Get-SafeguardBmcConfiguration -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
+    if (-not $local:Body.Enabled)
+    {
+        throw "Unable to set admin password, this appliance does not have BMC enabled."
+    }
+
+    if (-not $Password)
+    {
+        $Password = Read-Host -AsSecureString "Password"
+    }
+
+    $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
+    $local:Body.AdminPassword = $local:PasswordPlainText
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance PUT BmcConfiguration -Body $local:Body
+}

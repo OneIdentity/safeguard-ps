@@ -116,6 +116,8 @@ FunctionsToExport = @(
     'Get-SafeguardSupportBundle','Install-SafeguardPatch',
     'New-SafeguardBackup','Remove-SafeguardBackup','Export-SafeguardBackup','Import-SafeguardBackup',
     'Restore-SafeguardBackup','Save-SafeguardBackupToArchive','Get-SafeguardBackup',
+    'Get-SafeguardBmcConfiguration','Enable-SafeguardBmcConfiguration','Disable-SafeguardBmcConfiguration',
+    'Set-SafeguardBmcAdminPassword',
     # diagnostics.psm1
     'Invoke-SafeguardPing','Invoke-SafeguardSessionsPing','Invoke-SafeguardTelnet','Invoke-SafeguardSessionsTelnet',
     # sessionmodule.psm1
