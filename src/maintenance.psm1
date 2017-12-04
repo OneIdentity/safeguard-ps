@@ -1434,7 +1434,32 @@ function Get-SafeguardBackup
     }
 }
 
+<#
+.SYNOPSIS
+Get BMC configuration of a Safeguard appliance via the Web API.
 
+.DESCRIPTION
+Get the BMC network settings and enable state.  The AdminPassword field
+returned will always be blank.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardBmcConfiguration -Appliance 10.5.32.54 -AccessToken $token -Insecure
+#>
 function Get-SafeguardBmcConfiguration
 {
     Param(
@@ -1452,7 +1477,47 @@ function Get-SafeguardBmcConfiguration
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET BmcConfiguration
 }
 
+<#
+.SYNOPSIS
+Enable BMC configuration of a Safeguard appliance via the Web API.
 
+.DESCRIPTION
+Set the BMC to enabled and provide network settings and ADMIN password.  The AdminPassword field
+in the object returned will always be blank.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.PARAMETER Ipv4Address
+A string containing the new address.
+
+.PARAMETER Ipv4NetMask
+A string containing the netmask (e.g. 255.255.255.0).
+
+.PARAMETER Ipv4Gateway
+A string containing the address of a gateway.
+
+.PARAMETER Password
+SecureString containing the password for the ADMIN account.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Enable-SafeguardBmcConfiguration 10.10.10.233 255.255.255.0 10.10.10.1
+
+.EXAMPLE
+Enable-SafeguardBmcConfiguration 10.10.10.233 255.255.255.0 10.10.10.1 -Password (ConvertTo-SecureString -AsPlainText -Force "reallylongpass")
+#>
 function Enable-SafeguardBmcConfiguration
 {
     Param(
@@ -1496,7 +1561,32 @@ function Enable-SafeguardBmcConfiguration
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance PUT BmcConfiguration -Body $local:Body
 }
 
+<#
+.SYNOPSIS
+Disable BMC configuration of a Safeguard appliance via the Web API.
 
+.DESCRIPTION
+Disable the BMC by returning network settings to default and scrambling the password.
+The AdminPassword field in the object returned will always be blank.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Disable-SafeguardBmcConfiguration -Appliance 10.5.32.54 -AccessToken $token -Insecure
+#>
 function Disable-SafeguardBmcConfiguration
 {
     Param(
@@ -1516,7 +1606,37 @@ function Disable-SafeguardBmcConfiguration
     }
 }
 
+<#
+.SYNOPSIS
+Set password for BMC configuration of a Safeguard appliance via the Web API.
 
+.DESCRIPTION
+Set the BMC ADMIN password. The AdminPassword field in the object returned will always be blank.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.PARAMETER Password
+SecureString containing the password for the ADMIN account.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Set-SafeguardBmcAdminPassword -Appliance 10.5.32.54 -AccessToken $token -Insecure
+
+.EXAMPLE
+Set-SafeguardBmcAdminPassword (ConvertTo-SecureString -AsPlainText -Force "reallylongpass")
+#>
 function Set-SafeguardBmcAdminPassword
 {
     Param(
@@ -1526,7 +1646,7 @@ function Set-SafeguardBmcAdminPassword
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$false,Position=3)]
+        [Parameter(Mandatory=$false,Position=0)]
         [SecureString]$Password
     )
 
