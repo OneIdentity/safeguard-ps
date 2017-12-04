@@ -1478,9 +1478,15 @@ function Enable-SafeguardBmcConfiguration
     $local:Body = @{
         Enabled = $true
     }
-    if ($PSBoundParameters.ContainsKey("Ipv4Address")) { $local:Body.Ipv4Address = $Ipv4Address }
-    if ($PSBoundParameters.ContainsKey("Ipv4NetMask")) { $local:Body.Netmask = $Ipv4NetMask }
-    if ($PSBoundParameters.ContainsKey("Ipv4Gateway")) { $local:Body.DefaultGateway = $Ipv4Gateway }
+    if ($PSBoundParameters.ContainsKey("Ipv4Address") `
+        -or $PSBoundParameters.ContainsKey("Ipv4NetMask") `
+        -or $PSBoundParameters.ContainsKey("Ipv4Gateway"))
+    {
+        $local:Body.NetworkConfiguration = @{}
+        if ($PSBoundParameters.ContainsKey("Ipv4Address")) { $local:Body.NetworkConfiguration.Ipv4Address = $Ipv4Address }
+        if ($PSBoundParameters.ContainsKey("Ipv4NetMask")) { $local:Body.NetworkConfiguration.Netmask = $Ipv4NetMask }
+        if ($PSBoundParameters.ContainsKey("Ipv4Gateway")) { $local:Body.NetworkConfiguration.DefaultGateway = $Ipv4Gateway }
+    }
     if ($PSBoundParameters.ContainsKey("Password"))
     {
         $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
