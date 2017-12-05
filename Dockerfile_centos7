@@ -4,7 +4,7 @@ MAINTAINER support@oneidentity.com
 COPY ["install-local.ps1", "/tmp/safeguard/"]
 COPY ["src/", "/tmp/safeguard/src/"]
 
-RUN powershell -NoProfile -Command "/tmp/safeguard/install-local.ps1 '/usr/local/share/powershell/Modules'; Remove-Item -Path /tmp/safeguard -recurse"
+RUN pwsh -NoProfile -Command "/tmp/safeguard/install-local.ps1 '/usr/local/share/powershell/Modules'; Remove-Item -Path /tmp/safeguard -recurse"
 
-ENTRYPOINT [ "powershell" ]
+ENTRYPOINT [ "pwsh" ]
 CMD ["-NoExit", "-Command", "Get-SafeguardBanner"]
