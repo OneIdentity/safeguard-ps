@@ -1433,3 +1433,239 @@ function Get-SafeguardBackup
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET Backups
     }
 }
+
+<#
+.SYNOPSIS
+Get BMC configuration of a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Get the BMC network settings and enable state.  The AdminPassword field
+returned will always be blank.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardBmcConfiguration -Appliance 10.5.32.54 -AccessToken $token -Insecure
+#>
+function Get-SafeguardBmcConfiguration
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET BmcConfiguration
+}
+
+<#
+.SYNOPSIS
+Enable BMC configuration of a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Set the BMC to enabled and provide network settings and ADMIN password.  The AdminPassword field
+in the object returned will always be blank.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.PARAMETER Ipv4Address
+A string containing the new address.
+
+.PARAMETER Ipv4NetMask
+A string containing the netmask (e.g. 255.255.255.0).
+
+.PARAMETER Ipv4Gateway
+A string containing the address of a gateway.
+
+.PARAMETER Password
+SecureString containing the password for the ADMIN account.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Enable-SafeguardBmcConfiguration 10.10.10.233 255.255.255.0 10.10.10.1
+
+.EXAMPLE
+Enable-SafeguardBmcConfiguration 10.10.10.233 255.255.255.0 10.10.10.1 -Password (ConvertTo-SecureString -AsPlainText -Force "reallylongpass")
+#>
+function Enable-SafeguardBmcConfiguration
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [string]$Ipv4Address,
+        [Parameter(Mandatory=$false,Position=1)]
+        [string]$Ipv4NetMask,
+        [Parameter(Mandatory=$false,Position=2)]
+        [string]$Ipv4Gateway,
+        [Parameter(Mandatory=$false,Position=3)]
+        [SecureString]$Password
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Body = @{
+        Enabled = $true
+    }
+    if ($PSBoundParameters.ContainsKey("Ipv4Address") `
+        -or $PSBoundParameters.ContainsKey("Ipv4NetMask") `
+        -or $PSBoundParameters.ContainsKey("Ipv4Gateway"))
+    {
+        $local:Body.NetworkConfiguration = @{}
+        if ($PSBoundParameters.ContainsKey("Ipv4Address")) { $local:Body.NetworkConfiguration.Ipv4Address = $Ipv4Address }
+        if ($PSBoundParameters.ContainsKey("Ipv4NetMask")) { $local:Body.NetworkConfiguration.Netmask = $Ipv4NetMask }
+        if ($PSBoundParameters.ContainsKey("Ipv4Gateway")) { $local:Body.NetworkConfiguration.DefaultGateway = $Ipv4Gateway }
+    }
+    if ($PSBoundParameters.ContainsKey("Password"))
+    {
+        $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
+        $local:Body.AdminPassword = $local:PasswordPlainText
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance PUT BmcConfiguration -Body $local:Body
+}
+
+<#
+.SYNOPSIS
+Disable BMC configuration of a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Disable the BMC by returning network settings to default and scrambling the password.
+The AdminPassword field in the object returned will always be blank.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Disable-SafeguardBmcConfiguration -Appliance 10.5.32.54 -AccessToken $token -Insecure
+#>
+function Disable-SafeguardBmcConfiguration
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance PUT BmcConfiguration -Body @{
+        Enabled = $false
+    }
+}
+
+<#
+.SYNOPSIS
+Set password for BMC configuration of a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Set the BMC ADMIN password. The AdminPassword field in the object returned will always be blank.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.PARAMETER Password
+SecureString containing the password for the ADMIN account.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Set-SafeguardBmcAdminPassword -Appliance 10.5.32.54 -AccessToken $token -Insecure
+
+.EXAMPLE
+Set-SafeguardBmcAdminPassword (ConvertTo-SecureString -AsPlainText -Force "reallylongpass")
+#>
+function Set-SafeguardBmcAdminPassword
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [SecureString]$Password
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Body = (Get-SafeguardBmcConfiguration -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
+    if (-not $local:Body.Enabled)
+    {
+        throw "Unable to set admin password, this appliance does not have BMC enabled."
+    }
+
+    if (-not $Password)
+    {
+        $Password = Read-Host -AsSecureString "Password"
+    }
+
+    $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
+    $local:Body.AdminPassword = $local:PasswordPlainText
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance PUT BmcConfiguration -Body $local:Body
+}
