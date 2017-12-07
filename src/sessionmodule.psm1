@@ -513,3 +513,81 @@ function Reset-SafeguardSessionCertificate
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE $local:RelativeUrl
 }
+
+
+function Get-SafeguardSessionSshAlgorithms
+{
+    [CmdletBinding(DefaultParameterSetName="None")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, ParameterSetName="Args", Position=0)]
+        [ValidateSet("ClientSide", "ServerSide", IgnoreCase=$true)]
+        [string]$Endpoint,
+        [Parameter(Mandatory=$false, ParameterSetName="Args", Position=1)]
+        [ValidateSet("Cipher", "Compression", "Kex", "Mac", IgnoreCase=$true)]
+        [string]$AlgorithmType
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Response = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET SessionSshAlgorithms)
+    if ($Endpoint)
+    {
+        $local:EndpointResponse = $local:Response."$($Endpoint)Algorithms"
+        if ($AlgorithmType)
+        {
+            $local:EndpointResponse.$AlgorithmType
+        }
+        else
+        {
+            $local:EndpointResponse
+        }
+    }
+    else
+    {
+        $local:Response
+    }
+}
+
+
+function Set-SafeguardSessionSshAlgorithms
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [ValidateSet("ClientSide", "ServerSide", IgnoreCase=$true)]
+        [string]$Endpoint,
+        [Parameter(Mandatory=$true, Position=1)]
+        [ValidateSet("Cipher", "Compression", "Kex", "Mac", IgnoreCase=$true)]
+        [string]$AlgorithmType,
+        [Parameter(Mandatory=$false, Position=2)]
+        [string[]]$NewValue
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Current = (Get-SafeguardSessionSshAlgorithms -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
+    if (-not $PSBoundParameters.ContainsKey("NewValue"))
+    {
+        $local:CurrentValue = $local:Current."$($Endpoint)Algorithms".$AlgorithmType
+        Write-Host "$Endpoint $($AlgorithmType): $($local:CurrentValue -join ',')"
+        $local:NewValueString = (Read-Host "NewValue")
+        $local:NewValue = ($local:NewValueString -split ',')
+    }
+    $local:Current."$($Endpoint)Algorithms".$AlgorithmType = $local:NewValue
+
+    $local:Response = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT SessionSshAlgorithms -Body $local:Current)
+    $local:Response."$($Endpoint)Algorithms".$AlgorithmType
+}

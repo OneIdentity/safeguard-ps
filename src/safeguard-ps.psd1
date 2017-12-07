@@ -124,6 +124,7 @@ FunctionsToExport = @(
     'Get-SafeguardSessionContainerStatus','Get-SafeguardSessionModuleStatus','Get-SafeguardSessionModuleVersion',
     'Reset-SafeguardSessionModule','Repair-SafeguardSessionModule',
     'Get-SafeguardSessionCertificate','Install-SafeguardSessionCertificate','Reset-SafeguardSessionCertificate',
+    'Get-SafeguardSessionSshAlgorithms','Set-SafeguardSessionSshAlgorithms',
     # archives.psm1
     'Get-SafeguardArchiveServer','New-SafeguardArchiveServer','Test-SafeguardArchiveServer',
     'Remove-SafeguardArchiveServer','Edit-SafeguardArchiveServer',
