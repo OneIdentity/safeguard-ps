@@ -514,7 +514,43 @@ function Reset-SafeguardSessionCertificate
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE $local:RelativeUrl
 }
 
+<#
+.SYNOPSIS
+Get session-specific SSH algorithms configured for Safeguard via the Web API.
 
+.DESCRIPTION
+Safeguard session functionality supports client-side and server-side SSH algorithms
+for cipher, key exchange (Kex), compression, and message authentication code (Mac).
+Enabling the proper algorithms will allow Safeguard to communicate with target
+systems for privileged session management.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Endpoint
+A string representing the endpoint (client-side or server-side) to get.
+
+.PARAMETER AlgorithmType
+A string representing the algorithm type to get.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardSessionSshAlgorithms -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardSessionSshAlgorithms ServerSide Cipher
+#>
 function Get-SafeguardSessionSshAlgorithms
 {
     [CmdletBinding(DefaultParameterSetName="None")]
@@ -555,7 +591,49 @@ function Get-SafeguardSessionSshAlgorithms
     }
 }
 
+<#
+.SYNOPSIS
+Set session-specific SSH algorithms configured for Safeguard via the Web API.
 
+.DESCRIPTION
+Safeguard session functionality supports client-side and server-side SSH algorithms
+for cipher, key exchange (Kex), compression, and message authentication code (Mac).
+Enabling the proper algorithms will allow Safeguard to communicate with target
+systems for privileged session management.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Endpoint
+A string representing the endpoint (client-side or server-side) to set.
+
+.PARAMETER AlgorithmType
+A string representing the algorithm type to set.
+
+.PARAMETER NewValue
+An array of strings containing the new algorithm identifiers to set.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Set-SafeguardSessionSshAlgorithms -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Set-SafeguardSessionSshAlgorithms ServerSide Cipher
+
+.EXAMPLE
+Set-SafeguardSessionSshAlgorithms ServerSide Cipher 3des-cbc,arcfour,aes128-ctr,aes192-ctr,aes256-ctr
+#>
 function Set-SafeguardSessionSshAlgorithms
 {
     Param(
