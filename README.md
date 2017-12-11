@@ -161,6 +161,10 @@ cmdlets for functionality that is missing.
 - Get-SafeguardSessionCertificate
 - Install-SafeguardSessionCertificate
 - Reset-SafeguardSessionCertificate
+- Get-SafeguardSessionSshAlgorithms
+- Set-SafeguardSessionSshAlgorithms
+- Add-SafeguardSessionSshAlgorithm
+- Remove-SafeguardSessionSshAlgorithm
 ### Archive Servers
 - Get-SafeguardArchiveServer
 - New-SafeguardArchiveServer
