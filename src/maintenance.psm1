@@ -788,12 +788,14 @@ function Install-SafeguardPatch
     }
 
     $Response = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance `
-                     -Insecure:$Insecure Appliance GET Patch)
+                    -Insecure:$Insecure Appliance GET Patch)
     if ($Response)
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance `
             -Insecure:$Insecure Appliance DELETE Patch
-        if ($LastExitCode -ne 0)
+        $Response = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance `
+                        -Insecure:$Insecure Appliance GET Patch)
+        if ($Response)
         {
             throw "Failed to delete existing patch"
         }

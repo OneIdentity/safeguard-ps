@@ -513,3 +513,326 @@ function Reset-SafeguardSessionCertificate
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE $local:RelativeUrl
 }
+
+<#
+.SYNOPSIS
+Get session-specific SSH algorithms configured for Safeguard via the Web API.
+
+.DESCRIPTION
+Safeguard session functionality supports client-side and server-side SSH algorithms
+for cipher, key exchange (Kex), compression, and message authentication code (Mac).
+Enabling the proper algorithms will allow Safeguard to communicate with target
+systems for privileged session management.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Endpoint
+A string representing the endpoint (client-side or server-side) to get.
+
+.PARAMETER AlgorithmType
+A string representing the algorithm type to get.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardSessionSshAlgorithms -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardSessionSshAlgorithms ServerSide Cipher
+#>
+function Get-SafeguardSessionSshAlgorithms
+{
+    [CmdletBinding(DefaultParameterSetName="None")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, ParameterSetName="Args", Position=0)]
+        [ValidateSet("ClientSide", "ServerSide", IgnoreCase=$true)]
+        [string]$Endpoint,
+        [Parameter(Mandatory=$false, ParameterSetName="Args", Position=1)]
+        [ValidateSet("Cipher", "Compression", "Kex", "Mac", IgnoreCase=$true)]
+        [string]$AlgorithmType
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Response = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET SessionSshAlgorithms)
+    if ($Endpoint)
+    {
+        $local:EndpointResponse = $local:Response."$($Endpoint)Algorithms"
+        if ($AlgorithmType)
+        {
+            $local:EndpointResponse.$AlgorithmType
+        }
+        else
+        {
+            $local:EndpointResponse
+        }
+    }
+    else
+    {
+        $local:Response
+    }
+}
+
+<#
+.SYNOPSIS
+Set session-specific SSH algorithms configured for Safeguard via the Web API.
+
+.DESCRIPTION
+Safeguard session functionality supports client-side and server-side SSH algorithms
+for cipher, key exchange (Kex), compression, and message authentication code (Mac).
+Enabling the proper algorithms will allow Safeguard to communicate with target
+systems for privileged session management.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Endpoint
+A string representing the endpoint (client-side or server-side) to set.
+
+.PARAMETER AlgorithmType
+A string representing the algorithm type to set.
+
+.PARAMETER NewValue
+An array of strings containing the new algorithm identifiers to set.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Set-SafeguardSessionSshAlgorithms -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Set-SafeguardSessionSshAlgorithms ServerSide Cipher
+
+.EXAMPLE
+Set-SafeguardSessionSshAlgorithms ServerSide Cipher 3des-cbc,arcfour,aes128-ctr,aes192-ctr,aes256-ctr
+#>
+function Set-SafeguardSessionSshAlgorithms
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [ValidateSet("ClientSide", "ServerSide", IgnoreCase=$true)]
+        [string]$Endpoint,
+        [Parameter(Mandatory=$true, Position=1)]
+        [ValidateSet("Cipher", "Compression", "Kex", "Mac", IgnoreCase=$true)]
+        [string]$AlgorithmType,
+        [Parameter(Mandatory=$false, Position=2)]
+        [string[]]$NewValue
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Current = (Get-SafeguardSessionSshAlgorithms -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
+    if (-not $PSBoundParameters.ContainsKey("NewValue"))
+    {
+        $local:CurrentValue = $local:Current."$($Endpoint)Algorithms".$AlgorithmType
+        Write-Host "$Endpoint $($AlgorithmType): $($local:CurrentValue -join ',')"
+        $local:NewValueString = (Read-Host "NewValue")
+        $local:NewValue = ($local:NewValueString -split ',')
+    }
+    $local:Current."$($Endpoint)Algorithms".$AlgorithmType = $local:NewValue
+
+    $local:Response = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT SessionSshAlgorithms -Body $local:Current)
+    $local:Response."$($Endpoint)Algorithms".$AlgorithmType
+}
+
+<#
+.SYNOPSIS
+Add a session-specific SSH algorithm configured for Safeguard via the Web API.
+
+.DESCRIPTION
+Safeguard session functionality supports client-side and server-side SSH algorithms
+for cipher, key exchange (Kex), compression, and message authentication code (Mac).
+Enabling the proper algorithms will allow Safeguard to communicate with target
+systems for privileged session management.  This cmdlet will add a single algorithm
+to the specified endpoint of the specified algorithm type.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Endpoint
+A string representing the endpoint (client-side or server-side) to set.
+
+.PARAMETER AlgorithmType
+A string representing the algorithm type to set.
+
+.PARAMETER AlgorithmToAdd
+A string containing the new algorithm identifier to add.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Add-SafeguardSessionSshAlgorithm -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Add-SafeguardSessionSshAlgorithm ServerSide Cipher
+
+.EXAMPLE
+Add-SafeguardSessionSshAlgorithm ServerSide Cipher 3des-cbc
+#>
+function Add-SafeguardSessionSshAlgorithm
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [ValidateSet("ClientSide", "ServerSide", IgnoreCase=$true)]
+        [string]$Endpoint,
+        [Parameter(Mandatory=$true, Position=1)]
+        [ValidateSet("Cipher", "Compression", "Kex", "Mac", IgnoreCase=$true)]
+        [string]$AlgorithmType,
+        [Parameter(Mandatory=$true, Position=2)]
+        [string]$AlgorithmToAdd
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Algs = (Get-SafeguardSessionSshAlgorithms -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Endpoint $AlgorithmType)
+    if ($local:Algs -contains $AlgorithmToAdd)
+    {
+        Write-Verbose "$AlgorithmToAdd is already in the list ($($local:Algs -join ","))"
+        $local:Algs
+    }
+    else
+    {
+        $local:Algs += $AlgorithmToAdd
+        Set-SafeguardSessionSshAlgorithms -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Endpoint $AlgorithmType $local:Algs
+    }
+}
+
+<#
+.SYNOPSIS
+Add a session-specific SSH algorithm configured for Safeguard via the Web API.
+
+.DESCRIPTION
+Safeguard session functionality supports client-side and server-side SSH algorithms
+for cipher, key exchange (Kex), compression, and message authentication code (Mac).
+Enabling the proper algorithms will allow Safeguard to communicate with target
+systems for privileged session management.  This cmdlet will remove a single algorithm
+from the specified endpoint of the specified algorithm type.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Endpoint
+A string representing the endpoint (client-side or server-side) to set.
+
+.PARAMETER AlgorithmType
+A string representing the algorithm type to set.
+
+.PARAMETER AlgorithmToRemove
+A string containing the new algorithm identifier to remove.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardSessionSshAlgorithm -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Remove-SafeguardSessionSshAlgorithm ServerSide Cipher
+
+.EXAMPLE
+Remove-SafeguardSessionSshAlgorithm ServerSide Cipher 3des-cbc
+#>
+function Remove-SafeguardSessionSshAlgorithm
+{
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [ValidateSet("ClientSide", "ServerSide", IgnoreCase=$true)]
+        [string]$Endpoint,
+        [Parameter(Mandatory=$true, Position=1)]
+        [ValidateSet("Cipher", "Compression", "Kex", "Mac", IgnoreCase=$true)]
+        [string]$AlgorithmType,
+        [Parameter(Mandatory=$true, Position=2)]
+        [string]$AlgorithmToRemove
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Algs = (Get-SafeguardSessionSshAlgorithms -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Endpoint $AlgorithmType)
+    if ($local:Algs -notcontains $AlgorithmToRemove)
+    {
+        Write-Verbose "$AlgorithmToRemove is not in the list ($($local:Algs -join ","))"
+        $local:Algs
+    }
+    else
+    {
+        # $local:Algs.Remove($AlgorithmToRemove)
+        # 'Collection was of a fixed size' error
+        $local:AlgsNew = @()
+        foreach ($local:Alg in $local:Algs)
+        {
+            if ($local:Alg -ine $AlgorithmToRemove)
+            {
+                $local:AlgsNew += $local:Alg
+            }
+        }
+        Set-SafeguardSessionSshAlgorithms -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Endpoint $AlgorithmType $local:AlgsNew
+    }
+}
