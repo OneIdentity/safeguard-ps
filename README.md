@@ -80,6 +80,24 @@ When you are finished, you can close the session or call the
 
 You can run the `Get-SafeguardCommand` cmdlet to see all available cmdlets.
 
+## Module Versioning
+The version of safeguard-ps mirrors the version of Safeguard that it was
+developed and tested against.  However, the build numbers (fourth number)
+should not be expected to match.
+
+For Example:
+
+safeguard-ps 2.1.0.55 would correspond to Safeguard 2.1.0.5687
+
+This does not mean that safeguard-ps 2.1.0.55 won't work at all with
+Safeguard 2.0.1.5037.  For the most part the cmdlets will still work, but
+you may occasionally come across things that are broken.
+
+For the best results, please try to match the first three version numbers of
+the safeguard-ps module to the first three numbers of the Safeguard appliance
+you are communicating with.
+
+
 ## Powershell cmdlets
 The following cmdlets are currently supported.  More will be added to this
 list over time.  Every cmdlet in the list supports `Get-Help` to provide
@@ -87,7 +105,6 @@ additional information as to how it can be called.
 
 Please file GitHub Issues for cmdlets that are not working and to request
 cmdlets for functionality that is missing.
-
 
 ### ManagementShell
 - Get-SafeguardCommand
