@@ -206,8 +206,10 @@ safeguard-ps 2.1.0 Release Notes:
   - Core Web API functionality
   - Safeguard product licensing
   - Trusted certificates management
+  - Networking configuration
   - SSL certificates management
   - Appliance maintenance
+  - Session module management
   - Appliance diagnostics
   - Backups and archive servers
   - Access requests
