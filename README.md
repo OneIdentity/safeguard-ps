@@ -106,6 +106,13 @@ additional information as to how it can be called.
 Please file GitHub Issues for cmdlets that are not working and to request
 cmdlets for functionality that is missing.
 
+The following list of cmdlets might not be complete.  To see everything that
+safeguard-ps can do run:
+
+```Powershell
+> Get-SafeguardCommand
+```
+
 ### ManagementShell
 - Get-SafeguardCommand
 - Get-SafeguardBanner
@@ -164,6 +171,10 @@ cmdlets for functionality that is missing.
 - Restore-SafeguardBackup
 - Save-SafeguardBackupToArchive
 - Get-SafeguardBackup
+- Get-SafeguardBmcConfiguration
+- Enable-SafeguardBmcConfiguration
+- Disable-SafeguardBmcConfiguration
+- Set-SafeguardBmcAdminPassword
 ### Diagnostics
 - Invoke-SafeguardPing
 - Invoke-SafeguardSessionsPing
