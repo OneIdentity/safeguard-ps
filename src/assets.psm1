@@ -107,7 +107,44 @@ function Resolve-SafeguardAssetAccountId
     }
 }
 
+<#
+.SYNOPSIS
+Discover SSH host key by connecting to asset managed by Safeguard via the Web API.
 
+.DESCRIPTION
+This cmdlet will cause Safeguard to connect to a previously configured asset
+to get its SSH host key.  By default, this cmdlet will prompt whether or not you
+would like to accept the discovered SSH host key.  This can be overridden to
+automatically accept using the AcceptSshHostKey flag.  If the key is accepted
+this cmdlet will update Safeguard with the accepted key.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Asset
+An integer containing the ID of the asset or a string containing the name.
+
+.PARAMETER AcceptSshHostKey
+Whether or not to automatically accept the SSH host key that is discovered.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Invoke-SafeguardAsset -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Invoke-SafeguardAsset linux123.internal.com
+#>
 function Invoke-SafeguardAssetSshHostKeyDiscovery
 {
     [CmdletBinding()]
@@ -126,27 +163,40 @@ function Invoke-SafeguardAssetSshHostKeyDiscovery
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
 
-    if (($Asset -as [int]) -or ($Asset -as [string]))
+    if (($Asset -as [int]) -or ($Asset -is [string]))
     {
-        $Asset = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Asset)
+        $local:AssetObj = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Asset)
+    }
+    elseif ($Asset -is [array])
+    {
+        $local:AssetObj = $Asset[0]
+    }
+    else
+    {
+        $local:AssetObj = $Asset
     }
 
     Write-Host "Discovering SSH host key..."
     $local:SshHostKey = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-                            POST "Assets/$($Asset.Id)/DiscoverSshHostKey")
-    $Asset.SshHostKey = $local:SshHostKey.SshHostKey
+                             POST "Assets/$($local:AssetObj.Id)/DiscoverSshHostKey")
+    if (-not $local:SshHostKey)
+    {
+        throw "SshHostKey not found on asset: $($local:AssetObj.Name)"
+    }
+    $local:AssetObj.SshHostKey = $local:SshHostKey.SshHostKey
     if ($AcceptSshHostKey)
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-            PUT "Assets/$($Asset.Id)" -Body $Asset
+            PUT "Assets/$($local:AssetObj.Id)" -Body $local:AssetObj
     }
     else
     {
         if (Show-SshHostKeyPrompt $local:SshHostKey.SshHostKey $local:SshHostKey.Fingerprint)
         {
             Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-                PUT "Assets/$($Asset.Id)" -Body $Asset
+                PUT "Assets/$($local:AssetObj.Id)" -Body $local:AssetObj
         }
         else
         {
@@ -468,7 +518,7 @@ function New-SafeguardAsset
     catch
     {
         Write-Host -ForegroundColor Yellow "Error setting up SSH host key, removing asset..."
-        Remove-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Asset.Id
+        Remove-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $NewAsset.Id
         throw
     }
 }
