@@ -1,6 +1,7 @@
 # Helper
 function Resolve-SafeguardGroupId
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -49,6 +50,7 @@ function Resolve-SafeguardGroupId
 }
 function Get-SafeguardGroup
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -87,6 +89,7 @@ function Get-SafeguardGroup
 }
 function New-SafeguardGroup
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -122,6 +125,7 @@ function New-SafeguardGroup
 }
 function Remove-SafeguardGroup
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -188,6 +192,7 @@ Get-SafeguardUserGroup "Web Server Admins"
 #>
 function Get-SafeguardUserGroup
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -342,6 +347,7 @@ Remove-SafeguardAssetGroup "Server Admins"
 #>
 function Remove-SafeguardUserGroup
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -395,6 +401,7 @@ Get-SafeguardAssetGroup "Linux Servers"
 #>
 function Get-SafeguardAssetGroup
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -450,6 +457,7 @@ New-SafeguardAssetGroup "LinuxMachines" "Some machines in my lab running Ubuntu"
 #>
 function New-SafeguardAssetGroup
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -503,6 +511,7 @@ Remove-SafeguardAssetGroup "Linux Servers"
 #>
 function Remove-SafeguardAssetGroup
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -556,6 +565,7 @@ Get-SafeguardAccountGroup "Linux Root Accounts"
 #>
 function Get-SafeguardAccountGroup
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -610,6 +620,7 @@ New-SafeguardAccountGroup "B_OracleServerRoots" "Root accounts for all oracle se
 #>
 function New-SafeguardAccountGroup
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -663,6 +674,7 @@ Remove-SafeguardAccountGroup "Linux Root Accounts"
 #>
 function Remove-SafeguardAccountGroup
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,

@@ -1,6 +1,7 @@
 # Helper
 function Invoke-ArchiveServerSshHostKeyDiscovery
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -74,6 +75,7 @@ Get-SafeguardArchiveServer
 #>
 function Get-SafeguardArchiveServer
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -160,6 +162,7 @@ New-SafeguardArchiveServer smb1.domain.corp Smb -Domain domain.corp archie -Stor
 #>
 function New-SafeguardArchiveServer
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -309,6 +312,7 @@ Test-SafeguardArchiveServer 5
 #>
 function Test-SafeguardArchiveServer
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -374,6 +378,7 @@ Remove-SafeguardArchiveServer 5
 #>
 function Remove-SafeguardArchiveServer
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,

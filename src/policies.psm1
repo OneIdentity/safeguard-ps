@@ -1,6 +1,7 @@
 # Helper
 function Resolve-SafeguardPolicyAssetId
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -51,6 +52,7 @@ function Resolve-SafeguardPolicyAssetId
 }
 function Resolve-SafeguardPolicyAccountId
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -142,6 +144,7 @@ Get-SafeguardPolicyAsset "example.domain"
 #>
 function Get-SafeguardPolicyAsset
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -203,6 +206,7 @@ Find-SafeguardPolicyAsset "HP-UX"
 #>
 function Find-SafeguardPolicyAsset
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -263,6 +267,7 @@ Get-SafeguardPolicyAccount "aix232lc.my.domain" "dbadmin"
 #>
 function Get-SafeguardPolicyAccount
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -342,6 +347,7 @@ Find-SafeguardPolicyAccount "root"
 #>
 function Find-SafeguardPolicyAccount
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,

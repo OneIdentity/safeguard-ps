@@ -27,6 +27,7 @@ Get-SafeguardStatus -Appliance 10.5.32.54 -Insecure
 #>
 function Get-SafeguardStatus
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -69,6 +70,7 @@ Get-SafeguardVersion -Appliance 10.5.32.54 -Insecure
 #>
 function Get-SafeguardVersion
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -110,6 +112,7 @@ Get-SafeguardApplianceVerification -Appliance 10.5.32.54 -Insecure
 #>
 function Get-SafeguardApplianceVerification
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -151,6 +154,7 @@ Get-SafeguardTime -Appliance 10.5.32.54 -Insecure
 #>
 function Get-SafeguardTime
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -197,6 +201,7 @@ Get-SafeguardHealth -Appliance 10.5.32.54 -AccessToken $token -Insecure
 #>
 function Get-SafeguardHealth
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -241,6 +246,7 @@ Get-SafeguardName -Appliance 10.5.32.54 -Insecure
 #>
 function Get-SafeguardApplianceName
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -290,6 +296,7 @@ Get-SafeguardName -Appliance 10.5.32.54 -AccessToken $token -Insecure
 #>
 function Set-SafeguardApplianceName
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -344,6 +351,7 @@ Get-SafeguardName -Appliance 10.5.32.54 -AccessToken $token -Insecure -Force "Be
 #>
 function Invoke-SafeguardApplianceShutdown
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -423,6 +431,7 @@ Get-SafeguardName -Appliance 10.5.32.54 -AccessToken $token -Insecure -Force "Be
 #>
 function Invoke-SafeguardApplianceReboot
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -500,6 +509,7 @@ Get-SafeguardName -Appliance 10.5.32.54 -AccessToken $token -Insecure -Force "Be
 #>
 function Invoke-SafeguardApplianceFactoryReset
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -589,6 +599,7 @@ Get-SafeguardSupportBundle -Appliance 10.5.32.54 -AccessToken $token
 #>
 function Get-SafeguardSupportBundle
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -747,6 +758,7 @@ Install-SafeguardPatch -AccessToken $token -Patch XX.sgp -Appliance 10.5.32.54.
 #>
 function Install-SafeguardPatch
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -903,6 +915,7 @@ New-SafeguardBackup -Appliance 10.5.32.54 -AccessToken $token -Insecure
 #>
 function New-SafeguardBackup
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -953,6 +966,7 @@ Remove-SafeguardBackup -Appliance 10.5.32.54 -AccessToken $token -Insecure
 #>
 function Remove-SafeguardBackup
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -1017,6 +1031,7 @@ Export-SafeguardBackup -AccessToken $token -Appliance 10.5.32.54 f1f42734-e0ea-4
 #>
 function Export-SafeguardBackup
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -1157,6 +1172,7 @@ Import-SafeguardBackup -AccessToken $token -Appliance 10.5.32.54 sg-backup.sgb
 #>
 function Import-SafeguardBackup
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -1283,6 +1299,7 @@ Restore-SafeguardBackup -Appliance 10.5.32.54 -AccessToken $token -Insecure
 #>
 function Restore-SafeguardBackup
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -1345,6 +1362,7 @@ Save-SafeguardBackupToArchive -Appliance 10.5.32.54 -AccessToken $token -Insecur
 #>
 function Save-SafeguardBackupToArchive
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -1412,6 +1430,7 @@ Get-SafeguardBackup -Appliance 10.5.32.54 -AccessToken $token -Insecure
 #>
 function Get-SafeguardBackup
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -1464,6 +1483,7 @@ Get-SafeguardBmcConfiguration -Appliance 10.5.32.54 -AccessToken $token -Insecur
 #>
 function Get-SafeguardBmcConfiguration
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -1522,6 +1542,7 @@ Enable-SafeguardBmcConfiguration 10.10.10.233 255.255.255.0 10.10.10.1 -Password
 #>
 function Enable-SafeguardBmcConfiguration
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -1591,6 +1612,7 @@ Disable-SafeguardBmcConfiguration -Appliance 10.5.32.54 -AccessToken $token -Ins
 #>
 function Disable-SafeguardBmcConfiguration
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -1641,6 +1663,7 @@ Set-SafeguardBmcAdminPassword (ConvertTo-SecureString -AsPlainText -Force "reall
 #>
 function Set-SafeguardBmcAdminPassword
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,

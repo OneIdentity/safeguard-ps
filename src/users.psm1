@@ -1,6 +1,7 @@
 # Helper
 function Resolve-SafeguardUserId
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -81,6 +82,7 @@ Get-SafeguardIdentityProvider
 #>
 function Get-SafeguardIdentityProvider
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -158,6 +160,7 @@ New-SafeguardStarling2faAuthentication "Company 2FA" $ApiKey
 #>
 function New-SafeguardStarling2faAuthentication
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -222,6 +225,7 @@ Get-SafeguardUser 123
 #>
 function Get-SafeguardUser
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -281,6 +285,7 @@ Find-SafeguardUser "Peterson"
 #>
 function Find-SafeguardUser
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -369,6 +374,7 @@ New-SafeguardUser local petrsnd -AdminRoles 'AssetAdmin','ApplianceAdmin'
 #>
 function New-SafeguardUser
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -524,6 +530,7 @@ Remove-SafeguardUser 123
 #>
 function Remove-SafeguardUser
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -588,6 +595,7 @@ Set-SafeguardUserPassword 123 $newpassword
 #>
 function Set-SafeguardUserPassword
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -791,6 +799,7 @@ Enable-SafeguardUser 123
 #>
 function Enable-SafeguardUser
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -852,6 +861,7 @@ Disable-SafeguardUser 123
 #>
 function Disable-SafeguardUser
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -916,6 +926,7 @@ Rename-SafeguardUser 123 "bob jackson"
 #>
 function Rename-SafeguardUser
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,

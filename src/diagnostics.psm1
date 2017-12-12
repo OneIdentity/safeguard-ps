@@ -32,6 +32,7 @@ Invoke-SafeguardPing -AccessToken $token -Appliance 10.5.32.54 -Insecure 10.5.33
 #>
 function Invoke-SafeguardPing
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -85,6 +86,7 @@ Invoke-SafeguardSessionsPing -AccessToken $token -Appliance 10.5.32.54 -Insecure
 #>
 function Invoke-SafeguardSessionsPing
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -141,6 +143,7 @@ Invoke-SafeguardTelnet -AccessToken $token -Appliance 10.5.32.54 -Insecure 10.5.
 #>
 function Invoke-SafeguardTelnet
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -200,6 +203,7 @@ Invoke-SafeguardSessionsPing -AccessToken $token -Appliance 10.5.32.54 -Insecure
 #>
 function Invoke-SafeguardSessionsTelnet
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,

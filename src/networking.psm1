@@ -33,6 +33,7 @@ Get-SafeguardNetworkInterface
 #>
 function Get-SafeguardNetworkInterface
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -120,6 +121,7 @@ Set-SafeguardNetworkInterface X0 -Ipv4Address "10.1.1.162" -Ipv4NetMask "255.255
 #>
 function Set-SafeguardNetworkInterface
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -226,6 +228,7 @@ Get-SafeguardNetworkInterface
 #>
 function Get-SafeguardDnsSuffix
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -280,6 +283,7 @@ Get-SafeguardNetworkInterface X1 "example.com","help.com"
 #>
 function Set-SafeguardDnsSuffix
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,

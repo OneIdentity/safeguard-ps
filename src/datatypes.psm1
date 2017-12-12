@@ -1,6 +1,7 @@
 # Helpers (also imported locally and used in other modules)
 function Resolve-SafeguardPlatform
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -57,7 +58,13 @@ function Resolve-SafeguardPlatform
 }
 function Resolve-SafeguardServiceAccountCredentialType
 {
+    [CmdletBinding()]
+    Param(
+    )
+
     $ErrorActionPreference = "Stop"
+    Write-Host $PSBoundParameters
+    Write-Host $PSCmdlet
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:CredentialTypes = @(
@@ -122,6 +129,7 @@ Get-SafeguardIdentityProviderType
 #>
 function Get-SafeguardIdentityProviderType
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -180,6 +188,7 @@ Get-SafeguardPlatform
 #>
 function Get-SafeguardPlatform
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -239,6 +248,7 @@ Find-SafeguardPlatform
 #>
 function Find-SafeguardPlatform
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -303,6 +313,7 @@ Get-SafeguardTimeZone
 #>
 function Get-SafeguardTimeZone
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -361,6 +372,7 @@ Get-SafeguardTransferProtocol Smb
 #>
 function Get-SafeguardTransferProtocol
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,

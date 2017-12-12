@@ -235,6 +235,7 @@ safeguard-ps can do run:
 - New-SafeguardAssetAccountRandomPassword
 - Test-SafeguardAssetAccountPassword
 - Invoke-SafeguardAssetAccountPasswordChange
+- Invoke-SafeguardAssetSshHostKeyDiscovery
 ### Directories
 - Get-SafeguardDirectory
 - New-SafeguardDirectory

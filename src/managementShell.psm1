@@ -1,27 +1,34 @@
 ﻿function Get-SafeguardCommand
-{    
-	if ($args[0] -eq $null)
-	{
-		get-command -Module 'safeguard-ps'
-	}
-	else
-	{
-        get-command -Name $args[0] -Module 'safeguard-ps'
-	}
+{
+    [CmdletBinding()]
+    Param(
+    )
 
+    if ($args[0] -eq $null)
+    {
+        Get-Command -Module 'safeguard-ps'
+    }
+    else
+    {
+        Get-Command -Name $args[0] -Module 'safeguard-ps'
+    }
 }
 
 function Get-SafeguardBanner
 {
-	clear
+    [CmdletBinding()]
+    Param(
+    )
 
-	write-host "`nWelcome to Safeguard PowerShell Management Shell`n"
+    Clear-Host
 
-	write-host " Full list of cmdlets:         " -no 
-	write-host -fore Yellow "Get-Command"
+    Write-Host "`nWelcome to Safeguard PowerShell Management Shell`n"
 
-	write-host " Only Safeguard cmdlets:       " -no
-	write-host -fore Yellow "Get-SafeguardCommand"
+    Write-Host " Full list of cmdlets:         " -no
+    Write-Host -fore Yellow "Get-Command"
 
-    write-host "`n"
+    Write-Host " Only Safeguard cmdlets:       " -no
+    Write-Host -fore Yellow "Get-SafeguardCommand"
+
+    Write-Host "`n"
 }

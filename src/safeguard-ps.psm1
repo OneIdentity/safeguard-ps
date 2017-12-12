@@ -11,6 +11,7 @@ $script:ClientId = "00000000-0000-0000-0000-000000000000"
 $script:RedirectUri = "urn%3AInstalledApplication"
 function Show-RstsWindow
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Appliance
@@ -50,6 +51,7 @@ function Show-RstsWindow
 }
 function Get-RstsTokenFromGui
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Appliance
@@ -79,6 +81,7 @@ function Get-RstsTokenFromGui
 }
 function New-SafeguardUrl
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Appliance,
@@ -108,6 +111,7 @@ function New-SafeguardUrl
 }
 function Wait-LongRunningTask
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [object]$Response,
@@ -163,6 +167,7 @@ function Wait-LongRunningTask
 }
 function Invoke-WithoutBody
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Appliance,
@@ -223,6 +228,7 @@ function Invoke-WithoutBody
 }
 function Invoke-WithBody
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Appliance,
@@ -800,6 +806,7 @@ Invoke-SafeguardMethod PUT ReasonCodes/1 -Body @{ Name = "RN2233"; Description =
 #>
 function Invoke-SafeguardMethod
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -1058,6 +1065,10 @@ Update-SafeguardAccessToken
 #>
 function Update-SafeguardAccessToken
 {
+    [CmdletBinding()]
+    Param(
+    )
+
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
@@ -1123,6 +1134,7 @@ Get-SafeguardLoggedInUser
 #>
 function Get-SafeguardLoggedInUser
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,

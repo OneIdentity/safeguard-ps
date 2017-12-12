@@ -1,6 +1,7 @@
 # Helper
 function Resolve-SafeguardAssetId
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -51,6 +52,7 @@ function Resolve-SafeguardAssetId
 }
 function Resolve-SafeguardAssetAccountId
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -104,8 +106,48 @@ function Resolve-SafeguardAssetAccountId
         $Account
     }
 }
-function Invoke-AssetSshHostKeyDiscovery
+
+<#
+.SYNOPSIS
+Discover SSH host key by connecting to asset managed by Safeguard via the Web API.
+
+.DESCRIPTION
+This cmdlet will cause Safeguard to connect to a previously configured asset
+to get its SSH host key.  By default, this cmdlet will prompt whether or not you
+would like to accept the discovered SSH host key.  This can be overridden to
+automatically accept using the AcceptSshHostKey flag.  If the key is accepted
+this cmdlet will update Safeguard with the accepted key.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Asset
+An integer containing the ID of the asset or a string containing the name.
+
+.PARAMETER AcceptSshHostKey
+Whether or not to automatically accept the SSH host key that is discovered.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Invoke-SafeguardAsset -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Invoke-SafeguardAsset linux123.internal.com
+#>
+function Invoke-SafeguardAssetSshHostKeyDiscovery
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -121,22 +163,40 @@ function Invoke-AssetSshHostKeyDiscovery
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+
+    if (($Asset -as [int]) -or ($Asset -is [string]))
+    {
+        $local:AssetObj = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Asset)
+    }
+    elseif ($Asset -is [array])
+    {
+        $local:AssetObj = $Asset[0]
+    }
+    else
+    {
+        $local:AssetObj = $Asset
+    }
 
     Write-Host "Discovering SSH host key..."
     $local:SshHostKey = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-                       POST "Assets/$($Asset.Id)/DiscoverSshHostKey")
-    $Asset.SshHostKey = $local:SshHostKey.SshHostKey
+                             POST "Assets/$($local:AssetObj.Id)/DiscoverSshHostKey")
+    if (-not $local:SshHostKey)
+    {
+        throw "SshHostKey not found on asset: $($local:AssetObj.Name)"
+    }
+    $local:AssetObj.SshHostKey = $local:SshHostKey.SshHostKey
     if ($AcceptSshHostKey)
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-            PUT "Assets/$($Asset.Id)" -Body $Asset
+            PUT "Assets/$($local:AssetObj.Id)" -Body $local:AssetObj
     }
     else
     {
         if (Show-SshHostKeyPrompt $local:SshHostKey.SshHostKey $local:SshHostKey.Fingerprint)
         {
             Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-                PUT "Assets/$($Asset.Id)" -Body $Asset
+                PUT "Assets/$($local:AssetObj.Id)" -Body $local:AssetObj
         }
         else
         {
@@ -179,6 +239,7 @@ Get-SafeguardAsset
 #>
 function Get-SafeguardAsset
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -238,6 +299,7 @@ Find-SafeguardAsset "linux.company.corp"
 #>
 function Find-SafeguardAsset
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -303,6 +365,9 @@ A SecureString containing the password to use for the service account.
 .PARAMETER ServiceAccountSecretKey
 A string containing an API access key for the service account.
 
+.PARAMETER NoSshHostKeyDiscovery
+Whether or not to skip SSH host key discovery for platforms that support it.
+
 .PARAMETER AcceptSshHostKey
 Whether or not to auto-accept SSH host key for platforms that support it.
 
@@ -320,6 +385,7 @@ New-SafeguardAsset winserver.domain.corp 31 archie
 #>
 function New-SafeguardAsset
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -350,6 +416,8 @@ function New-SafeguardAsset
         [SecureString]$ServiceAccountPassword,
         [Parameter(Mandatory=$false)]
         [string]$ServiceAccountSecretKey,
+        [Parameter(Mandatory=$false)]
+        [switch]$NoSshHostKeyDiscovery = $false,
         [Parameter(Mandatory=$false)]
         [switch]$AcceptSshHostKey = $false
     )
@@ -438,9 +506,9 @@ function New-SafeguardAsset
 
     try
     {
-        if ($local:NewAsset.Platform.ConnectionProperties.SupportsSshTransport)
+        if ($local:NewAsset.Platform.ConnectionProperties.SupportsSshTransport -and -not $NoSshHostKeyDiscovery)
         {
-            Invoke-AssetSshHostKeyDiscovery -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:NewAsset -AcceptSshHostKey:$AcceptSshHostKey
+            Invoke-SafeguardAssetSshHostKeyDiscovery -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:NewAsset -AcceptSshHostKey:$AcceptSshHostKey
         }
         else
         {
@@ -450,7 +518,7 @@ function New-SafeguardAsset
     catch
     {
         Write-Host -ForegroundColor Yellow "Error setting up SSH host key, removing asset..."
-        Remove-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Asset.Id
+        Remove-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $NewAsset.Id
         throw
     }
 }
@@ -490,6 +558,7 @@ Test-SafeguardAsset 5
 #>
 function Test-SafeguardAsset
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -548,6 +617,7 @@ Remove-SafeguardAsset 5
 #>
 function Remove-SafeguardAsset
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -757,6 +827,7 @@ Get-SafeguardAssetAccount -AccountToGet oracle
 #>
 function Get-SafeguardAssetAccount
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -834,6 +905,7 @@ Find-SafeguardAssetAccount "root"
 #>
 function Find-SafeguardAssetAccount
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -893,6 +965,7 @@ New-SafeguardAssetAccount linux.server.corp oracle -Description "Oracle database
 #>
 function New-SafeguardAssetAccount
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -1061,6 +1134,7 @@ Set-SafeguardAssetAccountPassword -AccountToSet oracle -NewPassword $pass
 #>
 function Set-SafeguardAssetAccountPassword
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -1135,6 +1209,7 @@ New-SafeguardAssetAccountRandomPassword -AccountToUse oracle
 #>
 function New-SafeguardAssetAccountRandomPassword
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -1200,6 +1275,7 @@ Test-SafeguardAssetAccountPassword -AccountToUse oracle
 #>
 function Test-SafeguardAssetAccountPassword
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -1265,6 +1341,7 @@ Invoke-SafeguardAssetAccountPasswordChange -AccountToUse oracle
 #>
 function Invoke-SafeguardAssetAccountPasswordChange
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -1330,6 +1407,7 @@ Remove-SafeguardAssetAccount computer.domain.com root
 #>
 function Remove-SafeguardAssetAccount
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,

@@ -2,6 +2,7 @@
 # Nothing is exported from here
 function Wait-SafeguardOnlineStatus
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -37,6 +38,7 @@ function Wait-SafeguardOnlineStatus
 
 function Wait-ForSessionModuleState
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,

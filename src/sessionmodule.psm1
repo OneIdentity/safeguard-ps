@@ -1,6 +1,7 @@
 # Helpers
 function Resolve-CertificateTypeParameter
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Type
@@ -57,6 +58,7 @@ Get-SafeguardSessionContainerStatus
 #>
 function Get-SafeguardSessionContainerStatus
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -123,6 +125,7 @@ Get-SafeguardSessionModuleStatus
 #>
 function Get-SafeguardSessionModuleStatus
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -187,6 +190,7 @@ Get-SafeguardSessionModuleVersion
 #>
 function Get-SafeguardSessionModuleVersion
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -232,6 +236,7 @@ Reset-SafeguardSessionModule
 #>
 function Reset-SafeguardSessionModule
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -286,6 +291,7 @@ Repair-SafeguardSessionModule
 #>
 function Repair-SafeguardSessionModule
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -493,6 +499,7 @@ Reset-SafeguardSessionCertificate TimeStamping
 #>
 function Reset-SafeguardSessionCertificate
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -636,6 +643,7 @@ Set-SafeguardSessionSshAlgorithms ServerSide Cipher 3des-cbc,arcfour,aes128-ctr,
 #>
 function Set-SafeguardSessionSshAlgorithms
 {
+    [CmdletBinding()] 
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -716,6 +724,7 @@ Add-SafeguardSessionSshAlgorithm ServerSide Cipher 3des-cbc
 #>
 function Add-SafeguardSessionSshAlgorithm
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -795,6 +804,7 @@ Remove-SafeguardSessionSshAlgorithm ServerSide Cipher 3des-cbc
 #>
 function Remove-SafeguardSessionSshAlgorithm
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
