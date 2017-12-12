@@ -2,6 +2,10 @@
 # Nothing is exported from here
 function Disable-SslVerification
 {
+    [CmdletBinding()]
+    Param(
+    )
+
     if (-not ([System.Management.Automation.PSTypeName]"TrustEverything").Type)
     {
         Add-Type -TypeDefinition  @"
@@ -20,6 +24,10 @@ public static class TrustEverything
 }
 function Enable-SslVerification
 {
+    [CmdletBinding()]
+    Param(
+    )
+
     if (([System.Management.Automation.PSTypeName]"TrustEverything").Type)
     {
         [TrustEverything]::UnsetCallback()
@@ -27,6 +35,10 @@ function Enable-SslVerification
 }
 function Edit-SslVersionSupport
 {
+    [CmdletBinding()]
+    Param(
+    )
+
     # Remove SSLv3, if present
     if ([bool]([System.Net.ServicePointManager]::SecurityProtocol -band [System.Net.SecurityProtocolType]::Ssl3))
     {

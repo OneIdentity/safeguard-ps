@@ -4,6 +4,7 @@
 # Confirmation helper function
 function Get-Confirmation
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Title,
@@ -28,6 +29,7 @@ function Get-Confirmation
 # Show an SSH host key acceptance prompt
 function Show-SshHostKeyPrompt
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [string]$PublicKey,
@@ -44,6 +46,10 @@ function Show-SshHostKeyPrompt
 # Add web client type with controllable timeout
 function Add-ExWebClientExType
 {
+    [CmdletBinding()]
+    Param(
+    )
+
     if (-not ([System.Management.Automation.PSTypeName]"Ex.WebClientEx").Type)
     {
         Add-Type -WarningAction SilentlyContinue -TypeDefinition @"
@@ -74,6 +80,7 @@ namespace Ex
 # Test whether a string is an IP address
 function Test-IpAddress
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true)]
         [string]$IpAddress
@@ -85,6 +92,7 @@ function Test-IpAddress
 # Certificate helper function
 function Get-CertificateFileContents
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true, Position=0)]
         [string]$CertificateFile
@@ -118,6 +126,7 @@ function Get-CertificateFileContents
 # Helper function for finding tools to generate certificates
 function Get-Tool
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true, Position=0)]
         [string[]]$Paths,

@@ -1,6 +1,7 @@
 # Helpers
 function Resolve-SafeguardRequestableAssetId
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -51,6 +52,7 @@ function Resolve-SafeguardRequestableAssetId
 }
 function Resolve-SafeguardRequestableAccountId
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -128,6 +130,7 @@ JSON response from Safeguard Web API.
 #>
 function Get-SafeguardAccessRequest
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -180,6 +183,7 @@ JSON response from Safeguard Web API.
 #>
 function Find-SafeguardAccessRequest
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -232,6 +236,7 @@ JSON response from Safeguard Web API.
 #>
 function New-SafeguardAccessRequest
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -302,6 +307,7 @@ JSON response from Safeguard Web API.
 #>
 function Edit-SafeguardAccessRequest
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -373,6 +379,7 @@ JSON response from Safeguard Web API.
 #>
 function Get-SafeguardActionableRequest
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -433,6 +440,7 @@ JSON response from Safeguard Web API.
 #>
 function Get-SafeguardRequestableAccount
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -477,6 +485,7 @@ JSON response from Safeguard Web API.
 #>
 function Find-SafeguardRequestableAccount
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,

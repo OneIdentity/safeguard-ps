@@ -33,6 +33,7 @@ Install-SafeguardTrustedCertificate "\\someserver.corp\share\Cert Root CA.cer"
 #>
 function Install-SafeguardTrustedCertificate
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -95,6 +96,7 @@ Uninstall-SafeguardTrustedCertificate -Thumbprint 3E1A99AE7ACFB163DEE3CCAC00A437
 #>
 function Uninstall-SafeguardTrustedCertificate
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -153,6 +155,7 @@ Get-SafeguardTrustedCertificate
 #>
 function Get-SafeguardTrustedCertificate
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -219,6 +222,7 @@ Install-SafeguardSslCertificate -CertificateFile C:\cert.pfx
 #>
 function Install-SafeguardSslCertificate
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -310,6 +314,7 @@ Uninstall-SafeguardSslCertificate -Thumbprint 3E1A99AE7ACFB163DEE3CCAC00A437D675
 #>
 function Uninstall-SafeguardSslCertificate
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -368,6 +373,7 @@ Get-SafeguardSslCertificate
 #>
 function Get-SafeguardSslCertificate
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -430,6 +436,7 @@ Set-SafeguardSslCertificateForAppliance -Thumbprint 3E1A99AE7ACFB163DEE3CCAC00A4
 #>
 function Set-SafeguardSslCertificateForAppliance
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -506,6 +513,7 @@ Clear-SafeguardSslCertificateForAppliance -Thumbprint 3E1A99AE7ACFB163DEE3CCAC00
 #>
 function Clear-SafeguardSslCertificateForAppliance
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -579,6 +587,7 @@ Get-SafeguardSslCertificateForAppliance -ApplianceId 00155D26E342
 #>
 function Get-SafeguardSslCertificateForAppliance
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -642,6 +651,7 @@ New-SafeguardTestCertificates
 #>
 function New-SafeguardTestCertificatePki
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true)]
         [string]$SubjectBaseDn,

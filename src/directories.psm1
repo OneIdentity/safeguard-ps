@@ -1,6 +1,7 @@
 # Helper
 function Resolve-SafeguardDirectoryId
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -56,6 +57,7 @@ function Resolve-SafeguardDirectoryId
 }
 function Get-SafeguardDirectoryDomains
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -74,6 +76,7 @@ function Get-SafeguardDirectoryDomains
 }
 function Resolve-SafeguardDirectoryAccountId
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -164,6 +167,7 @@ Get-SafeguardDirectory x.domain.corp
 #>
 function Get-SafeguardDirectory
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -379,6 +383,7 @@ Test-SafeguardDirectory internal.domain.corp
 #>
 function Test-SafeguardDirectory
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -437,6 +442,7 @@ Remove-SafeguardDirectory internal.domain.corp
 #>
 function Remove-SafeguardDirectory
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -647,6 +653,7 @@ Sync-SafeguardDirectory internal.domain.corp
 #>
 function Sync-SafeguardDirectory
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -709,6 +716,7 @@ Get-SafeguardDirectoryAccount -AccountToGet adm-domain-a
 #>
 function Get-SafeguardDirectoryAccount
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -786,6 +794,7 @@ Find-SafeguardDirectoryAccount "-adm"
 #>
 function Find-SafeguardDirectoryAccount
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -848,6 +857,7 @@ New-SafeguardDirectoryAccount ldap.company.corp administrator -DistinguishedName
 #>
 function New-SafeguardDirectoryAccount
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -945,6 +955,7 @@ Set-SafeguardDirectoryAccountPassword -AccountToSet oracle -NewPassword $pass
 #>
 function Set-SafeguardDirectoryAccountPassword
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -1019,6 +1030,7 @@ New-SafeguardDirectoryAccountRandomPassword -AccountToUse administrator
 #>
 function New-SafeguardDirectoryAccountRandomPassword
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -1084,6 +1096,7 @@ Test-SafeguardDirectoryAccountPassword -AccountToUse administrator
 #>
 function Test-SafeguardDirectoryAccountPassword
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -1149,6 +1162,7 @@ Invoke-SafeguardDomainAccountPasswordChange -AccountToUse administrator
 #>
 function Invoke-SafeguardDirectoryAccountPasswordChange
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -1214,6 +1228,7 @@ Remove-SafeguardDirectoryAccount my.domain.com administrator
 #>
 function Remove-SafeguardDirectoryAccount
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,

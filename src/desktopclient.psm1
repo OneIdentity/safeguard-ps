@@ -20,6 +20,7 @@ None.
 #>
 function Install-SafeguardDesktopClient
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false,Position=0)]
         [string]$Appliance,

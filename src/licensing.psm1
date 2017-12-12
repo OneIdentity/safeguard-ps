@@ -131,6 +131,7 @@ Uninstall-SafeguardLicense -Key "123-123-123"
 #>
 function Uninstall-SafeguardLicense
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -183,6 +184,7 @@ Get-SafeguardLicense -AccessToken $token -Appliance 10.5.32.54
 #>
 function Get-SafeguardLicense
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
