@@ -70,7 +70,7 @@ function Install-SafeguardDesktopClient
 
     # Clear Safeguard Client Updates
     $Installers = @(Get-ChildItem -Path "$env:LOCALAPPDATA\Pangaea\Safeguard" -Filter "*.msi" -Recurse -EA SilentlyContinue) + `
-                    @(Get-ChildItem -Path "$env:LOCALAPPDATA\Pangaea\Safeguard" -Filter "*.msi" -Recurse -EA SilentlyContinue)
+                    @(Get-ChildItem -Path "$env:LOCALAPPDATA\Safeguard\Updates" -Filter "*.msi" -Recurse -EA SilentlyContinue)
     foreach ($installer in $Installers)
     {
         Write-Host "Removing: $($installer.FullName)"
