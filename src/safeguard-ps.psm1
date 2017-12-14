@@ -411,6 +411,7 @@ function Connect-Safeguard
         {
             Disable-SslVerification
         }
+
         if ($Gui)
         {
             $local:RstsResponse = (Get-RstsTokenFromGui $Appliance)
@@ -424,6 +425,13 @@ function Connect-Safeguard
                                               -Headers @{ "Content-type" = "application/x-www-form-urlencoded" } `
                                               -Body "RelayState=" `
                                               -ErrorAction SilentlyContinue).Providers.Id
+            }
+            catch [Net.WebException]
+            {
+                if ($_.Exception.Status -eq "ConnectFailure")
+                {
+                    throw "Unable to connect to $Appliance, bad appliance network address?"
+                }
             }
             catch
             {}
@@ -849,7 +857,7 @@ function Invoke-SafeguardMethod
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($SafeguardSession)
+    if (-not ($PSBoundParameters.ContainsKey("Insecure")) -and $SafeguardSession)
     {
         $Insecure = $SafeguardSession["Insecure"]
     }
@@ -933,6 +941,16 @@ function Invoke-SafeguardMethod
                 break
             }
         }
+    }
+    catch
+    {
+        $_.Exception | Format-List * -Force | Out-String | Write-Verbose
+        if ($_.Exception.InnerException)
+        {
+            Write-Verbose "---Inner Exception---"
+            $_.Exception.InnerException | Format-List * -Force | Out-String | Write-Verbose
+        }
+        throw $_.Exception
     }
     finally
     {
