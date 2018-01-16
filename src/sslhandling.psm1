@@ -8,6 +8,7 @@ function Disable-SslVerification
 
     if (-not ([System.Management.Automation.PSTypeName]"TrustEverything").Type)
     {
+        Write-Verbose "Adding the PSType for SSL trust override"
         Add-Type -TypeDefinition  @"
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
@@ -20,6 +21,7 @@ public static class TrustEverything
 }
 "@
     }
+    Write-Verbose "Adding the trust everything callback"
     [TrustEverything]::SetCallback()
 }
 function Enable-SslVerification
@@ -30,6 +32,7 @@ function Enable-SslVerification
 
     if (([System.Management.Automation.PSTypeName]"TrustEverything").Type)
     {
+        Write-Verbose "Removing the trust everything callback"
         [TrustEverything]::UnsetCallback()
     }
 }
@@ -39,6 +42,7 @@ function Edit-SslVersionSupport
     Param(
     )
 
+    Write-Verbose "Configuring SSL version support to be secure"
     # Remove SSLv3, if present
     if ([bool]([System.Net.ServicePointManager]::SecurityProtocol -band [System.Net.SecurityProtocolType]::Ssl3))
     {
