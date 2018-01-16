@@ -267,7 +267,7 @@ function Invoke-WithBody
     $local:Url = (New-SafeguardUrl $Appliance $Service $Version $RelativeUrl -Parameters $Parameters)
     Write-Verbose "Url=$($local:Url)"
     Write-Verbose "Parameters=$(ConvertTo-Json -InputObject $Parameters)"
-    Write-Verbose "Body=$($local:Body)"
+    Write-Verbose "Body=$($local:BodyInternal)"
     if ($LongRunningTask)
     {
         $local:Response = (Invoke-WebRequest -Method $Method -Headers $Headers -Uri $local:Url `
@@ -859,6 +859,9 @@ function Invoke-SafeguardMethod
 
     if (-not ($PSBoundParameters.ContainsKey("Insecure")) -and $SafeguardSession)
     {
+        # This only covers the case where Invoke-SafeguardMethod is called directly.
+        # All script callers in the module will specify the flag, e.g. -Insecure:$Insecure
+        # which will not hit this code.
         $Insecure = $SafeguardSession["Insecure"]
     }
     if (-not $AccessToken -and -not $Anonymous -and -not $SafeguardSession)
@@ -874,6 +877,8 @@ function Invoke-SafeguardMethod
         if (-not $Appliance -and $SafeguardSession)
         {
             $Appliance = $SafeguardSession["Appliance"]
+            # if using session variable also inherit trust status
+            $Insecure = $SafeguardSession["Insecure"]
         }
         if (-not $AccessToken -and $SafeguardSession)
         {
@@ -893,6 +898,8 @@ function Invoke-SafeguardMethod
         if (-not $Appliance -and $SafeguardSession)
         {
             $Appliance = $SafeguardSession["Appliance"]
+            # if using session variable also inherit trust status
+            $Insecure = $SafeguardSession["Insecure"]
         }
         elseif (-not $Appliance)
         {
@@ -900,6 +907,7 @@ function Invoke-SafeguardMethod
         }
     }
 
+    Write-Verbose "Insecure=$Insecure"
     Edit-SslVersionSupport
     if ($Insecure)
     {
