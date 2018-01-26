@@ -256,6 +256,7 @@ safeguard-ps can do run:
 - Get-SafeguardUserGroup
 - New-SafeguardUserGroup
 - Remove-SafeguardUserGroup
+- Edit-SafeguardUserGroup
 - Get-SafeguardAssetGroup
 - New-SafeguardAssetGroup
 - Remove-SafeguardAssetGroup
