@@ -365,3 +365,66 @@ function Find-SafeguardPolicyAccount
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET PolicyAccounts `
         -Parameters @{ q = $SearchString }
 }
+
+<#
+.SYNOPSIS
+Get linked accounts for a user in Safeguard via the Web API.
+
+.DESCRIPTION
+Get the linked accounts for a user that have been added to Safeguard.  Users can log into Safeguard.  All
+users can request access to passwords or sessions based on policy.  Depending
+on permissions (admin roles) some users can manage different aspects of Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER UserToGet
+An integer containing an ID  or a string containing the name of the user for which the linked accounts to return.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardUser -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardUserLinkedAccount petrsnd
+
+.EXAMPLE
+Get-SafeguardUserLinkedAccount 123
+#>
+function Get-SafeguardUserLinkedAccount
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$UserToGet
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    [object[]]$UserLinkedAccounts = $null
+    $local:UserId = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToGet).Id
+    $local:LinkedAccounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Users/$local:UserId/LinkedPolicyAccounts")
+    ForEach ($LinkedAccount in $LinkedAccounts)
+    {
+        $UserLinkedAccounts += (Get-SafeguardDirectoryAccount -DirectoryToGet $LinkedAccount.SystemId -AccountToGet $LinkedAccount.Name)
+    }
+    return $UserLinkedAccounts
+}

@@ -207,6 +207,7 @@ safeguard-ps can do run:
 - Get-SafeguardActionableRequest
 - Get-SafeguardRequestableAccount
 - Find-SafeguardRequestableAccount
+- Get-SafeguardAccessRequestCheckoutPassword
 ### Users
 - Get-SafeguardIdentityProvider
 - New-SafeguardStarling2faAuthentication
@@ -256,6 +257,7 @@ safeguard-ps can do run:
 - Get-SafeguardUserGroup
 - New-SafeguardUserGroup
 - Remove-SafeguardUserGroup
+- Edit-SafeguardUserGroup
 - Get-SafeguardAssetGroup
 - New-SafeguardAssetGroup
 - Remove-SafeguardAssetGroup
@@ -267,3 +269,11 @@ safeguard-ps can do run:
 - Find-SafeguardPolicyAsset
 - Get-SafeguardPolicyAccount
 - Find-SafeguardPolicyAccount
+- Get-SafeguardUserLinkedAccount
+### Permissions
+- Get-SafeguardAccessPolicy
+- Get-SafeguardAccessPolicyScopeItem
+- Get-SafeguardAccessPolicyAccessRequestProperty
+- Get-SafeguardAccessPolicySessionProperty
+- Get-SafeguardRole
+- Get-SafeguardUserRoleReport

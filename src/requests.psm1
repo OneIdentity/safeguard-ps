@@ -127,6 +127,12 @@ None.
 
 .OUTPUTS
 JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardAccessRequest -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardAccessRequest 123
 #>
 function Get-SafeguardAccessRequest
 {
@@ -180,6 +186,12 @@ None.
 
 .OUTPUTS
 JSON response from Safeguard Web API.
+
+.EXAMPLE
+Find-SafeguardAccessRequest 123
+
+.EXAMPLE
+Find-SafeguardAccessRequest -SearchString testString
 #>
 function Find-SafeguardAccessRequest
 {
@@ -233,6 +245,9 @@ None.
 
 .OUTPUTS
 JSON response from Safeguard Web API.
+
+.EXAMPLE
+New-SafeguardAccessRequest testAsset testAccount Password
 #>
 function New-SafeguardAccessRequest
 {
@@ -304,6 +319,12 @@ None.
 
 .OUTPUTS
 JSON response from Safeguard Web API.
+
+.EXAMPLE
+Edit-SafeguardAccessRequest 123 Approve
+
+.EXAMPLE
+Edit-SafeguardAccessRequest 123 Deny -Comment "testComment"
 #>
 function Edit-SafeguardAccessRequest
 {
@@ -376,6 +397,12 @@ None.
 
 .OUTPUTS
 JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardActionableRequest -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardActionableRequest Requester
 #>
 function Get-SafeguardActionableRequest
 {
@@ -437,6 +464,9 @@ None.
 
 .OUTPUTS
 JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardRequestableAccount -AccessToken $token -Appliance 10.5.32.54 -Insecure
 #>
 function Get-SafeguardRequestableAccount
 {
@@ -482,6 +512,9 @@ None.
 
 .OUTPUTS
 JSON response from Safeguard Web API.
+
+.EXAMPLE
+Find-SafeguardRequestableAccount -SearchString testString
 #>
 function Find-SafeguardRequestableAccount
 {
@@ -504,4 +537,54 @@ function Find-SafeguardRequestableAccount
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/RequestableAssets/$($_.Id)/Accounts" `
             -Parameters @{ q = $SearchString }
     }
+}
+
+<#
+.SYNOPSIS
+Checkouts out password for an access request via the Web API.
+
+.DESCRIPTION
+POST to the AccessRequests endpoint.  This script allows you to CheckoutPassword
+on an approved pull request.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER RequestId
+A string containing the ID of the access request.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardAccessRequestCheckoutPassword 123
+#>
+function Get-SafeguardAccessRequestCheckoutPassword
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]$RequestId,
+        [Parameter(Mandatory=$false)]
+        [string]$Comment
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AccessRequests/$RequestId/CheckoutPassword" -Body "$Comment"
 }
