@@ -196,7 +196,7 @@ function Get-SafeguardAccessPolicyScopeItem
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$false,Position=0)]
+        [Parameter(Mandatory=$true,Position=0)]
         [object]$PolicyToGet
     )
 
@@ -204,15 +204,8 @@ function Get-SafeguardAccessPolicyScopeItem
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($PSBoundParameters.ContainsKey("PolicyToGet"))
-    {
-        $local:AccessPolicyId = Resolve-SafeguardAccessPolicyId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $PolicyToGet
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AccessPolicies/$($local:AccessPolicyId)/ScopeItems"
-    }
-    else
-    {
-        throw "'AccessPolicy' paramter is required"
-    }
+    $local:AccessPolicyId = Resolve-SafeguardAccessPolicyId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $PolicyToGet
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AccessPolicies/$($local:AccessPolicyId)/ScopeItems"
 }
 
 <#
@@ -256,7 +249,7 @@ function Get-SafeguardAccessPolicyAccessRequestProperty
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$false,Position=0)]
+        [Parameter(Mandatory=$true,Position=0)]
         [object]$PolicyToGet
     )
 
@@ -264,16 +257,8 @@ function Get-SafeguardAccessPolicyAccessRequestProperty
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($PSBoundParameters.ContainsKey("PolicyToGet"))
-    {
-        $local:AccessPolicyId = Resolve-SafeguardAccessPolicyId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $PolicyToGet
-        $local:AccessPolicy = Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AccessPolicies/$($local:AccessPolicyId)"
-    }
-    else
-    {
-        throw "'AccessPolicy' paramter is required"
-    }
-
+    $local:AccessPolicyId = Resolve-SafeguardAccessPolicyId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $PolicyToGet
+    $local:AccessPolicy = Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AccessPolicies/$($local:AccessPolicyId)"
     return $($local:AccessPolicy).AccessRequestProperties
 }
 
@@ -318,7 +303,7 @@ function Get-SafeguardAccessPolicySessionProperty
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$false,Position=0)]
+        [Parameter(Mandatory=$true,Position=0)]
         [object]$PolicyToGet
     )
 
@@ -326,16 +311,8 @@ function Get-SafeguardAccessPolicySessionProperty
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($PSBoundParameters.ContainsKey("PolicyToGet"))
-    {
-        $local:AccessPolicyId = Resolve-SafeguardAccessPolicyId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $PolicyToGet
-        $local:AccessPolicy = Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AccessPolicies/$($local:AccessPolicyId)"
-    }
-    else
-    {
-        throw "'AccessPolicy' paramter is required"
-    }
-
+    $local:AccessPolicyId = Resolve-SafeguardAccessPolicyId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $PolicyToGet
+    $local:AccessPolicy = Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AccessPolicies/$($local:AccessPolicyId)"
     return $($local:AccessPolicy).SessionProperties
 }
 
@@ -446,16 +423,16 @@ function Get-SafeguardUserRoleReport
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [object[]]$UsersToGet
+        [object[]]$UserToGet
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     [object[]]$Users = $null
-    if ($PSBoundParameters.ContainsKey("UsersToGet"))
+    if ($PSBoundParameters.ContainsKey("UserToGet"))
     {
-        foreach ($User in $UsersToGet)
+        foreach ($User in $UserToGet)
         {
             $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $User)
             $local:Users += $($local:ResolvedUser).Id
@@ -465,7 +442,7 @@ function Get-SafeguardUserRoleReport
     }
     else
     {
-        # If not User is provided, get the entitlements for logged in user
+        # If User is not provided, get the entitlements for logged in user
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/Entitlements"
     }
 }

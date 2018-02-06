@@ -419,12 +419,20 @@ function Get-SafeguardUserLinkedAccount
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    [object[]]$UserLinkedAccounts = $null
-    $local:UserId = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToGet).Id
-    $local:LinkedAccounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Users/$local:UserId/LinkedPolicyAccounts")
-    ForEach ($LinkedAccount in $LinkedAccounts)
+    if ($PSBoundParameters.ContainsKey("UserToGet"))
     {
-        $UserLinkedAccounts += (Get-SafeguardDirectoryAccount -DirectoryToGet $LinkedAccount.SystemId -AccountToGet $LinkedAccount.Name)
+        [object[]]$UserLinkedAccounts = $null
+        $local:UserId = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToGet).Id
+        $local:LinkedAccounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Users/$local:UserId/LinkedPolicyAccounts")
+        ForEach ($LinkedAccount in $LinkedAccounts)
+        {
+            $UserLinkedAccounts += (Get-SafeguardDirectoryAccount -DirectoryToGet $LinkedAccount.SystemId -AccountToGet $LinkedAccount.Name)
+        }
+        return $UserLinkedAccounts
     }
-    return $UserLinkedAccounts
+    else
+    {
+        # If User is not provided, get linked accounts for logged in user
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/LinkedPolicyAccounts"
+    }
 }
