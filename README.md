@@ -273,7 +273,7 @@ safeguard-ps can do run:
 - Get-SafeguardAccessPolicyScopeItem
 - Get-SafeguardAccessPolicyAccessRequestProperty
 - Get-SafeguardAccessPolicySessionProperty
-- Get-SafeguardRole
-- Get-SafeguardUserRoleReport
+- Get-SafeguardEntitlement
+- Get-SafeguardUserEntitlementReport
 - Get-SafeguardUserLinkedAccount
 
