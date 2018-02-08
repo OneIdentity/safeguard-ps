@@ -132,6 +132,7 @@ FunctionsToExport = @(
     # requests.psm1
     'Get-SafeguardAccessRequest','Find-SafeguardAccessRequest','New-SafeguardAccessRequest','Edit-SafeguardAccessRequest'
     'Get-SafeguardActionableRequest','Get-SafeguardRequestableAccount','Find-SafeguardRequestableAccount',
+    'Get-SafeguardAccessRequestCheckoutPassword',
     # users.psm1
     'Get-SafeguardIdentityProvider','New-SafeguardStarling2faAuthentication',
     'Get-SafeguardUser','Find-SafeguardUser','New-SafeguardUser','Remove-SafeguardUser','Set-SafeguardUserPassword',
@@ -152,10 +153,14 @@ FunctionsToExport = @(
     'Remove-SafeguardDirectoryAccount',
     # groups.psm1
     'Get-SafeguardUserGroup','New-SafeguardUserGroup','Remove-SafeguardUserGroup',
+    'Edit-SafeguardUserGroup',
     'Get-SafeguardAssetGroup','New-SafeguardAssetGroup','Remove-SafeguardAssetGroup',
     'Get-SafeguardAccountGroup','New-SafeguardAccountGroup','Remove-SafeguardAccountGroup',
     # policies.psm1
     'Get-SafeguardPolicyAsset','Find-SafeguardPolicyAsset','Get-SafeguardPolicyAccount','Find-SafeguardPolicyAccount',
+    'Get-SafeguardAccessPolicy','Get-SafeguardAccessPolicyScopeItem','Get-SafeguardAccessPolicyAccessRequestProperty',
+    'Get-SafeguardAccessPolicySessionProperty','Get-SafeguardEntitlement', 'Get-SafeguardUserEntitlementReport',
+    'Get-SafeguardUserLinkedAccount', 
     # managementShell.psm1
     'Get-SafeguardCommand', 'Get-SafeguardBanner'
     )

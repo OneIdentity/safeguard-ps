@@ -155,6 +155,43 @@ function Remove-SafeguardGroup
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "$($local:RelativeUrl)/$($local:GroupId)" -Body $local:Body
 }
+function Edit-SafeguardGroup
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [ValidateSet("User", "Asset", "Account", IgnoreCase=$true)]
+        [string]$GroupType,
+        [Parameter(Mandatory=$true,Position=1)]
+        [object]$GroupToEdit,
+        [Parameter(Mandatory=$true,Position=2)]
+        [string]$Operation,
+        [Parameter(Mandatory=$true,Position=3)]
+        [object]$ObjectToOperate
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    # Allow case insensitive group types to translate to appropriate case sensitive URL path
+    switch ($GroupType)
+    {
+        "user" { $GroupType = "User"; break }
+        "asset" { $GroupType = "Asset"; break }
+        "Account" { $GroupType = "Account"; break }
+    }
+
+    $local:RelativeUrl = "$($GroupType)Groups"
+    $local:GroupId = (Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $GroupType $GroupToEdit)
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "$($local:RelativeUrl)/$($local:GroupId)/Members/$Operation" -Body $ObjectToOperate
+}
 
 <#
 .SYNOPSIS
@@ -363,6 +400,77 @@ function Remove-SafeguardUserGroup
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Remove-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure User $GroupToDelete
+}
+
+
+<#
+.SYNOPSIS
+Edits a user group to add or remove an existing user in Safeguard via the Web API.
+
+.DESCRIPTION
+When a user group is edited the changes also propagates to any entitlements where it may have been used
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER GroupToEdit
+Name of the group to edit
+
+.PARAMETER Operation
+String of type of operation to be perfomed on the user group. 'Add' to add users to the user group
+'Remove' to removed users from the user group
+
+.PARAMETER UserList
+An array of usernames of the users to be added or removed in the users group
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Edit-SafeguardUserGroup testusergroup add testuser1,testuser2
+
+.EXAMPLE
+Edit-SafeguardUserGroup testusergroup remove testuser1
+#>
+function Edit-SafeguardUserGroup
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [object]$GroupToEdit,
+        [Parameter(Mandatory=$true, Position=1)]
+        [ValidateSet("Add", "Remove", IgnoreCase=$true)]
+        [string]$Operation,
+        [Parameter(Mandatory=$true, Position=2)]
+        [object[]]$UserList
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+    
+    [object[]]$Users = $null
+    ForEach($user in $UserList)
+    {
+        $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $User)
+        $local:Users += $($local:ResolvedUser)
+    }
+
+    Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure User $GroupToEdit $Operation $Users
 }
 
 <#
