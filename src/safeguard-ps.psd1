@@ -84,8 +84,7 @@ NestedModules = @(
     'directories.psm1',
     'groups.psm1',
     'policies.psm1',
-    'managementShell.psm1',
-    'permissions.psm1'
+    'managementShell.psm1'
     )
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
@@ -159,12 +158,11 @@ FunctionsToExport = @(
     'Get-SafeguardAccountGroup','New-SafeguardAccountGroup','Remove-SafeguardAccountGroup',
     # policies.psm1
     'Get-SafeguardPolicyAsset','Find-SafeguardPolicyAsset','Get-SafeguardPolicyAccount','Find-SafeguardPolicyAccount',
-    'Get-SafeguardUserLinkedAccount',
-    # managementShell.psm1
-    'Get-SafeguardCommand', 'Get-SafeguardBanner',
-    # permissions.psm1
     'Get-SafeguardAccessPolicy','Get-SafeguardAccessPolicyScopeItem','Get-SafeguardAccessPolicyAccessRequestProperty',
-    'Get-SafeguardAccessPolicySessionProperty','Get-SafeguardRole', 'Get-SafeguardUserRoleReport'
+    'Get-SafeguardAccessPolicySessionProperty','Get-SafeguardEntitlement', 'Get-SafeguardUserEntitlementReport',
+    'Get-SafeguardUserLinkedAccount', 
+    # managementShell.psm1
+    'Get-SafeguardCommand', 'Get-SafeguardBanner'
     )
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.

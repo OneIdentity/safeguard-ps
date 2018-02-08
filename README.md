@@ -269,11 +269,11 @@ safeguard-ps can do run:
 - Find-SafeguardPolicyAsset
 - Get-SafeguardPolicyAccount
 - Find-SafeguardPolicyAccount
-- Get-SafeguardUserLinkedAccount
-### Permissions
 - Get-SafeguardAccessPolicy
 - Get-SafeguardAccessPolicyScopeItem
 - Get-SafeguardAccessPolicyAccessRequestProperty
 - Get-SafeguardAccessPolicySessionProperty
 - Get-SafeguardRole
 - Get-SafeguardUserRoleReport
+- Get-SafeguardUserLinkedAccount
+

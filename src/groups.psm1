@@ -426,7 +426,7 @@ Name of the group to edit
 String of type of operation to be perfomed on the user group. 'Add' to add users to the user group
 'Remove' to removed users from the user group
 
-.PARAMETER UserToOperate
+.PARAMETER UserList
 An array of usernames of the users to be added or removed in the users group
 
 .INPUTS
@@ -457,14 +457,14 @@ function Edit-SafeguardUserGroup
         [ValidateSet("Add", "Remove", IgnoreCase=$true)]
         [string]$Operation,
         [Parameter(Mandatory=$true, Position=2)]
-        [object[]]$UserToOperate
+        [object[]]$UserList
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     
     [object[]]$Users = $null
-    ForEach($user in $UserToOperate)
+    ForEach($user in $UserList)
     {
         $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $User)
         $local:Users += $($local:ResolvedUser)
