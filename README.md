@@ -1,3 +1,5 @@
+[![Build status](https://ci.appveyor.com/api/projects/status/329lnisdof0jfsgh?svg=true)](https://ci.appveyor.com/project/petrsnd/safeguard-ps)
+
 # safeguard-ps
 One Identity Safeguard Powershell module and scripting resources.
 
