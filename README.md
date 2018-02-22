@@ -278,4 +278,12 @@ safeguard-ps can do run:
 - Get-SafeguardEntitlement
 - Get-SafeguardUserEntitlementReport
 - Get-SafeguardUserLinkedAccount
+### Events
+- Get-SafeguardEvent
+- Get-SafeguardEventName
+- Get-SafeguardEventSubscription
+- Find-SafeguardEventSubscription
+- New-SafeguardEventSubscription
+- Remove-SafeguardEventSubscription
+- Edit-SafeguardEventSubscription
 
