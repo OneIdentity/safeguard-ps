@@ -14,7 +14,7 @@ function Validate-SubscriptionEvent
         [Parameter(Mandatory=$true,Position=1)]
         [string]$EventToValidate
     )
-    [string[]]$EventNames = Get-SafeguardEventNames -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -TypeOfEvent $TypeOfEvent
+    [string[]]$EventNames = Get-SafeguardEventName -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -TypeOfEvent $TypeOfEvent
     if($EventNames.Contains($EventToValidate))
     {
         return $true
