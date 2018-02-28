@@ -84,7 +84,8 @@ NestedModules = @(
     'directories.psm1',
     'groups.psm1',
     'policies.psm1',
-    'managementShell.psm1'
+    'managementShell.psm1',
+    'events.psm1'
     )
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
@@ -161,6 +162,9 @@ FunctionsToExport = @(
     'Get-SafeguardAccessPolicy','Get-SafeguardAccessPolicyScopeItem','Get-SafeguardAccessPolicyAccessRequestProperty',
     'Get-SafeguardAccessPolicySessionProperty','Get-SafeguardEntitlement', 'Get-SafeguardUserEntitlementReport',
     'Get-SafeguardUserLinkedAccount', 
+    #events.psm1
+    'Get-SafeguardEvent', 'Get-SafeguardEventName', 'Get-SafeguardEventSubscription', 'Find-SafeguardEventSubscription',
+    'New-SafeguardEventSubscription', 'Remove-SafeguardEventSubscription', 'Edit-SafeguardEventSubscription',
     # managementShell.psm1
     'Get-SafeguardCommand', 'Get-SafeguardBanner'
     )
