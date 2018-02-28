@@ -1,5 +1,5 @@
 #Helper
-function Validate-SubscriptionEvent
+function Test-SubscriptionEvent
 {
     [CmdletBinding()]
     Param(
@@ -399,7 +399,7 @@ function New-SafeguardEventSubscription
     ForEach($IndividualEvent in $SubscriptionEvent)
     {
         $local:Event = $(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Events/$IndividualEvent").Name
-        $local:IsValidEvent = Validate-SubscriptionEvent -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -TypeOfEvent $ObjectTypeToSubscribe -EventToValidate $local:Event
+        $local:IsValidEvent = Test-SubscriptionEvent -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -TypeOfEvent $ObjectTypeToSubscribe -EventToValidate $local:Event
         if(-Not $local:IsValidEvent)
         {
             $InvalidEvents += $local:Event
@@ -652,7 +652,7 @@ function Edit-SafeguardEventSubscription
         ForEach($IndividualEvent in $SubscriptionEvent)
         {
             $local:Event = $(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Events/$IndividualEvent").Name
-            $local:IsValidEvent = Validate-SubscriptionEvent -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -TypeOfEvent $Body.ObjectType -EventToValidate $local:Event
+            $local:IsValidEvent = Test-SubscriptionEvent -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -TypeOfEvent $Body.ObjectType -EventToValidate $local:Event
             if(-Not $local:IsValidEvent)
             {
                 $InvalidEvents += $local:Event
