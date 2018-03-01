@@ -1,5 +1,5 @@
 #Helper
-function Validate-SubscriptionEvent
+function Resolve-SubscriptionEvent
 {
     [CmdletBinding()]
     Param(
@@ -12,17 +12,30 @@ function Validate-SubscriptionEvent
         [Parameter(Mandatory=$true,Position=0)]
         [object]$TypeOfEvent,
         [Parameter(Mandatory=$true,Position=1)]
-        [string]$EventToValidate
+        [string[]]$EventsToValidate
     )
+    [string[]]$InvalidEvents = $null
+    [object[]]$SubscriptionEvents = $null
     [string[]]$EventNames = Get-SafeguardEventName -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -TypeOfEvent $TypeOfEvent
-    if($EventNames.Contains($EventToValidate))
+    
+    ForEach ($IndividualEvent in $EventsToValidate)
     {
-        return $true
+        if(-Not $EventNames.Contains($IndividualEvent))
+        {
+            $InvalidEvents += $IndividualEvent 
+        }
+        $local:SubscriptionEvent = @{
+            Name = $IndividualEvent
+        }
+        $SubscriptionEvents += $local:SubscriptionEvent
     }
-    else
+
+    if($InvalidEvents -ne $null)
     {
-        return $false
+        $InvalidEventsList = $InvalidEvents -join ","
+        Write-Error -Message "The following are not valid $ObjectTypeToSubscribe events: $InvalidEventsList." -Category InvalidArgument -ErrorAction Stop
     }
+    return $SubscriptionEvents
 }
 
 <#
@@ -367,7 +380,7 @@ function New-SafeguardEventSubscription
         [Parameter(Mandatory=$true, Position=1)]
         [string]$ObjectIdToSubscribe,
         [Parameter(Mandatory=$true, Position=2)]
-        [object[]]$SubscriptionEvent,
+        [string[]]$SubscriptionEvent,
         [Parameter(Mandatory=$false)]
         [object]$UserToSubscribe,
         [Parameter(Mandatory=$false)]
@@ -396,27 +409,8 @@ function New-SafeguardEventSubscription
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     
     #Resolve events to be subscribed
-    ForEach($IndividualEvent in $SubscriptionEvent)
-    {
-        $local:Event = $(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Events/$IndividualEvent").Name
-        $local:IsValidEvent = Validate-SubscriptionEvent -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -TypeOfEvent $ObjectTypeToSubscribe -EventToValidate $local:Event
-        if(-Not $local:IsValidEvent)
-        {
-            $InvalidEvents += $local:Event
-        }
-        $local:SubscriptionEvent = @{
-            Name = $local:Event
-        }
-        $SubscriptionEvents += $local:SubscriptionEvent
-    }
+    [object[]]$SubscriptionEvents = Resolve-SubscriptionEvent -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -TypeOfEvent $ObjectTypeToSubscribe -EventsToValidate $SubscriptionEvent
     
-    #Return error if invalid events are attempted to be subscribed
-    if($InvalidEvents -ne $null)
-    {
-        $InvalidEventsList = $InvalidEvents -join ","
-        Write-Error -Message "The following are not valid $ObjectTypeToSubscribe events: $InvalidEventsList." -Category InvalidArgument -ErrorAction Stop
-    }
-
     #Resolve the object to be subscribed
     switch ($ObjectTypeToSubscribe)
     {
@@ -467,7 +461,6 @@ function New-SafeguardEventSubscription
         $local:Body.Type = "Email"
         if ($PSBoundParameters.ContainsKey("UserToSubscribe"))
         {
-            $local:UserEmailAddress = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $UserToSubscribe).EmailAddress
             If([string]::IsNullOrWhitespace($local:User.EmailAddress))
             {
                 Write-Error -Message "An email address or a user with an email address must be specified." -Category InvalidArgument -ErrorAction Stop
@@ -624,15 +617,14 @@ function Edit-SafeguardEventSubscription
 
     if($PSBoundParameters.ContainsKey("SubscriptionObject"))
     {
+        #Resolve events contained in the SubscriptionObject
         ForEach($IndividualEvent in $SubscriptionObject.Subscriptions)
         {
-            write-host $IndividualEvent.Name
-            $local:SubscriptionEvent = @{
-                Name = $IndividualEvent.Name
-            }
-            $SubscriptionEvents += $local:SubscriptionEvent            
+            [string[]]$local:Events += $IndividualEvent.Name          
         }
+        [object[]]$SubscriptionEvents = Resolve-SubscriptionEvent -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -TypeOfEvent $SubscriptionObject.ObjectType -EventsToValidate $Events
         $SubscriptionObject.Subscriptions = $SubscriptionEvents
+        
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "EventSubscribers/$($SubscriptionObject.Id)" -Body $SubscriptionObject
         return
     }
@@ -649,36 +641,15 @@ function Edit-SafeguardEventSubscription
     #Resolve events to be subscribed
     if($PSBoundParameters.ContainsKey("SubscriptionEvent"))
     {
-        ForEach($IndividualEvent in $SubscriptionEvent)
-        {
-            $local:Event = $(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Events/$IndividualEvent").Name
-            $local:IsValidEvent = Validate-SubscriptionEvent -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -TypeOfEvent $Body.ObjectType -EventToValidate $local:Event
-            if(-Not $local:IsValidEvent)
-            {
-                $InvalidEvents += $local:Event
-            }
-            $local:SubscriptionEvent = @{
-                Name = $local:Event
-            }
-            $SubscriptionEvents += $local:SubscriptionEvent
-        }
-        
-        #Return error if invalid events are attempted to be subscribed
-        if($InvalidEvents -ne $null)
-        {
-            $InvalidEventsList = $InvalidEvents -join ","
-            Write-Error -Message "The following are not valid $ObjectTypeToSubscribe events: $InvalidEventsList." -Category InvalidArgument -ErrorAction Stop
-        }
+        [object[]]$SubscriptionEvents = Resolve-SubscriptionEvent -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -TypeOfEvent $local:Body.ObjectType -EventsToValidate $SubscriptionEvent
     }
     else
     {
-        ForEach($IndividualEvent in $Body.Subscriptions)
+        ForEach($IndividualEvent in $local:Body.Subscriptions)
         {
-            $local:SubscriptionEvent = @{
-                Name = $IndividualEvent.Name
-            }
-            $SubscriptionEvents += $local:SubscriptionEvent            
+            [string[]]$local:Events += $IndividualEvent.Name          
         }
+        [object[]]$SubscriptionEvents = Resolve-SubscriptionEvent -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -TypeOfEvent $local:Body.ObjectType -EventsToValidate $Events
     }
     $local:Body.Subscriptions = $SubscriptionEvents
 
@@ -687,18 +658,9 @@ function Edit-SafeguardEventSubscription
     {
         switch ($local:Body.ObjectType)
         {
-            "Asset" 
-            { 
-                $ObjectIdToSubscribe = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetToGet $ObjectIdToSubscribe).Id; break 
-            } 
-            "AssetAccount" 
-            { 
-                $ObjectIdToSubscribe = (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AccountToGet $ObjectIdToSubscribe).Id;  break 
-            }
-            "DirectoryAccount" 
-            { 
-                $ObjectIdToSubscribe = (Get-SafeguardDirectoryAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AccountToGet $ObjectIdToSubscribe).Id; break 
-            }
+            "Asset"{ $ObjectIdToSubscribe = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetToGet $ObjectIdToSubscribe).Id; break } 
+            "AssetAccount"{ $ObjectIdToSubscribe = (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AccountToGet $ObjectIdToSubscribe).Id;  break }
+            "DirectoryAccount"{ $ObjectIdToSubscribe = (Get-SafeguardDirectoryAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AccountToGet $ObjectIdToSubscribe).Id; break }
         }
     }
 
@@ -736,16 +698,22 @@ function Edit-SafeguardEventSubscription
     if ($PSBoundParameters.ContainsKey("IsEmailEvent"))
     {
         $local:Body.Type = "Email"
-        if ($PSBoundParameters.ContainsKey("UserToSubscribe"))
+
+        if($PSBoundParameters.ContainsKey("EmailAddress") -and (-Not $PSBoundParameters.ContainsKey("UserToSubscribe")))
         {
-            $local:UserEmailAddress = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $UserToSubscribe).EmailAddress
-            If([string]::IsNullOrWhitespace($local:User.EmailAddress))
+            $local:Body.UserId = $null
+        }
+
+        if ($local:Body.UserId -ne $null)
+        {
+            $local:UserEmailAddress = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:Body.UserId).EmailAddress
+            If([string]::IsNullOrWhitespace($local:UserEmailAddress))
             {
                 Write-Error -Message "An email address or a user with an email address must be specified." -Category InvalidArgument -ErrorAction Stop
             }
         }
 
-        if($PSBoundParameters.ContainsKey("UserToSubscribe") -and $PSBoundParameters.ContainsKey("EmailAddress"))
+        if(($local:Body.UserId -ne $null) -and $PSBoundParameters.ContainsKey("EmailAddress"))
         {
             Write-Error -Message "You cannot specify both the UserID and an EmailAddress properties simultaneously." -Category InvalidArgument -ErrorAction Stop
         }
