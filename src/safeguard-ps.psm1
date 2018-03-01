@@ -6,9 +6,6 @@ $MyInvocation.MyCommand.ScriptBlock.Module.OnRemove = {
 }
 Edit-SslVersionSupport
 
-# Helpers for calling Safeguard Web APIs
-$script:ClientId = "00000000-0000-0000-0000-000000000000"
-$script:RedirectUri = "urn%3AInstalledApplication"
 function Show-RstsWindow
 {
     [CmdletBinding()]
@@ -20,34 +17,58 @@ function Show-RstsWindow
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    try
+    if (-not ([System.Management.Automation.PSTypeName]"RstsWindow").Type)
     {
-        Add-Type -AssemblyName System.Windows.Forms
-        $local:Form = New-Object -TypeName System.Windows.Forms.Form -Property @{
-            Text = "$Appliance - Safeguard Login";
-            Width = 640;
-            Height = 720;
-            StartPosition = [System.Windows.Forms.FormStartPosition]::CenterParent
-        }
-        $local:Browser = New-Object -TypeName System.Windows.Forms.WebBrowser -Property @{
-            Dock = [System.Windows.Forms.DockStyle]::Fill;
-            Url = "https://$Appliance/RSTS/Login?response_type=code&client_id=$($script:ClientId)&redirect_uri=$($script:RedirectUri)"
-        }
-
-        $local:Browser.ScriptErrorsSuppressed = $true
-        Register-ObjectEvent -EventName "DocumentTitleChanged" -InputObject $local:Browser -SourceIdentifier "WebBrowserDocumentTitleChanged" -Action {
-            if ($Sender.DocumentTitle -match "error=[^&]*|code=[^&]*")
-            {
-                $global:AuthorizationCode = $Sender.DocumentTitle.Substring(5)
+        Write-Verbose "Adding the PSType for rSTS Web form interaction"
+        Add-Type -TypeDefinition  @"
+using System;
+using System.Text.RegularExpressions;
+using System.Windows.Forms;
+public class RstsWindow {
+    private const string ClientId = "00000000-0000-0000-0000-000000000000";
+    private const string RedirectUri = "urn%3AInstalledApplication";
+    private readonly string _url;
+    private readonly string _appliance;
+    public RstsWindow(string appliance) {
+        _appliance = appliance;
+        _url = string.Format("https://{0}/RSTS/Login?response_type=code&client_id={1}&redirect_uri={2}", _appliance, ClientId, RedirectUri);
+    }
+    public string AuthorizationCode { get; set; }
+    public bool Show() {
+        try {
+            using (var form = new System.Windows.Forms.Form() { Text = string.Format("{0} - Safeguard Login", _appliance),
+                                                                Width = 640, Height = 720, StartPosition = FormStartPosition.CenterParent }) {
+                using (var browser = new WebBrowser() { Dock = DockStyle.Fill, Url = new Uri(_url) }) {
+                    form.Controls.Add(browser);
+                    browser.ScriptErrorsSuppressed = true;
+                    browser.DocumentTitleChanged += (sender, args) => {
+                        var b = (WebBrowser)sender;
+                        if (Regex.IsMatch(b.DocumentTitle, "error=[^&]*|code=[^&]*")) {
+                            AuthorizationCode = b.DocumentTitle.Substring(5);
+                            form.DialogResult = DialogResult.OK;
+                            form.Close(); } };
+                    if (form.ShowDialog() == DialogResult.OK) { return true; }
+                }
+                return false;
             }
-        } | Out-Null
-        $local:Form.Controls.Add($local:Browser)
-        $local:Form.ShowDialog() | Out-Null
+        }
+        catch (Exception e) {
+            var color = Console.ForegroundColor; Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine(e); Console.ForegroundColor = color;
+            return false;
+        }
     }
-    finally
+}
+"@ -ReferencedAssemblies System.Windows.Forms
+    }
+
+    $local:Browser = New-Object -TypeName RstsWindow -ArgumentList $Appliance
+    if (!$local:Browser.Show())
     {
-        Unregister-Event -SourceIdentifier "WebBrowserDocumentTitleChanged" -Force -ErrorAction "SilentlyContinue"
+        throw "Unable to correctly manipulate browser"
     }
+    $global:AuthorizationCode = $local:Browser.AuthorizationCode
+    $local:Browser = $null
 }
 function Get-RstsTokenFromGui
 {
