@@ -80,7 +80,22 @@ Invoke-RestMethod : {"Code":60108,"Message":"Authorization is required for this 
 When you are finished, you can close the session or call the
 `Disconnect-Safeguard` cmdlet to invalidate and remove your access token.
 
-You can run the `Get-SafeguardCommand` cmdlet to see all available cmdlets.
+## Discover Available Commands
+Use the `Get-SafeguardCommand` to see what is available from the module.
+
+Since there are so many cmdlets in safeguard-ps you can use filters to find
+exactly the cmdlet you are looking for.
+
+For example:
+
+```Powershell
+> Get-SafeguardCmdlet Get Account Dir
+
+CommandType     Name                                               Version    Source
+-----------     ----                                               -------    ------
+Function        Get-SafeguardDirectoryAccount                      2.1.0.9... safeguard-ps
+
+```
 
 ## Module Versioning
 The version of safeguard-ps mirrors the version of Safeguard that it was
@@ -95,9 +110,11 @@ This does not mean that safeguard-ps 2.1.0.55 won't work at all with
 Safeguard 2.0.1.5037.  For the most part the cmdlets will still work, but
 you may occasionally come across things that are broken.
 
-For the best results, please try to match the first three version numbers of
-the safeguard-ps module to the first three numbers of the Safeguard appliance
-you are communicating with.
+For the best results, please try to match the first two version numbers of
+the safeguard-ps module to the first two numbers of the Safeguard appliance
+you are communicating with.  The most important thing for safeguard-ps is
+the version of the Safeguard Web API, which will never change between
+where only the third and fourth numbers differ.
 
 
 ## Powershell cmdlets
