@@ -113,3 +113,41 @@ function Wait-ForSessionModuleState
     } until ($local:StateFound)
     Write-Progress -Activity "Waiting for Session Module Status: $($local:DesiredStatus)" -Status "Current: $($local:StatusString)" -PercentComplete 100
 }
+
+function Wait-ForClusterOperation
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [int]$Timeout = 600
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:StartTime = (Get-Date)
+    $local:Status = "Unknown"
+    $local:TimeElapsed = 10
+    do {
+        Write-Progress -Activity "Waiting for cluster operation to finish" -Status "Cluster Operation: $($local:Status)" -PercentComplete (($local:TimeElapsed / $Timeout) * 100)
+        try
+        {
+            $local:Status = (Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET ClusterStatus).Operation
+        }
+        catch {}
+        Start-Sleep 2
+        $local:TimeElapsed = (((Get-Date) - $local:StartTime).TotalSeconds)
+        if ($local:TimeElapsed -gt $Timeout)
+        {
+            throw "Timed out waiting for cluster operation to finish, timeout was $Timeout seconds"
+        }
+    } until ($local:Status -eq "None")
+    Write-Progress -Activity "Waiting for Online Status" -Status "Current: $($local:Status)" -PercentComplete 100
+    Write-Host "Safeguard is cluster operation completeds."
+}
