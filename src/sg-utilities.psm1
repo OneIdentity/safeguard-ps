@@ -149,5 +149,5 @@ function Wait-ForClusterOperation
         }
     } until ($local:Status -eq "None")
     Write-Progress -Activity "Waiting for Online Status" -Status "Current: $($local:Status)" -PercentComplete 100
-    Write-Host "Safeguard is cluster operation completeds."
+    Write-Host "Safeguard cluster operation completed...~$($local:TimeElapsed) seconds"
 }
