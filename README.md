@@ -194,6 +194,16 @@ safeguard-ps can do run:
 - Enable-SafeguardBmcConfiguration
 - Disable-SafeguardBmcConfiguration
 - Set-SafeguardBmcAdminPassword
+### Clustering
+- Add-SafeguardClusterMember
+- Remove-SafeguardClusterMember
+- Get-SafeguardClusterMember
+- Get-SafeguardClusterHealth
+- Get-SafeguardClusterApplianceHealth
+- Set-SafeguardClusterPrimary
+- Enable-SafeguardClusterPrimary
+- Get-SafeguardClusterOperationStatus
+- Unlock-SafeguardCluster
 ### Diagnostics
 - Invoke-SafeguardPing
 - Invoke-SafeguardSessionsPing
