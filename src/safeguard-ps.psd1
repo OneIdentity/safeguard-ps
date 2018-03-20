@@ -169,6 +169,7 @@ FunctionsToExport = @(
     # clustering.psm1
     'Get-SafeguardClusterMember','Get-SafeguardClusterHealth','Get-SafeguardClusterApplianceHealth','Get-SafeguardClusterOperationStatus',
     'Add-SafeguardClusterMember','Remove-SafeguardClusterMember','Set-SafeguardClusterPrimary','Enable-SafeguardClusterPrimary',
+    'Unlock-SafeguardCluster',
     # managementShell.psm1
     'Get-SafeguardCommand', 'Get-SafeguardBanner'
     )
