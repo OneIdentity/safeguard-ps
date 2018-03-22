@@ -207,6 +207,7 @@ safeguard-ps can do run:
 - Enable-SafeguardClusterPrimary
 - Get-SafeguardClusterOperationStatus
 - Unlock-SafeguardCluster
+- Get-SafeguardClusterSummary
 ### Diagnostics
 - Invoke-SafeguardPing
 - Invoke-SafeguardSessionsPing

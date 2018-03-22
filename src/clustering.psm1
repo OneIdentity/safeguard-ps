@@ -10,22 +10,29 @@ function Resolve-MemberAppliance
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
-        [string]$Member
+        [string]$Member,
+        [Parameter(Mandatory=$false)]
+        [switch]$WithHealth
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    $local:GetHealth = ""
+    if ($WithHealth)
+    {
+        $local:GetHealth = ",Health"
+    }
     try
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "ClusterMembers/$Member" `
-            -Parameters @{ fields = "Id,IsLeader,Name,Ipv4Address,Ipv6Address,SslCertificateThumbprint,EnrolledSince" }
+            -Parameters @{ fields = "Id,IsLeader,Name,Ipv4Address,Ipv6Address,SslCertificateThumbprint,EnrolledSince$($local:GetHealth)" }
     }
     catch
     {
         $local:Members = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET ClusterMembers `
                               -Parameters @{ filter = "(Id ieq '$Member') or (Name ieq '$Member') or (Ipv4Address eq '$Member') or (Ipv6Address ieq '$Member')";
-                                             fields = "Id,IsLeader,Name,Ipv4Address,Ipv6Address,SslCertificateThumbprint,EnrolledSince" })
+                                             fields = "Id,IsLeader,Name,Ipv4Address,Ipv6Address,SslCertificateThumbprint,EnrolledSince$($local:GetHealth)" })
         if (-not $local:Members)
         {
             throw "Unable to find cluster member matching '$Member'"
@@ -114,8 +121,7 @@ function Get-SafeguardClusterMember
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET ClusterMembers `
-            -Parameters @{fields = "Id,IsLeader,Name,Ipv4Address,Ipv6Address,SslCertificateThumbprint,EnrolledSince"}
+        (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET ClusterMembers).Health
     }
 }
 
@@ -136,6 +142,9 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER Member
+A string containing an ID, name, or network address for the member appliance.
+
 .INPUTS
 None.
 
@@ -146,7 +155,7 @@ JSON response from Safeguard Web API.
 Get-SafeguardClusterHealth -AccessToken $token -Appliance 10.5.32.54
 
 .EXAMPLE
-Get-SafeguardClusterHealth
+Get-SafeguardClusterHealth 10.5.33.144
 #>
 function Get-SafeguardClusterHealth
 {
@@ -157,13 +166,23 @@ function Get-SafeguardClusterHealth
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [string]$Member
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET ClusterMembers).Health
+    if ($Member)
+    {
+        Write-Verbose "Getting specific appliance '$AccessToken' '$Appliance' '$Insecure' '$Member'"
+        (Resolve-MemberAppliance -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Member -WithHealth).Health
+    }
+    else
+    {
+        (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET ClusterMembers).Health
+    }
 }
 
 <#
@@ -679,4 +698,83 @@ function Unlock-SafeguardCluster
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST ClusterStatus/ForceComplete
         Wait-ForClusterOperation -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure
     }
+}
+
+
+function Get-SafeguardClusterSummary
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    Write-Host "---Primary---"
+    Write-Host (
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET ClusterMembers `
+            -Parameters @{fields = "Id,Name,Ipv4Address,Ipv6Address"
+                          filter = "IsLeader eq true"} | Format-Table | Out-String)
+
+    Write-Host "`n---Cluster---"
+    $local:Members = Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET ClusterMembers `
+                             -Parameters @{fields = "Id,Name,Ipv4Address,Ipv6Address,Health"}
+    Write-Host (
+    $local:Members | ForEach-Object {
+        $local:Object = (New-Object -TypeName PSObject -Property @{
+            Id = $_.Id
+            Name = $_.Name
+            State = $_.Health.State
+            Ipv4Address = $_.Ipv4Address
+            Ipv6Address = $_.Ipv6Address
+        })
+        if ($_.Health.ClusterCommunication.Status -ne "Healthy")
+        {
+            $local:Object | Add-Member -MemberType NoteProperty -Name "Communication" -Value "$([Char]8730)"
+        }
+        else
+        {
+            $local:Object | Add-Member -MemberType NoteProperty -Name "Communication" -Value "Error=`"$($_.Health.ClusterCommunication.Status)`""
+        }
+        if ($_.Health.ClusterConnectivity.Status -ne "Healthy")
+        {
+            $local:Object | Add-Member -MemberType NoteProperty -Name "Connectivity" -Value "$([Char]8730)"
+        }
+        else
+        {
+            $local:Object | Add-Member -MemberType NoteProperty -Name "Connectivity" -Value "Error=`"$($_.Health.ClusterConnectivity.Status)`""
+        }
+        if ($_.Health.AccessWorkflow.Status -ne "Healthy")
+        {
+            $local:Object | Add-Member -MemberType NoteProperty -Name "Workflow" -Value "$([Char]8730)"
+        }
+        else
+        {
+            $local:Object | Add-Member -MemberType NoteProperty -Name "Workflow" -Value "Error=`"$($_.Health.AccessWorkflow.Status)`""
+        }
+        if ($_.Health.PolicyData.Status -ne "Healthy")
+        {
+            $local:Object | Add-Member -MemberType NoteProperty -Name "Policy" -Value "$([Char]8730)"
+        }
+        else
+        {
+            $local:Object | Add-Member -MemberType NoteProperty -Name "Policy" -Value "Error=`"$($_.Health.PolicyData.Status)`""
+        }
+        if ($_.Health.SessionsModule.Status -ne "Healthy")
+        {
+            $local:Object | Add-Member -MemberType NoteProperty -Name "Sessions" -Value "$([Char]8730)"
+        }
+        else
+        {
+            $local:Object | Add-Member -MemberType NoteProperty -Name "Sessions" -Value "Error=`"$($_.Health.SessionsModule.Status)`""
+        }
+        $local:Object
+    } | Format-Table Id,Name,State,Ipv4Address,Ipv6Address,Communication,Connectivity,Workflow,Policy,Sessions -AutoSize | Out-String)
+
+    Write-Host "---Operation Status---"
+    Write-Host(
+    Get-SafeguardClusterOperationStatus -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure | Format-Table | Out-String)
 }
