@@ -202,6 +202,7 @@ safeguard-ps can do run:
 - Get-SafeguardClusterMember
 - Get-SafeguardClusterHealth
 - Get-SafeguardClusterApplianceHealth
+- Get-SafeguardClusterPrimary
 - Set-SafeguardClusterPrimary
 - Enable-SafeguardClusterPrimary
 - Get-SafeguardClusterOperationStatus

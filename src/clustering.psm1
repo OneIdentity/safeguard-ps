@@ -392,6 +392,57 @@ function Remove-SafeguardClusterMember
 
 <#
 .SYNOPSIS
+Get cluster primary from Safeguard via the Web API.
+
+.DESCRIPTION
+Retrieve current primary appliance in this cluster from the Web API.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Member
+A string containing an ID, name, or network address for the member appliance.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardClusterPrimary -AccessToken $SafeguardSession.AccessToken -Appliance 10.5.32.54
+
+.EXAMPLE
+Get-SafeguardClusterPrimary
+#>
+function Get-SafeguardClusterPrimary
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET ClusterMembers `
+            -Parameters @{fields = "Id,IsLeader,Name,Ipv4Address,Ipv6Address,SslCertificateThumbprint,EnrolledSince"
+                          filter = "IsLeader eq true"}
+}
+
+<#
+.SYNOPSIS
 Set appliance as primary for the cluster via the Safeguard Web API.
 
 .DESCRIPTION
