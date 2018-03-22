@@ -115,7 +115,7 @@ FunctionsToExport = @(
     'Get-SafeguardStatus','Get-SafeguardVersion','Get-SafeguardApplianceVerification','Get-SafeguardTime',
     'Get-SafeguardHealth','Get-SafeguardApplianceName','Set-SafeguardApplianceName',
     'Invoke-SafeguardApplianceShutdown','Invoke-SafeguardApplianceReboot','Invoke-SafeguardApplianceFactoryReset',
-    'Get-SafeguardSupportBundle','Install-SafeguardPatch',
+    'Get-SafeguardSupportBundle','Get-SafeguardPatch','Clear-SafeguardPatch','Install-SafeguardPatch',
     'New-SafeguardBackup','Remove-SafeguardBackup','Export-SafeguardBackup','Import-SafeguardBackup',
     'Restore-SafeguardBackup','Save-SafeguardBackupToArchive','Get-SafeguardBackup',
     'Get-SafeguardBmcConfiguration','Enable-SafeguardBmcConfiguration','Disable-SafeguardBmcConfiguration',

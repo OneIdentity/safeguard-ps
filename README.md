@@ -80,7 +80,7 @@ Invoke-RestMethod : {"Code":60108,"Message":"Authorization is required for this 
 When you are finished, you can close the session or call the
 `Disconnect-Safeguard` cmdlet to invalidate and remove your access token.
 
-## Discover Available Commands
+## Discover Available cmdlets
 Use the `Get-SafeguardCommand` to see what is available from the module.
 
 Since there are so many cmdlets in safeguard-ps you can use filters to find
@@ -182,6 +182,8 @@ safeguard-ps can do run:
 - Invoke-SafeguardApplianceReboot
 - Invoke-SafeguardApplianceFactoryReset
 - Get-SafeguardSupportBundle
+- Get-SafeguardPatch
+- Clear-SafeguardPatch
 - Install-SafeguardPatch
 - New-SafeguardBackup
 - Remove-SafeguardBackup

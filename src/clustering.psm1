@@ -384,7 +384,7 @@ function Remove-SafeguardClusterMember
     else
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST ClusterMembers/Reset `
-            -JsonBody "{`"Members`": [{`"Id`": `"$MemberId`", `"IsLeader`": true}]"
+            -JsonBody "{`"Members`": [{`"Id`": `"$MemberId`",`"IsLeader`": true}]}"
     }
 
     Write-Host "Not waiting for completion--use Get-SafeguardStatus and Get-SafeguardClusterOperationStatus to see status"
