@@ -1,6 +1,6 @@
 # This file contains random Safeguard utilities required by some modules
 # Nothing is exported from here
-function Wait-SafeguardOnlineStatus
+function Wait-ForSafeguardOnlineStatus
 {
     [CmdletBinding()]
     Param(

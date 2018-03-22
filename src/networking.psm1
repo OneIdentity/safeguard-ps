@@ -185,11 +185,11 @@ function Set-SafeguardNetworkInterface
         Write-Host "Waiting up to 5 minutes for Safeguard to come back online at new IP address."
         if ($NetworkObject.Ipv4Address)
         {
-            Wait-SafeguardOnlineStatus -Appliance $NetworkObject.Ipv4Address -Insecure:$Insecure -Timeout 300
+            Wait-ForSafeguardOnlineStatus -Appliance $NetworkObject.Ipv4Address -Insecure:$Insecure -Timeout 300
         }
         else
         {
-            Wait-SafeguardOnlineStatus -Appliance $NetworkObject.Ipv6Address -Insecure:$Insecure -Timeout 300
+            Wait-ForSafeguardOnlineStatus -Appliance $NetworkObject.Ipv6Address -Insecure:$Insecure -Timeout 300
         }
         Write-Host "You may need to re-run Connect-Safeguard to connect to the new address."
     }

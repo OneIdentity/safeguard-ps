@@ -478,6 +478,9 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER NoWait
+Specify this flag to continue immediately without waiting for the restore to complete.
+
 .INPUTS
 None.
 
@@ -499,7 +502,9 @@ function Enable-SafeguardClusterPrimary
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [switch]$NoWait
     )
 
     $ErrorActionPreference = "Stop"
@@ -509,7 +514,10 @@ function Enable-SafeguardClusterPrimary
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST ClusterMembers/ActivatePrimary
 
-    Wait-SafeguardOnlineStatus -Appliance $Appliance -Insecure:$Insecure -Timeout 300
+    if (-not $NoWait)
+    {
+        Wait-ForSafeguardOnlineStatus -Appliance $Appliance -Insecure:$Insecure -Timeout 300
+    }
 }
 
 <#

@@ -1393,6 +1393,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER BackupId
 A string containing a backup ID, which is a GUID.
 
+.PARAMETER NoWait
+Specify this flag to continue immediately without waiting for the restore to complete.
+
 .INPUTS
 None.
 
@@ -1403,7 +1406,7 @@ JSON response from Safeguard Web API.
 Restore-SafeguardBackup -BackupId "c6f9a3b4-7a75-406d-ba5a-830e44c1c94d"
 
 .EXAMPLE
-Restore-SafeguardBackup -Appliance 10.5.32.54 -AccessToken $token -Insecure
+Restore-SafeguardBackup -Appliance 10.5.32.54 -AccessToken $SafeguardSession.AccessToken -Insecure -NoWait
 #>
 function Restore-SafeguardBackup
 {
@@ -1416,7 +1419,9 @@ function Restore-SafeguardBackup
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [string]$BackupId
+        [string]$BackupId,
+        [Parameter(Mandatory=$false)]
+        [switch]$NoWait
     )
 
     $ErrorActionPreference = "Stop"
@@ -1431,6 +1436,11 @@ function Restore-SafeguardBackup
 
     Write-Host "Starting restore operation for backup..."
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST "Backups/$BackupId/Restore"
+
+    if (-not $NoWait)
+    {
+        Wait-ForSafeguardOnlineStatus -Appliance $Appliance -Insecure:$Insecure
+    }
 }
 
 <#
@@ -1496,7 +1506,7 @@ function Save-SafeguardBackupToArchive
 
     if (-not $ArchiveServerId)
     {
-        $ArchiveServerIds = ((Get-SafeguardArchiveServer -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure) | %{ "$($_.Id): $($_.Name)" }) -join ", "
+        $ArchiveServerIds = ((Get-SafeguardArchiveServer -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure) | ForEach-Object { "$($_.Id): $($_.Name)" }) -join ", "
         Write-Host "Archive servers: [ $ArchiveServerIds ]"
         $ArchiveServerId = (Read-Host "ArchiveServerId")
     }
