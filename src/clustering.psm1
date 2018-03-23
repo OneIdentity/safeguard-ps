@@ -731,45 +731,45 @@ function Get-SafeguardClusterSummary
             Ipv4Address = $_.Ipv4Address
             Ipv6Address = $_.Ipv6Address
         })
-        if ($_.Health.ClusterCommunication.Status -ne "Healthy")
+        if ($_.Health.ClusterCommunication.Status -eq "Healthy")
         {
             $local:Object | Add-Member -MemberType NoteProperty -Name "Communication" -Value "$([Char]8730)"
         }
         else
         {
-            $local:Object | Add-Member -MemberType NoteProperty -Name "Communication" -Value "Error=`"$($_.Health.ClusterCommunication.Status)`""
+            $local:Object | Add-Member -MemberType NoteProperty -Name "Communication" -Value "$($_.Health.ClusterCommunication.Status)"
         }
-        if ($_.Health.ClusterConnectivity.Status -ne "Healthy")
+        if ($_.Health.ClusterConnectivity.Status -eq "Healthy")
         {
             $local:Object | Add-Member -MemberType NoteProperty -Name "Connectivity" -Value "$([Char]8730)"
         }
         else
         {
-            $local:Object | Add-Member -MemberType NoteProperty -Name "Connectivity" -Value "Error=`"$($_.Health.ClusterConnectivity.Status)`""
+            $local:Object | Add-Member -MemberType NoteProperty -Name "Connectivity" -Value "$($_.Health.ClusterConnectivity.Status)"
         }
-        if ($_.Health.AccessWorkflow.Status -ne "Healthy")
+        if ($_.Health.AccessWorkflow.Status -eq "Healthy")
         {
             $local:Object | Add-Member -MemberType NoteProperty -Name "Workflow" -Value "$([Char]8730)"
         }
         else
         {
-            $local:Object | Add-Member -MemberType NoteProperty -Name "Workflow" -Value "Error=`"$($_.Health.AccessWorkflow.Status)`""
+            $local:Object | Add-Member -MemberType NoteProperty -Name "Workflow" -Value "$($_.Health.AccessWorkflow.Status)"
         }
-        if ($_.Health.PolicyData.Status -ne "Healthy")
+        if ($_.Health.PolicyData.Status -eq "Healthy")
         {
             $local:Object | Add-Member -MemberType NoteProperty -Name "Policy" -Value "$([Char]8730)"
         }
         else
         {
-            $local:Object | Add-Member -MemberType NoteProperty -Name "Policy" -Value "Error=`"$($_.Health.PolicyData.Status)`""
+            $local:Object | Add-Member -MemberType NoteProperty -Name "Policy" -Value "$($_.Health.PolicyData.Status)"
         }
-        if ($_.Health.SessionsModule.Status -ne "Healthy")
+        if ($_.Health.SessionsModule.Status -eq "Healthy")
         {
             $local:Object | Add-Member -MemberType NoteProperty -Name "Sessions" -Value "$([Char]8730)"
         }
         else
         {
-            $local:Object | Add-Member -MemberType NoteProperty -Name "Sessions" -Value "Error=`"$($_.Health.SessionsModule.Status)`""
+            $local:Object | Add-Member -MemberType NoteProperty -Name "Sessions" -Value "$($_.Health.SessionsModule.Status)"
         }
         $local:Object
     } | Format-Table Id,Name,State,Ipv4Address,Ipv6Address,Communication,Connectivity,Workflow,Policy,Sessions -AutoSize | Out-String)
