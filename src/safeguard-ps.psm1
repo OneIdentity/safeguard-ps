@@ -288,7 +288,8 @@ function Invoke-WithBody
     $local:Url = (New-SafeguardUrl $Appliance $Service $Version $RelativeUrl -Parameters $Parameters)
     Write-Verbose "Url=$($local:Url)"
     Write-Verbose "Parameters=$(ConvertTo-Json -InputObject $Parameters)"
-    Write-Verbose "Body=$($local:BodyInternal)"
+    Write-Verbose "---Request Body---"
+    Write-Verbose "$($local:BodyInternal)"
     if ($LongRunningTask)
     {
         $local:Response = (Invoke-WebRequest -Method $Method -Headers $Headers -Uri $local:Url `
@@ -939,7 +940,8 @@ function Invoke-SafeguardMethod
             "Accept" = $Accept;
             "Content-type" = $ContentType;
         }
-    Write-Verbose "HeadersBeforeTokenIncluded=$(ConvertTo-Json -InputObject $Headers)"
+    Write-Verbose "---Request---"
+    Write-Verbose "Headers=$(ConvertTo-Json -InputObject $Headers)"
 
     if (-not $Anonymous)
     {
@@ -973,6 +975,19 @@ function Invoke-SafeguardMethod
     }
     catch
     {
+        if ($_.Exception.Response)
+        {
+            Write-Verbose "---Response Status---"
+            Write-Verbose "$([int]$_.Exception.Response.StatusCode) $($_.Exception.Response.StatusDescription)"
+            Write-Verbose "---Response Body---"
+            $local:Stream = $_.Exception.Response.GetResponseStream()
+            $local:Reader = New-Object System.IO.StreamReader($local:Stream)
+            $local:Reader.BaseStream.Position = 0
+            $local:Reader.DiscardBufferedData()
+            Write-Verbose $local:Reader.ReadToEnd()
+            $local:Reader.Dispose()
+        }
+        Write-Verbose "---Exception---"
         $_.Exception | Format-List * -Force | Out-String | Write-Verbose
         if ($_.Exception.InnerException)
         {

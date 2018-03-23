@@ -115,7 +115,7 @@ FunctionsToExport = @(
     'Get-SafeguardStatus','Get-SafeguardVersion','Get-SafeguardApplianceVerification','Get-SafeguardTime',
     'Get-SafeguardHealth','Get-SafeguardApplianceName','Set-SafeguardApplianceName',
     'Invoke-SafeguardApplianceShutdown','Invoke-SafeguardApplianceReboot','Invoke-SafeguardApplianceFactoryReset',
-    'Get-SafeguardSupportBundle','Install-SafeguardPatch',
+    'Get-SafeguardSupportBundle','Get-SafeguardPatch','Clear-SafeguardPatch','Install-SafeguardPatch',
     'New-SafeguardBackup','Remove-SafeguardBackup','Export-SafeguardBackup','Import-SafeguardBackup',
     'Restore-SafeguardBackup','Save-SafeguardBackupToArchive','Get-SafeguardBackup',
     'Get-SafeguardBmcConfiguration','Enable-SafeguardBmcConfiguration','Disable-SafeguardBmcConfiguration',
@@ -168,8 +168,8 @@ FunctionsToExport = @(
     'New-SafeguardEventSubscription', 'Remove-SafeguardEventSubscription', 'Edit-SafeguardEventSubscription',
     # clustering.psm1
     'Get-SafeguardClusterMember','Get-SafeguardClusterHealth','Get-SafeguardClusterApplianceHealth','Get-SafeguardClusterOperationStatus',
-    'Add-SafeguardClusterMember','Remove-SafeguardClusterMember','Set-SafeguardClusterPrimary','Enable-SafeguardClusterPrimary',
-    'Unlock-SafeguardCluster',
+    'Add-SafeguardClusterMember','Remove-SafeguardClusterMember','Get-SafeguardClusterPrimary','Set-SafeguardClusterPrimary',
+    'Enable-SafeguardClusterPrimary','Unlock-SafeguardCluster','Get-SafeguardClusterSummary',
     # managementShell.psm1
     'Get-SafeguardCommand', 'Get-SafeguardBanner'
     )

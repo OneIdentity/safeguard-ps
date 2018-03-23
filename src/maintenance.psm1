@@ -376,11 +376,11 @@ function Invoke-SafeguardApplianceShutdown
     else
     {
         Write-Host -ForegroundColor Yellow "You will be required to MANUALLY power the appliance on again!"
-        $Confirmed = (Get-Confirmation "Safeguard Appliance Shutdown" "Do you want to initiate shutdown on this Safeguard appliance?"`
-                        "Initiates shutdown immediately." "Cancels this operation.")
+        $local:Confirmed = (Get-Confirmation "Safeguard Appliance Shutdown" "Do you want to initiate shutdown on this Safeguard appliance?"`
+                                             "Initiates shutdown immediately." "Cancels this operation.")
     }
 
-    if ($Confirmed)
+    if ($local:Confirmed)
     {
         Write-Host "Sending shutdown command..."
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST ApplianceStatus/Shutdown -Body $Reason
@@ -456,11 +456,11 @@ function Invoke-SafeguardApplianceReboot
     else
     {
         Write-Host -ForegroundColor Yellow "There will be a period of time when Safeguard is unavailable via the API while it reboots."
-        $Confirmed = (Get-Confirmation "Safeguard Appliance Reboot" "Do you want to initiate reboot on this Safeguard appliance?"`
-                        "Initiates reboot immediately." "Cancels this operation.")
+        $local:Confirmed = (Get-Confirmation "Safeguard Appliance Reboot" "Do you want to initiate reboot on this Safeguard appliance?"`
+                                             "Initiates reboot immediately." "Cancels this operation.")
     }
 
-    if ($Confirmed)
+    if ($local:Confirmed)
     {
         Write-Host "Sending reboot command..."
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST ApplianceStatus/Reboot -Body $Reason
@@ -540,11 +540,11 @@ function Invoke-SafeguardApplianceFactoryReset
         Write-Host -ForegroundColor Yellow "Please do not touch any of the LCD buttons during factory reset!"
         Write-Host -ForegroundColor Magenta "When Safeguard completes the factory reset process it will have the default IP address."
         Write-Host -ForegroundColor Magenta "You will have to set the X0 IP address just as if you had just purchased the appliance."
-        $Confirmed = (Get-Confirmation "Safeguard Appliance Factory Reset" "Do you want to initiate factory reset on this Safeguard appliance?"`
-                        "Initiates factory reset immediately." "Cancels this operation.")
+        $local:Confirmed = (Get-Confirmation "Safeguard Appliance Factory Reset" "Do you want to initiate factory reset on this Safeguard appliance?"`
+                                             "Initiates factory reset immediately." "Cancels this operation.")
     }
 
-    if ($Confirmed)
+    if ($local:Confirmed)
     {
         Write-Host "Sending factory reset command..."
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST ApplianceStatus/FactoryReset -Body $Reason
@@ -723,6 +723,101 @@ function Get-SafeguardSupportBundle
 
 <#
 .SYNOPSIS
+Get patch that is currently staged on an appliance via the Web API.
+
+.DESCRIPTION
+Get the patch that is currently staged on the Safeguard appliance if there
+is one.  This cmdlet returns the metadata associated with the patch.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+Script output as strings.
+
+.EXAMPLE
+Get-SafeguardPatch
+
+.EXAMPLE
+Get-SafeguardPatch -AccessToken $token -Appliance 10.5.32.54.
+#>
+function Get-SafeguardPatch
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET Patch).Metadata
+}
+
+<#
+.SYNOPSIS
+Remove patch that is currently staged on an appliance via the Web API.
+
+.DESCRIPTION
+Remove the patch that is currently staged on the Safeguard appliance if there
+is one.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+Script output as strings.
+
+.EXAMPLE
+Clear-SafeguardPatch
+
+.EXAMPLE
+Clear-SafeguardPatch -AccessToken $token -Appliance 10.5.32.54.
+#>
+function Clear-SafeguardPatch
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance DELETE Patch/Distribute
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance DELETE Patch
+}
+
+<#
+.SYNOPSIS
 Install patch on Safeguard appliance via the Web API.
 
 .DESCRIPTION
@@ -776,8 +871,7 @@ function Install-SafeguardPatch
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-    Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
-
+    
     if ($SafeguardSession)
     {
         $Insecure = $SafeguardSession["Insecure"]
@@ -799,14 +893,12 @@ function Install-SafeguardPatch
         $AccessToken = (Connect-Safeguard -Appliance $Appliance -Insecure:$Insecure -NoSessionVariable)
     }
 
-    $Response = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance `
-                    -Insecure:$Insecure Appliance GET Patch)
+    $Response = (Get-SafeguardPatch -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
     if ($Response)
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance `
-            -Insecure:$Insecure Appliance DELETE Patch
-        $Response = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance `
-                        -Insecure:$Insecure Appliance GET Patch)
+        Write-Host "Removing currently staged patch..."
+        Clear-SafeguardPatch -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure
+        $Response = (Get-SafeguardPatch -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
         if ($Response)
         {
             throw "Failed to delete existing patch"
@@ -815,6 +907,7 @@ function Install-SafeguardPatch
 
     try
     {
+        Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
         Edit-SslVersionSupport
         if ($Insecure)
         {
@@ -828,7 +921,7 @@ function Install-SafeguardPatch
         $WebClient.Headers.Add("Accept", "application/json")
         $WebClient.Headers.Add("Content-type", "application/octet-stream")
         $WebClient.Headers.Add("Authorization", "Bearer $AccessToken")
-        Write-Host "POSTing patch to Safeguard. This operation may take several minutes..."
+        Write-Host "Uploading patch to Safeguard. This operation may take several minutes..."
 
         $Bytes = [System.IO.File]::ReadAllBytes($Patch);
         $ResponseBytes = $WebClient.UploadData("https://$Appliance/service/appliance/v$Version/Patch", "POST", $Bytes) | Out-Null
@@ -864,18 +957,33 @@ function Install-SafeguardPatch
         }
     }
 
-    try
-    {
-        (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET Patch).Metadata
-    }
-    catch
-    {}
+    $local:Patch = (Get-SafeguardPatch -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
+    $local:PatchName = $local:Patch.Title
 
-    Write-Output "Requesting patch install action..."
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST Patch/Install
-    if ($? -ne 0 -or $LastExitCode -eq 0)
+    Write-Host "Distributing patch to cluster..."
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST Patch/Distribute
+
+    Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+    Wait-ForPatchDistribution -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure
+
+    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+    $local:Confirmed = (Get-Confirmation "Install Safeguard Patch" `
+                                         "Do you want to install $($local:PatchName) on this cluster?" `
+                                         "Starts cluster patch immediately." `
+                                         "Cancels this operation.")
+    if ($local:Confirmed)
     {
-        Write-Output "Patch is currently installing..."
+        Write-Host "Starting patch install..."
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST Patch/Install
+        if ($? -ne 0 -or $LastExitCode -eq 0)
+        {
+            Write-Host "Patch is currently installing..."
+            Write-Host "Use Get-SafeguardStatus to monitor patching progress."
+        }
+    }
+    else
+    {
+        Write-Host "Patch installation canceled."
     }
 }
 
@@ -1285,6 +1393,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER BackupId
 A string containing a backup ID, which is a GUID.
 
+.PARAMETER NoWait
+Specify this flag to continue immediately without waiting for the restore to complete.
+
 .INPUTS
 None.
 
@@ -1295,7 +1406,7 @@ JSON response from Safeguard Web API.
 Restore-SafeguardBackup -BackupId "c6f9a3b4-7a75-406d-ba5a-830e44c1c94d"
 
 .EXAMPLE
-Restore-SafeguardBackup -Appliance 10.5.32.54 -AccessToken $token -Insecure
+Restore-SafeguardBackup -Appliance 10.5.32.54 -AccessToken $SafeguardSession.AccessToken -Insecure -NoWait
 #>
 function Restore-SafeguardBackup
 {
@@ -1308,7 +1419,9 @@ function Restore-SafeguardBackup
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [string]$BackupId
+        [string]$BackupId,
+        [Parameter(Mandatory=$false)]
+        [switch]$NoWait
     )
 
     $ErrorActionPreference = "Stop"
@@ -1323,6 +1436,11 @@ function Restore-SafeguardBackup
 
     Write-Host "Starting restore operation for backup..."
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST "Backups/$BackupId/Restore"
+
+    if (-not $NoWait)
+    {
+        Wait-ForSafeguardOnlineStatus -Appliance $Appliance -Insecure:$Insecure
+    }
 }
 
 <#
@@ -1388,7 +1506,7 @@ function Save-SafeguardBackupToArchive
 
     if (-not $ArchiveServerId)
     {
-        $ArchiveServerIds = ((Get-SafeguardArchiveServer -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure) | %{ "$($_.Id): $($_.Name)" }) -join ", "
+        $ArchiveServerIds = ((Get-SafeguardArchiveServer -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure) | ForEach-Object { "$($_.Id): $($_.Name)" }) -join ", "
         Write-Host "Archive servers: [ $ArchiveServerIds ]"
         $ArchiveServerId = (Read-Host "ArchiveServerId")
     }
