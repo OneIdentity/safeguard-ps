@@ -9,10 +9,26 @@ function Disable-SslVerification
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if (-not ([System.Management.Automation.PSTypeName]"TrustEverything").Type)
+    if ($PSVersionTable.PSEdition -eq "Core")
     {
-        Write-Verbose "Adding the PSType for SSL trust override"
-        Add-Type -TypeDefinition  @"
+        if ($PSVersionTable.PSVersion.Major -lt 6)
+        {
+            Write-Verbose "Unable to disable SSL on PowerShell Core version less than 6"
+        }
+        else
+        {
+            Write-Verbose "Disabling SSL on non-Windows platform"
+            $PSDefaultParameterValues.Add("Invoke-RestMethod:SkipCertificateCheck",$true)
+            $PSDefaultParameterValues.Add("Invoke-WebRequest:SkipCertificateCheck",$true)
+        }
+    }
+    else
+    {
+        Write-Verbose "Disabling SSL on Windows platform"
+        if (-not ([System.Management.Automation.PSTypeName]"TrustEverything").Type)
+        {
+            Write-Verbose "Adding the PSType for SSL trust override"
+            Add-Type -TypeDefinition  @"
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 public static class TrustEverything
@@ -23,9 +39,10 @@ public static class TrustEverything
     public static void UnsetCallback() { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
 }
 "@
+        }
+        Write-Verbose "Adding the trust everything callback"
+        [TrustEverything]::SetCallback()
     }
-    Write-Verbose "Adding the trust everything callback"
-    [TrustEverything]::SetCallback()
 }
 function Enable-SslVerification
 {
@@ -36,10 +53,27 @@ function Enable-SslVerification
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if (([System.Management.Automation.PSTypeName]"TrustEverything").Type)
+    if ($PSVersionTable.PSEdition -eq "Core")
     {
-        Write-Verbose "Removing the trust everything callback"
-        [TrustEverything]::UnsetCallback()
+        if ($PSVersionTable.PSVersion.Major -lt 6)
+        {
+            Write-Verbose "Unable to enable SSL on PowerShell Core version less than 6"
+        }
+        else
+        {
+            Write-Verbose "Enabling SSL on non-Windows platform"
+            $PSDefaultParameterValues.Remove("Invoke-RestMethod:SkipCertificateCheck")
+            $PSDefaultParameterValues.Remove("Invoke-WebRequest:SkipCertificateCheck")
+        }
+    }
+    else
+    {
+        Write-Verbose "Enabling SSL on Windows platform"
+        if (([System.Management.Automation.PSTypeName]"TrustEverything").Type)
+        {
+            Write-Verbose "Removing the trust everything callback"
+            [TrustEverything]::UnsetCallback()
+        }
     }
 }
 function Edit-SslVersionSupport
