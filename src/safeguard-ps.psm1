@@ -440,6 +440,7 @@ function Connect-Safeguard
         }
         else
         {
+            Write-Verbose "Getting configured identity providers from RSTS service (using POST)..."
             $local:GetPrimaryProvidersRelativeURL = "RSTS/UserLogin/LoginController?response_type=token&redirect_uri=urn:InstalledApplication&loginRequestStep=1"
             try
             {
@@ -450,26 +451,33 @@ function Connect-Safeguard
             }
             catch [Net.WebException]
             {
+                Write-Verbose "Initial attempt returned WebException: $($_.Exception.Status)"
                 if ($_.Exception.Status -eq "ConnectFailure")
                 {
                     throw "Unable to connect to $Appliance, bad appliance network address?"
                 }
             }
             catch
-            {}
+            {
+                Write-Verbose "Initial attempt threw unknown exception"
+            }
             if (-not $local:ConfiguredProviders)
             {
                 try
                 {
+                    Write-Verbose "Getting configured identity providers from RSTS service (using GET)..."
                     $local:ConfiguredProviders = (Invoke-RestMethod -Method GET -Uri "https://$Appliance/$($local:GetPrimaryProvidersRelativeURL)" `
                                                   -ErrorAction SilentlyContinue).Providers.Id
                 }
                 catch
-                {}
+                {
+                    Write-Verbose "Also threw an unknown exception"
+                }
             }
             $local:IdentityProviders = ,"certificate" + $local:ConfiguredProviders
             if (-not $IdentityProvider)
             {
+                Write-Verbose "Identity provider not passed in"
                 if ($Thumbprint -or $CertificateFile)
                 {
                     $IdentityProvider = "certificate"
@@ -530,6 +538,7 @@ function Connect-Safeguard
         
             if ($Username)
             {
+                Write-Verbose "Calling RSTS token service for password authentication..."
                 $local:Scope = "rsts:sts:primaryproviderid:$($IdentityProvider.ToLower())"
                 $RstsResponse = (Invoke-RestMethod -Method POST -Headers @{
                     "Accept" = "application/json";
@@ -547,6 +556,7 @@ function Connect-Safeguard
             {
                 if (-not $Thumbprint)
                 {
+                    Write-Verbose "Calling RSTS token service for client certificate authentication (PKCS#12 file)..."
                     # From PFX file
                     $local:ClientCertificate = (Get-PfxCertificate -FilePath $CertificateFile)
                     $local:RstsResponse = (Invoke-RestMethod -Certificate $local:ClientCertificate -Method POST -Headers @{
@@ -561,6 +571,7 @@ function Connect-Safeguard
                 }
                 else
                 {
+                    Write-Verbose "Calling RSTS token service for client certificate authentication (Windows cert store)..."
                     # From thumbprint in Windows Certificate Store
                     $local:RstsResponse = (Invoke-RestMethod -CertificateThumbprint $Thumbprint -Method POST -Headers @{
                         "Accept" = "application/json";
@@ -580,6 +591,7 @@ function Connect-Safeguard
             throw "Failed to get RSTS token response"
         }
 
+        Write-Verbose "Calling Safeguard LoginResponse service..."
         $local:LoginResponse = (Invoke-RestMethod -Method POST -Headers @{
             "Accept" = "application/json";
             "Content-type" = "application/json"
@@ -600,6 +612,7 @@ function Connect-Safeguard
         }
         else
         {
+            Write-Verbose "Setting up the SafeguardSession variable"
             if ($CertificateFile)
             {
                 try { $CertificateFile = (Resolve-Path $CertificateFile).Path } catch {}
@@ -686,6 +699,7 @@ function Disconnect-Safeguard
             {
                 Disable-SslVerification
             }
+            Write-Verbose "Calling Safeguard Logout service..."
             $local:Headers = @{
                 "Accept" = "application/json";
                 "Content-type" = "application/json";
@@ -721,6 +735,7 @@ function Disconnect-Safeguard
                 {
                     Disable-SslVerification
                 }
+                Write-Verbose "Calling Safeguard Logout service..."
                 $local:Headers = @{
                     "Accept" = "application/json";
                     "Content-type" = "application/json";
@@ -892,6 +907,7 @@ function Invoke-SafeguardMethod
         {
             $Appliance = (Read-Host "Appliance")
         }
+        Write-Verbose "Not using existing session, calling Connect-Safeguard [1]..."
         $AccessToken = (Connect-Safeguard -Appliance $Appliance -Insecure:$Insecure -NoSessionVariable)
     }
     elseif (-not $Anonymous)
@@ -912,6 +928,7 @@ function Invoke-SafeguardMethod
         }
         if (-not $AccessToken -and -not $Anonymous)
         {
+            Write-Verbose "Not using existing session, calling Connect-Safeguard [2]..."
             $AccessToken = (Connect-Safeguard -Appliance $Appliance -Insecure:$Insecure -NoSessionVariable)
         }
     }
