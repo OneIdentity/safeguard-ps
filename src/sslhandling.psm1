@@ -6,6 +6,9 @@ function Disable-SslVerification
     Param(
     )
 
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
     if (-not ([System.Management.Automation.PSTypeName]"TrustEverything").Type)
     {
         Write-Verbose "Adding the PSType for SSL trust override"
@@ -30,6 +33,9 @@ function Enable-SslVerification
     Param(
     )
 
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
     if (([System.Management.Automation.PSTypeName]"TrustEverything").Type)
     {
         Write-Verbose "Removing the trust everything callback"
@@ -41,6 +47,9 @@ function Edit-SslVersionSupport
     [CmdletBinding()]
     Param(
     )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Write-Verbose "Configuring SSL version support to be secure"
     # Remove SSLv3, if present
