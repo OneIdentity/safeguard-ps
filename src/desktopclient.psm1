@@ -40,6 +40,7 @@ function Install-SafeguardDesktopClient
     if ($Insecure)
     {
         Disable-SslVerification
+        if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
     }
 
     if (-not $Appliance)

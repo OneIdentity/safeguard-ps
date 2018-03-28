@@ -680,6 +680,7 @@ function Get-SafeguardSupportBundle
         if ($Insecure)
         {
             Disable-SslVerification
+            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
         # Use the WebClient class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
         Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
@@ -912,6 +913,7 @@ function Install-SafeguardPatch
         if ($Insecure)
         {
             Disable-SslVerification
+            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
         # Use the WebClient class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
         Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
@@ -1201,6 +1203,7 @@ function Export-SafeguardBackup
         if ($Insecure)
         {
             Disable-SslVerification
+            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
         # Use the WebClient class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
         Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
@@ -1327,6 +1330,7 @@ function Import-SafeguardBackup
         if ($Insecure)
         {
             Disable-SslVerification
+            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
         # Use the WebClient class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
         Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local

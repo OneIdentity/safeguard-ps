@@ -432,6 +432,7 @@ function Connect-Safeguard
         if ($Insecure)
         {
             Disable-SslVerification
+            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
 
         if ($Gui)
@@ -636,6 +637,7 @@ function Connect-Safeguard
         if ($Insecure)
         {
             Enable-SslVerification
+            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
     }
 }
@@ -698,6 +700,7 @@ function Disconnect-Safeguard
             if ($Insecure)
             {
                 Disable-SslVerification
+                if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
             }
             Write-Verbose "Calling Safeguard Logout service..."
             $local:Headers = @{
@@ -713,6 +716,7 @@ function Disconnect-Safeguard
             if ($Insecure)
             {
                 Enable-SslVerification
+                if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
             }
         }
     }
@@ -734,6 +738,7 @@ function Disconnect-Safeguard
                 if ($Insecure)
                 {
                     Disable-SslVerification
+                    if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
                 }
                 Write-Verbose "Calling Safeguard Logout service..."
                 $local:Headers = @{
@@ -752,6 +757,7 @@ function Disconnect-Safeguard
             if ($Insecure)
             {
                 Enable-SslVerification
+                if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
             }
         }
     }
@@ -951,6 +957,7 @@ function Invoke-SafeguardMethod
     if ($Insecure)
     {
         Disable-SslVerification
+        if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
     }
 
     $local:Headers = @{
@@ -1018,6 +1025,7 @@ function Invoke-SafeguardMethod
         if ($Insecure)
         {
             Enable-SslVerification
+            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
     }
 }
@@ -1093,6 +1101,7 @@ function Get-SafeguardAccessTokenStatus
         if ($Insecure)
         {
             Disable-SslVerification
+            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
         $local:Response = (Invoke-WebRequest -Method GET -Headers @{ 
                 "Authorization" = "Bearer $AccessToken"
@@ -1117,6 +1126,7 @@ function Get-SafeguardAccessTokenStatus
         if ($Insecure)
         {
             Enable-SslVerification
+            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
     }
 }
