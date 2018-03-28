@@ -201,7 +201,6 @@ safeguard-ps can do run:
 - Remove-SafeguardClusterMember
 - Get-SafeguardClusterMember
 - Get-SafeguardClusterHealth
-- Get-SafeguardClusterApplianceHealth
 - Get-SafeguardClusterPrimary
 - Set-SafeguardClusterPrimary
 - Enable-SafeguardClusterPrimary
