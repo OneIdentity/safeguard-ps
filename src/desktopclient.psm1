@@ -32,6 +32,11 @@ function Install-SafeguardDesktopClient
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
 
+    if ($PSVersionTable.PSEdition -eq "Core")
+    {
+        throw "This cmdlet is not supported in PowerShell Core"
+    }
+
     if ($SafeguardSession)
     {
         $Insecure = $SafeguardSession["Insecure"]
