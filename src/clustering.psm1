@@ -240,53 +240,6 @@ function Get-SafeguardClusterHealth
 
 <#
 .SYNOPSIS
-Get health (with forced update) of this appliance in the cluster from Safeguard via the Web API.
-
-.DESCRIPTION
-Force a health check on the currently connected appliance via the Web API and report its cluster health.
-Running the health check synchronously makes this take more time than the normal cluster health call.
-
-.PARAMETER Appliance
-IP address or hostname of a Safeguard appliance.
-
-.PARAMETER AccessToken
-A string containing the bearer token to be used with Safeguard Web API.
-
-.PARAMETER Insecure
-Ignore verification of Safeguard appliance SSL certificate.
-
-.INPUTS
-None.
-
-.OUTPUTS
-JSON response from Safeguard Web API.
-
-.EXAMPLE
-Get-SafeguardClusterApplianceHealth -AccessToken $token -Appliance 10.5.32.54
-
-.EXAMPLE
-Get-SafeguardClusterApplianceHealth
-#>
-function Get-SafeguardClusterApplianceHealth
-{
-    [CmdletBinding()]
-    Param(
-        [Parameter(Mandatory=$false)]
-        [string]$Appliance,
-        [Parameter(Mandatory=$false)]
-        [object]$AccessToken,
-        [Parameter(Mandatory=$false)]
-        [switch]$Insecure
-    )
-
-    $ErrorActionPreference = "Stop"
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET ClusterMembers/Self).Health
-}
-
-<#
-.SYNOPSIS
 Add a new replica to the cluster via the Safeguard Web API.
 
 .DESCRIPTION
