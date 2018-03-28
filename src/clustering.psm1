@@ -793,7 +793,7 @@ function Get-SafeguardClusterSummary
     Write-Host(
     $local:Errors | Out-String)
 
-    Write-Host "`n---Operation Status---"
+    Write-Host "`n`n---Operation Status---"
     Write-Host(
     Get-SafeguardClusterOperationStatus -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure | Format-Table | Out-String)
 }
