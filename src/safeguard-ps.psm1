@@ -81,6 +81,11 @@ function Get-RstsTokenFromGui
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    if ($PSVersionTable.PSEdition -eq "Core")
+    {
+        throw "This -Gui parameter is not supported in PowerShell Core"
+    }
+
     Show-RstsWindow $Appliance
     $local:Code = $global:AuthorizationCode
     Remove-Variable -Name AuthorizationCode -Scope Global -Force -ErrorAction "SilentlyContinue"
