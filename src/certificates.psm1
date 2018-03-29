@@ -618,6 +618,96 @@ function Get-SafeguardSslCertificateForAppliance
     }
 }
 
+function Get-SafeguardCertificateSigningRequest
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "ServerCertificateSignatureRequests"
+}
+New-Alias -Name Get-SafeguardCsr -Value Get-SafeguardCertificateSigningRequest
+
+function New-SafeguardCertificateSigningRequest
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [ValidateSet('Ssl', 'TimeStamping', 'RdpSigning', 'SessionRecording')]
+        [string]$CertificateType,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$Subject,
+        [Parameter(Mandatory=$false)]
+        [ValidateSet(1024, 2048, 3072, 4096)]
+        [int]$KeyLength = 2048,
+        [Parameter(Mandatory=$false)]
+        [string[]]$IpAddresses = $null,
+        [Parameter(Mandatory=$false)]
+        [string[]]$DnsNames = $null
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Body = @{
+        CertificateType = $CertificateType;
+        Subject = $Subject;
+        KeyLength = $KeyLength
+    }
+
+    if ($PSBoundParameters.ContainsKey("IpAddresses"))
+    {
+        Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+        $IpAddresses | ForEach-Object {
+            if (-not (Test-IpAddress $_))
+            {
+                throw "$_ is not an IP address"
+            }
+        }
+        $local:Body.IpAddresses = $IpAddresses 
+    }
+    if ($PSBoundParameters.ContainsKey("DnsNames")) { $local:Body.DnsNames = $DnsNames }
+    
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "ServerCertificateSignatureRequests" -Body $local:Body
+}
+New-Alias -Name New-SafeguardCsr -Value New-SafeguardCertificateSigningRequest
+
+function Remove-SafeguardCertificateSigningRequest
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Thumbprint
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "ServerCertificateSignatureRequests/$Thumbprint"
+}
+New-Alias -Name Remove-SafeguardCsr -Value Remove-SafeguardCertificateSigningRequest
+
 <#
 .SYNOPSIS
 Create test certificates for use with Safeguard.

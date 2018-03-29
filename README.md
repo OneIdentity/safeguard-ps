@@ -162,6 +162,9 @@ safeguard-ps can do run:
 - Set-SafeguardSslCertificateForAppliance
 - Clear-SafeguardSslCertificateForAppliance
 - Get-SafeguardSslCertificateForAppliance
+- Get-SafeguardCertificateSigningRequest
+- New-SafeguardCertificateSigningRequest
+- Remove-SafeguardCertificateSigningRequest
 - New-SafeguardTestCertificatePki
 ### Networking
 - Get-SafeguardNetworkInterface
