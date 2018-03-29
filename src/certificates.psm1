@@ -618,6 +618,44 @@ function Get-SafeguardSslCertificateForAppliance
     }
 }
 
+<#
+.SYNOPSIS
+Get certificate signing requests that have been generated for Safeguard via the Web API.
+
+.DESCRIPTION
+Safeguard can generate certificate signing requests (CSRs) so that private keys never
+leave the system.  These CSRs can be created for 1) server-side SSL covering the web client
+and web API, 2) RDP connection signing for RDP session proxy, 3) Timestamping authority for
+adding trusted timestamps to session recordings, and 4) session recording signing for adding
+signatures to session recordings to prove they came from Safeguard.
+
+This cmdlet gets CSRs that are currently outstanding but that have not yet been signed and
+returned to Safeguard.  Stale CSRs can be deleted via Delete-SafeguardCertificateSigningRequest.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Thumbprint
+A string containing the thumbprint of a specific CSR.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardCertificateSigningRequest -AccessToken $token -Appliance 10.5.32.54
+
+.EXAMPLE
+Get-SafeguardCertificateSigningRequest D7B8FB86C277BB173E29E368532D8B00E30DBC67
+#>
 function Get-SafeguardCertificateSigningRequest
 {
     [CmdletBinding(DefaultParameterSetName="None")]
@@ -646,6 +684,58 @@ function Get-SafeguardCertificateSigningRequest
 }
 New-Alias -Name Get-SafeguardCsr -Value Get-SafeguardCertificateSigningRequest
 
+<#
+.SYNOPSIS
+Create a certificate signing request in Safeguard via the Web API.
+
+.DESCRIPTION
+Safeguard can generate certificate signing requests (CSRs) so that private keys never
+leave the system.  These CSRs can be created for 1) server-side SSL covering the web client
+and web API, 2) RDP connection signing for RDP session proxy, 3) Timestamping authority for
+adding trusted timestamps to session recordings, and 4) session recording signing for adding
+signatures to session recordings to prove they came from Safeguard.
+
+This cmdlet creates new CSRs that .  Stale CSRs can be deleted via Delete-SafeguardCertificateSigningRequest.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER CertificateType
+A string containing the type of CSR.
+
+.PARAMETER Subject
+A string containing the distinguished name of the subject of the CSR.
+
+.PARAMETER KeyLength
+An integer containing the key length (1024, 2048, 3072, 4096, default: 2048).
+
+.PARAMETER IpAddresses
+An array of strings containing IP addresses to use in subject alternative names.
+
+.PARAMETER DnsNames
+An array of strings containing DNS names to use in subject alternative names.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+New-SafeguardCertificateSigningRequest -AccessToken $token -Appliance 10.5.32.54
+
+.EXAMPLE
+New-SafeguardCertificateSigningRequest Ssl "CN=Safeguard,O=OneIdentity" -DnsNames "safeguard.oneidentity.com" -IpAddresses "10.10.10.10"
+
+.EXAMPLE
+New-SafeguardCertificateSigningRequest SessionRecording "CN=SessionSign,O=OneIdentity" sessionsign.csr
+#>
 function New-SafeguardCertificateSigningRequest
 {
     [CmdletBinding()]
@@ -701,6 +791,41 @@ function New-SafeguardCertificateSigningRequest
 }
 New-Alias -Name New-SafeguardCsr -Value New-SafeguardCertificateSigningRequest
 
+<#
+.SYNOPSIS
+Delete a certificate signing request that has been generated for Safeguard via the Web API.
+
+.DESCRIPTION
+Safeguard can generate certificate signing requests (CSRs) so that private keys never
+leave the system.  These CSRs can be created for 1) server-side SSL covering the web client
+and web API, 2) RDP connection signing for RDP session proxy, 3) Timestamping authority for
+adding trusted timestamps to session recordings, and 4) session recording signing for adding
+signatures to session recordings to prove they came from Safeguard.
+
+This cmdlet may be used to delete stale CSRs that have not yet been signed and will never be
+returned to Safeguard.  You can find stale CSRs using Get-SafeguardCertificateSigningRequest.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Thumbprint
+A string containing the thumbprint of a specific CSR.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardCertificateSigningRequest D7B8FB86C277BB173E29E368532D8B00E30DBC67
+#>
 function Remove-SafeguardCertificateSigningRequest
 {
     [CmdletBinding()]
