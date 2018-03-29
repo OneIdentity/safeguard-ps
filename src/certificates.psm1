@@ -620,20 +620,29 @@ function Get-SafeguardSslCertificateForAppliance
 
 function Get-SafeguardCertificateSigningRequest
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="None")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(ParameterSetName="Single",Mandatory=$true,Position=0)]
+        [string]$Thumbprint
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "ServerCertificateSignatureRequests"
+    if ($PSBoundParameters.ContainsKey("Thumbprint"))
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "ServerCertificateSignatureRequests/$Thumbprint"
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "ServerCertificateSignatureRequests"
+    }
 }
 New-Alias -Name Get-SafeguardCsr -Value Get-SafeguardCertificateSigningRequest
 
@@ -658,7 +667,9 @@ function New-SafeguardCertificateSigningRequest
         [Parameter(Mandatory=$false)]
         [string[]]$IpAddresses = $null,
         [Parameter(Mandatory=$false)]
-        [string[]]$DnsNames = $null
+        [string[]]$DnsNames = $null,
+        [Parameter(Mandatory=$true,Position=2)]
+        [string]$OutFile
     )
 
     $ErrorActionPreference = "Stop"
@@ -682,8 +693,11 @@ function New-SafeguardCertificateSigningRequest
         $local:Body.IpAddresses = $IpAddresses 
     }
     if ($PSBoundParameters.ContainsKey("DnsNames")) { $local:Body.DnsNames = $DnsNames }
-    
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "ServerCertificateSignatureRequests" -Body $local:Body
+
+    $local:Csr = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "ServerCertificateSignatureRequests" -Body $local:Body)
+    $local:Csr
+    $local:Csr.Base64RequestData | Out-File -Encoding ASCII -FilePath $OutFile -NoNewline
+    Write-Host "CSR saved to $OutFile"
 }
 New-Alias -Name New-SafeguardCsr -Value New-SafeguardCertificateSigningRequest
 
