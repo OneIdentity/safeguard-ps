@@ -211,31 +211,35 @@ PrivateData = @{
         ProjectUri = 'https://github.com/OneIdentity/safeguard-ps'
 
         # A URL to an icon representing this module.
-        # IconUri = ''
+        IconUri = 'https://github.com/OneIdentity/safeguard-ps/blob/master/SafeguardLogo.ico'
+
+        # Pre-release tag
+        # Prerelease = '-pre'
 
         # ReleaseNotes of this module
         ReleaseNotes = @"
 safeguard-ps 2.1.0 Release Notes:
 
-- Initial version of safeguard-ps Powershell module
 - Allow non-SSL verified connections with -Insecure flag
-- Automated Safeguard desktop client install
+- Works with PowerShell Core on Linux and Mac
 - Support for following Web API features:
   - Core Web API functionality
-  - Safeguard product licensing
-  - Trusted certificates management
+  - Product licensing
+  - Certificates management
   - Networking configuration
-  - SSL certificates management
-  - Appliance maintenance
-  - Session module management
   - Appliance diagnostics
+  - Maintenance
+  - Clustering
+  - Session module management
   - Backups and archive servers
   - Access requests
   - User management
   - Asset management
   - Asset account management
   - Directory management
+  - Directory account management
   - Policy management
+  - Event subscriptions
 "@
 
     } # End of PSData hashtable
