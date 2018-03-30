@@ -1,0 +1,25 @@
+version: 2.1.0.{build}
+branches:
+  only:
+  - master
+environment:
+  PsGalleryApiKey:
+    secure: Zgbj3NNbLsk8NLMhVsztd6BUH80ZKq1eu/K43okCHzvahEW5tO5y6gInHp5UTBYm
+nuget:
+  disable_publish_on_pr: true
+build_script:
+- ps: >-
+    & .\install-appveyor.ps1
+
+    Import-Module -Name safeguard-ps -Verbose
+test: off
+deploy_script:
+- ps: Publish-Module -Name safeguard-ps -NuGetApiKey $env:PsGalleryApiKey -Verbose
+notifications:
+- provider: Email
+  to:
+  - petrsnd@gmail.com
+  subject: safeguard-ps build is failing
+  on_build_success: false
+  on_build_failure: true
+  on_build_status_changed: false
