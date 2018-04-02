@@ -1,9 +1,11 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/329lnisdof0jfsgh?svg=true)](https://ci.appveyor.com/project/petrsnd/safeguard-ps)
 
 # safeguard-ps
+
 One Identity Safeguard Powershell module and scripting resources.
 
 ## Installation
+
 This Powershell module is published to the 
 [PowerShell Gallery](https://www.powershellgallery.com/packages/safeguard-ps)
 to facilitate install via `Import-Module`.  It can be updated using the
@@ -31,6 +33,7 @@ Or, you can install them just for you:
 ```
 
 ## Getting Started
+
 Once you have loaded the module, you can connect to Safeguard using the
 `Connect-Safeguard` cmdlet.  If you do not have SSL properly configured, you
 must use the `-Insecure` parameter to avoid SSL trust errors.
@@ -81,6 +84,7 @@ When you are finished, you can close the session or call the
 `Disconnect-Safeguard` cmdlet to invalidate and remove your access token.
 
 ## Discover Available cmdlets
+
 Use the `Get-SafeguardCommand` to see what is available from the module.
 
 Since there are so many cmdlets in safeguard-ps you can use filters to find
@@ -98,6 +102,7 @@ Function        Get-SafeguardDirectoryAccount                      2.1.0.9... sa
 ```
 
 ## Module Versioning
+
 The version of safeguard-ps mirrors the version of Safeguard that it was
 developed and tested against.  However, the build numbers (fourth number)
 should not be expected to match.
@@ -116,8 +121,17 @@ you are communicating with.  The most important thing for safeguard-ps is
 the version of the Safeguard Web API, which will never change between
 where only the third and fourth numbers differ.
 
+### Moving to Three Digit Version Number
+
+As of version 2.2.x, safeguard-ps began using a three digit version number.
+It also now supports prerelease builds.  This is so the next version of
+safeguard-ps can be developed in lock step with the Safeguard product.
+
+Dropping the third number is insignificant as the Safeguard Web API never
+changes in those releases.
 
 ## Powershell cmdlets
+
 The following cmdlets are currently supported.  More will be added to this
 list over time.  Every cmdlet in the list supports `Get-Help` to provide
 additional information as to how it can be called.
@@ -133,26 +147,35 @@ safeguard-ps can do run:
 ```
 
 ### ManagementShell
+
 - Get-SafeguardCommand
 - Get-SafeguardBanner
+
 ### Core Functionality
+
 - Connect-Safeguard
 - Disconnect-Safeguard
 - Invoke-SafeguardMethod
 - Get-SafeguardAccessTokenStatus
 - Update-SafeguardAccessToken
 - Get-SafeguardLoggedInUser
+
 ### Data Types
+
 - Get-SafeguardIdentityProviderType
 - Get-SafeguardPlatform
 - Find-SafeguardPlatform
 - Get-SafeguardTimeZone
 - Get-SafeguardTransferProtocol
+
 ### Licensing
+
 - Install-SafeguardLicense
 - Uninstall-SafeguardLicense
 - Get-SafeguardLicense
+
 ### Certificates
+
 - Install-SafeguardTrustedCertificate
 - Uninstall-SafeguardTrustedCertificate
 - Get-SafeguardTrustedCertificate
@@ -166,14 +189,20 @@ safeguard-ps can do run:
 - New-SafeguardCertificateSigningRequest
 - Remove-SafeguardCertificateSigningRequest
 - New-SafeguardTestCertificatePki
+
 ### Networking
+
 - Get-SafeguardNetworkInterface
 - Set-SafeguardNetworkInterface
 - Get-SafeguardDnsSuffix
 - Set-SafeguardDnsSuffix
+
 ### Desktop Client
+
 - Install-SafeguardDesktopClient
+
 ### Maintenance
+
 - Get-SafeguardStatus
 - Get-SafeguardVersion
 - Get-SafeguardApplianceVerification
@@ -199,7 +228,9 @@ safeguard-ps can do run:
 - Enable-SafeguardBmcConfiguration
 - Disable-SafeguardBmcConfiguration
 - Set-SafeguardBmcAdminPassword
+
 ### Clustering
+
 - Add-SafeguardClusterMember
 - Remove-SafeguardClusterMember
 - Get-SafeguardClusterMember
@@ -210,12 +241,16 @@ safeguard-ps can do run:
 - Get-SafeguardClusterOperationStatus
 - Unlock-SafeguardCluster
 - Get-SafeguardClusterSummary
+
 ### Diagnostics
+
 - Invoke-SafeguardPing
 - Invoke-SafeguardSessionsPing
 - Invoke-SafeguardTelnet
 - Invoke-SafeguardSessionsTelnet
+
 ### Session Module
+
 - Get-SafeguardSessionContainerStatus
 - Get-SafeguardSessionModuleStatus
 - Get-SafeguardSessionModuleVersion
@@ -228,13 +263,17 @@ safeguard-ps can do run:
 - Set-SafeguardSessionSshAlgorithms
 - Add-SafeguardSessionSshAlgorithm
 - Remove-SafeguardSessionSshAlgorithm
+
 ### Archive Servers
+
 - Get-SafeguardArchiveServer
 - New-SafeguardArchiveServer
 - Test-SafeguardArchiveServer
 - Remove-SafeguardArchiveServer
 - Edit-SafeguardArchiveServer
+
 ### Access Requests
+
 - Get-SafeguardAccessRequest
 - Find-SafeguardAccessRequest
 - New-SafeguardAccessRequest
@@ -243,7 +282,9 @@ safeguard-ps can do run:
 - Get-SafeguardRequestableAccount
 - Find-SafeguardRequestableAccount
 - Get-SafeguardAccessRequestCheckoutPassword
+
 ### Users
+
 - Get-SafeguardIdentityProvider
 - New-SafeguardStarling2faAuthentication
 - Get-SafeguardUser
@@ -255,14 +296,18 @@ safeguard-ps can do run:
 - Enable-SafeguardUser
 - Disable-SafeguardUser
 - Rename-SafeguardUser
+
 ### Assets
+
 - Get-SafeguardAsset
 - Find-SafeguardAsset
 - New-SafeguardAsset
 - Test-SafeguardAsset
 - Remove-SafeguardAsset
 - Edit-SafeguardAsset
+
 ### Asset Accounts
+
 - Get-SafeguardAssetAccount
 - Find-SafeguardAssetAccount
 - New-SafeguardAssetAccount
@@ -272,14 +317,18 @@ safeguard-ps can do run:
 - Test-SafeguardAssetAccountPassword
 - Invoke-SafeguardAssetAccountPasswordChange
 - Invoke-SafeguardAssetSshHostKeyDiscovery
+
 ### Directories
+
 - Get-SafeguardDirectory
 - New-SafeguardDirectory
 - Test-SafeguardDirectory
 - Remove-SafeguardDirectory
 - Edit-SafeguardDirectory
 - Sync-SafeguardDirectory
+
 ### Directory Accounts
+
 - Get-SafeguardDirectoryAccount
 - Find-SafeguardDirectoryAccount
 - New-SafeguardDirectoryAccount
@@ -288,7 +337,9 @@ safeguard-ps can do run:
 - Test-SafeguardDirectoryAccountPassword
 - Invoke-SafeguardDirectoryAccountPasswordChange
 - Remove-SafeguardDirectoryAccount
+
 ### Groups (for use in entitlements & access policies)
+
 - Get-SafeguardUserGroup
 - New-SafeguardUserGroup
 - Remove-SafeguardUserGroup
@@ -299,7 +350,9 @@ safeguard-ps can do run:
 - Get-SafeguardAccountGroup
 - New-SafeguardAccountGroup
 - Remove-SafeguardAccountGroup
+
 ### Policy Assets and Policy Accounts (for use in entitlements & access policies)
+
 - Get-SafeguardPolicyAsset
 - Find-SafeguardPolicyAsset
 - Get-SafeguardPolicyAccount
@@ -311,7 +364,9 @@ safeguard-ps can do run:
 - Get-SafeguardEntitlement
 - Get-SafeguardUserEntitlementReport
 - Get-SafeguardUserLinkedAccount
+
 ### Events
+
 - Get-SafeguardEvent
 - Get-SafeguardEventName
 - Get-SafeguardEventSubscription
@@ -319,4 +374,3 @@ safeguard-ps can do run:
 - New-SafeguardEventSubscription
 - Remove-SafeguardEventSubscription
 - Edit-SafeguardEventSubscription
-
