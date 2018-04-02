@@ -214,7 +214,7 @@ PrivateData = @{
         IconUri = 'https://github.com/OneIdentity/safeguard-ps/blob/master/SafeguardLogo.ico'
 
         # Pre-release tag
-        # Prerelease = '-pre'
+        Prerelease = '-pre'
 
         # ReleaseNotes of this module
         ReleaseNotes = @"
