@@ -11,7 +11,7 @@
 RootModule = 'safeguard-ps.psm1'
 
 # Version number of this module.
-ModuleVersion = '2.1.0.99999'
+ModuleVersion = '2.2.99999'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -214,32 +214,16 @@ PrivateData = @{
         IconUri = 'https://github.com/OneIdentity/safeguard-ps/blob/master/SafeguardLogo.ico'
 
         # Pre-release tag
-        # Prerelease = '-pre'
+        Prerelease = '-pre'
 
         # ReleaseNotes of this module
         ReleaseNotes = @"
-safeguard-ps 2.1.0 Release Notes:
+safeguard-ps 2.2 Release Notes:
 
-- Allow non-SSL verified connections with -Insecure flag
-- Works with PowerShell Core on Linux and Mac
-- Support for following Web API features:
-  - Core Web API functionality
-  - Product licensing
-  - Certificates management
-  - Networking configuration
-  - Appliance diagnostics
-  - Maintenance
-  - Clustering
-  - Session module management
-  - Backups and archive servers
-  - Access requests
-  - User management
-  - Asset management
-  - Asset account management
-  - Directory management
-  - Directory account management
-  - Policy management
-  - Event subscriptions
+- Added support for new features:
+  - Application to Application (A2A)
+    - Credential releases
+    - Access requests
 "@
 
     } # End of PSData hashtable
