@@ -566,9 +566,9 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardAccessRequestCheckoutPassword 123
+Get-SafeguardAccessRequestPassword 123
 #>
-function Get-SafeguardAccessRequestCheckoutPassword
+function Get-SafeguardAccessRequestPassword
 {
     [CmdletBinding()]
     Param(
@@ -586,5 +586,7 @@ function Get-SafeguardAccessRequestCheckoutPassword
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AccessRequests/$RequestId/CheckoutPassword" -Body "$Comment"
 }
+New-Alias -Name Get-SafeguardAccessRequestCheckoutPassword -Value Get-SafeguardAccessRequestPassword
