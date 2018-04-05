@@ -1021,7 +1021,7 @@ function Install-SafeguardPatch
         Write-Host "Distributing patch to cluster..."
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST Patch/Distribute
 
-        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Locals
+        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
         Wait-ForPatchDistribution -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure
     }
 
