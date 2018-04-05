@@ -169,25 +169,30 @@ function Wait-ForPatchDistribution
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:StartTime = (Get-Date)
-    $local:Status = "Unknown"
-    $local:TimeElapsed = 10
-    do {
-        Write-Progress -Activity "Waiting for patch distribution" -Status "Cluster Operation: $($local:Status)" -PercentComplete (($local:TimeElapsed / $Timeout) * 100)
-        try
-        {
-            $local:Members = (Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET ClusterStatus/PatchDistribution).Members
-            $local:StagingStatuses = ($local:Members.StagingStatus | Sort-Object)
-            $local:Status = $local:StagingStatuses -join ","
-        }
-        catch {}
-        Start-Sleep 2
-        $local:TimeElapsed = (((Get-Date) - $local:StartTime).TotalSeconds)
-        if ($local:TimeElapsed -gt $Timeout)
-        {
-            throw "Timed out waiting for cluster operation to finish, timeout was $Timeout seconds"
-        }
-    } until (@($local:StagingStatuses | Select-Object -Unique).Count -eq 1 -and $local:StagingStatuses[0] -eq "Staged")
-    Write-Progress -Activity "Waiting for patch distribution" -Status "Current: $($local:Status)" -PercentComplete 100
+    $local:TimeElapsed = 0
+
+    if ((Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET ClusterMembers).Count -gt 1)
+    {
+        $local:StartTime = (Get-Date)
+        $local:Status = "Unknown"
+        $local:TimeElapsed = 10
+        do {
+            Write-Progress -Activity "Waiting for patch distribution" -Status "Cluster Operation: $($local:Status)" -PercentComplete (($local:TimeElapsed / $Timeout) * 100)
+            try
+            {
+                $local:Members = (Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET ClusterStatus/PatchDistribution).Members
+                $local:StagingStatuses = ($local:Members.StagingStatus | Sort-Object)
+                $local:Status = $local:StagingStatuses -join ","
+            }
+            catch {}
+            Start-Sleep 2
+            $local:TimeElapsed = (((Get-Date) - $local:StartTime).TotalSeconds)
+            if ($local:TimeElapsed -gt $Timeout)
+            {
+                throw "Timed out waiting for cluster operation to finish, timeout was $Timeout seconds"
+            }
+        } until (@($local:StagingStatuses | Select-Object -Unique).Count -eq 1 -and $local:StagingStatuses[0] -eq "Staged")
+        Write-Progress -Activity "Waiting for patch distribution" -Status "Current: $($local:Status)" -PercentComplete 100
+    }
     Write-Host "Safeguard patch distribution completed...~$($local:TimeElapsed) seconds"
 }
