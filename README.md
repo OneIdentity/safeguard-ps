@@ -242,7 +242,7 @@ safeguard-ps can do run:
 - Get-SafeguardActionableRequest
 - Get-SafeguardRequestableAccount
 - Find-SafeguardRequestableAccount
-- Get-SafeguardAccessRequestCheckoutPassword
+- Get-SafeguardAccessRequestPassword
 ### Users
 - Get-SafeguardIdentityProvider
 - New-SafeguardStarling2faAuthentication

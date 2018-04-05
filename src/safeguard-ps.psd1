@@ -86,7 +86,8 @@ NestedModules = @(
     'policies.psm1',
     'managementShell.psm1',
     'events.psm1',
-    'clustering.psm1'
+    'clustering.psm1',
+    'a2a.psm1'
     )
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
@@ -135,7 +136,7 @@ FunctionsToExport = @(
     # requests.psm1
     'Get-SafeguardAccessRequest','Find-SafeguardAccessRequest','New-SafeguardAccessRequest','Edit-SafeguardAccessRequest'
     'Get-SafeguardActionableRequest','Get-SafeguardRequestableAccount','Find-SafeguardRequestableAccount',
-    'Get-SafeguardAccessRequestCheckoutPassword',
+    'Get-SafeguardAccessRequestPassword',
     # users.psm1
     'Get-SafeguardIdentityProvider','New-SafeguardStarling2faAuthentication',
     'Get-SafeguardUser','Find-SafeguardUser','New-SafeguardUser','Remove-SafeguardUser','Set-SafeguardUserPassword',
@@ -171,6 +172,9 @@ FunctionsToExport = @(
     'Get-SafeguardClusterMember','Get-SafeguardClusterHealth','Get-SafeguardClusterOperationStatus',
     'Add-SafeguardClusterMember','Remove-SafeguardClusterMember','Get-SafeguardClusterPrimary','Set-SafeguardClusterPrimary',
     'Enable-SafeguardClusterPrimary','Unlock-SafeguardCluster','Get-SafeguardClusterSummary',
+    # a2a.psm1
+    'Get-SafeguardA2a','New-SafeguardA2a','Remove-SafeguardA2a','Edit-SafeguardA2a',
+    'Add-SafeguardA2aCredentialRelease','Remove-SafeguardA2aCredentialRelease',
     # managementShell.psm1
     'Get-SafeguardCommand', 'Get-SafeguardBanner'
     )
@@ -184,7 +188,9 @@ VariablesToExport = @('SafeguardSession')
 # Aliases to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no aliases to export.
 AliasesToExport = @(
     # certificates.psm1
-    'Get-SafeguardCsr','New-SafeguardCsr','Remove-SafeguardCsr'
+    'Get-SafeguardCsr','New-SafeguardCsr','Remove-SafeguardCsr',
+    # requests.psm1
+    'Get-SafeguardAccessRequestCheckoutPassword'
 )
 
 # DSC resources to export from this module
