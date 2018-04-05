@@ -882,7 +882,7 @@ Version of the Web API you are using (default: 2).
 A string containing the path to a patch file.
 
 .PARAMETER Timeout
-A timeout value in seconds for uploading; also used to wait for installation (default: 900s or 15m)
+A timeout value in seconds for uploading; also used to wait for installation (default: 1800s or 30m)
 
 .PARAMETER UseStagedPatch
 Use the currently staged patch rather than uploading a new one.
@@ -914,7 +914,7 @@ function Install-SafeguardPatch
         [Parameter(ParameterSetName="NewPatch",Mandatory=$true,Position=0)]
         [string]$Patch,
         [Parameter(ParameterSetName="NewPatch",Mandatory=$false)]
-        [int]$Timeout = 900,
+        [int]$Timeout = 1800,
         [Parameter(ParameterSetName="UseExisting",Mandatory=$false)]
         [switch]$UseStagedPatch = $false,
         [Parameter(Mandatory=$false)]
@@ -1471,7 +1471,7 @@ A string containing a backup ID, which is a GUID.
 Specify this flag to continue immediately without waiting for the restore to complete.
 
 .PARAMETER Timeout
-A timeout value in seconds for restore (default: 900s or 15m)
+A timeout value in seconds for restore (default: 1800s or 30m)
 
 .INPUTS
 None.
@@ -1500,7 +1500,7 @@ function Restore-SafeguardBackup
         [Parameter(Mandatory=$false)]
         [switch]$NoWait,
         [Parameter(ParameterSetName="NewPatch",Mandatory=$false)]
-        [int]$Timeout = 900
+        [int]$Timeout = 1800
     )
 
     $ErrorActionPreference = "Stop"
