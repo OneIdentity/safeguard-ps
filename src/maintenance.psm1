@@ -882,10 +882,13 @@ Version of the Web API you are using (default: 2).
 A string containing the path to a patch file.
 
 .PARAMETER Timeout
-A timeout value in seconds for uploading (default: 600s or 10m)
+A timeout value in seconds for uploading; also used to wait for installation (default: 900s or 15m)
 
 .PARAMETER UseStagedPatch
 Use the currently staged patch rather than uploading a new one.
+
+.PARAMETER NoWait
+Specify this flag to continue immediately without waiting for the patch to install to the connected appliance.
 
 .INPUTS
 None.
@@ -911,9 +914,11 @@ function Install-SafeguardPatch
         [Parameter(ParameterSetName="NewPatch",Mandatory=$true,Position=0)]
         [string]$Patch,
         [Parameter(ParameterSetName="NewPatch",Mandatory=$false)]
-        [int]$Timeout = 600,
+        [int]$Timeout = 900,
         [Parameter(ParameterSetName="UseExisting",Mandatory=$false)]
-        [switch]$UseStagedPatch = $false
+        [switch]$UseStagedPatch = $false,
+        [Parameter(Mandatory=$false)]
+        [switch]$NoWait
     )
 
     $ErrorActionPreference = "Stop"
@@ -1032,10 +1037,17 @@ function Install-SafeguardPatch
         if ($? -ne 0 -or $LastExitCode -eq 0)
         {
             Write-Host "Patch is currently installing..."
-            Write-Host "Use Get-SafeguardStatus to monitor patching progress."
             if ($local:MetaData.Metadata)
             {
                 $local:MetaData.Metadata
+            }
+            if ($NoWait)
+            {
+                Write-Host "Use Get-SafeguardStatus to monitor patching progress."
+            }
+            else
+            {
+                Wait-ForSafeguardOnlineStatus -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout
             }
         }
     }
@@ -1458,6 +1470,9 @@ A string containing a backup ID, which is a GUID.
 .PARAMETER NoWait
 Specify this flag to continue immediately without waiting for the restore to complete.
 
+.PARAMETER Timeout
+A timeout value in seconds for restore (default: 900s or 15m)
+
 .INPUTS
 None.
 
@@ -1483,7 +1498,9 @@ function Restore-SafeguardBackup
         [Parameter(Mandatory=$false,Position=0)]
         [string]$BackupId,
         [Parameter(Mandatory=$false)]
-        [switch]$NoWait
+        [switch]$NoWait,
+        [Parameter(ParameterSetName="NewPatch",Mandatory=$false)]
+        [int]$Timeout = 900
     )
 
     $ErrorActionPreference = "Stop"
@@ -1501,7 +1518,7 @@ function Restore-SafeguardBackup
 
     if (-not $NoWait)
     {
-        Wait-ForSafeguardOnlineStatus -Appliance $Appliance -Insecure:$Insecure
+        Wait-ForSafeguardOnlineStatus -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout
     }
 }
 
