@@ -183,6 +183,38 @@ function New-SafeguardA2a
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "A2ARegistrations" -Body $local:Body
 }
 
+<#
+.SYNOPSIS
+Remove an A2A registration from Safeguard via the Web API.
+
+.DESCRIPTION
+Remove an A2A registration from Safeguard. Make sure it is not in use before
+you remove it.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER A2aToDelete
+An integer containing the ID of the A2A registration to remove or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardA2a -AccessToken $token -Appliance 10.5.32.54 -Insecure 5
+
+.EXAMPLE
+Remove-SafeguardA2a "Ticket System"
+#>
 function Remove-SafeguardA2a
 {
     [CmdletBinding()]
@@ -192,13 +224,21 @@ function Remove-SafeguardA2a
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$A2aToDelete
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    
+    if (-not $PSBoundParameters.ContainsKey("A2aToDelete"))
+    {
+        $A2aToDelete = (Read-Host "A2aToDelete")
+    }
+
+    $local:A2aId = (Resolve-SafeguardA2aId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $A2aToDelete)
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "A2ARegistrations/$A2aId"
 }
 
 function Edit-SafeguardA2a
