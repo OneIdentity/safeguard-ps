@@ -1,3 +1,28 @@
+# Helper
+function Test-SupportForClusterPatch
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Version = (Get-SafeguardVersion -Appliance $Appliance -Insecure:$Insecure)
+    if ($local:Version.Major -gt 2 -or ($local:Version.Major -eq 2 -and $local:Version.Minor -gt 0))
+    {
+        $true
+    }
+    else
+    {
+        $false
+    }
+}
+
 <#
 .SYNOPSIS
 Get the current status of Safeguard appliance via the Web API.
@@ -463,7 +488,7 @@ function Invoke-SafeguardApplianceReboot
 
     if ($Force)
     {
-        $Confirmed = $true
+        $local:Confirmed = $true
     }
     else
     {
@@ -826,7 +851,10 @@ function Clear-SafeguardPatch
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance DELETE Patch/Distribute
+    if (Test-SupportForClusterPatch -Appliance $Appliance -Insecure:$Insecure)
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance DELETE Patch/Distribute
+    }
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance DELETE Patch
 }
 
@@ -854,7 +882,13 @@ Version of the Web API you are using (default: 2).
 A string containing the path to a patch file.
 
 .PARAMETER Timeout
-A timeout value in seconds for uploading (default: 600s or 10m)
+A timeout value in seconds for uploading; also used to wait for installation (default: 1800s or 30m)
+
+.PARAMETER UseStagedPatch
+Use the currently staged patch rather than uploading a new one.
+
+.PARAMETER NoWait
+Specify this flag to continue immediately without waiting for the patch to install to the connected appliance.
 
 .INPUTS
 None.
@@ -867,7 +901,7 @@ Install-SafeguardPatch -AccessToken $token -Patch XX.sgp -Appliance 10.5.32.54.
 #>
 function Install-SafeguardPatch
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="NewPatch")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -877,10 +911,14 @@ function Install-SafeguardPatch
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
         [int]$Version = 2,
-        [Parameter(Mandatory=$true,Position=0)]
+        [Parameter(ParameterSetName="NewPatch",Mandatory=$true,Position=0)]
         [string]$Patch,
+        [Parameter(ParameterSetName="NewPatch",Mandatory=$false)]
+        [int]$Timeout = 1800,
+        [Parameter(ParameterSetName="UseExisting",Mandatory=$false)]
+        [switch]$UseStagedPatch = $false,
         [Parameter(Mandatory=$false)]
-        [int]$Timeout = 600
+        [switch]$NoWait
     )
 
     $ErrorActionPreference = "Stop"
@@ -907,94 +945,110 @@ function Install-SafeguardPatch
         $AccessToken = (Connect-Safeguard -Appliance $Appliance -Insecure:$Insecure -NoSessionVariable)
     }
 
-    $Response = (Get-SafeguardPatch -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
-    if ($Response)
+    if (-not $UseStagedPatch)
     {
-        Write-Host "Removing currently staged patch..."
-        Clear-SafeguardPatch -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure
         $Response = (Get-SafeguardPatch -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
         if ($Response)
         {
-            throw "Failed to delete existing patch"
+            Write-Host "Removing currently staged patch..."
+            Clear-SafeguardPatch -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure
+            $Response = (Get-SafeguardPatch -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
+            if ($Response)
+            {
+                throw "Failed to delete existing patch"
+            }
         }
-    }
 
-    try
-    {
-        Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
-        Edit-SslVersionSupport
-        if ($Insecure)
+        try
         {
-            Disable-SslVerification
-            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
-        }
-        # Use the WebClient class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
-        Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
-        Add-ExWebClientExType
+            Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
+            Edit-SslVersionSupport
+            if ($Insecure)
+            {
+                Disable-SslVerification
+                if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+            }
+            # Use the WebClient class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
+            Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+            Add-ExWebClientExType
 
-        $WebClient = (New-Object Ex.WebClientEx -ArgumentList @($Timeout))
-        $WebClient.Headers.Add("Accept", "application/json")
-        $WebClient.Headers.Add("Content-type", "application/octet-stream")
-        $WebClient.Headers.Add("Authorization", "Bearer $AccessToken")
-        Write-Host "Uploading patch to Safeguard. This operation may take several minutes..."
+            $WebClient = (New-Object Ex.WebClientEx -ArgumentList @($Timeout))
+            $WebClient.Headers.Add("Accept", "application/json")
+            $WebClient.Headers.Add("Content-type", "application/octet-stream")
+            $WebClient.Headers.Add("Authorization", "Bearer $AccessToken")
+            Write-Host "Uploading patch to Safeguard. This operation may take several minutes..."
 
-        $Bytes = [System.IO.File]::ReadAllBytes($Patch);
-        $ResponseBytes = $WebClient.UploadData("https://$Appliance/service/appliance/v$Version/Patch", "POST", $Bytes) | Out-Null
-        if ($ResponseBytes)
-        {
-            [System.Text.Encoding]::UTF8.GetString($ResponseBytes)
+            $Bytes = [System.IO.File]::ReadAllBytes($Patch);
+            $ResponseBytes = $WebClient.UploadData("https://$Appliance/service/appliance/v$Version/Patch", "POST", $Bytes) | Out-Null
+            if ($ResponseBytes)
+            {
+                [System.Text.Encoding]::UTF8.GetString($ResponseBytes)
+            }
         }
-    }
-    catch [System.Net.WebException]
-    {
-        if ($_.Exception.Response)
+        catch [System.Net.WebException]
         {
-            $Response = $_.Exception.Response
-            $Reader = New-Object System.IO.StreamReader -ArgumentList @($Response.GetResponseStream())
-            Write-Error $Reader.ReadToEnd()
+            if ($_.Exception.Response)
+            {
+                $Response = $_.Exception.Response
+                $Reader = New-Object System.IO.StreamReader -ArgumentList @($Response.GetResponseStream())
+                Write-Error $Reader.ReadToEnd()
+            }
+            else
+            {
+                Write-Error $_
+            }
+            throw "Failure returned from POSTing patch to Safeguard"
         }
-        else
+        catch
         {
             Write-Error $_
+            throw "Failed to POST patch to Safeguard"
         }
-        throw "Failure returned from POSTing patch to Safeguard"
-    }
-    catch
-    {
-        Write-Error $_
-        throw "Failed to POST patch to Safeguard"
-    }
-    finally
-    {
-        if ($Insecure)
+        finally
         {
-            Enable-SslVerification
-            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+            if ($Insecure)
+            {
+                Enable-SslVerification
+                if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+            }
         }
     }
 
-    $local:Patch = (Get-SafeguardPatch -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
-    $local:PatchName = $local:Patch.Title
+    $local:StagedPatch = (Get-SafeguardPatch -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
 
-    Write-Host "Distributing patch to cluster..."
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST Patch/Distribute
+    if (Test-SupportForClusterPatch -Appliance $Appliance -Insecure:$Insecure)
+    {
+        Write-Host "Distributing patch to cluster..."
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST Patch/Distribute
 
-    Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-    Wait-ForPatchDistribution -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure
+        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Locals
+        Wait-ForPatchDistribution -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure
+    }
 
     Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
     $local:Confirmed = (Get-Confirmation "Install Safeguard Patch" `
-                                         "Do you want to install $($local:PatchName) on this cluster?" `
+                                         "Do you want to install $($local:StagedPatch.Title) on this cluster?" `
                                          "Starts cluster patch immediately." `
                                          "Cancels this operation.")
     if ($local:Confirmed)
     {
         Write-Host "Starting patch install..."
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST Patch/Install
+        $local:MetaData = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST Patch/Install)
         if ($? -ne 0 -or $LastExitCode -eq 0)
         {
             Write-Host "Patch is currently installing..."
-            Write-Host "Use Get-SafeguardStatus to monitor patching progress."
+            if ($local:MetaData.Metadata)
+            {
+                $local:MetaData.Metadata
+            }
+            if ($NoWait)
+            {
+                Write-Host "Use Get-SafeguardStatus to monitor patching progress."
+            }
+            else
+            {
+                Wait-ForSafeguardOnlineStatus -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout
+            }
         }
     }
     else
@@ -1416,6 +1470,9 @@ A string containing a backup ID, which is a GUID.
 .PARAMETER NoWait
 Specify this flag to continue immediately without waiting for the restore to complete.
 
+.PARAMETER Timeout
+A timeout value in seconds for restore (default: 1800s or 30m)
+
 .INPUTS
 None.
 
@@ -1441,7 +1498,9 @@ function Restore-SafeguardBackup
         [Parameter(Mandatory=$false,Position=0)]
         [string]$BackupId,
         [Parameter(Mandatory=$false)]
-        [switch]$NoWait
+        [switch]$NoWait,
+        [Parameter(ParameterSetName="NewPatch",Mandatory=$false)]
+        [int]$Timeout = 1800
     )
 
     $ErrorActionPreference = "Stop"
@@ -1459,7 +1518,7 @@ function Restore-SafeguardBackup
 
     if (-not $NoWait)
     {
-        Wait-ForSafeguardOnlineStatus -Appliance $Appliance -Insecure:$Insecure
+        Wait-ForSafeguardOnlineStatus -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout
     }
 }
 
