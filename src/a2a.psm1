@@ -353,6 +353,49 @@ function Edit-SafeguardA2a
         Core PUT "A2ARegistrations/$($A2aObject.Id)" -Body $A2aObject
 }
 
+<#
+.SYNOPSIS
+Get configuration of credential retrieval for an account from an A2A registration in Safeguard
+via the Web API.
+
+.DESCRIPTION
+Get all or one of the accounts configured for credential retrieval in an A2A registrations that have 
+been added to Safeguard.  Accounts for credential retrieval are given API keys and may be configured
+with IP address restrictions.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ParentA2a
+An integer containing the ID of the A2A registration to get or a string containing the name.
+
+.PARAMETER AccountObj
+An object representing the account to get the credential retrieval configuration for.
+
+.PARAMETER System
+An integer containing the ID of the system or a string containing the name.
+
+.PARAMETER Account
+An integer containing the ID of the account or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardA2aCredentialRetrieval -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardA2aCredentialRetrieval "Ticket System" linux.test.machine root
+#>
 function Get-SafeguardA2aCredentialRetrieval
 {
     [CmdletBinding(DefaultParameterSetName="None")]
@@ -365,7 +408,7 @@ function Get-SafeguardA2aCredentialRetrieval
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ParentA2a,
-        [Parameter(ParameterSetName="Object",Mandatory=$true,Position=1)]
+        [Parameter(ParameterSetName="Object",Mandatory=$true,Position=1,ValueFromPipeline=$true)]
         [object]$AccountObj,
         [Parameter(ParameterSetName="Names",Mandatory=$false,Position=1)]
         [object]$System,
@@ -397,7 +440,7 @@ function Get-SafeguardA2aCredentialRetrieval
         else
         {
             $local:AccountId = (Resolve-SafeguardA2aAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                $ParentA2a $Account -System $System)
+                $local:A2aId $Account -System $System)
         }
 
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
@@ -405,6 +448,52 @@ function Get-SafeguardA2aCredentialRetrieval
     }
 }
 
+<#
+.SYNOPSIS
+Add configuration of account credential retrieval to an A2A registration in Safeguard
+via the Web API.
+
+.DESCRIPTION
+Add an account credential retrieval to an A2A registration that has been added to Safeguard.
+Accounts for credential retrieval are given API keys and may be configured with IP address 
+restrictions.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ParentA2a
+An integer containing the ID of the A2A registration to get or a string containing the name.
+
+.PARAMETER AccountObj
+An object representing the account to get the credential retrieval configuration for.
+
+.PARAMETER System
+An integer containing the ID of the system or a string containing the name.
+
+.PARAMETER Account
+An integer containing the ID of the account or a string containing the name.
+
+.PARAMETER IpRestrictions
+A list of strings containing IP address that may use this credential retrieval configuration.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Add-SafeguardA2aCredentialRetrieval -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Add-SafeguardA2aCredentialRetrieval "Ticket System" linux.test.machine root -IpRestrictions "10.5.5.32","10.5.5.33"
+#>
 function Add-SafeguardA2aCredentialRetrieval
 {
     [CmdletBinding(DefaultParameterSetName="Names")]
@@ -417,7 +506,7 @@ function Add-SafeguardA2aCredentialRetrieval
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ParentA2a,
-        [Parameter(ParameterSetName="Object",Mandatory=$true,Position=1)]
+        [Parameter(ParameterSetName="Object",Mandatory=$true,Position=1,ValueFromPipeline=$true)]
         [object]$AccountObj,
         [Parameter(ParameterSetName="Names",Mandatory=$false,Position=1)]
         [object]$System,
@@ -479,6 +568,49 @@ function Add-SafeguardA2aCredentialRetrieval
         Core POST "A2ARegistrations/$($local:A2aId)/Accounts" -Body @($local:Body)
 }
 
+<#
+.SYNOPSIS
+Remove configuration of an account credential retrieval from an A2A registration in Safeguard
+via the Web API.
+
+.DESCRIPTION
+Remove an account credential retrieval to an A2A registration that has been added to Safeguard.
+Accounts for credential retrieval are given API keys and may be configured with IP address 
+restrictions.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ParentA2a
+An integer containing the ID of the A2A registration to get or a string containing the name.
+
+.PARAMETER AccountObj
+An object representing the account to get the credential retrieval configuration for.
+
+.PARAMETER System
+An integer containing the ID of the system or a string containing the name.
+
+.PARAMETER Account
+An integer containing the ID of the account or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardA2aCredentialRetrieval -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Remove-SafeguardA2aCredentialRetrieval "Ticket System" linux.test.machine root
+#>
 function Remove-SafeguardA2aCredentialRetrieval
 {
     [CmdletBinding(DefaultParameterSetName="Names")]
@@ -491,7 +623,7 @@ function Remove-SafeguardA2aCredentialRetrieval
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ParentA2a,
-        [Parameter(ParameterSetName="Object",Mandatory=$true,Position=1)]
+        [Parameter(ParameterSetName="Object",Mandatory=$true,Position=1,ValueFromPipeline=$true)]
         [object]$AccountObj,
         [Parameter(ParameterSetName="Names",Mandatory=$false,Position=1)]
         [object]$System,
@@ -516,13 +648,55 @@ function Remove-SafeguardA2aCredentialRetrieval
     else
     {
         $local:AccountId = (Resolve-SafeguardA2aAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-            $ParentA2a $Account -System $System)
+            $local:A2aId $Account -System $System)
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
             Core DELETE "A2ARegistrations/$($local:A2aId)/Accounts/$($local:AccountId)"
 }
 
+<#
+.SYNOPSIS
+Get the IP address restrictions from an account credential retrieval from an A2A registration in Safeguard
+via the Web API.
+
+.DESCRIPTION
+Get the IP addresses that are whitelisted for calling an account credential retrieval of an A2A registration
+that has been added to Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ParentA2a
+An integer containing the ID of the A2A registration to get or a string containing the name.
+
+.PARAMETER AccountObj
+An object representing the account to get the credential retrieval configuration for.
+
+.PARAMETER System
+An integer containing the ID of the system or a string containing the name.
+
+.PARAMETER Account
+An integer containing the ID of the account or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardA2aCredentialRetrievalIpRestrictions -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardA2aCredentialRetrievalIpRestrictions "Ticket System" linux.test.machine root
+#>
 function Get-SafeguardA2aCredentialRetrievalIpRestrictions
 {
     [CmdletBinding(DefaultParameterSetName="Names")]
@@ -535,7 +709,7 @@ function Get-SafeguardA2aCredentialRetrievalIpRestrictions
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ParentA2a,
-        [Parameter(ParameterSetName="Object",Mandatory=$true,Position=1)]
+        [Parameter(ParameterSetName="Object",Mandatory=$true,Position=1,ValueFromPipeline=$true)]
         [object]$AccountObj,
         [Parameter(ParameterSetName="Names",Mandatory=$false,Position=1)]
         [object]$System,
@@ -563,6 +737,51 @@ function Get-SafeguardA2aCredentialRetrievalIpRestrictions
     }
 }
 
+<#
+.SYNOPSIS
+Set the IP address restrictions for an account credential retrieval for an A2A registration in Safeguard
+via the Web API.
+
+.DESCRIPTION
+Set the IP addresses that are whitelisted for calling an account credential retrieval of an A2A registration
+that has been added to Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ParentA2a
+An integer containing the ID of the A2A registration to get or a string containing the name.
+
+.PARAMETER AccountObj
+An object representing the account to get the credential retrieval configuration for.
+
+.PARAMETER System
+An integer containing the ID of the system or a string containing the name.
+
+.PARAMETER Account
+An integer containing the ID of the account or a string containing the name.
+
+.PARAMETER IpRestrictions
+A list of strings containing IP address that may use this credential retrieval configuration.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Set-SafeguardA2aCredentialRetrievalIpRestrictions -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Set-SafeguardA2aCredentialRetrievalIpRestrictions "Ticket System" linux.test.machine root -IpRestrictions "10.0.0.11","10.0.0.12"
+#>
 function Set-SafeguardA2aCredentialRetrievalIpRestrictions
 {
     [CmdletBinding()]
@@ -575,7 +794,7 @@ function Set-SafeguardA2aCredentialRetrievalIpRestrictions
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ParentA2a,
-        [Parameter(ParameterSetName="Object",Mandatory=$true,Position=1)]
+        [Parameter(ParameterSetName="Object",Mandatory=$true,Position=1,ValueFromPipeline=$true)]
         [object]$AccountObj,
         [Parameter(ParameterSetName="Names",Mandatory=$false,Position=1)]
         [object]$System,
@@ -634,7 +853,7 @@ function Reset-SafeguardA2aCredentialRetrievalApiKey
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ParentA2a,
-        [Parameter(ParameterSetName="Object",Mandatory=$true,Position=1)]
+        [Parameter(ParameterSetName="Object",Mandatory=$true,Position=1,ValueFromPipeline=$true)]
         [object]$AccountObj,
         [Parameter(ParameterSetName="Names",Mandatory=$false,Position=1)]
         [object]$System,
@@ -659,7 +878,7 @@ function Reset-SafeguardA2aCredentialRetrievalApiKey
     else
     {
         $local:AccountId = (Resolve-SafeguardA2aAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-            $ParentA2a $Account -System $System)
+            $local:A2aId $Account -System $System)
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
@@ -678,7 +897,7 @@ function Get-SafeguardA2aCredentialRetrievalApiKey
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ParentA2a,
-        [Parameter(ParameterSetName="Object",Mandatory=$true,Position=1)]
+        [Parameter(ParameterSetName="Object",Mandatory=$true,Position=1,ValueFromPipeline=$true)]
         [object]$AccountObj,
         [Parameter(ParameterSetName="Names",Mandatory=$false,Position=1)]
         [object]$System,
@@ -703,7 +922,7 @@ function Get-SafeguardA2aCredentialRetrievalApiKey
     else
     {
         $local:AccountId = (Resolve-SafeguardA2aAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-            $ParentA2a $Account -System $System)
+            $local:A2aId $Account -System $System)
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
