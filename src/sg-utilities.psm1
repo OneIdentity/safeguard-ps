@@ -196,3 +196,119 @@ function Wait-ForPatchDistribution
     }
     Write-Host "Safeguard patch distribution completed...~$($local:TimeElapsed) seconds"
 }
+
+function Resolve-SafeguardSystemId
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$System
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    try
+    {
+        Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
+        Resolve-SafeguardAssetId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $System
+    }
+    catch
+    {
+        Write-Verbose "Unable to resolve to asset ID, trying directories"
+        try 
+        {
+            Import-Module -Name "$PSScriptRoot\directories.psm1" -Scope Local
+            Resolve-SafeguardDirectoryId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $System
+        }
+        catch
+        {
+            Write-Verbose "Unable to resolve to directory ID"
+            throw "Cannot determine system ID for '$System'"
+        }
+    }
+}
+
+function Resolve-SafeguardAccountIdWithoutSystemId
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Account
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    try
+    {
+        Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
+        Resolve-SafeguardAssetAccountId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $Account
+    }
+    catch
+    {
+        Write-Verbose "Unable to resolve to asset account ID, trying directories"
+        try 
+        {
+            Import-Module -Name "$PSScriptRoot\directories.psm1" -Scope Local
+            Resolve-SafeguardDirectoryAccountId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $Account
+        }
+        catch
+        {
+            Write-Verbose "Unable to resolve to directory account ID"
+            throw "Cannot determine account ID for '$Account'"
+        }
+    }
+}
+
+function Resolve-SafeguardAccountIdWithSystemId
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [int]$SystemId,
+        [Parameter(Mandatory=$true,Position=1)]
+        [object]$Account
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    try
+    {
+        Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
+        Resolve-SafeguardAssetAccountId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetId $SystemId $Account
+    }
+    catch
+    {
+        Write-Verbose "Unable to resolve to asset account ID, trying directories"
+        try 
+        {
+            Import-Module -Name "$PSScriptRoot\directories.psm1" -Scope Local
+            Resolve-SafeguardDirectoryAccountId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -DirectoryId $SystemId $Account
+        }
+        catch
+        {
+            Write-Verbose "Unable to resolve to directory account ID"
+            throw "Cannot determine system ID for '$System'"
+        }
+    }
+}

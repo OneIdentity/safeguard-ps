@@ -241,6 +241,35 @@ function Remove-SafeguardA2a
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "A2ARegistrations/$A2aId"
 }
 
+<#
+.SYNOPSIS
+Edit existing A2A registration in Safeguard via the Web API.
+
+.DESCRIPTION
+Edit an existing A2A registration in Safeguard that can be used to retrieve credentials
+and an access request broker.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER A2aObject
+An object containing the existing A2A registration with desired properties set.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Edit-SafeguardA2a -AccessToken $token -Appliance 10.5.32.54 -Insecure -A2aObject $obj
+#>
 function Edit-SafeguardA2a
 {
     [CmdletBinding()]
@@ -250,16 +279,132 @@ function Edit-SafeguardA2a
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,ValueFromPipeline=$true)]
+        [object]$A2aObject
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     
+    if (-not $A2aObject)
+    {
+        throw "A2aObject must not be null"
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+        Core PUT "A2ARegistrations/$($A2aObject.Id)" -Body $A2aObject
 }
 
-function Add-SafeguardA2aCredentialReleaseAccount
+function Add-SafeguardA2aCredentialRetrieval
+{
+    [CmdletBinding(DefaultParameterSetName="Names")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$ParentA2a,
+        [Parameter(ParameterSetName="Object",Mandatory=$true,Position=1)]
+        [object]$AccountObj,
+        [Parameter(ParameterSetName="Names",Mandatory=$false,Position=1)]
+        [object]$System,
+        [Parameter(ParameterSetName="Names",Mandatory=$true,Position=2)]
+        [object]$Account,
+        [Parameter(Mandatory=$false)]
+        [string[]]$IpRestrictions
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $AccountObj)
+    {
+        throw "AccountObj must not be null"
+    }
+
+    if ($IpRestrictions)
+    {
+        Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+        $IpRestrictions | ForEach-Object {
+            if (-not (Test-IpAddress $_))
+            {
+                throw "IP restriction '$_' is not an IP address"
+            }
+        }
+    }
+
+    $local:A2aId = (Resolve-SafeguardA2aId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ParentA2a)
+
+    $local:Body = @{}
+    if ($PsCmdlet.ParameterSetName -eq "Object")
+    {
+        $local:Body.AccountId = $AccountObj.Id
+        $local:Body.SystemId = $AccountObj.SystemId
+    }
+    else
+    {
+        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+        if ($System)
+        {
+            $local:Body.SystemId = (Resolve-SafeguardSystemId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $System)
+            $local:Body.AccountId = (Resolve-SafeguardAccountIdWithSystemId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                $local:Body.SystemId $Account)
+        }
+        else
+        {
+            Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
+            $local:Body.AccountId = (Resolve-SafeguardAccountIdWithoutSystemId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $Account)
+        }
+    }
+
+    if ($IpRestrictions)
+    {
+        $local:Body.IpRestrictions = $IpRestrictions 
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+        Core POST "A2ARegistrations/$($local:A2aId)/Accounts" -Body @($local:Body)
+}
+
+function Remove-SafeguardA2aCredentialRetrieval
+{
+    [CmdletBinding(DefaultParameterSetName="Names")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$ParentA2a,
+        [Parameter(ParameterSetName="Object",Mandatory=$true,Position=1)]
+        [object]$AccountObj,
+        [Parameter(ParameterSetName="Names",Mandatory=$true)]
+        [object]$System,
+        [Parameter(ParameterSetName="Names",Mandatory=$true)]
+        [object]$Account
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $AccountObj)
+    {
+        throw "AccountObj must not be null"
+    }
+
+    $local:A2aId = (Resolve-SafeguardA2aId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ParentA2a)
+
+
+}
+
+function Reset-SafeguardA2aCredentialRetrievalApiKey
 {
     [CmdletBinding()]
     Param(
@@ -268,7 +413,9 @@ function Add-SafeguardA2aCredentialReleaseAccount
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$ParentA2a
     )
 
     $ErrorActionPreference = "Stop"
@@ -277,7 +424,7 @@ function Add-SafeguardA2aCredentialReleaseAccount
     
 }
 
-function Remove-SafeguardA2aCredentialReleaseAccount
+function Get-SafeguardA2aCredentialRetrievalApiKey
 {
     [CmdletBinding()]
     Param(
@@ -286,7 +433,9 @@ function Remove-SafeguardA2aCredentialReleaseAccount
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$ParentA2a
     )
 
     $ErrorActionPreference = "Stop"
