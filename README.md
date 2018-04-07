@@ -374,3 +374,17 @@ safeguard-ps can do run:
 - New-SafeguardEventSubscription
 - Remove-SafeguardEventSubscription
 - Edit-SafeguardEventSubscription
+
+### A2A
+
+- Get-SafeguardA2a
+- New-SafeguardA2a
+- Remove-SafeguardA2a
+- Edit-SafeguardA2a
+- Get-SafeguardA2aCredentialRetrieval
+- Add-SafeguardA2aCredentialRetrieval
+- Remove-SafeguardA2aCredentialRetrieval
+- Get-SafeguardA2aCredentialRetrievalIpRestrictions
+- Set-SafeguardA2aCredentialRetrievalIpRestrictions
+- Reset-SafeguardA2aCredentialRetrievalApiKey
+- Get-SafeguardA2aCredentialRetrievalApiKey
