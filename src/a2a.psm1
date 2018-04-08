@@ -99,7 +99,7 @@ function Resolve-SafeguardA2aAccountId
         {
             throw "Found $($local:Accounts.Count) a2a accounts matching '$Account'"
         }
-        $local:Accounts[0].Id
+        $local:Accounts[0].AccountId
     }
     else
     {
@@ -336,7 +336,7 @@ function Edit-SafeguardA2a
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true,Position=0,ValueFromPipeline=$true)]
+        [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
         [object]$A2aObject
     )
 
@@ -408,12 +408,12 @@ function Get-SafeguardA2aCredentialRetrieval
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ParentA2a,
-        [Parameter(ParameterSetName="Object",Mandatory=$true,Position=1,ValueFromPipeline=$true)]
-        [object]$AccountObj,
         [Parameter(ParameterSetName="Names",Mandatory=$false,Position=1)]
         [object]$System,
         [Parameter(ParameterSetName="Names",Mandatory=$true,Position=2)]
-        [object]$Account
+        [object]$Account,
+        [Parameter(ParameterSetName="Object",Mandatory=$true)]
+        [object]$AccountObj
     )
 
     $ErrorActionPreference = "Stop"
@@ -430,7 +430,7 @@ function Get-SafeguardA2aCredentialRetrieval
     {
         if ($PsCmdlet.ParameterSetName -eq "Object")
         {
-            if (not $AccountObj)
+            if (-not $AccountObj)
             {
                 throw "AccountObj must not be null"
             }
@@ -506,12 +506,12 @@ function Add-SafeguardA2aCredentialRetrieval
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ParentA2a,
-        [Parameter(ParameterSetName="Object",Mandatory=$true,Position=1,ValueFromPipeline=$true)]
-        [object]$AccountObj,
         [Parameter(ParameterSetName="Names",Mandatory=$false,Position=1)]
         [object]$System,
         [Parameter(ParameterSetName="Names",Mandatory=$true,Position=2)]
         [object]$Account,
+        [Parameter(ParameterSetName="Object",Mandatory=$true)]
+        [object]$AccountObj,
         [Parameter(Mandatory=$false)]
         [string[]]$IpRestrictions
     )
@@ -623,12 +623,12 @@ function Remove-SafeguardA2aCredentialRetrieval
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ParentA2a,
-        [Parameter(ParameterSetName="Object",Mandatory=$true,Position=1,ValueFromPipeline=$true)]
-        [object]$AccountObj,
         [Parameter(ParameterSetName="Names",Mandatory=$false,Position=1)]
         [object]$System,
         [Parameter(ParameterSetName="Names",Mandatory=$true,Position=2)]
-        [object]$Account
+        [object]$Account,
+        [Parameter(ParameterSetName="Object",Mandatory=$true)]
+        [object]$AccountObj
     )
 
     $ErrorActionPreference = "Stop"
@@ -709,12 +709,12 @@ function Get-SafeguardA2aCredentialRetrievalIpRestrictions
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ParentA2a,
-        [Parameter(ParameterSetName="Object",Mandatory=$true,Position=1,ValueFromPipeline=$true)]
-        [object]$AccountObj,
         [Parameter(ParameterSetName="Names",Mandatory=$false,Position=1)]
         [object]$System,
         [Parameter(ParameterSetName="Names",Mandatory=$true,Position=2)]
-        [object]$Account
+        [object]$Account,
+        [Parameter(ParameterSetName="Object",Mandatory=$true)]
+        [object]$AccountObj
     )
 
     $ErrorActionPreference = "Stop"
@@ -723,7 +723,7 @@ function Get-SafeguardA2aCredentialRetrievalIpRestrictions
     $local:A2aId = (Resolve-SafeguardA2aId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ParentA2a)
     if ($PsCmdlet.ParameterSetName -eq "Object")
     {
-        if (not $AccountObj)
+        if (-not $AccountObj)
         {
             throw "AccountObj must not be null"
         }
@@ -733,7 +733,7 @@ function Get-SafeguardA2aCredentialRetrievalIpRestrictions
     else
     {
         (Get-SafeguardA2aCredentialRetrieval -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-            $local:A2aId -AccountObj $AccountObj).IpRestrictions
+            $local:A2aId $System $Account).IpRestrictions
     }
 }
 
@@ -784,7 +784,7 @@ Set-SafeguardA2aCredentialRetrievalIpRestrictions "Ticket System" linux.test.mac
 #>
 function Set-SafeguardA2aCredentialRetrievalIpRestrictions
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Names")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -794,12 +794,12 @@ function Set-SafeguardA2aCredentialRetrievalIpRestrictions
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ParentA2a,
-        [Parameter(ParameterSetName="Object",Mandatory=$true,Position=1,ValueFromPipeline=$true)]
-        [object]$AccountObj,
         [Parameter(ParameterSetName="Names",Mandatory=$false,Position=1)]
         [object]$System,
         [Parameter(ParameterSetName="Names",Mandatory=$true,Position=2)]
         [object]$Account,
+        [Parameter(ParameterSetName="Object",Mandatory=$true)]
+        [object]$AccountObj,
         [Parameter(Mandatory=$true)]
         [string[]]$IpRestrictions
     )
@@ -820,9 +820,10 @@ function Set-SafeguardA2aCredentialRetrievalIpRestrictions
         }
     }
 
+    $local:A2aId = (Resolve-SafeguardA2aId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ParentA2a)
     if ($PsCmdlet.ParameterSetName -eq "Object")
     {
-        if (not $AccountObj)
+        if (-not $AccountObj)
         {
             throw "AccountObj must not be null"
         }
@@ -832,18 +833,18 @@ function Set-SafeguardA2aCredentialRetrievalIpRestrictions
     else
     {
         $local:A2aCr = (Get-SafeguardA2aCredentialRetrieval -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                            $local:A2aId -AccountObj $AccountObj).IpRestrictions
+                            $local:A2aId $System $Account)
     }
 
     $local:A2aCr.IpRestrictions = $IpRestrictions
 
     (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-        Core PUT "A2ARegistrations/$($local:A2aId)/Accounts/$($local:AccountId)" -Body $local:A2aCr).IpRestrictions
+        Core PUT "A2ARegistrations/$($local:A2aId)/Accounts/$($local:A2aCr.AccountId)" -Body $local:A2aCr).IpRestrictions
 }
 
 function Reset-SafeguardA2aCredentialRetrievalApiKey
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Names")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -853,12 +854,12 @@ function Reset-SafeguardA2aCredentialRetrievalApiKey
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ParentA2a,
-        [Parameter(ParameterSetName="Object",Mandatory=$true,Position=1,ValueFromPipeline=$true)]
-        [object]$AccountObj,
         [Parameter(ParameterSetName="Names",Mandatory=$false,Position=1)]
         [object]$System,
         [Parameter(ParameterSetName="Names",Mandatory=$true,Position=2)]
-        [object]$Account
+        [object]$Account,
+        [Parameter(ParameterSetName="Object",Mandatory=$true)]
+        [object]$AccountObj
     )
 
     $ErrorActionPreference = "Stop"
@@ -887,7 +888,7 @@ function Reset-SafeguardA2aCredentialRetrievalApiKey
 
 function Get-SafeguardA2aCredentialRetrievalApiKey
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Names")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -897,12 +898,12 @@ function Get-SafeguardA2aCredentialRetrievalApiKey
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ParentA2a,
-        [Parameter(ParameterSetName="Object",Mandatory=$true,Position=1,ValueFromPipeline=$true)]
-        [object]$AccountObj,
         [Parameter(ParameterSetName="Names",Mandatory=$false,Position=1)]
         [object]$System,
         [Parameter(ParameterSetName="Names",Mandatory=$true,Position=2)]
-        [object]$Account
+        [object]$Account,
+        [Parameter(ParameterSetName="Object",Mandatory=$true)]
+        [object]$AccountObj
     )
 
     $ErrorActionPreference = "Stop"
