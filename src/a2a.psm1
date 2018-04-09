@@ -336,7 +336,7 @@ function Edit-SafeguardA2a
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
+        [Parameter(ParameterSetName="Object",Mandatory=$true,Position=0,ValueFromPipeline=$true)]
         [object]$A2aObject
     )
 
