@@ -158,13 +158,11 @@ function Get-SafeguardA2aPassword
 
     if ($PsCmdlet.ParameterSetName -eq "CertStore")
     {
-        Write-Verbose "Using certstore version"
         (Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
             -Thumbprint $Thumbprint -CredentialType Password).Password
     }
     else
     {
-        Write-Verbose "Using file version"
         (Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
             -CertificateFile $CertificateFile -Password $Password -CredentialType Password).Password
     }
