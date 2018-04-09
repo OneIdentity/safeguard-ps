@@ -454,6 +454,12 @@ A string containing the name to give the appliance.
 .PARAMETER Force
 Do not prompt for confirmation.
 
+.PARAMETER NoWait
+Specify this flag to continue immediately without waiting for the patch to install to the connected appliance.
+
+.PARAMETER Timeout
+A timeout value in seconds, only used if waiting (default: 15 minutes or 900 seconds).
+
 .INPUTS
 None.
 
@@ -479,7 +485,11 @@ function Invoke-SafeguardApplianceReboot
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Reason,
         [Parameter(Mandatory=$false)]
-        [switch]$Force
+        [switch]$Force,
+        [Parameter(Mandatory=$false)]
+        [switch]$NoWait = $false,
+        [Parameter(Mandatory=$false)]
+        [int]$Timeout = 900
     )
 
     $ErrorActionPreference = "Stop"
@@ -500,7 +510,14 @@ function Invoke-SafeguardApplianceReboot
     if ($local:Confirmed)
     {
         Write-Host "Sending reboot command..."
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST ApplianceStatus/Reboot -Body $Reason
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance `
+            POST ApplianceStatus/Reboot -Body $Reason
+
+        if (-not $NoWait)
+        {
+            Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+            Wait-ForSafeguardOnlineStatus -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout
+        }
     }
     else
     {
