@@ -396,3 +396,7 @@ safeguard-ps can do run:
 
 - Get-SafeguardA2aPassword
 - Get-SafeguardA2aPrivateKey
+
+### A2A -- Access Request Broker
+
+- New-SafeguardA2aAccessRequest

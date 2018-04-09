@@ -88,7 +88,7 @@ NestedModules = @(
     'events.psm1',
     'clustering.psm1',
     'a2a.psm1',
-    'a2acredretrieval.psm1'
+    'a2acallers.psm1'
     )
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
@@ -179,8 +179,8 @@ FunctionsToExport = @(
     'Get-SafeguardA2aCredentialRetrieval','Add-SafeguardA2aCredentialRetrieval','Remove-SafeguardA2aCredentialRetrieval',
     'Get-SafeguardA2aCredentialRetrievalIpRestrictions','Set-SafeguardA2aCredentialRetrievalIpRestrictions',
     'Reset-SafeguardA2aCredentialRetrievalApiKey','Get-SafeguardA2aCredentialRetrievalApiKey',
-    # a2acredretrieval.psm1
-    'Get-SafeguardA2aPassword','Get-SafeguardA2aPrivateKey',
+    # a2acallers.psm1
+    'Get-SafeguardA2aPassword','Get-SafeguardA2aPrivateKey','New-SafeguardA2aAccessRequest',
     # managementShell.psm1
     'Get-SafeguardCommand', 'Get-SafeguardBanner'
     )

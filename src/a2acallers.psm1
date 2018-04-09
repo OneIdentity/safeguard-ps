@@ -16,9 +16,13 @@ function Invoke-SafeguardA2aMethodWithCertificate
         [Parameter(Mandatory=$false)]
         [string]$Authorization,
         [Parameter(Mandatory=$true)]
+        [string]$Method,
+        [Parameter(Mandatory=$true)]
         [string]$RelativeUrl,
         [Parameter(Mandatory=$false)]
-        [int]$Version = 2
+        [int]$Version = 2,
+        [Parameter(Mandatory=$false)]
+        [object]$Body
     )
 
     $ErrorActionPreference = "Stop"
@@ -46,17 +50,25 @@ function Invoke-SafeguardA2aMethodWithCertificate
         Write-Verbose "---Request---"
         Write-Verbose "Headers=$(ConvertTo-Json -InputObject $Headers)"
 
+        $local:BodyInternal = $null
+        if ($Body) 
+        {
+            $local:BodyInternal = (ConvertTo-Json -InputObject $Body)
+            Write-Verbose "---Request Body---"
+            Write-Verbose "$($local:BodyInternal)"
+        }
+
         if (-not $Thumbprint)
         {
             Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-            $local:Cert = (Use-CertificateFile $CertificateFile $Password)
-            Invoke-RestMethod -Certificate $local:Cert -Method GET -Headers $local:Headers `
-                -Uri "https://$Appliance/service/a2a/v$Version/$RelativeUrl"
+            $local:Cert = (Use-CertificateFile $CertificateFile $Password)      
+            Invoke-RestMethod -Certificate $local:Cert -Method $Method -Headers $local:Headers `
+                -Uri "https://$Appliance/service/a2a/v$Version/$RelativeUrl" -Body $local:BodyInternal
         }
         else
         {
-            Invoke-RestMethod -CertificateThumbprint $Thumbprint -Method GET -Headers $local:Headers `
-                -Uri "https://$Appliance/service/a2a/v$Version/$RelativeUrl"
+            Invoke-RestMethod -CertificateThumbprint $Thumbprint -Method $Method -Headers $local:Headers `
+                -Uri "https://$Appliance/service/a2a/v$Version/$RelativeUrl" -Body $local:BodyInternal
         }
     }
     catch
@@ -125,12 +137,12 @@ function Invoke-SafeguardA2aCredentialRetrieval
     if (-not $Thumbprint)
     {
         Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization $Authorization `
-            -CertificateFile $CertificateFile -Password $Password  -RelativeUrl "Credentials?type=$CredentialType"
+            -CertificateFile $CertificateFile -Password $Password -Method GET -RelativeUrl "Credentials?type=$CredentialType"
     }
     else
     {
         Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization $Authorization `
-            -Thumbprint $Thumbprint -RelativeUrl "Credentials?type=$CredentialType"
+            -Thumbprint $Thumbprint -Method GET -RelativeUrl "Credentials?type=$CredentialType"
     }
 }
 
@@ -197,6 +209,44 @@ function Get-SafeguardA2aPrivateKey
     else
     {
         (Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+            -CertificateFile $CertificateFile -Password $Password -CredentialType Key).Key
+    }
+}
+
+function New-SafeguardA2aAccessRequest
+{
+    [CmdletBinding(DefaultParameterSetName="CertStore")]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(ParameterSetName="File",Mandatory=$true)]
+        [string]$CertificateFile,
+        [Parameter(ParameterSetName="File",Mandatory=$false)]
+        [SecureString]$Password,
+        [Parameter(ParameterSetName="CertStore",Mandatory=$true)]
+        [string]$Thumbprint,
+        [Parameter(Mandatory=$true, Position=1)]
+        [object]$AssetToUse,
+        [Parameter(Mandatory=$true, Position=2)]
+        [object]$AccountToUse,
+        [Parameter(Mandatory=$true, Position=3)]
+        [ValidateSet("Password", "SSH", "RemoteDesktop", "RDP", IgnoreCase=$true)]
+        [string]$AccessRequestType
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($PsCmdlet.ParameterSetName -eq "CertStore")
+    {
+        (Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance `
+            -Thumbprint $Thumbprint -CredentialType Key).Key
+    }
+    else
+    {
+        (Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance `
             -CertificateFile $CertificateFile -Password $Password -CredentialType Key).Key
     }
 }
