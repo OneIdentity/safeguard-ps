@@ -313,24 +313,49 @@ function Resolve-SafeguardAccountIdWithSystemId
     }
 }
 
-function Use-CertificateFile
+function Resolve-ReasonCodeId
 {
     [CmdletBinding()]
     Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
-        [string]$CertificateFile,
-        [Parameter(Mandatory=$false,Position=1)]
-        [SecureString]$Password
+        [object]$ReasonCode
     )
 
-    if (-not $Password)
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not ($ReasonCode -as [int]))
     {
-        Get-PfxCertificate -FilePath $CertificateFile
+        try
+        {
+            $local:ReasonCodes = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                      Core GET ReasonCodes -Parameters @{ filter = "Name ieq '$ReasonCode'" })
+        }
+        catch
+        {
+            Write-Verbose $_
+            Write-Verbose "Caught exception with ieq filter, trying with q parameter"
+            $local:ReasonCodes = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                      Core GET ReasonCodes -Parameters @{ q = $ReasonCode })
+        }
+        if (-not $local:ReasonCodes)
+        {
+            throw "Unable to find reason code registration matching '$ReasonCode'"
+        }
+        if ($local:ReasonCodes.Count -ne 1)
+        {
+            throw "Found $($local:ReasonCodes.Count) reason code registration matching '$ReasonCode'"
+        }
+        $local:ReasonCodes[0].Id
     }
     else
     {
-        $local:Cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2
-        $local:Cert.Import($CertificateFile, $Password, $X509KeyStorageFlag)
-        $local:Cert
+        $ReasonCode
     }
 }

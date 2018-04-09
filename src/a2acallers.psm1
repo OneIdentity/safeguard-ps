@@ -60,7 +60,7 @@ function Invoke-SafeguardA2aMethodWithCertificate
 
         if (-not $Thumbprint)
         {
-            Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+            Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
             $local:Cert = (Use-CertificateFile $CertificateFile $Password)      
             Invoke-RestMethod -Certificate $local:Cert -Method $Method -Headers $local:Headers `
                 -Uri "https://$Appliance/service/a2a/v$Version/$RelativeUrl" -Body $local:BodyInternal
@@ -227,26 +227,60 @@ function New-SafeguardA2aAccessRequest
         [SecureString]$Password,
         [Parameter(ParameterSetName="CertStore",Mandatory=$true)]
         [string]$Thumbprint,
+        [Parameter(Mandatory=$true)]
+        [string]$ForUserName,
         [Parameter(Mandatory=$true, Position=1)]
-        [object]$AssetToUse,
+        [int]$AssetToUse,
         [Parameter(Mandatory=$true, Position=2)]
-        [object]$AccountToUse,
+        [int]$AccountToUse,
         [Parameter(Mandatory=$true, Position=3)]
         [ValidateSet("Password", "SSH", "RemoteDesktop", "RDP", IgnoreCase=$true)]
-        [string]$AccessRequestType
+        [string]$AccessRequestType,
+        [Parameter(Mandatory=$false)]
+        [switch]$Emergency = $false,
+        [Parameter(Mandatory=$false)]
+        [object]$ReasonCode,
+        [Parameter(Mandatory=$false)]
+        [string]$ReasonComment,
+        [Parameter(Mandatory=$false)]
+        [string]$TicketNumber
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    if ($AccessRequestType -ieq "RDP")
+    {
+        $AccessRequestType = "RemoteDesktop"
+    }
+
+    ### We need to figure out how we are going to resolve Asset and Account IDs
+
+    $local:Body = @{
+        ForName = $ForUserName;
+        SystemId = $local:AssetId;
+        AccountId = $local:AccountId;
+        AccessRequestType = "$AccessRequestType"
+    }
+
+    if ($Emergency) { $local:Body["IsEmergency"] = $true }
+    if ($ReasonCode)
+    {
+        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+        $local:ReasonCodeId = (Resolve-ReasonCodeId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ReasonCode)
+        $local:Body["ReasonCode"] = $local:ReasonCodeId
+    }
+    if ($ReasonComment) { $local:Body["ReasonComment"] = $ReasonComment }
+    if ($TicketNumber) { $local:Body["TicketNumber"] = $TicketNumber }
+
     if ($PsCmdlet.ParameterSetName -eq "CertStore")
     {
-        (Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance `
-            -Thumbprint $Thumbprint -CredentialType Key).Key
+        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance `
+            -Thumbprint $Thumbprint -Body $local:Body
     }
     else
     {
-        (Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance `
-            -CertificateFile $CertificateFile -Password $Password -CredentialType Key).Key
+        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance `
+            -CertificateFile $CertificateFile -Password $Password -Body $local:Body
     }
 }

@@ -265,7 +265,15 @@ function New-SafeguardAccessRequest
         [object]$AccountToUse,
         [Parameter(Mandatory=$true, Position=2)]
         [ValidateSet("Password", "SSH", "RemoteDesktop", "RDP", IgnoreCase=$true)]
-        [string]$AccessRequestType
+        [string]$AccessRequestType,
+        [Parameter(Mandatory=$false)]
+        [switch]$Emergency = $false,
+        [Parameter(Mandatory=$false)]
+        [object]$ReasonCode,
+        [Parameter(Mandatory=$false)]
+        [string]$ReasonComment,
+        [Parameter(Mandatory=$false)]
+        [string]$TicketNumber
     )
 
     $ErrorActionPreference = "Stop"
@@ -279,11 +287,23 @@ function New-SafeguardAccessRequest
     $local:AssetId = (Resolve-SafeguardRequestableAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToUse)
     $local:AccountId = (Resolve-SafeguardRequestableAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AccessRequests" -Body @{
+    $local:Body = @{
         SystemId = $local:AssetId;
         AccountId = $local:AccountId;
         AccessRequestType = "$AccessRequestType"
     }
+
+    if ($Emergency) { $local:Body["IsEmergency"] = $true }
+    if ($ReasonCode)
+    {
+        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+        $local:ReasonCodeId = (Resolve-ReasonCodeId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ReasonCode)
+        $local:Body["ReasonCode"] = $local:ReasonCodeId
+    }
+    if ($ReasonComment) { $local:Body["ReasonComment"] = $ReasonComment }
+    if ($TicketNumber) { $local:Body["TicketNumber"] = $TicketNumber }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AccessRequests" -Body $local:Body
 }
 
 <#
