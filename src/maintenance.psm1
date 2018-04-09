@@ -515,6 +515,7 @@ function Invoke-SafeguardApplianceReboot
 
         if (-not $NoWait)
         {
+            Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
             Wait-ForSafeguardOnlineStatus -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout
         }
     }
