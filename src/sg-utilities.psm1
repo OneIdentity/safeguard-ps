@@ -312,3 +312,25 @@ function Resolve-SafeguardAccountIdWithSystemId
         }
     }
 }
+
+function Use-CertificateFile
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$CertificateFile,
+        [Parameter(Mandatory=$false,Position=1)]
+        [SecureString]$Password
+    )
+
+    if (-not $Password)
+    {
+        Get-PfxCertificate -FilePath $CertificateFile
+    }
+    else
+    {
+        $local:Cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2
+        $local:Cert.Import($CertificateFile, $Password, $X509KeyStorageFlag)
+        $local:Cert
+    }
+}

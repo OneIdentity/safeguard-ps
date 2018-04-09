@@ -109,6 +109,150 @@ function Resolve-SafeguardA2aAccountId
 
 <#
 .SYNOPSIS
+Get status of the A2A service on this Safeguard appliance via the Web API.
+
+.DESCRIPTION
+By default the A2A service is not running on a Safeguard appliance.  It must be enabled
+on the desired appliances in order to begin using any A2A registration configured in the
+cluster.  This cmdlet gets the current status of the A2A service on this appliance.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardA2aServiceStatus -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardA2aServiceStatus
+#>
+function Get-SafeguardA2aServiceStatus
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET "A2AService/Status"
+}
+
+<#
+.SYNOPSIS
+Enable the A2A service on this Safeguard appliance via the Web API.
+
+.DESCRIPTION
+By default the A2A service is not running on a Safeguard appliance.  It must be enabled
+on the desired appliances in order to begin using any A2A registration configured in the
+cluster.  This cmdlet enables the A2A service on this appliance.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Enable-SafeguardA2aService -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Enable-SafeguardA2aService
+#>
+function Enable-SafeguardA2aService
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST "A2AService/Enable"
+}
+
+<#
+.SYNOPSIS
+Disable the A2A service on this Safeguard appliance via the Web API.
+
+.DESCRIPTION
+By default the A2A service is not running on a Safeguard appliance.  It must be enabled
+on the desired appliances in order to begin using any A2A registration configured in the
+cluster.  This cmdlet disables the A2A service on this appliance.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Disable-SafeguardA2aService -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Disable-SafeguardA2aService
+#>
+function Disable-SafeguardA2aService
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST "A2AService/Disable"
+}
+
+<#
+.SYNOPSIS
 Get A2A registrations managed by Safeguard via the Web API.
 
 .DESCRIPTION

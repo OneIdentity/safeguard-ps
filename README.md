@@ -377,6 +377,9 @@ safeguard-ps can do run:
 
 ### A2A
 
+- Get-SafeguardA2aServiceStatus
+- Enable-SafeguardA2aService
+- Disable-SafeguardA2aService
 - Get-SafeguardA2a
 - New-SafeguardA2a
 - Remove-SafeguardA2a
@@ -388,3 +391,8 @@ safeguard-ps can do run:
 - Set-SafeguardA2aCredentialRetrievalIpRestrictions
 - Reset-SafeguardA2aCredentialRetrievalApiKey
 - Get-SafeguardA2aCredentialRetrievalApiKey
+
+### A2A -- Credential Retrieval
+
+- Get-SafeguardA2aPassword
+- Get-SafeguardA2aPrivateKey

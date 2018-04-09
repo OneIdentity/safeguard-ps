@@ -173,10 +173,13 @@ FunctionsToExport = @(
     'Add-SafeguardClusterMember','Remove-SafeguardClusterMember','Get-SafeguardClusterPrimary','Set-SafeguardClusterPrimary',
     'Enable-SafeguardClusterPrimary','Unlock-SafeguardCluster','Get-SafeguardClusterSummary',
     # a2a.psm1
+    'Get-SafeguardA2aServiceStatus','Enable-SafeguardA2aService','Disable-SafeguardA2aService',
     'Get-SafeguardA2a','New-SafeguardA2a','Remove-SafeguardA2a','Edit-SafeguardA2a',
     'Get-SafeguardA2aCredentialRetrieval','Add-SafeguardA2aCredentialRetrieval','Remove-SafeguardA2aCredentialRetrieval',
     'Get-SafeguardA2aCredentialRetrievalIpRestrictions','Set-SafeguardA2aCredentialRetrievalIpRestrictions',
     'Reset-SafeguardA2aCredentialRetrievalApiKey','Get-SafeguardA2aCredentialRetrievalApiKey',
+    # a2acredretrieval.psm1
+    'Get-SafeguardA2aPassword','Get-SafeguardA2aPrivateKey',
     # managementShell.psm1
     'Get-SafeguardCommand', 'Get-SafeguardBanner'
     )
