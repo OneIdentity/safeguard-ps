@@ -1,5 +1,5 @@
 # Helper
-function Invoke-SafeguardA2aCredentialRetrieval
+function Invoke-SafeguardA2aMethodWithCertificate
 {
     [CmdletBinding()]
     Param(
@@ -13,9 +13,102 @@ function Invoke-SafeguardA2aCredentialRetrieval
         [SecureString]$Password,
         [Parameter(ParameterSetName="CertStore",Mandatory=$true)]
         [string]$Thumbprint,
-        [Parameter(Mandatory=$true,Position=1)]
-        [string]$ApiKey,
-        [Parameter(Mandatory=$true,Position=2)]
+        [Parameter(Mandatory=$false)]
+        [string]$Authorization,
+        [Parameter(Mandatory=$true)]
+        [string]$RelativeUrl,
+        [Parameter(Mandatory=$false)]
+        [int]$Version = 2
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
+    try
+    {
+        if ($Insecure)
+        {
+            Disable-SslVerification
+            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+        }
+
+        $local:Headers = @{
+                "Accept" = "application/json";
+                "Content-type" = "application/json"
+            }
+
+        if ($Authorization)
+        {
+            $local:Headers["Authorization"] = $Authorization
+        }
+
+        Write-Verbose "---Request---"
+        Write-Verbose "Headers=$(ConvertTo-Json -InputObject $Headers)"
+
+        if (-not $Thumbprint)
+        {
+            Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+            $local:Cert = (Use-CertificateFile $CertificateFile $Password)
+            Invoke-RestMethod -Certificate $local:Cert -Method GET -Headers $local:Headers `
+                -Uri "https://$Appliance/service/a2a/v$Version/$RelativeUrl"
+        }
+        else
+        {
+            Invoke-RestMethod -CertificateThumbprint $Thumbprint -Method GET -Headers $local:Headers `
+                -Uri "https://$Appliance/service/a2a/v$Version/$RelativeUrl"
+        }
+    }
+    catch
+    {
+        if ($_.Exception.Response)
+        {
+            Write-Verbose "---Response Status---"
+            Write-Verbose "$([int]$_.Exception.Response.StatusCode) $($_.Exception.Response.StatusDescription)"
+            Write-Verbose "---Response Body---"
+            $local:Stream = $_.Exception.Response.GetResponseStream()
+            $local:Reader = New-Object System.IO.StreamReader($local:Stream)
+            $local:Reader.BaseStream.Position = 0
+            $local:Reader.DiscardBufferedData()
+            Write-Verbose $local:Reader.ReadToEnd()
+            $local:Reader.Dispose()
+        }
+        Write-Verbose "---Exception---"
+        $_.Exception | Format-List * -Force | Out-String | Write-Verbose
+        if ($_.Exception.InnerException)
+        {
+            Write-Verbose "---Inner Exception---"
+            $_.Exception.InnerException | Format-List * -Force | Out-String | Write-Verbose
+        }
+        throw $_.Exception
+    }
+    finally
+    {
+        if ($Insecure)
+        {
+            Enable-SslVerification
+            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+        }
+    }
+}
+
+function Invoke-SafeguardA2aCredentialRetrieval
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [string]$CertificateFile,
+        [Parameter(Mandatory=$false)]
+        [SecureString]$Password,
+        [Parameter(Mandatory=$false)]
+        [string]$Thumbprint,
+        [Parameter(Mandatory=$false)]
+        [string]$Authorization,
+        [Parameter(Mandatory=$false)]
         [ValidateSet("Password","Key",IgnoreCase=$true)]
         [string]$CredentialType
     )
@@ -29,43 +122,18 @@ function Invoke-SafeguardA2aCredentialRetrieval
         "key" { $CredentialType = "Key"; break }
     }
 
-    Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
-    try
+    if (-not $Thumbprint)
     {
-        if ($Insecure)
-        {
-            Disable-SslVerification
-            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
-        }
-
-        if ($PsCmdlet.ParameterSetName -eq "CertStore")
-        {
-            Invoke-RestMethod -CertificateThumbprint $Thumbprint -Method GET -Headers @{
-                    "Accept" = "application/json";
-                    "Content-type" = "application/json";
-                    "Authorization" = "A2A $ApiKey"
-                } -Uri "https://$Appliance/service/a2a/Credentials?type=$CredentialType"
-        }
-        else
-        {
-            Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-            $local:Cert = (Use-CertificateFile $CertificateFile $Password)
-            Invoke-RestMethod -Certificate $local:Cert -Method GET -Headers @{
-                    "Accept" = "application/json";
-                    "Content-type" = "application/json";
-                    "Authorization" = "A2A $ApiKey"
-                } -Uri "https://$Appliance/service/a2a/Credentials?type=$CredentialType"
-        }
+        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization $Authorization `
+            -CertificateFile $CertificateFile -Password $Password  -RelativeUrl "Credentials?type=$CredentialType"
     }
-    finally
+    else
     {
-        if ($Insecure)
-        {
-            Enable-SslVerification
-            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
-        }
+        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization $Authorization `
+            -Thumbprint $Thumbprint -RelativeUrl "Credentials?type=$CredentialType"
     }
 }
+
 
 function Get-SafeguardA2aPassword
 {
@@ -90,12 +158,14 @@ function Get-SafeguardA2aPassword
 
     if ($PsCmdlet.ParameterSetName -eq "CertStore")
     {
-        (Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -ApiKey $ApiKey `
+        Write-Verbose "Using certstore version"
+        (Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
             -Thumbprint $Thumbprint -CredentialType Password).Password
     }
     else
     {
-        (Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -ApiKey $ApiKey `
+        Write-Verbose "Using file version"
+        (Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
             -CertificateFile $CertificateFile -Password $Password -CredentialType Password).Password
     }
 }
@@ -123,12 +193,12 @@ function Get-SafeguardA2aPrivateKey
 
     if ($PsCmdlet.ParameterSetName -eq "CertStore")
     {
-        (Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -ApiKey $ApiKey `
+        (Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
             -Thumbprint $Thumbprint -CredentialType Key).Key
     }
     else
     {
-        (Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -ApiKey $ApiKey `
+        (Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
             -CertificateFile $CertificateFile -Password $Password -CredentialType Key).Key
     }
 }
