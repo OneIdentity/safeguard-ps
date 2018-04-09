@@ -87,7 +87,8 @@ NestedModules = @(
     'managementShell.psm1',
     'events.psm1',
     'clustering.psm1',
-    'a2a.psm1'
+    'a2a.psm1',
+    'a2acredretrieval.psm1'
     )
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.

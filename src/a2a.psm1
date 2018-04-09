@@ -82,14 +82,14 @@ function Resolve-SafeguardA2aAccountId
         try
         {
             $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                                    Core GET "A2ARegistrations/$A2aId/Accounts" -Parameters @{ filter = $local:Filter })
+                                    Core GET "A2ARegistrations/$A2aId/RetrievableAccounts" -Parameters @{ filter = $local:Filter })
         }
         catch
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with ieq filter, trying with q parameter"
             $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                                    Core GET "A2ARegistrations/$A2aId/Accounts" -Parameters @{ q = $Account })
+                                    Core GET "A2ARegistrations/$A2aId/RetrievableAccounts" -Parameters @{ q = $Account })
         }
         if (-not $local:Accounts)
         {
@@ -568,7 +568,7 @@ function Get-SafeguardA2aCredentialRetrieval
     if ($PsCmdlet.ParameterSetName -eq "None")
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-            Core GET "A2ARegistrations/$($local:A2aId)/Accounts"
+            Core GET "A2ARegistrations/$($local:A2aId)/RetrievableAccounts"
     }
     else
     {
@@ -588,7 +588,7 @@ function Get-SafeguardA2aCredentialRetrieval
         }
 
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                Core GET "A2ARegistrations/$($local:A2aId)/Accounts/$($local:AccountId)"
+                Core GET "A2ARegistrations/$($local:A2aId)/RetrievableAccounts/$($local:AccountId)"
     }
 }
 
@@ -709,7 +709,7 @@ function Add-SafeguardA2aCredentialRetrieval
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-        Core POST "A2ARegistrations/$($local:A2aId)/Accounts" -Body @($local:Body)
+        Core POST "A2ARegistrations/$($local:A2aId)/RetrievableAccounts" -Body @($local:Body)
 }
 
 <#
@@ -796,7 +796,7 @@ function Remove-SafeguardA2aCredentialRetrieval
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-            Core DELETE "A2ARegistrations/$($local:A2aId)/Accounts/$($local:AccountId)"
+            Core DELETE "A2ARegistrations/$($local:A2aId)/RetrievableAccounts/$($local:AccountId)"
 }
 
 <#
@@ -983,7 +983,7 @@ function Set-SafeguardA2aCredentialRetrievalIpRestrictions
     $local:A2aCr.IpRestrictions = $IpRestrictions
 
     (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-        Core PUT "A2ARegistrations/$($local:A2aId)/Accounts/$($local:A2aCr.AccountId)" -Body $local:A2aCr).IpRestrictions
+        Core PUT "A2ARegistrations/$($local:A2aId)/RetrievableAccounts/$($local:A2aCr.AccountId)" -Body $local:A2aCr).IpRestrictions
 }
 
 <#
@@ -1069,7 +1069,7 @@ function Reset-SafeguardA2aCredentialRetrievalApiKey
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-            Core POST "A2ARegistrations/$($local:A2aId)/Accounts/$($local:AccountId)/ApiKey"
+            Core POST "A2ARegistrations/$($local:A2aId)/RetrievableAccounts/$($local:AccountId)/ApiKey"
 }
 
 <#
@@ -1155,5 +1155,5 @@ function Get-SafeguardA2aCredentialRetrievalApiKey
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-            Core GET "A2ARegistrations/$($local:A2aId)/Accounts/$($local:AccountId)/ApiKey"
+            Core GET "A2ARegistrations/$($local:A2aId)/RetrievableAccounts/$($local:AccountId)/ApiKey"
 }
