@@ -86,8 +86,7 @@ NestedModules = @(
     'policies.psm1',
     'managementShell.psm1',
     'events.psm1',
-    'clustering.psm1',
-    'a2a.psm1'
+    'clustering.psm1'
     )
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
@@ -172,9 +171,6 @@ FunctionsToExport = @(
     'Get-SafeguardClusterMember','Get-SafeguardClusterHealth','Get-SafeguardClusterOperationStatus',
     'Add-SafeguardClusterMember','Remove-SafeguardClusterMember','Get-SafeguardClusterPrimary','Set-SafeguardClusterPrimary',
     'Enable-SafeguardClusterPrimary','Unlock-SafeguardCluster','Get-SafeguardClusterSummary',
-    # a2a.psm1
-    'Get-SafeguardA2a','New-SafeguardA2a','Remove-SafeguardA2a','Edit-SafeguardA2a',
-    'Add-SafeguardA2aCredentialRelease','Remove-SafeguardA2aCredentialRelease',
     # managementShell.psm1
     'Get-SafeguardCommand', 'Get-SafeguardBanner'
     )
