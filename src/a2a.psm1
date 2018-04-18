@@ -709,7 +709,7 @@ function Add-SafeguardA2aCredentialRetrieval
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-        Core POST "A2ARegistrations/$($local:A2aId)/RetrievableAccounts" -Body @($local:Body)
+        Core POST "A2ARegistrations/$($local:A2aId)/RetrievableAccounts" -Body $local:Body
 }
 
 <#
