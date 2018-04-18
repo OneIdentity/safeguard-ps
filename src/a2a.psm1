@@ -718,7 +718,7 @@ Remove configuration of an account credential retrieval from an A2A registration
 via the Web API.
 
 .DESCRIPTION
-Remove an account credential retrieval to an A2A registration that has been added to Safeguard.
+Remove an account credential retrieval from an A2A registration that has been added to Safeguard.
 Accounts for credential retrieval are given API keys and may be configured with IP address 
 restrictions.
 
@@ -992,7 +992,7 @@ Regenerate the API key for an account credential retrieval for an A2A registrati
 via the Web API.
 
 .DESCRIPTION
-Ask Safeguard regenerate the API key used for calling an account credential retrieval of an A2A registration
+Ask Safeguard to regenerate the API key used for calling an account credential retrieval of an A2A registration
 that has been added to Safeguard.
 
 .PARAMETER Appliance
@@ -1023,10 +1023,7 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Reset-SafeguardA2aCredentialRetrievalIpRestrictions -AccessToken $token -Appliance 10.5.32.54 -Insecure
-
-.EXAMPLE
-Reset-SafeguardA2aCredentialRetrievalIpRestrictions "Ticket System" linux.test.machine root
+Reset-SafeguardA2aCredentialRetrievalApiKey "Ticket System" linux.test.machine root
 #>
 function Reset-SafeguardA2aCredentialRetrievalApiKey
 {
@@ -1109,10 +1106,7 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardA2aCredentialRetrievalIpRestrictions -AccessToken $token -Appliance 10.5.32.54 -Insecure
-
-.EXAMPLE
-Get-SafeguardA2aCredentialRetrievalIpRestrictions "Ticket System" linux.test.machine root
+Get-SafeguardA2aCredentialRetrievalApiKey "Ticket System" linux.test.machine root
 #>
 function Get-SafeguardA2aCredentialRetrievalApiKey
 {
@@ -1158,7 +1152,37 @@ function Get-SafeguardA2aCredentialRetrievalApiKey
             Core GET "A2ARegistrations/$($local:A2aId)/RetrievableAccounts/$($local:AccountId)/ApiKey"
 }
 
+<#
+.SYNOPSIS
+Get the configuration used for brokering access requests to an A2A registration in Safeguard
+via the Web API.
 
+.DESCRIPTION
+Get an access request broker from an A2A registration that has been added to Safeguard.
+There may be only one access request broker per A2A registration.  An access request broker
+is given an API  and may be configured with IP address restrictions.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ParentA2a
+An integer containing the ID of the A2A registration to get or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Set-SafeguardA2aAccessRequestBroker "Ticket System"
+#>
 function Get-SafeguardA2aAccessRequestBroker
 {
     [CmdletBinding()]
@@ -1182,7 +1206,49 @@ function Get-SafeguardA2aAccessRequestBroker
         Core GET "A2ARegistrations/$($local:A2aId)/AccessRequestBroker"
 }
 
+<#
+.SYNOPSIS
+Add the configuration used for brokering access requests to an A2A registration in Safeguard
+via the Web API.
 
+.DESCRIPTION
+Add an access request broker to an A2A registration that has been added to Safeguard.
+There may be only one access request broker per A2A registration.  An access request broker
+is given an API  and may be configured with IP address restrictions.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ParentA2a
+An integer containing the ID of the A2A registration to get or a string containing the name.
+
+.PARAMETER Users
+An array of integers containing user IDs or an array of strings containing user names.
+
+.PARAMETER Groups
+An array of integers containing user group IDs or an array of strings containing user group names.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Set-SafeguardA2aAccessRequestBroker "Ticket System" -Users BlueBoy,GreenMan
+
+.EXAMPLE
+Set-SafeguardA2aAccessRequestBroker "Ticket System" -Groups "My Admins",YourAdmins
+
+.EXAMPLE
+Set-SafeguardA2aAccessRequestBroker "Ticket System" -Users BlueBoy,GreenMan -Groups "My Admins",YourAdmins
+#>
 function Set-SafeguardA2aAccessRequestBroker
 {
     [CmdletBinding()]
@@ -1236,6 +1302,90 @@ function Set-SafeguardA2aAccessRequestBroker
         Core PUT "A2ARegistrations/$($local:A2aId)/AccessRequestBroker" -Body $local:Body
 }
 
+<#
+.SYNOPSIS
+Remove the configuration used for brokering access requests from an A2A registration in Safeguard
+via the Web API.
+
+.DESCRIPTION
+Remove an access request broker from an A2A registration that has been added to Safeguard.
+There may be only one access request broker per A2A registration.  An access request broker
+is given an API  and may be configured with IP address restrictions.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ParentA2a
+An integer containing the ID of the A2A registration to get or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Clear-SafeguardA2aAccessRequestBroker "Ticket System"
+#>
+function Clear-SafeguardA2aAccessRequestBroker
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$ParentA2a
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:A2aId = (Resolve-SafeguardA2aId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ParentA2a)
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+        Core DELETE "A2ARegistrations/$($local:A2aId)/AccessRequestBroker"
+}
+
+<#
+.SYNOPSIS
+Regenerate the API key used for brokering access requests using an A2A registration in Safeguard
+via the Web API.
+
+.DESCRIPTION
+Ask Safeguard to regenerate the API key used for calling the A2A service for creating an access request
+on behalf of another user.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ParentA2a
+An integer containing the ID of the A2A registration to get or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Reset-SafeguardA2aAccessRequestBrokerApiKey "Ticket System"
+#>
 function Reset-SafeguardA2aAccessRequestBrokerApiKey
 {
     [CmdletBinding()]
@@ -1259,6 +1409,36 @@ function Reset-SafeguardA2aAccessRequestBrokerApiKey
         Core POST "A2ARegistrations/$($local:A2aId)/AccessRequestBroker/ApiKey"
 }
 
+<#
+.SYNOPSIS
+Get the API key used for brokering access requests using an A2A registration in Safeguard
+via the Web API.
+
+.DESCRIPTION
+Ask Safeguard for the API key used for calling the A2A service for creating an access request
+on behalf of another user.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ParentA2a
+An integer containing the ID of the A2A registration to get or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardA2aAccessRequestBrokerApiKey "Ticket System"
+#>
 function Get-SafeguardA2aAccessRequestBrokerApiKey
 {
     [CmdletBinding()]

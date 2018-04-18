@@ -393,6 +393,7 @@ safeguard-ps can do run:
 - Get-SafeguardA2aCredentialRetrievalApiKey
 - Get-SafeguardA2aAccessRequestBroker
 - Set-SafeguardA2aAccessRequestBroker
+- Clear-SafeguardA2aAccessRequestBroker
 - Reset-SafeguardA2aAccessRequestBrokerApiKey
 - Get-SafeguardA2aAccessRequestBrokerApiKey
 
