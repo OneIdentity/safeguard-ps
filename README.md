@@ -387,17 +387,17 @@ safeguard-ps can do run:
 - Get-SafeguardA2aCredentialRetrieval
 - Add-SafeguardA2aCredentialRetrieval
 - Remove-SafeguardA2aCredentialRetrieval
-- Get-SafeguardA2aCredentialRetrievalIpRestrictions
-- Set-SafeguardA2aCredentialRetrievalIpRestrictions
-- Clear-SafeguardA2aCredentialRetrievalIpRestrictions
+- Get-SafeguardA2aCredentialRetrievalIpRestriction
+- Set-SafeguardA2aCredentialRetrievalIpRestriction
+- Clear-SafeguardA2aCredentialRetrievalIpRestriction
 - Reset-SafeguardA2aCredentialRetrievalApiKey
 - Get-SafeguardA2aCredentialRetrievalApiKey
 - Get-SafeguardA2aAccessRequestBroker
 - Set-SafeguardA2aAccessRequestBroker
 - Clear-SafeguardA2aAccessRequestBroker
-- Get-SafeguardA2aAccessRequestBrokerIpRestrictions
-- Set-SafeguardA2aAccessRequestBrokerIpRestrictions
-- Clear-SafeguardA2aAccessRequestBrokerIpRestrictions
+- Get-SafeguardA2aAccessRequestBrokerIpRestriction
+- Set-SafeguardA2aAccessRequestBrokerIpRestriction
+- Clear-SafeguardA2aAccessRequestBrokerIpRestriction
 - Reset-SafeguardA2aAccessRequestBrokerApiKey
 - Get-SafeguardA2aAccessRequestBrokerApiKey
 

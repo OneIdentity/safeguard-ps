@@ -836,12 +836,12 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardA2aCredentialRetrievalIpRestrictions -AccessToken $token -Appliance 10.5.32.54 -Insecure
+Get-SafeguardA2aCredentialRetrievalIpRestriction -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
-Get-SafeguardA2aCredentialRetrievalIpRestrictions "Ticket System" linux.test.machine root
+Get-SafeguardA2aCredentialRetrievalIpRestriction "Ticket System" linux.test.machine root
 #>
-function Get-SafeguardA2aCredentialRetrievalIpRestrictions
+function Get-SafeguardA2aCredentialRetrievalIpRestriction
 {
     [CmdletBinding(DefaultParameterSetName="Names")]
     Param(
@@ -921,12 +921,12 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Set-SafeguardA2aCredentialRetrievalIpRestrictions -AccessToken $token -Appliance 10.5.32.54 -Insecure
+Set-SafeguardA2aCredentialRetrievalIpRestriction -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
-Set-SafeguardA2aCredentialRetrievalIpRestrictions "Ticket System" linux.test.machine root -IpRestrictions "10.0.0.11","10.0.0.12"
+Set-SafeguardA2aCredentialRetrievalIpRestriction "Ticket System" linux.test.machine root -IpRestrictions "10.0.0.11","10.0.0.12"
 #>
-function Set-SafeguardA2aCredentialRetrievalIpRestrictions
+function Set-SafeguardA2aCredentialRetrievalIpRestriction
 {
     [CmdletBinding(DefaultParameterSetName="Names")]
     Param(
@@ -1023,12 +1023,12 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Clear-SafeguardA2aCredentialRetrievalIpRestrictions -AccessToken $token -Appliance 10.5.32.54 -Insecure
+Clear-SafeguardA2aCredentialRetrievalIpRestriction -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
-Clear-SafeguardA2aCredentialRetrievalIpRestrictions "Ticket System" linux.test.machine root
+Clear-SafeguardA2aCredentialRetrievalIpRestriction "Ticket System" linux.test.machine root
 #>
-function Clear-SafeguardA2aCredentialRetrievalIpRestrictions
+function Clear-SafeguardA2aCredentialRetrievalIpRestriction
 {
     [CmdletBinding(DefaultParameterSetName="Names")]
     Param(
@@ -1471,9 +1471,9 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardA2aAccessRequestBrokerIpRestrictions "Ticket System"
+Get-SafeguardA2aAccessRequestBrokerIpRestriction "Ticket System"
 #>
-function Get-SafeguardA2aAccessRequestBrokerIpRestrictions
+function Get-SafeguardA2aAccessRequestBrokerIpRestriction
 {
     [CmdletBinding()]
     Param(
@@ -1524,9 +1524,9 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Set-SafeguardA2aAccessRequestBrokerIpRestrictions "Ticket System" -IpRestrictions "10.0.0.11","10.0.0.12"
+Set-SafeguardA2aAccessRequestBrokerIpRestriction "Ticket System" -IpRestrictions "10.0.0.11","10.0.0.12"
 #>
-function Set-SafeguardA2aAccessRequestBrokerIpRestrictions
+function Set-SafeguardA2aAccessRequestBrokerIpRestriction
 {
     [CmdletBinding()]
     Param(
@@ -1595,9 +1595,9 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Clear-SafeguardA2aAccessRequestBrokerIpRestrictions "Ticket System"
+Clear-SafeguardA2aAccessRequestBrokerIpRestriction "Ticket System"
 #>
-function Clear-SafeguardA2aAccessRequestBrokerIpRestrictions
+function Clear-SafeguardA2aAccessRequestBrokerIpRestriction
 {
     [CmdletBinding()]
     Param(
