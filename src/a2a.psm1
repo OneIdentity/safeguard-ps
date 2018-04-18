@@ -988,6 +988,93 @@ function Set-SafeguardA2aCredentialRetrievalIpRestrictions
 
 <#
 .SYNOPSIS
+Remove all the IP address restrictions for an account credential retrieval for an A2A registration in Safeguard
+via the Web API.
+
+.DESCRIPTION
+Remove all the IP addresses that are whitelisted for calling an account credential retrieval of an A2A registration
+that has been added to Safeguard.  This means it can be called from anywhere.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ParentA2a
+An integer containing the ID of the A2A registration to get or a string containing the name.
+
+.PARAMETER AccountObj
+An object representing the account to get the credential retrieval configuration for.
+
+.PARAMETER System
+An integer containing the ID of the system or a string containing the name.
+
+.PARAMETER Account
+An integer containing the ID of the account or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Clear-SafeguardA2aCredentialRetrievalIpRestrictions -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Clear-SafeguardA2aCredentialRetrievalIpRestrictions "Ticket System" linux.test.machine root
+#>
+function Clear-SafeguardA2aCredentialRetrievalIpRestrictions
+{
+    [CmdletBinding(DefaultParameterSetName="Names")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$ParentA2a,
+        [Parameter(ParameterSetName="Names",Mandatory=$false,Position=1)]
+        [object]$System,
+        [Parameter(ParameterSetName="Names",Mandatory=$true,Position=2)]
+        [object]$Account,
+        [Parameter(ParameterSetName="Object",Mandatory=$true)]
+        [object]$AccountObj
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:A2aId = (Resolve-SafeguardA2aId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ParentA2a)
+    if ($PsCmdlet.ParameterSetName -eq "Object")
+    {
+        if (-not $AccountObj)
+        {
+            throw "AccountObj must not be null"
+        }
+        $local:A2aCr = (Get-SafeguardA2aCredentialRetrieval -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                            $local:A2aId -AccountObj $AccountObj)
+    }
+    else
+    {
+        $local:A2aCr = (Get-SafeguardA2aCredentialRetrieval -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                            $local:A2aId $System $Account)
+    }
+
+    $local:A2aCr.IpRestrictions = $null
+
+    (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+        Core PUT "A2ARegistrations/$($local:A2aId)/RetrievableAccounts/$($local:A2aCr.AccountId)" -Body $local:A2aCr).IpRestrictions
+}
+
+<#
+.SYNOPSIS
 Regenerate the API key for an account credential retrieval for an A2A registration in Safeguard
 via the Web API.
 
@@ -1475,6 +1562,59 @@ function Set-SafeguardA2aAccessRequestBrokerIpRestrictions
     $local:A2aBroker = (Get-SafeguardA2aAccessRequestBroker -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:A2aId)
 
     $local:A2aBroker.IpRestrictions = $IpRestrictions
+
+    (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+        Core PUT "A2ARegistrations/$($local:A2aId)/AccessRequestBroker" -Body $local:A2aBroker).IpRestrictions
+}
+
+<#
+.SYNOPSIS
+Remove all the IP address restrictions for an access request broker for an A2A registration in Safeguard
+via the Web API.
+
+.DESCRIPTION
+Remove all the IP addresses that are whitelisted for calling the access request broker of an A2A registration
+that has been added to Safeguard.  This means it can be called from anywhere.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ParentA2a
+An integer containing the ID of the A2A registration to get or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Clear-SafeguardA2aAccessRequestBrokerIpRestrictions "Ticket System"
+#>
+function Clear-SafeguardA2aAccessRequestBrokerIpRestrictions
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$ParentA2a
+    )
+
+    $local:A2aId = (Resolve-SafeguardA2aId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ParentA2a)
+    $local:A2aBroker = (Get-SafeguardA2aAccessRequestBroker -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:A2aId)
+
+    $local:A2aBroker.IpRestrictions = $null
 
     (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
         Core PUT "A2ARegistrations/$($local:A2aId)/AccessRequestBroker" -Body $local:A2aBroker).IpRestrictions
