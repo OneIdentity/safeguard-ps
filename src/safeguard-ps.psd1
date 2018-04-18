@@ -176,9 +176,13 @@ FunctionsToExport = @(
     # a2a.psm1
     'Get-SafeguardA2aServiceStatus','Enable-SafeguardA2aService','Disable-SafeguardA2aService',
     'Get-SafeguardA2a','New-SafeguardA2a','Remove-SafeguardA2a','Edit-SafeguardA2a',
+    # a2a.psm1 -- credential retrieval
     'Get-SafeguardA2aCredentialRetrieval','Add-SafeguardA2aCredentialRetrieval','Remove-SafeguardA2aCredentialRetrieval',
     'Get-SafeguardA2aCredentialRetrievalIpRestrictions','Set-SafeguardA2aCredentialRetrievalIpRestrictions',
     'Reset-SafeguardA2aCredentialRetrievalApiKey','Get-SafeguardA2aCredentialRetrievalApiKey',
+    # a2a.psm1 -- access request broker
+    'Get-SafeguardA2aAccessRequestBroker','Set-SafeguardA2aAccessRequestBroker',
+    'Reset-SafeguardA2aAccessRequestBrokerApiKey','Get-SafeguardA2aAccessRequestBrokerApiKey'
     # a2acallers.psm1
     'Get-SafeguardA2aPassword','Get-SafeguardA2aPrivateKey','New-SafeguardA2aAccessRequest',
     # managementShell.psm1

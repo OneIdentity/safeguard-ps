@@ -157,9 +157,6 @@ be configured as part of an A2A registration.
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
 
-.PARAMETER AccessToken
-A string containing the bearer token to be used with Safeguard Web API.
-
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
@@ -232,9 +229,6 @@ be configured as part of an A2A registration.
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
 
-.PARAMETER AccessToken
-A string containing the bearer token to be used with Safeguard Web API.
-
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
@@ -295,6 +289,45 @@ function Get-SafeguardA2aPrivateKey
     }
 }
 
+<#
+.SYNOPSIS
+Get an account private key from Safeguard via the A2A service of the Web API.
+
+.DESCRIPTION
+The purpose of this cmdlet is to retrieve a single password without having to
+go through access request workflow.  Passwords retrieve using this cmdlet must
+be configured as part of an A2A registration.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER CertificateFile
+A string containing the path to a certificate file to use for authentication.
+
+.PARAMETER Password
+A secure string containing the password for decrypting the certificate file.
+
+.PARAMETER Thumbprint
+A string containing the thumbprint of a certificate the system certificate store.
+
+.PARAMETER ApiKey
+A string containing the API key that identifies the account being requested.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+New-SafeguardA2aAccessRequest
+
+.EXAMPLE
+New-SafeguardA2aAccessRequest
+#>
 function New-SafeguardA2aAccessRequest
 {
     [CmdletBinding(DefaultParameterSetName="CertStore")]

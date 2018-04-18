@@ -391,6 +391,10 @@ safeguard-ps can do run:
 - Set-SafeguardA2aCredentialRetrievalIpRestrictions
 - Reset-SafeguardA2aCredentialRetrievalApiKey
 - Get-SafeguardA2aCredentialRetrievalApiKey
+- Get-SafeguardA2aAccessRequestBroker
+- Set-SafeguardA2aAccessRequestBroker
+- Reset-SafeguardA2aAccessRequestBrokerApiKey
+- Get-SafeguardA2aAccessRequestBrokerApiKey
 
 ### A2A -- Credential Retrieval
 

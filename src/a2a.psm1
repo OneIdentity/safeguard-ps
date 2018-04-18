@@ -1157,3 +1157,127 @@ function Get-SafeguardA2aCredentialRetrievalApiKey
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
             Core GET "A2ARegistrations/$($local:A2aId)/RetrievableAccounts/$($local:AccountId)/ApiKey"
 }
+
+
+function Get-SafeguardA2aAccessRequestBroker
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$ParentA2a
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:A2aId = (Resolve-SafeguardA2aId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ParentA2a)
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+        Core GET "A2ARegistrations/$($local:A2aId)/AccessRequestBroker"
+}
+
+
+function Set-SafeguardA2aAccessRequestBroker
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$ParentA2a,
+        [Parameter(Mandatory=$false)]
+        [object[]]$Users,
+        [Parameter(Mandatory=$false)]
+        [object[]]$Groups
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ((-not $Users) -and (-not $Groups))
+    {
+        throw "You must specify either Users or Groups or both"
+    }
+
+    $local:A2aId = (Resolve-SafeguardA2aId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ParentA2a)
+    $local:Body = @{}
+
+    if ($Users)
+    {
+        Import-Module -Name "$PSScriptRoot\users.psm1" -Scope Local
+        $local:Body.Users = @()
+        $Users | ForEach-Object {
+            $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $_)
+            $local:Body.Users += @{ UserId = $local:UserId }
+        }
+    }
+
+    if ($Groups)
+    {
+        Import-Module -Name "$PSScriptRoot\groups.psm1" -Scope Local
+        $local:Body.Groups = @()
+        $Groups | ForEach-Object {
+            $local:GroupId = (Resolve-SafeguardGroupId  -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure User $_)
+            $local:Body.Groups += @{ GroupId = $local:GroupId }
+        }
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+        Core PUT "A2ARegistrations/$($local:A2aId)/AccessRequestBroker" -Body $local:Body
+}
+
+function Reset-SafeguardA2aAccessRequestBrokerApiKey
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$ParentA2a
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:A2aId = (Resolve-SafeguardA2aId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ParentA2a)
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+        Core POST "A2ARegistrations/$($local:A2aId)/AccessRequestBroker/ApiKey"
+}
+
+function Get-SafeguardA2aAccessRequestBrokerApiKey
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$ParentA2a
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:A2aId = (Resolve-SafeguardA2aId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ParentA2a)
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+        Core GET "A2ARegistrations/$($local:A2aId)/AccessRequestBroker/ApiKey"
+}
