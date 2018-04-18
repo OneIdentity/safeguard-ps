@@ -1268,7 +1268,7 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Set-SafeguardA2aAccessRequestBroker "Ticket System"
+Get-SafeguardA2aAccessRequestBroker "Ticket System"
 #>
 function Get-SafeguardA2aAccessRequestBroker
 {
@@ -1321,6 +1321,9 @@ An array of integers containing user IDs or an array of strings containing user 
 .PARAMETER Groups
 An array of integers containing user group IDs or an array of strings containing user group names.
 
+.PARAMETER IpRestrictions
+A list of strings containing IP address that may use this access request broker configuration.
+
 .INPUTS
 None.
 
@@ -1351,7 +1354,9 @@ function Set-SafeguardA2aAccessRequestBroker
         [Parameter(Mandatory=$false)]
         [object[]]$Users,
         [Parameter(Mandatory=$false)]
-        [object[]]$Groups
+        [object[]]$Groups,
+        [Parameter(Mandatory=$false)]
+        [string[]]$IpRestrictions
     )
 
     $ErrorActionPreference = "Stop"
@@ -1383,6 +1388,18 @@ function Set-SafeguardA2aAccessRequestBroker
             $local:GroupId = (Resolve-SafeguardGroupId  -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure User $_)
             $local:Body.Groups += @{ GroupId = $local:GroupId }
         }
+    }
+
+    if ($IpRestrictions)
+    {
+        Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+        $IpRestrictions | ForEach-Object {
+            if (-not (Test-IpAddress $_))
+            {
+                throw "IP restriction '$_' is not an IP address"
+            }
+        }
+        $local:Body.IpRestrictions = $IpRestrictions
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
