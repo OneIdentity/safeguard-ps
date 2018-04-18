@@ -1358,6 +1358,130 @@ function Clear-SafeguardA2aAccessRequestBroker
 
 <#
 .SYNOPSIS
+Get the IP address restrictions for an access request broker for an A2A registration in Safeguard
+via the Web API.
+
+.DESCRIPTION
+Get the IP addresses that are whitelisted for calling the access request broker of an A2A registration
+that has been added to Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ParentA2a
+An integer containing the ID of the A2A registration to get or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardA2aAccessRequestBrokerIpRestrictions "Ticket System"
+#>
+function Get-SafeguardA2aAccessRequestBrokerIpRestrictions
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$ParentA2a
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    (Get-SafeguardA2aAccessRequestBroker -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ParentA2a).IpRestrictions
+}
+
+<#
+.SYNOPSIS
+Set the IP address restrictions for an access request broker for an A2A registration in Safeguard
+via the Web API.
+
+.DESCRIPTION
+Set the IP addresses that are whitelisted for calling the access request broker of an A2A registration
+that has been added to Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ParentA2a
+An integer containing the ID of the A2A registration to get or a string containing the name.
+
+.PARAMETER IpRestrictions
+A list of strings containing IP address that may use this access request broker configuration.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Set-SafeguardA2aAccessRequestBrokerIpRestrictions "Ticket System" -IpRestrictions "10.0.0.11","10.0.0.12"
+#>
+function Set-SafeguardA2aAccessRequestBrokerIpRestrictions
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$ParentA2a,
+        [Parameter(Mandatory=$true)]
+        [string[]]$IpRestrictions
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not $IpRestrictions)
+    {
+        throw "IpRestrictions cannot be null"
+    }
+
+    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+    $IpRestrictions | ForEach-Object {
+        if (-not (Test-IpAddress $_))
+        {
+            throw "IP restriction '$_' is not an IP address"
+        }
+    }
+
+    $local:A2aId = (Resolve-SafeguardA2aId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ParentA2a)
+    $local:A2aBroker = (Get-SafeguardA2aAccessRequestBroker -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:A2aId)
+
+    $local:A2aBroker.IpRestrictions = $IpRestrictions
+
+    (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+        Core PUT "A2ARegistrations/$($local:A2aId)/AccessRequestBroker" -Body $local:A2aBroker).IpRestrictions
+}
+
+<#
+.SYNOPSIS
 Regenerate the API key used for brokering access requests using an A2A registration in Safeguard
 via the Web API.
 
