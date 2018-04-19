@@ -342,13 +342,15 @@ function New-SafeguardA2aAccessRequest
         [SecureString]$Password,
         [Parameter(ParameterSetName="CertStore",Mandatory=$true)]
         [string]$Thumbprint,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$ApiKey,
         [Parameter(Mandatory=$true)]
         [string]$ForUserName,
-        [Parameter(Mandatory=$true, Position=1)]
-        [int]$AssetToUse,
         [Parameter(Mandatory=$true, Position=2)]
-        [int]$AccountToUse,
+        [int]$AssetToUse,
         [Parameter(Mandatory=$true, Position=3)]
+        [int]$AccountToUse,
+        [Parameter(Mandatory=$true, Position=4)]
         [ValidateSet("Password", "SSH", "RemoteDesktop", "RDP", IgnoreCase=$true)]
         [string]$AccessRequestType,
         [Parameter(Mandatory=$false)]
@@ -372,9 +374,9 @@ function New-SafeguardA2aAccessRequest
     ### We need to figure out how we are going to resolve Asset and Account IDs
 
     $local:Body = @{
-        ForName = $ForUserName;
-        SystemId = $local:AssetId;
-        AccountId = $local:AccountId;
+        ForUser = $ForUserName;
+        SystemId = $AssetToUse;
+        AccountId = $AccountToUse;
         AccessRequestType = "$AccessRequestType"
     }
 
@@ -390,12 +392,12 @@ function New-SafeguardA2aAccessRequest
 
     if ($PsCmdlet.ParameterSetName -eq "CertStore")
     {
-        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance `
-            -Thumbprint $Thumbprint -Body $local:Body
+        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+            -Thumbprint $Thumbprint -Method POST -RelativeUrl AccessRequests -Body $local:Body
     }
     else
     {
-        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance `
-            -CertificateFile $CertificateFile -Password $Password -Body $local:Body
+        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+            -CertificateFile $CertificateFile -Password $Password -Method POST -RelativeUrl AccessRequests -Body $local:Body
     }
 }
