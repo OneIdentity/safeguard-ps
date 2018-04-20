@@ -346,11 +346,11 @@ function New-SafeguardA2aAccessRequest
         [string]$ApiKey,
         [Parameter(Mandatory=$true)]
         [string]$ForUserName,
-        [Parameter(Mandatory=$true, Position=2)]
+        [Parameter(Mandatory=$true,Position=2)]
         [int]$AssetToUse,
-        [Parameter(Mandatory=$true, Position=3)]
+        [Parameter(Mandatory=$true,Position=3)]
         [int]$AccountToUse,
-        [Parameter(Mandatory=$true, Position=4)]
+        [Parameter(Mandatory=$true,Position=4)]
         [ValidateSet("Password", "SSH", "RemoteDesktop", "RDP", IgnoreCase=$true)]
         [string]$AccessRequestType,
         [Parameter(Mandatory=$false)]
