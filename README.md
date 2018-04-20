@@ -281,7 +281,7 @@ safeguard-ps can do run:
 - Get-SafeguardActionableRequest
 - Get-SafeguardRequestableAccount
 - Find-SafeguardRequestableAccount
-- Get-SafeguardAccessRequestCheckoutPassword
+- Get-SafeguardAccessRequestPassword
 
 ### Users
 
@@ -374,3 +374,38 @@ safeguard-ps can do run:
 - New-SafeguardEventSubscription
 - Remove-SafeguardEventSubscription
 - Edit-SafeguardEventSubscription
+
+### A2A
+
+- Get-SafeguardA2aServiceStatus
+- Enable-SafeguardA2aService
+- Disable-SafeguardA2aService
+- Get-SafeguardA2a
+- New-SafeguardA2a
+- Remove-SafeguardA2a
+- Edit-SafeguardA2a
+- Get-SafeguardA2aCredentialRetrieval
+- Add-SafeguardA2aCredentialRetrieval
+- Remove-SafeguardA2aCredentialRetrieval
+- Get-SafeguardA2aCredentialRetrievalIpRestriction
+- Set-SafeguardA2aCredentialRetrievalIpRestriction
+- Clear-SafeguardA2aCredentialRetrievalIpRestriction
+- Reset-SafeguardA2aCredentialRetrievalApiKey
+- Get-SafeguardA2aCredentialRetrievalApiKey
+- Get-SafeguardA2aAccessRequestBroker
+- Set-SafeguardA2aAccessRequestBroker
+- Clear-SafeguardA2aAccessRequestBroker
+- Get-SafeguardA2aAccessRequestBrokerIpRestriction
+- Set-SafeguardA2aAccessRequestBrokerIpRestriction
+- Clear-SafeguardA2aAccessRequestBrokerIpRestriction
+- Reset-SafeguardA2aAccessRequestBrokerApiKey
+- Get-SafeguardA2aAccessRequestBrokerApiKey
+
+### A2A -- Credential Retrieval
+
+- Get-SafeguardA2aPassword
+- Get-SafeguardA2aPrivateKey
+
+### A2A -- Access Request Broker
+
+- New-SafeguardA2aAccessRequest

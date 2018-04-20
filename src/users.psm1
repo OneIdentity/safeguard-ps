@@ -46,54 +46,6 @@ function Resolve-SafeguardUserId
     }
 }
 
-# Helper
-function Resolve-SafeguardDirec
-{
-    [CmdletBinding()]
-    Param(
-        [Parameter(Mandatory=$false)]
-        [string]$Appliance,
-        [Parameter(Mandatory=$false)]
-        [object]$AccessToken,
-        [Parameter(Mandatory=$false)]
-        [switch]$Insecure,
-        [Parameter(Mandatory=$true,Position=0)]
-        [object]$User
-    )
-
-    $ErrorActionPreference = "Stop"
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    if (-not ($User -as [int]))
-    {
-        try
-        {
-            $local:Users = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
-                                -Parameters @{ filter = "UserName ieq '$User'" })
-        }
-        catch
-        {
-            Write-Verbose $_
-            Write-Verbose "Caught exception with ieq filter, trying with q parameter"
-            $local:Users = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
-                                -Parameters @{ q = $User })
-        }
-        if (-not $local:Users)
-        {
-            throw "Unable to find user matching '$User'"
-        }
-        if ($local:Users.Count -ne 1)
-        {
-            throw "Found $($local:Users.Count) users matching '$User'"
-        }
-        $local:Users[0].Id
-    }
-    else
-    {
-        $User
-    }
-}
-
 <#
 .SYNOPSIS
 Get identity providers configured in Safeguard via the Web API.

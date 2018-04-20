@@ -169,25 +169,193 @@ function Wait-ForPatchDistribution
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:StartTime = (Get-Date)
-    $local:Status = "Unknown"
-    $local:TimeElapsed = 10
-    do {
-        Write-Progress -Activity "Waiting for patch distribution" -Status "Cluster Operation: $($local:Status)" -PercentComplete (($local:TimeElapsed / $Timeout) * 100)
+    $local:TimeElapsed = 0
+
+    if ((Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET ClusterMembers).Count -gt 1)
+    {
+        $local:StartTime = (Get-Date)
+        $local:Status = "Unknown"
+        $local:TimeElapsed = 10
+        do {
+            Write-Progress -Activity "Waiting for patch distribution" -Status "Cluster Operation: $($local:Status)" -PercentComplete (($local:TimeElapsed / $Timeout) * 100)
+            try
+            {
+                $local:Members = (Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET ClusterStatus/PatchDistribution).Members
+                $local:StagingStatuses = ($local:Members.StagingStatus | Sort-Object)
+                $local:Status = $local:StagingStatuses -join ","
+            }
+            catch {}
+            Start-Sleep 2
+            $local:TimeElapsed = (((Get-Date) - $local:StartTime).TotalSeconds)
+            if ($local:TimeElapsed -gt $Timeout)
+            {
+                throw "Timed out waiting for cluster operation to finish, timeout was $Timeout seconds"
+            }
+        } until (@($local:StagingStatuses | Select-Object -Unique).Count -eq 1 -and $local:StagingStatuses[0] -eq "Staged")
+        Write-Progress -Activity "Waiting for patch distribution" -Status "Current: $($local:Status)" -PercentComplete 100
+    }
+    Write-Host "Safeguard patch distribution completed...~$($local:TimeElapsed) seconds"
+}
+
+function Resolve-SafeguardSystemId
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$System
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    try
+    {
+        Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
+        Resolve-SafeguardAssetId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $System
+    }
+    catch
+    {
+        Write-Verbose "Unable to resolve to asset ID, trying directories"
+        try 
+        {
+            Import-Module -Name "$PSScriptRoot\directories.psm1" -Scope Local
+            Resolve-SafeguardDirectoryId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $System
+        }
+        catch
+        {
+            Write-Verbose "Unable to resolve to directory ID"
+            throw "Cannot determine system ID for '$System'"
+        }
+    }
+}
+
+function Resolve-SafeguardAccountIdWithoutSystemId
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Account
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    try
+    {
+        Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
+        Resolve-SafeguardAssetAccountId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $Account
+    }
+    catch
+    {
+        Write-Verbose "Unable to resolve to asset account ID, trying directories"
+        try 
+        {
+            Import-Module -Name "$PSScriptRoot\directories.psm1" -Scope Local
+            Resolve-SafeguardDirectoryAccountId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $Account
+        }
+        catch
+        {
+            Write-Verbose "Unable to resolve to directory account ID"
+            throw "Cannot determine account ID for '$Account'"
+        }
+    }
+}
+
+function Resolve-SafeguardAccountIdWithSystemId
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [int]$SystemId,
+        [Parameter(Mandatory=$true,Position=1)]
+        [object]$Account
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    try
+    {
+        Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
+        Resolve-SafeguardAssetAccountId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetId $SystemId $Account
+    }
+    catch
+    {
+        Write-Verbose "Unable to resolve to asset account ID, trying directories"
+        try 
+        {
+            Import-Module -Name "$PSScriptRoot\directories.psm1" -Scope Local
+            Resolve-SafeguardDirectoryAccountId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -DirectoryId $SystemId $Account
+        }
+        catch
+        {
+            Write-Verbose "Unable to resolve to directory account ID"
+            throw "Cannot determine system ID for '$System'"
+        }
+    }
+}
+
+function Resolve-ReasonCodeId
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$ReasonCode
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not ($ReasonCode -as [int]))
+    {
         try
         {
-            $local:Members = (Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET ClusterStatus/PatchDistribution).Members
-            $local:StagingStatuses = ($local:Members.StagingStatus | Sort-Object)
-            $local:Status = $local:StagingStatuses -join ","
+            $local:ReasonCodes = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                      Core GET ReasonCodes -Parameters @{ filter = "Name ieq '$ReasonCode'" })
         }
-        catch {}
-        Start-Sleep 2
-        $local:TimeElapsed = (((Get-Date) - $local:StartTime).TotalSeconds)
-        if ($local:TimeElapsed -gt $Timeout)
+        catch
         {
-            throw "Timed out waiting for cluster operation to finish, timeout was $Timeout seconds"
+            Write-Verbose $_
+            Write-Verbose "Caught exception with ieq filter, trying with q parameter"
+            $local:ReasonCodes = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                      Core GET ReasonCodes -Parameters @{ q = $ReasonCode })
         }
-    } until (@($local:StagingStatuses | Select-Object -Unique).Count -eq 1 -and $local:StagingStatuses[0] -eq "Staged")
-    Write-Progress -Activity "Waiting for patch distribution" -Status "Current: $($local:Status)" -PercentComplete 100
-    Write-Host "Safeguard patch distribution completed...~$($local:TimeElapsed) seconds"
+        if (-not $local:ReasonCodes)
+        {
+            throw "Unable to find reason code registration matching '$ReasonCode'"
+        }
+        if ($local:ReasonCodes.Count -ne 1)
+        {
+            throw "Found $($local:ReasonCodes.Count) reason code registration matching '$ReasonCode'"
+        }
+        $local:ReasonCodes[0].Id
+    }
+    else
+    {
+        $ReasonCode
+    }
 }

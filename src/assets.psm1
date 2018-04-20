@@ -491,6 +491,11 @@ function New-SafeguardAsset
             }
         }
     }
+    else
+    {
+        # No Service Account -- so don't detect SSH host key
+        $NoSshHostKeyDiscovery = $true
+    }
 
     $local:Body = @{
         Name = "$DisplayName";
