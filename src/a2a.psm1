@@ -75,7 +75,7 @@ function Resolve-SafeguardA2aAccountId
     if (-not ($A2a -as [int]))
     {
         $local:Filter = "AccountName ieq '$Account'"
-        if ($PSBoundParameters.ContainsKey("System"))
+        if ($PSBoundParameters.ContainsKey("System") -and $System)
         {
             $local:Filter += "and SystemName ieq '$System'"
         }
@@ -93,7 +93,7 @@ function Resolve-SafeguardA2aAccountId
         }
         if (-not $local:Accounts)
         {
-            throw "Unable to find a3a account matching '$Account'"
+            throw "Unable to find a2a account matching '$Account'"
         }
         if ($local:Accounts.Count -ne 1)
         {
