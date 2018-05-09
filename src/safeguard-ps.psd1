@@ -88,7 +88,8 @@ NestedModules = @(
     'events.psm1',
     'clustering.psm1',
     'a2a.psm1',
-    'a2acallers.psm1'
+    'a2acallers.psm1',
+    'starling.psm1'
     )
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
@@ -188,6 +189,10 @@ FunctionsToExport = @(
     'Reset-SafeguardA2aAccessRequestBrokerApiKey','Get-SafeguardA2aAccessRequestBrokerApiKey',
     # a2acallers.psm1
     'Get-SafeguardA2aPassword','Get-SafeguardA2aPrivateKey','New-SafeguardA2aAccessRequest',
+    # starling.psm1
+    'Get-SafeguardStarlingSubscription','New-SafeguardStarlingSubscription','Remove-SafeguardStarlingSubscription',
+    'Get-SafeguardStarlingJoinUrl','Invoke-SafeguardStarlingJoin',
+    'Get-SafeguardStarlingSetting','Set-SafeguardStarlingSetting',
     # managementShell.psm1
     'Get-SafeguardCommand', 'Get-SafeguardBanner'
     )
