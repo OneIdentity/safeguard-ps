@@ -413,7 +413,7 @@ function Invoke-SafeguardApplianceShutdown
     else
     {
         Write-Host -ForegroundColor Yellow "You will be required to MANUALLY power the appliance on again!"
-        $local:Confirmed = (Get-Confirmation "Safeguard Appliance Shutdown" "Do you want to initiate shutdown on this Safeguard appliance?"`
+        $local:Confirmed = (Get-Confirmation "Safeguard Appliance Shutdown" "Do you want to initiate shutdown on this Safeguard appliance?" `
                                              "Initiates shutdown immediately." "Cancels this operation.")
     }
 
@@ -503,7 +503,7 @@ function Invoke-SafeguardApplianceReboot
     else
     {
         Write-Host -ForegroundColor Yellow "There will be a period of time when Safeguard is unavailable via the API while it reboots."
-        $local:Confirmed = (Get-Confirmation "Safeguard Appliance Reboot" "Do you want to initiate reboot on this Safeguard appliance?"`
+        $local:Confirmed = (Get-Confirmation "Safeguard Appliance Reboot" "Do you want to initiate reboot on this Safeguard appliance?" `
                                              "Initiates reboot immediately." "Cancels this operation.")
     }
 
@@ -594,7 +594,7 @@ function Invoke-SafeguardApplianceFactoryReset
         Write-Host -ForegroundColor Yellow "Please do not touch any of the LCD buttons during factory reset!"
         Write-Host -ForegroundColor Magenta "When Safeguard completes the factory reset process it will have the default IP address."
         Write-Host -ForegroundColor Magenta "You will have to set the X0 IP address just as if you had just purchased the appliance."
-        $local:Confirmed = (Get-Confirmation "Safeguard Appliance Factory Reset" "Do you want to initiate factory reset on this Safeguard appliance?"`
+        $local:Confirmed = (Get-Confirmation "Safeguard Appliance Factory Reset" "Do you want to initiate factory reset on this Safeguard appliance?" `
                                              "Initiates factory reset immediately." "Cancels this operation.")
     }
 
