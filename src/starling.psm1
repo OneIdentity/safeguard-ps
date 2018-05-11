@@ -18,25 +18,23 @@ using System;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 public class JoinWindow {
-    private const string ClientId = "00000000-0000-0000-0000-000000000000";
-    private const string RedirectUri = "urn%3AInstalledApplication";
     private readonly string _joinurl;
     public JoinWindow(string joinurl) { _joinurl = joinurl; }
     public string ClientCredentials { get; set; }
     public string TokenEndpoint { get; set; }
     public bool Show() {
         try {
-            using (var form = new System.Windows.Forms.Form() { Text = string.Format("{0} - Safeguard Login", _appliance),
+            using (var form = new System.Windows.Forms.Form() { Text = "One Identity Starling Login",
                                                                 Width = 640, Height = 720, StartPosition = FormStartPosition.CenterParent }) {
-                using (var browser = new WebBrowser() { Dock = DockStyle.Fill, Url = new Uri(_url) }) {
+                using (var browser = new WebBrowser() { Dock = DockStyle.Fill, Url = new Uri(_joinurl) }) {
                     form.Controls.Add(browser);
                     browser.ScriptErrorsSuppressed = true;
                     browser.DocumentTitleChanged += (sender, args) => {
                         var b = (WebBrowser)sender;
-                        // TODO: Change code below to extract client credentials and token endpoint
-                        //       Need to get a real test instance from Starling folks
-                        if (Regex.IsMatch(b.DocumentTitle, "error=[^&]*|code=[^&]*")) {
-                            AuthorizationCode = b.DocumentTitle.Substring(5);
+                        var matches = Regex.Match(b.DocumentTitle, "Join - (.+):(.+) \\| (.+)$", RegexOptions.IgnoreCase);
+                        if (matches.Groups[0].Success) {
+                            ClientCredentials = matches.Groups[1].Value + ":" + matches.Groups[2].Value;
+                            TokenEndpoint = matches.Groups[3].Value;
                             form.DialogResult = DialogResult.OK;
                             form.Close(); } };
                     if (form.ShowDialog() == DialogResult.OK) { return true; }
@@ -54,7 +52,7 @@ public class JoinWindow {
 "@ -ReferencedAssemblies System.Windows.Forms
     }
 
-    $local:Browser = New-Object -TypeName JoinWindow -ArgumentList $Appliance
+    $local:Browser = New-Object -TypeName JoinWindow -ArgumentList $JoinUrl
     if (!$local:Browser.Show())
     {
         throw "Unable to correctly manipulate browser"
@@ -74,13 +72,23 @@ function Get-SafeguardStarlingSubscription
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [string]$Name
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "StarlingSubscriptions"
+    if ($Name)
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "StarlingSubscriptions" `
+            -Parameters @{ filter = "Name ieq '$Name'" }
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "StarlingSubscriptions"
+    }
 }
 
 function New-SafeguardStarlingSubscription
@@ -93,13 +101,13 @@ function New-SafeguardStarlingSubscription
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [string]$Name = "Default",
         [Parameter(Mandatory=$true,Position=0)]
-        [string]$Name,
-        [Parameter(Mandatory=$true,Position=1)]
         [string]$ClientCredentials,
-        [Parameter(Mandatory=$true,Position=2)]
+        [Parameter(Mandatory=$true,Position=1)]
         [string]$TokenEndpoint,
-        [Parameter(Mandatory=$true,Position=3)]
+        [Parameter(Mandatory=$true,Position=2)]
         [string]$JoinUrl
     )
 
@@ -124,12 +132,16 @@ function Remove-SafeguardStarlingSubscription
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Name
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    $local:Id = (Get-SafeguardStarlingSubscription -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Name $Name).Id
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "StarlingSubscriptions/$($local:Id)"
 }
 
 function Get-SafeguardStarlingJoinUrl
@@ -160,8 +172,8 @@ function Invoke-SafeguardStarlingJoin
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true,Position=0)]
-        [string]$Name
+        [Parameter(Mandatory=$false)]
+        [string]$Name = "Default"
     )
 
     $ErrorActionPreference = "Stop"
