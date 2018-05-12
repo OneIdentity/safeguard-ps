@@ -18,15 +18,15 @@ using System;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 public class JoinWindow {
-    private readonly string _joinurl;
-    public JoinWindow(string joinurl) { _joinurl = joinurl; }
+    private readonly Uri _joinurl;
+    public JoinWindow(string joinurl) { _joinurl = new Uri(joinurl); }
     public string ClientCredentials { get; set; }
     public string TokenEndpoint { get; set; }
     public bool Show() {
         try {
-            using (var form = new System.Windows.Forms.Form() { Text = "One Identity Starling Login",
+            using (var form = new System.Windows.Forms.Form() { Text = "One Identity Starling Login - " + _joinurl.Host,
                                                                 Width = 640, Height = 720, StartPosition = FormStartPosition.CenterParent }) {
-                using (var browser = new WebBrowser() { Dock = DockStyle.Fill, Url = new Uri(_joinurl) }) {
+                using (var browser = new WebBrowser() { Dock = DockStyle.Fill, Url = _joinurl }) {
                     form.Controls.Add(browser);
                     browser.ScriptErrorsSuppressed = true;
                     browser.DocumentTitleChanged += (sender, args) => {
