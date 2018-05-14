@@ -128,6 +128,7 @@ function Get-SafeguardIdentityProvider
 <#
 .SYNOPSIS
 Create new Starling 2FA secondary authentication provider in Safeguard via the Web API.
+(DEPRECATED: Use Starling Join)
 
 .DESCRIPTION
 Create a new identity provider in Safeguard to enable adding Starling 2FA as a secondary
