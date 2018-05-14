@@ -133,7 +133,8 @@ Web API.
 This cmdlet will create a Starling subscription.  It requires information
 that must be obtained interactively using a web browser to talk to Starling.
 The web browser must contact the URL returned from Get-SafeguardStarlingJoinUrl.
-Or, you can call Invoke-SafeguardStarlingJoin to open the browser for you and
+This cmdlet will also automatically create a Starling 2FA identity provider.
+You can call Invoke-SafeguardStarlingJoin to open the browser for you and
 automatically call this cmdlet with the result.
 
 .PARAMETER Appliance
@@ -316,7 +317,8 @@ subscription information in Safeguard via the Web API.
 This is the cmdlet you should use to join Starling from the command line.
 It will open 1) a browser to join Starling, 2) pull the resulting subscription
 information from the web page, and 3) call Safeguard Web API to create the
-subscription inside Safeguard.
+subscription inside Safeguard, which will also create the Starling 2FA identity
+provider.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
