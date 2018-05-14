@@ -63,6 +63,39 @@ public class JoinWindow {
 }
 
 
+<#
+.SYNOPSIS
+Get any One Identity Starling subscriptions that are being used by this
+Safeguard instance.
+
+.DESCRIPTION
+Retrieve One Identity Starling subscriptions from the Safeguard Web API
+that might be used for two-factor authentication or ApprovalAnywhere.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Name
+A string containing the name of the Starling subscription.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardStarlingSubscription
+
+.EXAMPLE
+Get-SafeguardStarlingSubscription -Name Default
+#>
 function Get-SafeguardStarlingSubscription
 {
     [CmdletBinding()]
@@ -91,6 +124,51 @@ function Get-SafeguardStarlingSubscription
     }
 }
 
+<#
+.SYNOPSIS
+Create a new One Identity Starling subscription using the Safeguard 
+Web API.
+
+.DESCRIPTION
+This cmdlet will create a Starling subscription.  It requires information
+that must be obtained interactively using a web browser to talk to Starling.
+The web browser must contact the URL returned from Get-SafeguardStarlingJoinUrl.
+Or, you can call Invoke-SafeguardStarlingJoin to open the browser for you and
+automatically call this cmdlet with the result.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Name
+A string containing the name of the Starling subscription.
+
+.PARAMETER ClientCredentials
+A string containing the client credentials obtained from Starling.
+
+.PARAMETER TokenEndpoint
+A string containing the token endpoint obtained from Starling.
+
+.PARAMETER JoinUrl
+A string containing the join URL used to contact Starling for join.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+New-SafeguardStarlingSubscription
+
+.EXAMPLE
+New-SafeguardStarlingSubscription -ClientCredentials $creds -TokenEndpoint $url -JoinUrl $joinurl
+#>
 function New-SafeguardStarlingSubscription
 {
     [CmdletBinding()]
@@ -123,6 +201,40 @@ function New-SafeguardStarlingSubscription
         }
 }
 
+<#
+.SYNOPSIS
+Remove a One Identity Starling subscription using the Safeguard 
+Web API.
+
+.DESCRIPTION
+This cmdlet will remove a Starling subscription, but it requires the
+name of the existing subscription.  By default, the Safeguard GUI creates
+a single Starling subscription called "Default".
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Name
+A string containing the name of the Starling subscription.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardStarlingSubscription default
+
+.EXAMPLE
+Remove-SafeguardStarlingSubscription -Name Default
+#>
 function Remove-SafeguardStarlingSubscription
 {
     [CmdletBinding()]
@@ -144,6 +256,39 @@ function Remove-SafeguardStarlingSubscription
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "StarlingSubscriptions/$($local:Id)"
 }
 
+<#
+.SYNOPSIS
+Get a join URL for subscribing this Safeguard instance to One Identity Starling.
+
+.DESCRIPTION
+This cmdlet will return a join URL which must be accessed via an interactive
+browser session.  The result of authenticating with the information in the join
+URL will be a new Starling subscription on the Starling side; however, you need to call 
+New-SafeguardStarlingSubscription to configure the subscription information in
+Safeguard as well.  Or, you may call Invoke-SafeguardStarlingJoin which will do all
+of these steps for you, including opening the browser.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Name
+A string containing the name of the Starling subscription.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardStarlingJoinUrl
+#>
 function Get-SafeguardStarlingJoinUrl
 {
     [CmdletBinding()]
@@ -162,6 +307,41 @@ function Get-SafeguardStarlingJoinUrl
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "StarlingSubscriptions/JoinUrl"
 }
 
+<#
+.SYNOPSIS
+Open a browser to join One Identity Starling and record the resulting
+subscription information in Safeguard via the Web API.
+
+.DESCRIPTION
+This is the cmdlet you should use to join Starling from the command line.
+It will open 1) a browser to join Starling, 2) pull the resulting subscription
+information from the web page, and 3) call Safeguard Web API to create the
+subscription inside Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Name
+A string containing the name of the Starling subscription. (default: "Default")
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Invoke-SafeguardStarlingJoin
+
+.EXAMPLE
+Invoke-SafeguardStarlingJoin -Name Default
+#>
 function Invoke-SafeguardStarlingJoin
 {
     [CmdletBinding()]
@@ -195,6 +375,37 @@ function Invoke-SafeguardStarlingJoin
     }
 }
 
+<#
+.SYNOPSIS
+Get Starling setting by name from Safeguard Web API
+
+.DESCRIPTION
+Retrieve One Identity Starling setting from the Safeguard Web API.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER SettingKey
+A string containing the name of the Starling setting.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardStarlingSetting
+
+.EXAMPLE
+Get-SafeguardStarlingSetting -SettingKey Hostname
+#>
 function Get-SafeguardStarlingSetting
 {
     [CmdletBinding()]
@@ -215,6 +426,40 @@ function Get-SafeguardStarlingSetting
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Settings/Starling $SettingKey"
 }
 
+<#
+.SYNOPSIS
+Set a Starling setting by name from Safeguard Web API
+
+.DESCRIPTION
+Set a One Identity Starling setting from the Safeguard Web API.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER SettingKey
+A string containing the name of the Starling setting.
+
+.PARAMETER SettingValue
+A string containing the value of the Starling setting.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardStarlingSetting
+
+.EXAMPLE
+Get-SafeguardStarlingSetting -SettingKey Hostname -SettingValue "www.cloud.oneidentity.com"
+#>
 function Set-SafeguardStarlingSetting
 {
     [CmdletBinding()]
