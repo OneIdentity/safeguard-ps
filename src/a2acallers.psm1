@@ -207,13 +207,13 @@ function Get-SafeguardA2aPassword
 
     if ($PsCmdlet.ParameterSetName -eq "CertStore")
     {
-        (Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
-            -Thumbprint $Thumbprint -CredentialType Password).Password
+        Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+            -Thumbprint $Thumbprint -CredentialType Password
     }
     else
     {
-        (Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
-            -CertificateFile $CertificateFile -Password $Password -CredentialType Password).Password
+        Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+            -CertificateFile $CertificateFile -Password $Password -CredentialType Password
     }
 }
 
@@ -279,13 +279,13 @@ function Get-SafeguardA2aPrivateKey
 
     if ($PsCmdlet.ParameterSetName -eq "CertStore")
     {
-        (Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
-            -Thumbprint $Thumbprint -CredentialType Key).Key
+        Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+            -Thumbprint $Thumbprint -CredentialType Key
     }
     else
     {
-        (Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
-            -CertificateFile $CertificateFile -Password $Password -CredentialType Key).Key
+        Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+            -CertificateFile $CertificateFile -Password $Password -CredentialType Key
     }
 }
 
