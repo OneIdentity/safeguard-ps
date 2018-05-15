@@ -295,7 +295,10 @@ Create a new access request on behalf of another Safeguard user using the A2A
 service and a configure access request broker.
 
 .DESCRIPTION
-
+This cmdlet will create an access request on behalf of a Safeguard user.  The
+A2A certificate user cannot actually access the password or the session.  It just
+creates the access request, and the target user will be notified via SignalR.  The
+target user can then enter the session or view the password.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -314,6 +317,33 @@ A string containing the thumbprint of a certificate the system certificate store
 
 .PARAMETER ApiKey
 A string containing the API key that identifies the account being requested.
+
+.PARAMETER ForProviderName
+A string containing the name of the identity provider of the user to create the request for.
+
+.PARAMETER ForUserName
+A string containing the name of the user to create the request for.
+
+.PARAMETER AssetToUse
+A string containing the name of the asset to request.
+
+.PARAMETER AccountToUse
+A string containing the name of the account to request.
+
+.PARAMETER AccessRequestType
+A string containing the type of access request to make.
+
+.PARAMETER Emergency
+Whether the access request is an emergency.
+
+.PARAMETER ReasonCode
+An integer containing the reason code ID or a string containing the name.
+
+.PARAMETER ReasonComment
+A string containing the reason comment for the access request.
+
+.PARAMETER TicketNumber
+A string containing the ticket number for the access request.
 
 .INPUTS
 None.
@@ -343,6 +373,8 @@ function New-SafeguardA2aAccessRequest
         [string]$Thumbprint,
         [Parameter(Mandatory=$true,Position=1)]
         [string]$ApiKey,
+        [Parameter(Mandatory=$false)]
+        [string]$ForProviderName,
         [Parameter(Mandatory=$true,Position=2)]
         [string]$ForUserName,
         [Parameter(Mandatory=$true,Position=3)]
@@ -378,6 +410,8 @@ function New-SafeguardA2aAccessRequest
         AccountName = $AccountToUse;
         AccessRequestType = "$AccessRequestType"
     }
+
+    if ($ForProviderName) {$local:Body["ForProvider"] = $ForProviderName }
 
     if ($Emergency) { $local:Body["IsEmergency"] = $true }
     if ($ReasonCode)
