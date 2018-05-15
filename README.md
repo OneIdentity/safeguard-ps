@@ -409,3 +409,13 @@ safeguard-ps can do run:
 ### A2A -- Access Request Broker
 
 - New-SafeguardA2aAccessRequest
+
+### One Identity Starling
+
+- Invoke-SafeguardStarlingJoin
+- Get-SafeguardStarlingSubscription
+- New-SafeguardStarlingSubscription
+- Remove-SafeguardStarlingSubscription
+- Get-SafeguardStarlingJoinUrl
+- Get-SafeguardStarlingSetting
+- Set-SafeguardStarlingSetting
