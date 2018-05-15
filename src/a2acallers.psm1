@@ -291,12 +291,11 @@ function Get-SafeguardA2aPrivateKey
 
 <#
 .SYNOPSIS
-Get an account private key from Safeguard via the A2A service of the Web API.
+Create a new access request on behalf of another Safeguard user using the A2A
+service and a configure access request broker.
 
 .DESCRIPTION
-The purpose of this cmdlet is to retrieve a single password without having to
-go through access request workflow.  Passwords retrieve using this cmdlet must
-be configured as part of an A2A registration.
+
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -326,7 +325,7 @@ JSON response from Safeguard Web API.
 New-SafeguardA2aAccessRequest
 
 .EXAMPLE
-New-SafeguardA2aAccessRequest
+New-SafeguardA2aAccessRequest 10.5.32.23 -CertificateFile .\CERT.pfx UK1Pf45hvWa7OVBu4l87U3dvgydWXMElRZhQ3DDYVwo= TestUser linux.sample.com root SSH
 #>
 function New-SafeguardA2aAccessRequest
 {
@@ -344,13 +343,13 @@ function New-SafeguardA2aAccessRequest
         [string]$Thumbprint,
         [Parameter(Mandatory=$true,Position=1)]
         [string]$ApiKey,
-        [Parameter(Mandatory=$true)]
-        [string]$ForUserName,
         [Parameter(Mandatory=$true,Position=2)]
-        [int]$AssetToUse,
+        [string]$ForUserName,
         [Parameter(Mandatory=$true,Position=3)]
-        [int]$AccountToUse,
+        [string]$AssetToUse,
         [Parameter(Mandatory=$true,Position=4)]
+        [string]$AccountToUse,
+        [Parameter(Mandatory=$true,Position=5)]
         [ValidateSet("Password", "SSH", "RemoteDesktop", "RDP", IgnoreCase=$true)]
         [string]$AccessRequestType,
         [Parameter(Mandatory=$false)]
@@ -375,8 +374,8 @@ function New-SafeguardA2aAccessRequest
 
     $local:Body = @{
         ForUser = $ForUserName;
-        SystemId = $AssetToUse;
-        AccountId = $AccountToUse;
+        SystemName = $AssetToUse;
+        AccountName = $AccountToUse;
         AccessRequestType = "$AccessRequestType"
     }
 
