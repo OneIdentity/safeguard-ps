@@ -207,13 +207,13 @@ function Get-SafeguardA2aPassword
 
     if ($PsCmdlet.ParameterSetName -eq "CertStore")
     {
-        (Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
-            -Thumbprint $Thumbprint -CredentialType Password).Password
+        Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+            -Thumbprint $Thumbprint -CredentialType Password
     }
     else
     {
-        (Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
-            -CertificateFile $CertificateFile -Password $Password -CredentialType Password).Password
+        Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+            -CertificateFile $CertificateFile -Password $Password -CredentialType Password
     }
 }
 
@@ -279,24 +279,26 @@ function Get-SafeguardA2aPrivateKey
 
     if ($PsCmdlet.ParameterSetName -eq "CertStore")
     {
-        (Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
-            -Thumbprint $Thumbprint -CredentialType Key).Key
+        Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+            -Thumbprint $Thumbprint -CredentialType Key
     }
     else
     {
-        (Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
-            -CertificateFile $CertificateFile -Password $Password -CredentialType Key).Key
+        Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+            -CertificateFile $CertificateFile -Password $Password -CredentialType Key
     }
 }
 
 <#
 .SYNOPSIS
-Get an account private key from Safeguard via the A2A service of the Web API.
+Create a new access request on behalf of another Safeguard user using the A2A
+service and a configure access request broker.
 
 .DESCRIPTION
-The purpose of this cmdlet is to retrieve a single password without having to
-go through access request workflow.  Passwords retrieve using this cmdlet must
-be configured as part of an A2A registration.
+This cmdlet will create an access request on behalf of a Safeguard user.  The
+A2A certificate user cannot actually access the password or the session.  It just
+creates the access request, and the target user will be notified via SignalR.  The
+target user can then enter the session or view the password.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -316,6 +318,33 @@ A string containing the thumbprint of a certificate the system certificate store
 .PARAMETER ApiKey
 A string containing the API key that identifies the account being requested.
 
+.PARAMETER ForProviderName
+A string containing the name of the identity provider of the user to create the request for.
+
+.PARAMETER ForUserName
+A string containing the name of the user to create the request for.
+
+.PARAMETER AssetToUse
+A string containing the name of the asset to request.
+
+.PARAMETER AccountToUse
+A string containing the name of the account to request.
+
+.PARAMETER AccessRequestType
+A string containing the type of access request to make.
+
+.PARAMETER Emergency
+Whether the access request is an emergency.
+
+.PARAMETER ReasonCode
+An integer containing the reason code ID or a string containing the name.
+
+.PARAMETER ReasonComment
+A string containing the reason comment for the access request.
+
+.PARAMETER TicketNumber
+A string containing the ticket number for the access request.
+
 .INPUTS
 None.
 
@@ -326,7 +355,7 @@ JSON response from Safeguard Web API.
 New-SafeguardA2aAccessRequest
 
 .EXAMPLE
-New-SafeguardA2aAccessRequest
+New-SafeguardA2aAccessRequest 10.5.32.23 -CertificateFile .\CERT.pfx UK1Pf45hvWa7OVBu4l87U3dvgydWXMElRZhQ3DDYVwo= TestUser linux.sample.com root SSH
 #>
 function New-SafeguardA2aAccessRequest
 {
@@ -344,13 +373,15 @@ function New-SafeguardA2aAccessRequest
         [string]$Thumbprint,
         [Parameter(Mandatory=$true,Position=1)]
         [string]$ApiKey,
-        [Parameter(Mandatory=$true)]
-        [string]$ForUserName,
+        [Parameter(Mandatory=$false)]
+        [string]$ForProviderName,
         [Parameter(Mandatory=$true,Position=2)]
-        [int]$AssetToUse,
+        [string]$ForUserName,
         [Parameter(Mandatory=$true,Position=3)]
-        [int]$AccountToUse,
+        [string]$AssetToUse,
         [Parameter(Mandatory=$true,Position=4)]
+        [string]$AccountToUse,
+        [Parameter(Mandatory=$true,Position=5)]
         [ValidateSet("Password", "SSH", "RemoteDesktop", "RDP", IgnoreCase=$true)]
         [string]$AccessRequestType,
         [Parameter(Mandatory=$false)]
@@ -375,10 +406,12 @@ function New-SafeguardA2aAccessRequest
 
     $local:Body = @{
         ForUser = $ForUserName;
-        SystemId = $AssetToUse;
-        AccountId = $AccountToUse;
+        SystemName = $AssetToUse;
+        AccountName = $AccountToUse;
         AccessRequestType = "$AccessRequestType"
     }
+
+    if ($ForProviderName) {$local:Body["ForProvider"] = $ForProviderName }
 
     if ($Emergency) { $local:Body["IsEmergency"] = $true }
     if ($ReasonCode)
