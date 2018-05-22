@@ -1036,12 +1036,13 @@ function Install-SafeguardPatch
 
     $local:StagedPatch = (Get-SafeguardPatch -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
 
+    Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+
     if (Test-SupportForClusterPatch -Appliance $Appliance -Insecure:$Insecure)
     {
         Write-Host "Distributing patch to cluster..."
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST Patch/Distribute
 
-        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
         Wait-ForPatchDistribution -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure
     }
 
@@ -1538,6 +1539,7 @@ function Restore-SafeguardBackup
 
     if (-not $NoWait)
     {
+        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
         Wait-ForSafeguardOnlineStatus -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout
     }
 }
