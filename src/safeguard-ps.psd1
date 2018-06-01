@@ -238,7 +238,7 @@ PrivateData = @{
         IconUri = 'https://github.com/OneIdentity/safeguard-ps/blob/master/SafeguardLogo.ico'
 
         # Pre-release tag
-        Prerelease = '-pre'
+        # Prerelease = '-pre'
 
         # ReleaseNotes of this module
         ReleaseNotes = @"
@@ -246,8 +246,10 @@ safeguard-ps 2.2 Release Notes:
 
 - Added support for new features:
   - Application to Application (A2A)
-    - Credential releases
-    - Access requests
+    - Automated credential releases for integrating your own applications
+    - Ability to broker access requests on behalf of users from your own applications
+  - Starling Join
+    - Connect to Starling to get 2FA and other features from One Identity Starling platform
 "@
 
     } # End of PSData hashtable
