@@ -8,7 +8,7 @@ One Identity Safeguard Powershell module and scripting resources.
 
 This Powershell module is published to the 
 [PowerShell Gallery](https://www.powershellgallery.com/packages/safeguard-ps)
-to facilitate install via `Import-Module`.  It can be updated using the
+to facilitate install via `Import-Module`.  It can also be updated using the
 `Update-Module` to get the latest functionality.
 
 By default Powershell modules are installed for all users, and you need to be 
@@ -31,6 +31,18 @@ Or, you can install them just for you:
 ```Powershell
 > Update-Module safeguard-ps -Scope CurrentUser -Verbose
 ```
+
+## Upgrading
+
+If you want to upgrade from the 
+[PowerShell Gallery](https://www.powershellgallery.com/packages/safeguard-ps)
+you should use:
+
+```Powershell
+> Update-Module safeguard-ps
+```
+
+as specified above.
 
 ## Getting Started
 
