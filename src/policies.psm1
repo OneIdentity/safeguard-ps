@@ -473,6 +473,9 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER EntitlementToGet
+An integer containing the ID of the entitlement to get or a string containing the name.
+
 .PARAMETER PolicyToGet
 An integer containing the ID of the access policy to get or a string containing the name.
 
@@ -486,7 +489,10 @@ JSON response from Safeguard Web API.
 Get-SafeguardAccessPolicy -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
-Get-SafeguardAccessPolicy testAccessPolicy
+Get-SafeguardAccessPolicy "Test Access Policy"
+
+.EXAMPLE
+Get-SafeguardAccessPolicy -EntitlementToGet "Domain Administrator"
 
 .EXAMPLE
 Get-SafeguardAccessPolicy 123
@@ -501,6 +507,8 @@ function Get-SafeguardAccessPolicy
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$EntitlementToGet,
         [Parameter(Mandatory=$false,Position=0)]
         [object]$PolicyToGet
     )
@@ -508,14 +516,23 @@ function Get-SafeguardAccessPolicy
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($PSBoundParameters.ContainsKey("PolicyToGet"))
+    if ($PSBoundParameters.ContainsKey("PolicyToGet") -and $PolicyToGet)
     {
         $local:AccessPolicyId = Resolve-SafeguardAccessPolicyId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $PolicyToGet
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AccessPolicies/$($local:AccessPolicyId)"
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AccessPolicies
+        if ($PSBoundParameters.ContainsKey("EntitlementToGet") -and $EntitlementToGet)
+        {
+            $local:EntitlementId = Resolve-SafeguardEntitlementId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $EntitlementToGet
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AccessPolicies `
+                -Parameters @{ Filter = "RoleId eq $($local:EntitlementId)" }
+        }
+        else
+        {
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AccessPolicies
+        }
     }
 }
 
