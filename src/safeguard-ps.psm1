@@ -160,6 +160,8 @@ function Wait-LongRunningTask
     $local:TaskToPoll = $Response.Headers.Location
     do {
         $local:TaskResponse = (Invoke-RestMethod -Method GET -Headers $Headers -Uri $local:TaskToPoll)
+        Write-Verbose $local:TaskResponse
+        Write-Verbose $local:TaskResponse.RequestStatus
         if (-not $local:TaskResponse.RequestStatus)
         {
             throw "Trying to track long running task, but Location URL did not return a long running task"
