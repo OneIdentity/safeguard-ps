@@ -1,3 +1,5 @@
+# BUG#777399 -- After patching to 2.2, tasks fail on assets with service accounts using SSH keys
+# Support Reference: 4304990
 Param(
 )
 
@@ -29,12 +31,12 @@ $script:AssetsWithSshKeyServiceAccounts | ForEach-Object {
     $script:SshKeyId = $script:SshKeyLookup[$_.ConnectionProperties.ServiceAccountSshKeyFingerprint]
     if ($script:SshKeyId)
     {
-        Write-Host "Setting SSH key for $($_.Name) to SSH key ID: $($script:SshKeyId)"
+        Write-Host "Setting SSH key for '$($_.Name)' to SSH key ID: $($script:SshKeyId)"
         $_.ConnectionProperties.ServiceAccountSshKeyId = $script:SshKeyId
         Invoke-SafeguardMethod Core PUT "Assets/$($_.Id)" -Body $_ | Format-List Id,Name,ConnectionProperties
     }
     else
     {
-        Write-Warning "Unable to find SSH key for $($_.Name) with fingerprint [$($_.ConnectionProperties.ServiceAccountSshKeyFingerprint)]"
+        Write-Warning "Unable to find SSH key for '$($_.Name)' with fingerprint [$($_.ConnectionProperties.ServiceAccountSshKeyFingerprint)]"
     }
 }
