@@ -298,12 +298,14 @@ function Invoke-WithBody
     if ($LongRunningTask)
     {
         $local:Response = (Invoke-WebRequest -Method $Method -Headers $Headers -Uri $local:Url `
-                         -Body $local:BodyInternal -OutFile $OutFile -TimeoutSec $Timeout)
+                           -Body ([System.Text.Encoding]::UTF8.GetBytes($local:BodyInternal)) `
+                           -OutFile $OutFile -TimeoutSec $Timeout)
         Wait-LongRunningTask $local:Response $Headers $Timeout
     }
     else
     {
-        Invoke-RestMethod -Method $Method -Headers $Headers -Uri $local:Url -Body $local:BodyInternal `
+        Invoke-RestMethod -Method $Method -Headers $Headers -Uri $local:Url `
+            -Body ([System.Text.Encoding]::UTF8.GetBytes($local:BodyInternal)) `
             -OutFile $OutFile -TimeoutSec $Timeout
     }
 }
