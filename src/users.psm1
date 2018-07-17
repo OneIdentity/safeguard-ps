@@ -446,6 +446,23 @@ function New-SafeguardUser
         $AdminRoles = @('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
     }
 
+    if ($PSBoundParameters.ContainsKey("Password"))
+    {
+        # Check the password complexity before creating the user so you don't end up with a user without a password
+        try
+        {
+            $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Users/ValidatePassword" -Body `
+                $local:PasswordPlainText
+            $local:PasswordPlainText = ""
+        }
+        catch
+        {
+            Write-Warning "Password for the new user failed to meet requirements"
+            throw $_.Exception
+        }
+    }
+
     if ($Provider -eq $local:LocalProviderId -or $Provider -eq $local:CertificateProviderId)
     {
         $local:Body = @{
