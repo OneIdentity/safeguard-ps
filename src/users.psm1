@@ -358,6 +358,9 @@ An array of strings containing the permissions (admin roles) to assign to the us
 .PARAMETER Password
 SecureString containing the password.
 
+.PARAMETER NoPassword
+Do not promprt for a password for new local user
+
 .PARAMETER Thumbprint
 String containing a SHA-1 thumbprint of certificate to use for authentication.
 
@@ -407,6 +410,8 @@ function New-SafeguardUser
         [Parameter(Mandatory=$false)]
         [SecureString]$Password,
         [Parameter(Mandatory=$false)]
+        [switch]$NoPassword = $false,
+        [Parameter(Mandatory=$false)]
         [string]$Thumbprint
     )
 
@@ -446,7 +451,7 @@ function New-SafeguardUser
         $AdminRoles = @('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
     }
 
-    if ($PSBoundParameters.ContainsKey("Password"))
+    if ($Provider -eq $local:LocalProviderId -and $PSBoundParameters.ContainsKey("Password"))
     {
         # Check the password complexity before creating the user so you don't end up with a user without a password
         try
@@ -490,7 +495,10 @@ function New-SafeguardUser
             }
             else
             {
-                Set-SafeguardUserPassword -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:NewUser.Id
+                if (-not $NoPassword)
+                {
+                    Set-SafeguardUserPassword -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:NewUser.Id
+                }
             }
         }
         $local:NewUser
