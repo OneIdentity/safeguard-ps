@@ -1008,26 +1008,8 @@ function Invoke-SafeguardMethod
     }
     catch
     {
-        if ($_.Exception.Response)
-        {
-            Write-Verbose "---Response Status---"
-            Write-Verbose "$([int]$_.Exception.Response.StatusCode) $($_.Exception.Response.StatusDescription)"
-            Write-Verbose "---Response Body---"
-            $local:Stream = $_.Exception.Response.GetResponseStream()
-            $local:Reader = New-Object System.IO.StreamReader($local:Stream)
-            $local:Reader.BaseStream.Position = 0
-            $local:Reader.DiscardBufferedData()
-            Write-Verbose $local:Reader.ReadToEnd()
-            $local:Reader.Dispose()
-        }
-        Write-Verbose "---Exception---"
-        $_.Exception | Format-List * -Force | Out-String | Write-Verbose
-        if ($_.Exception.InnerException)
-        {
-            Write-Verbose "---Inner Exception---"
-            $_.Exception.InnerException | Format-List * -Force | Out-String | Write-Verbose
-        }
-        throw $_.Exception
+        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+        Out-SafeguardExceptionIfPossible $_.Exception
     }
     finally
     {
