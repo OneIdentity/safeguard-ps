@@ -1,5 +1,72 @@
 # This file contains random Safeguard utilities required by some modules
 # Nothing is exported from here
+function Out-SafeguardExceptionIfPossible
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$ThrownException
+    )
+
+    if (-not ([System.Management.Automation.PSTypeName]"Ex.SafeguardMethodException").Type)
+        {
+            Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.Serialization;
+
+namespace Ex
+{
+    public class SafeguardMethodException : System.Exception
+    {
+        public SafeguardMethodException()
+            : base("Unknown SafeguardMethodException") {}
+        public SafeguardMethodException(int httpCode, string httpMessage, int errorCode, string errorMessage, string errorJson)
+            : base(httpCode + ": " + httpMessage + " -- " + errorCode + ": " + errorMessage)
+        {
+            ErrorCode = errorCode;
+            ErrorMessage = errorMessage;
+            ErrorJson = errorJson;
+        }
+        public SafeguardMethodException(string message, Exception innerException)
+            : base(message, innerException) {}
+        protected SafeguardMethodException
+            (SerializationInfo info, StreamingContext context)
+            : base(info, context) {}
+        public int ErrorCode { get; set; }
+        public string ErrorMessage { get; set; }
+        public string ErrorJson { get; set; }
+    }
+}
+"@
+        }
+        $local:ExceptionToThrow = $ThrownException
+        if ($ThrownException.Response)
+        {
+            Write-Verbose "---Response Status---"
+            Write-Verbose "$([int]$ThrownException.Response.StatusCode) $($ThrownException.Response.StatusDescription)"
+            Write-Verbose "---Response Body---"
+            $local:Stream = $ThrownException.Response.GetResponseStream()
+            $local:Reader = New-Object System.IO.StreamReader($local:Stream)
+            $local:Reader.BaseStream.Position = 0
+            $local:Reader.DiscardBufferedData()
+            $local:ResponseBody = $local:Reader.ReadToEnd()
+            Write-Verbose $local:ResponseBody
+            $local:Reader.Dispose()
+            $local:ResponseObject = (ConvertFrom-Json $local:ResponseBody -ErrorAction SilentlyContinue)
+            $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
+                [int]$ThrownException.Response.StatusCode, $ThrownException.Response.StatusDescription,
+                $local:ResponseObject.Code, $local:ResponseObject.Message, $local:ResponseBody
+            ))
+        }
+        Write-Verbose "---Exception---"
+        $ThrownException | Format-List * -Force | Out-String | Write-Verbose
+        if ($ThrownException.InnerException)
+        {
+            Write-Verbose "---Inner Exception---"
+            $ThrownException.InnerException | Format-List * -Force | Out-String | Write-Verbose
+        }
+        throw $local:ExceptionToThrow
+}
 function Wait-ForSafeguardOnlineStatus
 {
     [CmdletBinding()]
