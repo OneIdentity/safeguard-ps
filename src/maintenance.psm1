@@ -750,17 +750,8 @@ function Get-SafeguardSupportBundle
     }
     catch [System.Net.WebException]
     {
-        if ($_.Exception.Response)
-        {
-            $Response = $_.Exception.Response
-            $Reader = New-Object System.IO.StreamReader -ArgumentList @($Response.GetResponseStream())
-            Write-Error $Reader.ReadToEnd()
-        }
-        else
-        {
-            Write-Error $_
-        }
-        throw "Failure returned from downloading support bundle from Safeguard"
+        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+        Out-SafeguardExceptionIfPossible $_.Exception
     }
     catch
     {
@@ -1007,17 +998,8 @@ function Install-SafeguardPatch
         }
         catch [System.Net.WebException]
         {
-            if ($_.Exception.Response)
-            {
-                $Response = $_.Exception.Response
-                $Reader = New-Object System.IO.StreamReader -ArgumentList @($Response.GetResponseStream())
-                Write-Error $Reader.ReadToEnd()
-            }
-            else
-            {
-                Write-Error $_
-            }
-            throw "Failure returned from POSTing patch to Safeguard"
+            Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+            Out-SafeguardExceptionIfPossible $_.Exception
         }
         catch
         {
@@ -1308,17 +1290,8 @@ function Export-SafeguardBackup
     }
     catch [System.Net.WebException]
     {
-        if ($_.Exception.Response)
-        {
-            $Response = $_.Exception.Response
-            $Reader = New-Object System.IO.StreamReader -ArgumentList @($Response.GetResponseStream())
-            Write-Error $Reader.ReadToEnd()
-        }
-        else
-        {
-            Write-Error $_
-        }
-        throw "Failure returned from downloading backup from Safeguard"
+        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+        Out-SafeguardExceptionIfPossible $_.Exception
     }
     catch
     {
@@ -1441,17 +1414,8 @@ function Import-SafeguardBackup
     }
     catch [System.Net.WebException]
     {
-        if ($_.Exception.Response)
-        {
-            $Response = $_.Exception.Response
-            $Reader = New-Object System.IO.StreamReader -ArgumentList @($Response.GetResponseStream())
-            Write-Error $Reader.ReadToEnd()
-        }
-        else
-        {
-            Write-Error $_
-        }
-        throw "Failure returned from uploading backup to Safeguard"
+        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+        Out-SafeguardExceptionIfPossible $_.Exception
     }
     catch
     {
