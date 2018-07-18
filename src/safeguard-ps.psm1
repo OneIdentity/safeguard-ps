@@ -1008,64 +1008,8 @@ function Invoke-SafeguardMethod
     }
     catch
     {
-        if (-not ([System.Management.Automation.PSTypeName]"Ex.SafeguardMethodException").Type)
-        {
-            Add-Type -TypeDefinition @"
-using System;
-using System.Runtime.Serialization;
-
-namespace Ex
-{
-    public class SafeguardMethodException : System.Exception
-    {
-        public SafeguardMethodException()
-            : base("Unknown SafeguardMethodException") {}
-        public SafeguardMethodException(int httpCode, string httpMessage, int errorCode, string errorMessage, string errorJson)
-            : base(httpCode + ": " + httpMessage + " -- " + errorCode + ": " + errorMessage)
-        {
-            ErrorCode = errorCode;
-            ErrorMessage = errorMessage;
-            ErrorJson = errorJson;
-        }
-        public SafeguardMethodException(string message, Exception innerException)
-            : base(message, innerException) {}
-        protected SafeguardMethodException
-            (SerializationInfo info, StreamingContext context)
-            : base(info, context) {}
-        public int ErrorCode { get; set; }
-        public string ErrorMessage { get; set; }
-        public string ErrorJson { get; set; }
-    }
-}
-"@
-        }
-        $local:ExceptionToThrow = $_.Exception
-        if ($_.Exception.Response)
-        {
-            Write-Verbose "---Response Status---"
-            Write-Verbose "$([int]$_.Exception.Response.StatusCode) $($_.Exception.Response.StatusDescription)"
-            Write-Verbose "---Response Body---"
-            $local:Stream = $_.Exception.Response.GetResponseStream()
-            $local:Reader = New-Object System.IO.StreamReader($local:Stream)
-            $local:Reader.BaseStream.Position = 0
-            $local:Reader.DiscardBufferedData()
-            $local:ResponseBody = $local:Reader.ReadToEnd()
-            Write-Verbose $local:ResponseBody
-            $local:Reader.Dispose()
-            $local:ResponseObject = (ConvertFrom-Json $local:ResponseBody -ErrorAction SilentlyContinue)
-            $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
-                [int]$_.Exception.Response.StatusCode, $_.Exception.Response.StatusDescription,
-                $local:ResponseObject.Code, $local:ResponseObject.Message, $local:ResponseBody
-            ))
-        }
-        Write-Verbose "---Exception---"
-        $_.Exception | Format-List * -Force | Out-String | Write-Verbose
-        if ($_.Exception.InnerException)
-        {
-            Write-Verbose "---Inner Exception---"
-            $_.Exception.InnerException | Format-List * -Force | Out-String | Write-Verbose
-        }
-        throw $local:ExceptionToThrow
+        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+        Out-SafeguardExceptionIfPossible $_.Exception
     }
     finally
     {
