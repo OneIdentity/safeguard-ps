@@ -1018,11 +1018,12 @@ namespace Ex
     {
         public SafeguardMethodException()
             : base("Unknown SafeguardMethodException") {}
-        public SafeguardMethodException(int httpCode, string httpMessage, int errorCode, string errorMessage)
+        public SafeguardMethodException(int httpCode, string httpMessage, int errorCode, string errorMessage, string errorJson)
             : base(httpCode + ": " + httpMessage + " -- " + errorCode + ": " + errorMessage)
         {
             ErrorCode = errorCode;
             ErrorMessage = errorMessage;
+            ErrorJson = errorJson;
         }
         public SafeguardMethodException(string message, Exception innerException)
             : base(message, innerException) {}
@@ -1031,6 +1032,7 @@ namespace Ex
             : base(info, context) {}
         public int ErrorCode { get; set; }
         public string ErrorMessage { get; set; }
+        public string ErrorJson { get; set; }
     }
 }
 "@
@@ -1050,7 +1052,8 @@ namespace Ex
             $local:Reader.Dispose()
             $local:ResponseObject = (ConvertFrom-Json $local:ResponseBody -ErrorAction SilentlyContinue)
             $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
-                [int]$_.Exception.Response.StatusCode, $_.Exception.Response.StatusDescription, $local:ResponseObject.Code, $local:ResponseObject.Message
+                [int]$_.Exception.Response.StatusCode, $_.Exception.Response.StatusDescription,
+                $local:ResponseObject.Code, $local:ResponseObject.Message, $local:ResponseBody
             ))
         }
         Write-Verbose "---Exception---"
