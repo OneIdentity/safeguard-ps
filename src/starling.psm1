@@ -403,7 +403,7 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardStarlingSetting
+Get-SafeguardStarlingSetting Environment
 
 .EXAMPLE
 Get-SafeguardStarlingSetting -SettingKey Hostname
@@ -457,10 +457,10 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardStarlingSetting
+Set-SafeguardStarlingSetting
 
 .EXAMPLE
-Get-SafeguardStarlingSetting -SettingKey Hostname -SettingValue "www.cloud.oneidentity.com"
+Set-SafeguardStarlingSetting -SettingKey Hostname -SettingValue "www.cloud.oneidentity.com"
 #>
 function Set-SafeguardStarlingSetting
 {
