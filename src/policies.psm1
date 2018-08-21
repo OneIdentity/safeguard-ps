@@ -825,9 +825,9 @@ function Get-SafeguardUserEntitlementReport
 Get linked accounts for a user in Safeguard via the Web API.
 
 .DESCRIPTION
-Get the linked accounts for a user that have been added to Safeguard. Users can log into Safeguard. All
-users can request access to passwords or sessions based on policy. Depending
-on permissions (admin roles) some users can manage different aspects of Safeguard.
+Get the linked accounts for a user that have been added to Safeguard. Users can log into Safeguard.
+All users can request access to passwords or sessions based on policy. Depending
+on policy some users can request access via linked accounts.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -848,7 +848,7 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardUser -AccessToken $token -Appliance 10.5.32.54 -Insecure
+Get-SafeguardUserLinkedAccount -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
 Get-SafeguardUserLinkedAccount petrsnd
@@ -881,4 +881,148 @@ function Get-SafeguardUserLinkedAccount
         $UserLinkedAccounts += (Get-SafeguardDirectoryAccount -DirectoryToGet $LinkedAccount.SystemId -AccountToGet $LinkedAccount.Name)
     }
     return $UserLinkedAccounts
+}
+
+<#
+.SYNOPSIS
+Add a linked account for a user in Safeguard via the Web API.
+
+.DESCRIPTION
+Add a linked account to a Safeguard user. Users can log into Safeguard. All
+users can request access to passwords or sessions based on policy. Depending
+on policy some users can request access via linked accounts.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER UserToSet
+An integer containing an ID or a string containing the name of the user for which to add a linked account.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Add-SafeguardUser -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Add-SafeguardUserLinkedAccount petrsnd testdirectory.corp petrsnd-adm
+#>
+function Add-SafeguardUserLinkedAccount
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$UserToSet,
+        [Parameter(Mandatory=$false,Position=1)]
+        [object]$DirectoryToAdd,
+        [Parameter(Mandatory=$false,Position=2)]
+        [object]$AccountToAdd
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\directories.psm1" -Scope Local
+    $local:DirectoryId = (Resolve-SafeguardDirectoryId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToAdd)
+    $local:AccountId = (Resolve-Resolve-SafeguardDirectoryAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -DirectoryId $local:DirectoryId $AccountToAdd)
+    $local:UserId = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToGet).Id
+
+    $local:LinkedAccounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        GET "Users/$local:UserId/LinkedPolicyAccounts")
+
+    $local:LinkedAccounts += @{
+        SystemId = $local:DirectoryId;
+        AccountId = $local:AccountId
+     }
+
+     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        PUT "Users/$local:UserId/LinkedPolicyAccounts" -Body $local:LinkedAccounts
+}
+
+<#
+.SYNOPSIS
+Remove a linked account from a user in Safeguard via the Web API.
+
+.DESCRIPTION
+Remove a linked account from a Safeguard user. Users can log into Safeguard. All
+users can request access to passwords or sessions based on policy. Depending
+on policy some users can request access via linked accounts.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER UserToSet
+An integer containing an ID or a string containing the name of the user for which to add a linked account.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardUser -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Remove-SafeguardUserLinkedAccount petrsnd testdirectory.corp petrsnd-adm
+#>
+function Remove-SafeguardUserLinkedAccount
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$UserToSet,
+        [Parameter(Mandatory=$false,Position=1)]
+        [object]$DirectoryToRemove,
+        [Parameter(Mandatory=$false,Position=2)]
+        [object]$AccountToRemove
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\directories.psm1" -Scope Local
+    $local:DirectoryId = (Resolve-SafeguardDirectoryId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToAdd)
+    $local:AccountId = (Resolve-Resolve-SafeguardDirectoryAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -DirectoryId $local:DirectoryId $AccountToAdd)
+    $local:UserId = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToGet).Id
+
+    $local:LinkedAccounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        GET "Users/$local:UserId/LinkedPolicyAccounts")
+
+    $local:LinkedAccounts | ForEach-Object {
+        if (-not ($_.SystemId -eq $local:DirectoryId -and $_.AccountId -eq $local:AccountId))
+        {
+            $local:LinkedAccountsToSet += $_
+        }
+     }
+
+     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        PUT "Users/$local:UserId/LinkedPolicyAccounts" -Body $local:LinkedAccountsToSet
 }

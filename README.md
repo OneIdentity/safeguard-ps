@@ -376,6 +376,8 @@ safeguard-ps can do run:
 - Get-SafeguardEntitlement
 - Get-SafeguardUserEntitlementReport
 - Get-SafeguardUserLinkedAccount
+- Add-SafeguardUserLinkedAccount
+- Remove-SafeguardUserLinkedAccount
 
 ### Events
 
