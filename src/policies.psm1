@@ -1013,21 +1013,22 @@ function Remove-SafeguardUserLinkedAccount
     $local:LinkedAccounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
         GET "Users/$local:UserId/LinkedPolicyAccounts")
 
+    $local:LinkedAccountsToSet = @()
     $local:LinkedAccounts | ForEach-Object {
-        if (-not ($_.SystemId -eq $local:PolicyAccount.SystemId -and $_.AccountId -eq $local:PolicyAccount.AccountId))
+        if (-not ($_.SystemId -eq $local:PolicyAccount.SystemId -and $_.Id -eq $local:PolicyAccount.Id))
         {
             $local:LinkedAccountsToSet += $_
         }
      }
 
-     if (-not $local:LinkedAccountsToSet)
-     {
+    if (-not $local:LinkedAccountsToSet)
+    {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
             PUT "Users/$local:UserId/LinkedPolicyAccounts" -JsonBody "[]"
-     }
-     else
-     {
+    }
+    else
+    {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
             PUT "Users/$local:UserId/LinkedPolicyAccounts" -Body $local:LinkedAccountsToSet
-     }
+    }
 }
