@@ -156,7 +156,7 @@ FunctionsToExport = @(
     'Get-SafeguardDirectoryAccount','Find-SafeguardDirectoryAccount','New-SafeguardDirectoryAccount',
     'Set-SafeguardDirectoryAccountPassword','New-SafeguardDirectoryAccountRandomPassword',
     'Test-SafeguardDirectoryAccountPassword','Invoke-SafeguardDirectoryAccountPasswordChange',
-    'Remove-SafeguardDirectoryAccount',
+    'Edit-SafeguardDirectoryAccount','Remove-SafeguardDirectoryAccount',
     # groups.psm1
     'Get-SafeguardUserGroup','New-SafeguardUserGroup','Remove-SafeguardUserGroup',
     'Edit-SafeguardUserGroup',
@@ -166,7 +166,7 @@ FunctionsToExport = @(
     'Get-SafeguardPolicyAsset','Find-SafeguardPolicyAsset','Get-SafeguardPolicyAccount','Find-SafeguardPolicyAccount',
     'Get-SafeguardAccessPolicy','Get-SafeguardAccessPolicyScopeItem','Get-SafeguardAccessPolicyAccessRequestProperty',
     'Get-SafeguardAccessPolicySessionProperty','Get-SafeguardEntitlement', 'Get-SafeguardUserEntitlementReport',
-    'Get-SafeguardUserLinkedAccount', 
+    'Get-SafeguardUserLinkedAccount','Add-SafeguardUserLinkedAccount','Remove-SafeguardUserLinkedAccount',
     # events.psm1
     'Get-SafeguardEvent', 'Get-SafeguardEventName', 'Get-SafeguardEventSubscription', 'Find-SafeguardEventSubscription',
     'New-SafeguardEventSubscription', 'Remove-SafeguardEventSubscription', 'Edit-SafeguardEventSubscription',
