@@ -564,34 +564,47 @@ function Connect-Safeguard
             }
             else # Assume Client Certificate Authentication
             {
-                if (-not $Thumbprint)
+                try
                 {
-                    Write-Verbose "Calling RSTS token service for client certificate authentication (PKCS#12 file)..."
-                    # From PFX file
-                    $local:ClientCertificate = (Get-PfxCertificate -FilePath $CertificateFile)
-                    $local:RstsResponse = (Invoke-RestMethod -Certificate $local:ClientCertificate -Method POST -Headers @{
-                        "Accept" = "application/json";
-                        "Content-type" = "application/json"
-                    } -Uri "https://$Appliance/RSTS/oauth2/token" -Body @"
+                    if (-not $Thumbprint)
+                    {
+                        Write-Verbose "Calling RSTS token service for client certificate authentication (PKCS#12 file)..."
+                        # From PFX file
+                        $local:ClientCertificate = (Get-PfxCertificate -FilePath $CertificateFile)
+                        $local:RstsResponse = (Invoke-RestMethod -Certificate $local:ClientCertificate -Method POST -Headers @{
+                            "Accept" = "application/json";
+                            "Content-type" = "application/json"
+                        } -Uri "https://$Appliance/RSTS/oauth2/token" -Body @"
 {
     "grant_type": "client_credentials",
     "scope": "$($local:Scope)"
 }
 "@)
+                    }
+                    else
+                    {
+                        Write-Verbose "Calling RSTS token service for client certificate authentication (Windows cert store)..."
+                        # From thumbprint in Windows Certificate Store
+                        $local:RstsResponse = (Invoke-RestMethod -CertificateThumbprint $Thumbprint -Method POST -Headers @{
+                            "Accept" = "application/json";
+                            "Content-type" = "application/json"
+                        } -Uri "https://$Appliance/RSTS/oauth2/token" -Body @"
+{
+    "grant_type": "client_credentials",
+    "scope": "$($local:Scope)"
+}
+"@)
+                    }
                 }
-                else
+                catch
                 {
-                    Write-Verbose "Calling RSTS token service for client certificate authentication (Windows cert store)..."
-                    # From thumbprint in Windows Certificate Store
-                    $local:RstsResponse = (Invoke-RestMethod -CertificateThumbprint $Thumbprint -Method POST -Headers @{
-                        "Accept" = "application/json";
-                        "Content-type" = "application/json"
-                    } -Uri "https://$Appliance/RSTS/oauth2/token" -Body @"
-{
-    "grant_type": "client_credentials",
-    "scope": "$($local:Scope)"
-}
-"@)
+                    Write-Verbose "An exception was caught trying to authenticate to RSTS using a certificate."
+                    Write-Verbose "Your problem may be an quirk on Windows where the low-level HTTPS client requires that you have the Issuing CA"
+                    Write-Verbose "in your 'Intermediate Certificate Authorities' store, otherwise Windows doesn't think you have a matching"
+                    Write-Verbose "certificate to send in the initial client connection. This occurs even if you pass in a PFX file specifying"
+                    Write-Verbose "exactly which certificate to use."
+                    Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+                    Out-SafeguardExceptionIfPossible $_.Exception
                 }
             }
         }
