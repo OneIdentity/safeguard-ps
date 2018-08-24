@@ -1503,8 +1503,14 @@ function Restore-SafeguardBackup
 
     if (-not $NoWait)
     {
+        Write-Host "Waiting for operation to complete..."
         Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-        Wait-ForSafeguardOnlineStatus -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout
+        Wait-ForSafeguardStatus -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout -DesiredStatus "StandaloneReadOnly"
+        Write-Host "Safeguard is currently standalone readonly. You might need to login again, and you will need to use Enable-SafeguardClusterPrimary to go online."
+    }
+    else
+    {
+        Write-Host "Not waiting for operation to complete, this Safeguard appliance will not be available as it processes in the background."
     }
 }
 

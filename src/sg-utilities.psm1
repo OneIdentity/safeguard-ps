@@ -67,6 +67,42 @@ namespace Ex
         }
         throw $local:ExceptionToThrow
 }
+function Wait-ForSafeguardStatus
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [int]$Timeout = 600,
+        [Parameter(Mandatory=$true)]
+        [string]$DesiredStatus
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:StartTime = (Get-Date)
+    $local:Status = "Unreachable"
+    $local:TimeElapsed = 10
+    do {
+        Write-Progress -Activity "Waiting for $DesiredStatus Status" -Status "Current: $($local:Status)" -PercentComplete (($local:TimeElapsed / $Timeout) * 100)
+        try
+        {
+            $local:Status = (Get-SafeguardStatus -Appliance $Appliance -Insecure:$Insecure).ApplianceCurrentState
+        }
+        catch {}
+        Start-Sleep 2
+        $local:TimeElapsed = (((Get-Date) - $local:StartTime).TotalSeconds)
+        if ($local:TimeElapsed -gt $Timeout)
+        {
+            throw "Timed out waiting for $DesiredStatus Status, timeout was $Timeout seconds"
+        }
+    } until ($local:Status -ieq $DesiredStatus)
+    Write-Progress -Activity "Waiting for $DesiredStatus Status" -Status "Current: $($local:Status)" -PercentComplete 100
+}
 function Wait-ForSafeguardOnlineStatus
 {
     [CmdletBinding()]
@@ -82,24 +118,7 @@ function Wait-ForSafeguardOnlineStatus
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:StartTime = (Get-Date)
-    $local:Status = "Unreachable"
-    $local:TimeElapsed = 10
-    do {
-        Write-Progress -Activity "Waiting for Online Status" -Status "Current: $($local:Status)" -PercentComplete (($local:TimeElapsed / $Timeout) * 100)
-        try
-        {
-            $local:Status = (Get-SafeguardStatus -Appliance $Appliance -Insecure:$Insecure).ApplianceCurrentState
-        }
-        catch {}
-        Start-Sleep 2
-        $local:TimeElapsed = (((Get-Date) - $local:StartTime).TotalSeconds)
-        if ($local:TimeElapsed -gt $Timeout)
-        {
-            throw "Timed out waiting for Online Status, timeout was $Timeout seconds"
-        }
-    } until ($local:Status -eq "Online")
-    Write-Progress -Activity "Waiting for Online Status" -Status "Current: $($local:Status)" -PercentComplete 100
+    Wait-ForSafeguardStatus -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout -DesiredStatus "Online"
     Write-Host "Safeguard is back online."
 }
 
