@@ -815,7 +815,7 @@ function Find-SafeguardDirectoryAccount
 
 <#
 .SYNOPSIS
-Create a new account on an directory managed by Safeguard via the Web API.
+Create a new account on a directory managed by Safeguard via the Web API.
 
 .DESCRIPTION
 Create a representation of an account on a managed directory.  Accounts passwords can
@@ -912,6 +912,65 @@ function New-SafeguardDirectoryAccount
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "DirectoryAccounts" -Body $local:Body
+}
+
+<#
+.SYNOPSIS
+Edit an existing account on a directory managed by Safeguard via the Web API.
+
+.DESCRIPTION
+Edit an existing directory account in Safeguard.  Accounts passwords can be managed,
+and Safeguard can be configured to check and change those passwords.
+Policy can be created to allow access to passwords and sessions based
+on those passwords.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AccountObject
+An object containing the existing asset account with desired properties set.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Edit-SafeguardDirectoryAccount -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Edit-SafeguardDirectoryAccount -AccountObject $obj
+#>
+function Edit-SafeguardDirectoryAccount
+{
+    [CmdletBinding(DefaultParameterSetName="Object")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(ParameterSetName="Object",Mandatory=$true)]
+        [object]$AccountObject
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $AccountObject)
+    {
+        throw "AccountObject must not be null"
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "DirectoryAccounts/$($AccountObject.Id)" -Body $AccountObject
 }
 
 <#
