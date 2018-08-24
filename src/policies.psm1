@@ -71,18 +71,19 @@ function Resolve-SafeguardPolicyAccountId
 
     if (-not ($Account -as [int]))
     {
+        $local:RelativeUrl = "PolicyAccounts"
         if ($PSBoundParameters.ContainsKey("AssetId"))
         {
-            $local:RelativeUrl = "PolicyAssets/$AssetId/Accounts"
+            $local:PreFilter = "SystemId eq 3 and "
         }
         else
         {
-            $local:RelativeUrl = "PolicyAccounts"
+            $local:PreFilter = ""
         }
         try
         {
             $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
-                                   -Parameters @{ filter = "Name ieq '$Account'" })
+                                   -Parameters @{ filter = "$($local:PreFilter)Name ieq '$Account'" })
         }
         catch
         {
@@ -385,7 +386,8 @@ function Get-SafeguardPolicyAccount
         }
         else
         {
-            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "PolicyAssets/$($local:AssetId)/Accounts"
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "PolicyAccounts" `
+                -Parameters @{ Filter = "SystemId eq $(local:$AssetId)"}
         }
     }
     else
@@ -873,14 +875,8 @@ function Get-SafeguardUserLinkedAccount
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    [object[]]$UserLinkedAccounts = $null
     $local:UserId = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToGet).Id
-    $local:LinkedAccounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Users/$local:UserId/LinkedPolicyAccounts")
-    ForEach ($LinkedAccount in $LinkedAccounts)
-    {
-        $UserLinkedAccounts += (Get-SafeguardDirectoryAccount -DirectoryToGet $LinkedAccount.SystemId -AccountToGet $LinkedAccount.Name)
-    }
-    return $UserLinkedAccounts
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Users/$local:UserId/LinkedPolicyAccounts"
 }
 
 <#
@@ -928,27 +924,26 @@ function Add-SafeguardUserLinkedAccount
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$UserToSet,
-        [Parameter(Mandatory=$false,Position=1)]
+        [Parameter(Mandatory=$true,Position=1)]
         [object]$DirectoryToAdd,
-        [Parameter(Mandatory=$false,Position=2)]
+        [Parameter(Mandatory=$true,Position=2)]
         [object]$AccountToAdd
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Import-Module -Name "$PSScriptRoot\directories.psm1" -Scope Local
-    $local:DirectoryId = (Resolve-SafeguardDirectoryId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToAdd)
-    $local:AccountId = (Resolve-Resolve-SafeguardDirectoryAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -DirectoryId $local:DirectoryId $AccountToAdd)
-    $local:UserId = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToGet).Id
+    $local:PolicyAccount = (Get-SafeguardPolicyAccount $DirectoryToAdd $AccountToAdd)
+    if (-not $local:PolicyAccount)
+    {
+        throw "Unable to locate specified policy account"
+    }
+    $local:UserId = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToSet).Id
 
     $local:LinkedAccounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
         GET "Users/$local:UserId/LinkedPolicyAccounts")
 
-    $local:LinkedAccounts += @{
-        SystemId = $local:DirectoryId;
-        AccountId = $local:AccountId
-     }
+    $local:LinkedAccounts += $local:PolicyAccount[0]
 
      Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
         PUT "Users/$local:UserId/LinkedPolicyAccounts" -Body $local:LinkedAccounts
@@ -999,30 +994,40 @@ function Remove-SafeguardUserLinkedAccount
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$UserToSet,
-        [Parameter(Mandatory=$false,Position=1)]
+        [Parameter(Mandatory=$true,Position=1)]
         [object]$DirectoryToRemove,
-        [Parameter(Mandatory=$false,Position=2)]
+        [Parameter(Mandatory=$true,Position=2)]
         [object]$AccountToRemove
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Import-Module -Name "$PSScriptRoot\directories.psm1" -Scope Local
-    $local:DirectoryId = (Resolve-SafeguardDirectoryId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToAdd)
-    $local:AccountId = (Resolve-Resolve-SafeguardDirectoryAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -DirectoryId $local:DirectoryId $AccountToAdd)
-    $local:UserId = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToGet).Id
+    $local:PolicyAccount = (Get-SafeguardPolicyAccount $DirectoryToRemove $AccountToRemove)
+    if (-not $local:PolicyAccount)
+    {
+        throw "Unable to locate specified policy account"
+    }
+    $local:UserId = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToSet).Id
 
     $local:LinkedAccounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
         GET "Users/$local:UserId/LinkedPolicyAccounts")
 
     $local:LinkedAccounts | ForEach-Object {
-        if (-not ($_.SystemId -eq $local:DirectoryId -and $_.AccountId -eq $local:AccountId))
+        if (-not ($_.SystemId -eq $local:PolicyAccount.SystemId -and $_.AccountId -eq $local:PolicyAccount.AccountId))
         {
             $local:LinkedAccountsToSet += $_
         }
      }
 
-     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-        PUT "Users/$local:UserId/LinkedPolicyAccounts" -Body $local:LinkedAccountsToSet
+     if (-not $local:LinkedAccountsToSet)
+     {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            PUT "Users/$local:UserId/LinkedPolicyAccounts" -JsonBody "[]"
+     }
+     else
+     {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            PUT "Users/$local:UserId/LinkedPolicyAccounts" -Body $local:LinkedAccountsToSet
+     }
 }
