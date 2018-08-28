@@ -100,6 +100,10 @@ function Get-ClusterHealthError
     {
         "$Id ($Name) $HealthType Error: $Id is in Quarantine"
     }
+    elseif ($State -eq "Offline")
+    {
+        "$Id ($Name) $HealthType Error: $Id is in Offline"
+    }
     else
     {
         if ($HealthType -eq "Cluster Connectivity")
