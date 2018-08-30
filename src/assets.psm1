@@ -912,6 +912,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER SearchString
 A string to search for in the asset account.
 
+.PARAMETER QueryFilter
+A string to pass to the -filter query parameter in the Safeguard Web API.
+
 .INPUTS
 None.
 
@@ -923,10 +926,13 @@ Find-SafeguardAssetAccount -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
 Find-SafeguardAssetAccount "root"
+
+.EXAMPLE
+Find-SafeguardAssetAccount -QueryFilter "CreatedByUserDisplayName eq 'George Smith'"
 #>
 function Find-SafeguardAssetAccount
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Search")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -934,15 +940,25 @@ function Find-SafeguardAssetAccount
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true,Position=0)]
-        [string]$SearchString
+        [Parameter(Mandatory=$true,Position=0,ParameterSetName="Search")]
+        [string]$SearchString,
+        [Parameter(Mandatory=$true,Position=0,ParameterSetName="Query")]
+        [string]$QueryFilter
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts" `
-        -Parameters @{ q = $SearchString }
+    if ($PSCmdlet.ParameterSetName -eq "Search")
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts" `
+            -Parameters @{ q = $SearchString }
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts" `
+            -Parameters @{ filter = $QueryFilter }
+    }
 }
 
 <#
