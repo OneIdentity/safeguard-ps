@@ -557,6 +557,9 @@ JSON response from Safeguard Web API.
 
 .EXAMPLE
 Find-SafeguardRequestableAccount -SearchString testString
+
+.EXAMPLE
+Find-SafeguardRequestableAccount -AssetQueryFilter "PlatformType eq 'Ubuntu'" -AccountQueryFilter "AccountRequestTypes contains 'LocalPassword'"
 #>
 function Find-SafeguardRequestableAccount
 {
