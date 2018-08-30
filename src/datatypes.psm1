@@ -234,6 +234,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER SearchString
 A string to search for in the platform definitions.
 
+.PARAMETER QueryFilter
+A string to pass to the -filter query parameter in the Safeguard Web API.
+
 .INPUTS
 None.
 
@@ -244,11 +247,17 @@ JSON response from Safeguard Web API.
 Find-SafeguardPlatform -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
-Find-SafeguardPlatform
+Find-SafeguardPlatform linux
+
+.EXAMPLE
+Find-SafeguardPlatform -QueryFilter "PlatformType eq 'Ubuntu'"
+
+.EXAMPLE
+Find-SafeguardPlatform -QueryFilter "PasswordFeatureProperties.SupportsSuspendRestoreAccount eq True" | ft Id,PlatformFamily,PlatformType,DisplayName
 #>
 function Find-SafeguardPlatform
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Search")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -256,30 +265,40 @@ function Find-SafeguardPlatform
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true,Position=0)]
-        [string]$SearchString
+        [Parameter(Mandatory=$true,Position=0,ParameterSetName="Search")]
+        [string]$SearchString,
+        [Parameter(Mandatory=$true,Position=0,ParameterSetName="Query")]
+        [string]$QueryFilter
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    try
+    if ($PSCmdlet.ParameterSetName -eq "Search")
     {
-        $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
-                                -Parameters @{ filter = "DisplayName ieq '$SearchString' or Name ieq '$SearchString'" })
+        try
+        {
+            $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
+                                    -Parameters @{ filter = "DisplayName icontains '$SearchString' or Name icontains '$SearchString'" })
+        }
+        catch
+        {
+            Write-Verbose $_
+            Write-Verbose "Caught exception with ieq filter"
+        }
+        if (-not $local:Platforms)
+        {
+            Write-Verbose "No results yet, trying with q parameter"
+            $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
+                                    -Parameters @{ q = $SearchString })
+        }
+        $local:Platforms
     }
-    catch
+    else
     {
-        Write-Verbose $_
-        Write-Verbose "Caught exception with ieq filter"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
+            -Parameters @{ filter = $QueryFilter }
     }
-    if (-not $local:Platforms)
-    {
-        Write-Verbose "No results yet, trying with q parameter"
-        $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
-                                -Parameters @{ q = $SearchString })
-    }
-    $local:Platforms
 }
 
 <#
