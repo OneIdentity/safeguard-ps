@@ -284,6 +284,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER SearchString
 A string to search for in the policy asset.
 
+.PARAMETER QueryFilter
+A string to pass to the -filter query parameter in the Safeguard Web API.
+
 .INPUTS
 None.
 
@@ -295,10 +298,16 @@ Find-SafeguardPolicyAsset -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
 Find-SafeguardPolicyAsset "HP-UX"
+
+.EXAMPLE
+Find-SafeguardPolicyAsset -QueryFilter "AllowSessionRequests eq False"
+
+.EXAMPLE
+Find-SafeguardPolicyAsset -QueryFilter "Disabled eq True"
 #>
 function Find-SafeguardPolicyAsset
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Search")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -306,15 +315,25 @@ function Find-SafeguardPolicyAsset
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true,Position=0)]
-        [string]$SearchString
+        [Parameter(Mandatory=$true,Position=0,ParameterSetName="Search")]
+        [string]$SearchString,
+        [Parameter(Mandatory=$true,Position=0,ParameterSetName="Query")]
+        [string]$QueryFilter
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET PolicyAssets `
-        -Parameters @{ q = $SearchString }
+    if ($PSCmdlet.ParameterSetName -eq "Search")
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET PolicyAssets `
+            -Parameters @{ q = $SearchString }
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET PolicyAssets `
+            -Parameters @{ filter = $QueryFilter }
+    }
 }
 
 <#
@@ -426,6 +445,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER SearchString
 A string to search for in the policy account.
 
+.PARAMETER QueryFilter
+A string to pass to the -filter query parameter in the Safeguard Web API.
+
 .INPUTS
 None.
 
@@ -437,10 +459,13 @@ Find-SafeguardPolicyAccount -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
 Find-SafeguardPolicyAccount "root"
+
+.EXAMPLE
+Find-SafeguardPolicyAccount -QueryFilter "IsServiceAccount eq True"
 #>
 function Find-SafeguardPolicyAccount
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Search")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -448,15 +473,25 @@ function Find-SafeguardPolicyAccount
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true,Position=0)]
-        [string]$SearchString
+        [Parameter(Mandatory=$true,Position=0,ParameterSetName="Search")]
+        [string]$SearchString,
+        [Parameter(Mandatory=$true,Position=0,ParameterSetName="Query")]
+        [string]$QueryFilter
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET PolicyAccounts `
-        -Parameters @{ q = $SearchString }
+    if ($PSCmdlet.ParameterSetName -eq "Search")
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET PolicyAccounts `
+            -Parameters @{ q = $SearchString }
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET PolicyAccounts `
+            -Parameters @{ filter = $QueryFilter }
+    }
 }
 
 <#

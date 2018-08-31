@@ -181,6 +181,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER SearchString
 A string containing the ID of the access request.
 
+.PARAMETER QueryFilter
+A string to pass to the -filter query parameter in the Safeguard Web API.
+
 .INPUTS
 None.
 
@@ -192,10 +195,13 @@ Find-SafeguardAccessRequest 123
 
 .EXAMPLE
 Find-SafeguardAccessRequest -SearchString testString
+
+.EXAMPLE
+Find-SafeguardAccessRequest -QueryFilter "(AssetName eq 'Linux') and (AccountName eq 'root')"
 #>
 function Find-SafeguardAccessRequest
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Search")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -203,15 +209,25 @@ function Find-SafeguardAccessRequest
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true, Position=0)]
-        [string]$SearchString
+        [Parameter(Mandatory=$true, Position=0, ParameterSetName="Search")]
+        [string]$SearchString,
+        [Parameter(Mandatory=$true,Position=0,ParameterSetName="Query")]
+        [string]$QueryFilter
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AccessRequests" `
-        -Parameters @{ q = $SearchString }
+    if ($PSCmdlet.ParameterSetName -eq "Search")
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AccessRequests" `
+            -Parameters @{ q = $SearchString }
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AccessRequests" `
+            -Parameters @{ filter = $QueryFilter }
+    }
 }
 
 <#
@@ -527,6 +543,12 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER SearchString
 A string containing the ID of the access request.
 
+.PARAMETER AssetQueryFilter
+A string to pass to the -filter query parameter for Assets in the Safeguard Web API.
+
+.PARAMETER AccountQueryFilter
+A string to pass to the -filter query parameter for Accounts in the Safeguard Web API.
+
 .INPUTS
 None.
 
@@ -535,10 +557,13 @@ JSON response from Safeguard Web API.
 
 .EXAMPLE
 Find-SafeguardRequestableAccount -SearchString testString
+
+.EXAMPLE
+Find-SafeguardRequestableAccount -AssetQueryFilter "PlatformType eq 'Ubuntu'" -AccountQueryFilter "AccountRequestTypes contains 'LocalPassword'"
 #>
 function Find-SafeguardRequestableAccount
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Search")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -546,16 +571,51 @@ function Find-SafeguardRequestableAccount
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true,Position=0)]
-        [string]$SearchString
+        [Parameter(Mandatory=$true,Position=0,ParameterSetName="Search")]
+        [string]$SearchString,
+        [Parameter(Mandatory=$false,ParameterSetName="Query")]
+        [string]$AssetQueryFilter,
+        [Parameter(Mandatory=$false,ParameterSetName="Query")]
+        [string]$AccountQueryFilter
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/RequestableAssets") | ForEach-Object {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/RequestableAssets/$($_.Id)/Accounts" `
-            -Parameters @{ q = $SearchString }
+    if ($PSCmdlet.ParameterSetName -eq "Search")
+    {
+        (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/RequestableAssets") | ForEach-Object {
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/RequestableAssets/$($_.Id)/Accounts" `
+                -Parameters @{ q = $SearchString }
+        }
+    }
+    else
+    {
+        if ($AssetQueryFilter)
+        {
+            if ($AccountQueryFilter)
+            {
+                (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/RequestableAssets" `
+                   -Parameters @{ filter = $AssetQueryFilter }) | ForEach-Object {
+                        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/RequestableAssets/$($_.Id)/Accounts" `
+                            -Parameters @{ filter = $AccountQueryFilter }
+                }
+            }
+            else
+            {
+                (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/RequestableAssets" `
+                   -Parameters @{ filter = $AssetQueryFilter }) | ForEach-Object {
+                        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/RequestableAssets/$($_.Id)/Accounts" 
+                }
+            }
+        }
+        else
+        {
+            (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/RequestableAssets") | ForEach-Object {
+                Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/RequestableAssets/$($_.Id)/Accounts" `
+                    -Parameters @{ filter = $AccountQueryFilter }
+            }
+        }
     }
 }
 

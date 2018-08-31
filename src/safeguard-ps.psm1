@@ -762,6 +762,7 @@ function Disconnect-Safeguard
                     Disable-SslVerification
                     if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
                 }
+                Write-Host "Logging out $($SafeguardSession.IdentityProvider)\$($SafeguardSession.Username)"
                 Write-Verbose "Calling Safeguard Logout service..."
                 $local:Headers = @{
                     "Accept" = "application/json";
