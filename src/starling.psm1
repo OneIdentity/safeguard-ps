@@ -224,6 +224,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER Name
 A string containing the name of the Starling subscription.
 
+.PARAMETER Force
+Force Safeguard to remove the subscription
+
 .INPUTS
 None.
 
@@ -246,6 +249,8 @@ function Remove-SafeguardStarlingSubscription
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [switch]$Force,
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Name
     )
@@ -254,7 +259,20 @@ function Remove-SafeguardStarlingSubscription
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:Id = (Get-SafeguardStarlingSubscription -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Name $Name).Id
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "StarlingSubscriptions/$($local:Id)"
+
+    if($Force)
+    {
+        $local:ExtraHeaders = @{
+	        "X-Force-Delete" = "true";
+	    }
+
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+	    -ExtraHeaders $local:ExtraHeaders Core DELETE "StarlingSubscriptions/$($local:Id)"
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "StarlingSubscriptions/$($local:Id)"
+    }
 }
 
 <#

@@ -917,7 +917,9 @@ function Invoke-SafeguardMethod
         [Parameter(Mandatory=$false)]
         [int]$Timeout = 300,
         [Parameter(Mandatory=$false)]
-        [switch]$LongRunningTask
+        [switch]$LongRunningTask,
+        [Parameter(Mandatory=$false)]
+        [HashTable]$ExtraHeaders
     )
 
     $ErrorActionPreference = "Stop"
@@ -987,6 +989,12 @@ function Invoke-SafeguardMethod
             "Accept" = $Accept;
             "Content-type" = $ContentType;
         }
+
+    ForEach ($key in $ExtraHeaders.Keys)
+    {
+        $local:Headers[$key] = $ExtraHeaders[$key]
+    }
+
     Write-Verbose "---Request---"
     Write-Verbose "Headers=$(ConvertTo-Json -InputObject $Headers)"
 
@@ -994,6 +1002,7 @@ function Invoke-SafeguardMethod
     {
         $local:Headers["Authorization"] = "Bearer $AccessToken"
     }
+
 
     try
     {
