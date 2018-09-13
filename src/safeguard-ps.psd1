@@ -238,13 +238,16 @@ PrivateData = @{
         IconUri = 'https://github.com/OneIdentity/safeguard-ps/blob/master/SafeguardLogo.ico'
 
         # Pre-release tag
-        Prerelease = '-pre'
+        # Prerelease = '-pre'
 
         # ReleaseNotes of this module
         ReleaseNotes = @"
 safeguard-ps 2.3 Release Notes:
 
 - Added support for new features
+- Added new -QueryFilter parameter to Find-Safeguard* cmdlets
+- Improved support for managing linked accounts
+- Improved A2A support and added better debug for certificate authentication
 "@
 
     } # End of PSData hashtable
