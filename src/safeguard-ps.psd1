@@ -11,7 +11,7 @@
 RootModule = 'safeguard-ps.psm1'
 
 # Version number of this module.
-ModuleVersion = '2.3.99999'
+ModuleVersion = '2.4.99999'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -242,7 +242,7 @@ PrivateData = @{
 
         # ReleaseNotes of this module
         ReleaseNotes = @"
-safeguard-ps 2.3 Release Notes:
+safeguard-ps 2.4 Release Notes:
 
 - Added support for new features
 "@
