@@ -235,7 +235,7 @@ PrivateData = @{
         ProjectUri = 'https://github.com/OneIdentity/safeguard-ps'
 
         # A URL to an icon representing this module.
-        IconUri = 'https://github.com/OneIdentity/safeguard-ps/blob/master/SafeguardLogo.ico'
+        IconUri = 'https://raw.githubusercontent.com/OneIdentity/safeguard-ps/master/SafeguardLogo.ico'
 
         # Pre-release tag
         Prerelease = '-pre'
