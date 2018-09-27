@@ -1,5 +1,6 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/329lnisdof0jfsgh?svg=true)](https://ci.appveyor.com/project/petrsnd/safeguard-ps)
 [![PowerShell Gallery](https://img.shields.io/powershellgallery/v/safeguard-ps.svg)](https://www.powershellgallery.com/packages/safeguard-ps)
+[![Docker Hub](https://img.shields.io/badge/docker-oneidentity%2Fsafeguard--ps-blue.svg)](https://hub.docker.com/r/oneidentity/safeguard-ps/)
 [![GitHub](https://img.shields.io/github/license/OneIdentity/safeguard-ps.svg)](https://github.com/OneIdentity/safeguard-ps/blob/master/LICENSE)
 
 # safeguard-ps
