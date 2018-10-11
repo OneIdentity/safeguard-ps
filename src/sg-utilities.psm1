@@ -8,9 +8,11 @@ function Out-SafeguardExceptionIfPossible
         [object]$ThrownException
     )
 
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
     if (-not ([System.Management.Automation.PSTypeName]"Ex.SafeguardMethodException").Type)
-        {
-            Add-Type -TypeDefinition @"
+    {
+        Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.Serialization;
 
@@ -38,34 +40,34 @@ namespace Ex
     }
 }
 "@
-        }
-        $local:ExceptionToThrow = $ThrownException
-        if ($ThrownException.Response)
-        {
-            Write-Verbose "---Response Status---"
-            Write-Verbose "$([int]$ThrownException.Response.StatusCode) $($ThrownException.Response.StatusDescription)"
-            Write-Verbose "---Response Body---"
-            $local:Stream = $ThrownException.Response.GetResponseStream()
-            $local:Reader = New-Object System.IO.StreamReader($local:Stream)
-            $local:Reader.BaseStream.Position = 0
-            $local:Reader.DiscardBufferedData()
-            $local:ResponseBody = $local:Reader.ReadToEnd()
-            Write-Verbose $local:ResponseBody
-            $local:Reader.Dispose()
-            $local:ResponseObject = (ConvertFrom-Json $local:ResponseBody -ErrorAction SilentlyContinue)
-            $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
-                [int]$ThrownException.Response.StatusCode, $ThrownException.Response.StatusDescription,
-                $local:ResponseObject.Code, $local:ResponseObject.Message, $local:ResponseBody
-            ))
-        }
-        Write-Verbose "---Exception---"
-        $ThrownException | Format-List * -Force | Out-String | Write-Verbose
-        if ($ThrownException.InnerException)
-        {
-            Write-Verbose "---Inner Exception---"
-            $ThrownException.InnerException | Format-List * -Force | Out-String | Write-Verbose
-        }
-        throw $local:ExceptionToThrow
+    }
+    $local:ExceptionToThrow = $ThrownException
+    if ($ThrownException.Response)
+    {
+        Write-Verbose "---Response Status---"
+        Write-Verbose "$([int]$ThrownException.Response.StatusCode) $($ThrownException.Response.StatusDescription)"
+        Write-Verbose "---Response Body---"
+        $local:Stream = $ThrownException.Response.GetResponseStream()
+        $local:Reader = New-Object System.IO.StreamReader($local:Stream)
+        $local:Reader.BaseStream.Position = 0
+        $local:Reader.DiscardBufferedData()
+        $local:ResponseBody = $local:Reader.ReadToEnd()
+        Write-Verbose $local:ResponseBody
+        $local:Reader.Dispose()
+        $local:ResponseObject = (ConvertFrom-Json $local:ResponseBody -ErrorAction SilentlyContinue)
+        $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
+            [int]$ThrownException.Response.StatusCode, $ThrownException.Response.StatusDescription,
+            $local:ResponseObject.Code, $local:ResponseObject.Message, $local:ResponseBody
+        ))
+    }
+    Write-Verbose "---Exception---"
+    $ThrownException | Format-List * -Force | Out-String | Write-Verbose
+    if ($ThrownException.InnerException)
+    {
+        Write-Verbose "---Inner Exception---"
+        $ThrownException.InnerException | Format-List * -Force | Out-String | Write-Verbose
+    }
+    throw $local:ExceptionToThrow
 }
 function Wait-ForSafeguardStatus
 {
@@ -118,6 +120,7 @@ function Wait-ForSafeguardOnlineStatus
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    Start-Sleep 5
     Wait-ForSafeguardStatus -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout -DesiredStatus "Online"
     Write-Host "Safeguard is back online."
 }
