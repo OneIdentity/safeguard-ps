@@ -416,16 +416,16 @@ function New-SafeguardA2aAccessRequest
         [Parameter(Mandatory=$false)]
         [string]$TicketNumber,
         [Parameter(Mandatory=$false)]
-        [string]RequestedFor,
+        [string]$RequestedFor,
         [Parameter(Mandatory=$false)]
         [ValidateRange(0, 31)]
-        [int]RequestedDurationDays,
+        [int]$RequestedDurationDays,
         [Parameter(Mandatory=$false)]
         [ValidateRange(0, 23)]
-        [int]RequestedDurationHours,
+        [int]$RequestedDurationHours,
         [Parameter(Mandatory=$false)]
         [ValidateRange(0, 59)]
-        [int]RequestedDurationMinutes
+        [int]$RequestedDurationMinutes
     )
 
     $ErrorActionPreference = "Stop"
