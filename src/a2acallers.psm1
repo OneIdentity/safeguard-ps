@@ -397,13 +397,13 @@ function New-SafeguardA2aAccessRequest
         [string]$AssetToUse,
         [Parameter(ParameterSetName="FileAndIds",Mandatory=$true,Position=3)]
         [Parameter(ParameterSetName="CertStoreAndIds",Mandatory=$true,Position=3)]
-        [string]$AssetIdToUse,
+        [int]$AssetIdToUse,
         [Parameter(ParameterSetName="FileAndNames",Mandatory=$false,Position=4)]
         [Parameter(ParameterSetName="CertStoreAndNames",Mandatory=$false,Position=4)]
         [string]$AccountToUse,
         [Parameter(ParameterSetName="FileAndIds",Mandatory=$false,Position=4)]
         [Parameter(ParameterSetName="CertStoreAndIds",Mandatory=$false,Position=4)]
-        [string]$AccountIdToUse,
+        [int]$AccountIdToUse,
         [Parameter(Mandatory=$false,Position=5)]
         [ValidateSet("Password", "SSH", "RemoteDesktop", "RDP", IgnoreCase=$true)]
         [string]$AccessRequestType,
