@@ -74,10 +74,10 @@ function Invoke-SafeguardA2aMethodWithCertificate
     catch
     {
         Write-Warning "An exception was caught trying to call A2A using a certificate."
-        Write-Warning "Your problem may be an quirk on Windows where the low-level HTTPS client requires that you have the Issuing CA"
-        Write-Warning "in your 'Intermediate Certificate Authorities' store, otherwise Windows doesn't think you have a matching"
-        Write-Warning "certificate to send in the initial client connection. This occurs even if you pass in a PFX file specifying"
-        Write-Warning "exactly which certificate to use."
+        Write-Warning "If you are experiencing a certificate connection failure, your problem may be an quirk on Windows where"
+        Write-Warning "the low-level HTTPS client requires that the Issuing CA be in your 'Intermediate Certificate Authorities'"
+        Write-Warning "store, otherwise Windows doesn't think you have a matching certificate to send in the initial client"
+        Write-Warning "connection. This occurs even if you pass in a PFX file specifying exactly which certificate to use."
         Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
         Out-SafeguardExceptionIfPossible $_.Exception
     }
