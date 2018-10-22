@@ -314,7 +314,7 @@ function New-SafeguardAccessRequest
     {
         Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
         $local:ReasonCodeId = (Resolve-ReasonCodeId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ReasonCode)
-        $local:Body["ReasonCode"] = $local:ReasonCodeId
+        $local:Body["ReasonCodeId"] = $local:ReasonCodeId
     }
     if ($ReasonComment) { $local:Body["ReasonComment"] = $ReasonComment }
     if ($TicketNumber) { $local:Body["TicketNumber"] = $TicketNumber }
