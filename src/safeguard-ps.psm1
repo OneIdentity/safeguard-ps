@@ -548,12 +548,14 @@ function Connect-Safeguard
         
             if ($Username)
             {
-                Write-Verbose "Calling RSTS token service for password authentication..."
-                $local:Scope = "rsts:sts:primaryproviderid:$($IdentityProvider.ToLower())"
-                $RstsResponse = (Invoke-RestMethod -Method POST -Headers @{
-                    "Accept" = "application/json";
-                    "Content-type" = "application/json"
-                } -Uri "https://$Appliance/RSTS/oauth2/token" -Body @"
+                try
+                {
+                    Write-Verbose "Calling RSTS token service for password authentication..."
+                    $local:Scope = "rsts:sts:primaryproviderid:$($IdentityProvider.ToLower())"
+                    $RstsResponse = (Invoke-RestMethod -Method POST -Headers @{
+                        "Accept" = "application/json";
+                        "Content-type" = "application/json"
+                    } -Uri "https://$Appliance/RSTS/oauth2/token" -Body @"
 {
     "grant_type": "password",
     "username": "$Username",
@@ -561,6 +563,12 @@ function Connect-Safeguard
     "scope": "$($local:Scope)"
 }
 "@)
+                }
+                catch
+                {
+                    Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+                    Out-SafeguardExceptionIfPossible $_.Exception
+                }
             }
             else # Assume Client Certificate Authentication
             {

@@ -54,11 +54,32 @@ namespace Ex
         $local:ResponseBody = $local:Reader.ReadToEnd()
         Write-Verbose $local:ResponseBody
         $local:Reader.Dispose()
-        $local:ResponseObject = (ConvertFrom-Json $local:ResponseBody -ErrorAction SilentlyContinue)
-        $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
-            [int]$ThrownException.Response.StatusCode, $ThrownException.Response.StatusDescription,
-            $local:ResponseObject.Code, $local:ResponseObject.Message, $local:ResponseBody
-        ))
+        try # try/catch is a workaround for this bug in PowerShell:
+        {   # https://stackoverflow.com/questions/41272128/does-convertfrom-json-respect-erroraction
+            $local:ResponseObject = (ConvertFrom-Json $local:ResponseBody) # -ErrorAction SilentlyContinue
+        }
+        catch {}
+        if ($local:ResponseObject.Code) # Safeguard error
+        {
+            $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
+                [int]$ThrownException.Response.StatusCode, $ThrownException.Response.StatusDescription,
+                $local:ResponseObject.Code, $local:ResponseObject.Message, $local:ResponseBody
+            ))
+        }
+        elseif ($local:ResponseObject.error_description) # rSTS error
+        {
+            $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
+                [int]$ThrownException.Response.StatusCode, $ThrownException.Response.StatusDescription,
+                0, $local:ResponseObject.error_description, $local:ResponseBody
+            ))
+        }
+        else # ??
+        {
+            $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
+                [int]$ThrownException.Response.StatusCode, $ThrownException.Response.StatusDescription,
+                0, "", $local:ResponseBody
+            ))
+        }
     }
     Write-Verbose "---Exception---"
     $ThrownException | Format-List * -Force | Out-String | Write-Verbose
