@@ -51,9 +51,9 @@ function Get-SafeguardAccessCertificationIdentity
 
     (Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core Get "Users" -Parameters @{
         fields = "FirstName,LastName,UserName,EmailAddress,WorkPhone,MobilePhone,IdentityProviderName,PrimaryAuthenticationIdentity,DirectoryProperties";
-        filter = "Disable -eq false"
+        filter = "Disabled eq false"
     }) | ForEach-Object {
-        # TODO: data sanity checking here
+        # TODO: data sanity checking here--i.e. are these really identities?
         $local:Identity = New-Object PSObject -Property @{
             givenName = $_.FirstName;
             familyName = $_.LastName;
