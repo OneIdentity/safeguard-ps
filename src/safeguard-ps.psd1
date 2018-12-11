@@ -90,7 +90,8 @@ NestedModules = @(
     'a2a.psm1',
     'a2acallers.psm1',
     'starling.psm1',
-    'entitlements.psm1'
+    'entitlements.psm1',
+    'accesscert.psm1'
     )
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
@@ -197,6 +198,9 @@ FunctionsToExport = @(
     'Get-SafeguardStarlingSubscription','New-SafeguardStarlingSubscription','Remove-SafeguardStarlingSubscription',
     'Get-SafeguardStarlingJoinUrl','Invoke-SafeguardStarlingJoin',
     'Get-SafeguardStarlingSetting','Set-SafeguardStarlingSetting',
+    # accesscert.psm1
+    'Get-SafeguardAccessCertificationIdentity','Get-SafeguardAccessCertificationAccount','Get-SafeguardAccessCertificationGroup',
+    'Get-SafeguardAccessCertificationEntitlement',
     # managementShell.psm1
     'Get-SafeguardCommand', 'Get-SafeguardBanner'
     # entitlements.psm1
