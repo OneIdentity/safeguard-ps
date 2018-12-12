@@ -74,7 +74,7 @@ function Resolve-SafeguardPolicyAccountId
         $local:RelativeUrl = "PolicyAccounts"
         if ($PSBoundParameters.ContainsKey("AssetId"))
         {
-            $local:PreFilter = "SystemId eq 3 and "
+            $local:PreFilter = "SystemId eq $AssetId and "
         }
         else
         {
@@ -406,7 +406,7 @@ function Get-SafeguardPolicyAccount
         else
         {
             Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "PolicyAccounts" `
-                -Parameters @{ Filter = "SystemId eq $(local:$AssetId)"}
+                -Parameters @{ Filter = "SystemId eq $($local:AssetId)"}
         }
     }
     else
