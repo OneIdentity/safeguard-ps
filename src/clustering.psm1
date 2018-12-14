@@ -914,7 +914,7 @@ function Get-SafeguardClusterSummary
     Write-Host(
     $local:Timestamps | Format-Table Id,Name,LocalTimeWhenRun | Out-String)
 
-    Write-Host "---Node Reachability---"
+    Write-Host "---Cluster Member Reachability---"
     Write-Host(
     $local:Reachable | Format-Table | Out-String)
 
