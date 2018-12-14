@@ -1884,6 +1884,36 @@ function Set-SafeguardBmcAdminPassword
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance PUT BmcConfiguration -Body $local:Body
 }
 
+<#
+.SYNOPSIS
+Get current status of TLS 1.2 Only setting in Safeguard via the Web API.
+
+.DESCRIPTION
+TLS 1.2 Only means Safeguard will only negotiate TLS 1.2+ connections when
+clients access the Web API and Web UI.  This cmdlet reports the current
+status of that setting: true or false.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+Boolean from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardTls12OnlyStatus -Appliance 10.5.32.54 -AccessToken $token -Insecure
+
+.EXAMPLE
+Get-SafeguardTls12OnlyStatus
+#>
 function Get-SafeguardTls12OnlyStatus
 {
     [CmdletBinding()]
@@ -1902,6 +1932,37 @@ function Get-SafeguardTls12OnlyStatus
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET "ApplianceStatus/SecureSsl"
 }
 
+<#
+.SYNOPSIS
+Enable the TLS 1.2 Only setting in Safeguard via the Web API.
+
+.DESCRIPTION
+TLS 1.2 Only means Safeguard will only negotiate TLS 1.2+ connections when
+clients access the Web API and Web UI.  This cmdlet sets the setting to true.
+
+Running this cmdlet requires a Safeguard reboot for the setting to take effect.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+Boolean from Safeguard Web API.
+
+.EXAMPLE
+Enable-SafeguardTls12Only -Appliance 10.5.32.54 -AccessToken $token -Insecure
+
+.EXAMPLE
+Enable-SafeguardTls12Only
+#>
 function Enable-SafeguardTls12Only
 {
     [CmdletBinding()]
@@ -1920,7 +1981,7 @@ function Enable-SafeguardTls12Only
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance PUT "ApplianceStatus/SecureSsl" -Body $true
     Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
 
-    Write-Host -ForegroundColor Yellow "In order for this setting to take affect you need to reboot the Safeguard appliance."
+    Write-Host -ForegroundColor Yellow "In order for this setting to take effect you need to reboot the Safeguard appliance."
     $local:Confirmed = (Get-Confirmation "Safeguard Appliance Reboot" "Do you want to initiate reboot on this Safeguard appliance?" `
                                          "Initiates reboot immediately." "Reboot manually later.")
     if ($local:Confirmed)
@@ -1929,6 +1990,37 @@ function Enable-SafeguardTls12Only
     }
 }
 
+<#
+.SYNOPSIS
+Disable the TLS 1.2 Only setting in Safeguard via the Web API.
+
+.DESCRIPTION
+TLS 1.2 Only means Safeguard will only negotiate TLS 1.2+ connections when
+clients access the Web API and Web UI.  This cmdlet sets the setting to false.
+
+Running this cmdlet requires a Safeguard reboot for the setting to take effect.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+Boolean from Safeguard Web API.
+
+.EXAMPLE
+Disable-SafeguardTls12Only -Appliance 10.5.32.54 -AccessToken $token -Insecure
+
+.EXAMPLE
+Disable-SafeguardTls12Only
+#>
 function Disable-SafeguardTls12Only
 {
     [CmdletBinding()]
@@ -1947,7 +2039,7 @@ function Disable-SafeguardTls12Only
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance PUT "ApplianceStatus/SecureSsl" -Body $false
     Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
 
-    Write-Host -ForegroundColor Yellow "In order for this setting to take affect you need to reboot the Safeguard appliance."
+    Write-Host -ForegroundColor Yellow "In order for this setting to take effect you need to reboot the Safeguard appliance."
     $local:Confirmed = (Get-Confirmation "Safeguard Appliance Reboot" "Do you want to initiate reboot on this Safeguard appliance?" `
                                          "Initiates reboot immediately." "Reboot manually later.")
     if ($local:Confirmed)
