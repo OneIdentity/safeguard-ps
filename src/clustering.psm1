@@ -730,7 +730,37 @@ function Unlock-SafeguardCluster
     }
 }
 
+<#
+.SYNOPSIS
+Get summary of information about the Safeguard cluster via the Safeguard Web API.
 
+.DESCRIPTION
+This cmdlet will report on the current cluster primary and all of the members.  It will
+report on any errors currently found in cluster health as well as the status of any
+on-going cluster operations.  All information is taken from the perspective of the
+connected appliance.  All of the health information is reported from the cache.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardClusterSummary -AccessToken $token -Appliance 10.5.33.144
+
+.EXAMPLE
+Get-SafeguardClusterSummary
+#>
 function Get-SafeguardClusterSummary
 {
     [CmdletBinding()]
