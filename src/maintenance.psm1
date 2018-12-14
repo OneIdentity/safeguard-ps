@@ -1883,3 +1883,75 @@ function Set-SafeguardBmcAdminPassword
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance PUT BmcConfiguration -Body $local:Body
 }
+
+function Get-SafeguardTls12OnlyStatus
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET "ApplianceStatus/SecureSsl"
+}
+
+function Enable-SafeguardTls12Only
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance PUT "ApplianceStatus/SecureSsl" -Body $true
+    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+
+    Write-Host -ForegroundColor Yellow "In order for this setting to take affect you need to reboot the Safeguard appliance."
+    $local:Confirmed = (Get-Confirmation "Safeguard Appliance Reboot" "Do you want to initiate reboot on this Safeguard appliance?" `
+                                         "Initiates reboot immediately." "Reboot manually later.")
+    if ($local:Confirmed)
+    {
+        Invoke-SafeguardApplianceReboot -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Reason "Enable TLS 1.2 Only" -Force
+    }
+}
+
+function Disable-SafeguardTls12Only
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance PUT "ApplianceStatus/SecureSsl" -Body $false
+    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+
+    Write-Host -ForegroundColor Yellow "In order for this setting to take affect you need to reboot the Safeguard appliance."
+    $local:Confirmed = (Get-Confirmation "Safeguard Appliance Reboot" "Do you want to initiate reboot on this Safeguard appliance?" `
+                                         "Initiates reboot immediately." "Reboot manually later.")
+    if ($local:Confirmed)
+    {
+        Invoke-SafeguardApplianceReboot -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Reason "Disable TLS 1.2 Only" -Force
+    }
+}
