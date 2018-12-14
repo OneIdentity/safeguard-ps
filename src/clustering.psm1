@@ -784,7 +784,7 @@ function Get-SafeguardClusterSummary
 
     Write-Host "---Cluster---"
     $local:Members = Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members" `
-                             -Parameters @{fields = "Id,Name,Ipv4Address,Ipv6Address,Health"}
+                             -Parameters @{fields = "Id,Name,Ipv4Address,Ipv6Address,Health,EnrolledSince"}
     $local:Errors = @()
     Write-Host (
     $local:Members | ForEach-Object {
@@ -795,6 +795,16 @@ function Get-SafeguardClusterSummary
             Ipv4Address = $_.Ipv4Address
             Ipv6Address = $_.Ipv6Address
         })
+        if (-not ($_.EnrolledSince))
+        {
+            $local:Object | Add-Member -MemberType NoteProperty -Name "Communication" -Value "Not Enrolled"
+            $local:Object | Add-Member -MemberType NoteProperty -Name "Connectivity" -Value "Not Enrolled"
+            $local:Object | Add-Member -MemberType NoteProperty -Name "Workflow" -Value "Not Enrolled"
+            $local:Object | Add-Member -MemberType NoteProperty -Name "Policy" -Value "Not Enrolled"
+            $local:Object | Add-Member -MemberType NoteProperty -Name "Sessions" -Value "Not Enrolled"
+            $local:Object
+            return # <-- equivalent to continue for ForEach-Object script block
+        }
         if ($_.Health.ClusterCommunication.Status -eq "Healthy")
         {
             $local:Object | Add-Member -MemberType NoteProperty -Name "Communication" -Value "$([Char]8730)"
