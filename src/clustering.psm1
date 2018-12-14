@@ -116,6 +116,56 @@ function Get-ClusterHealthError
         }
     }
 }
+function Get-Reachable
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        $Member,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$Id
+    )
+
+    if ($Member.Id -eq $Id)
+    {
+        "$([Char]8730)"
+    }
+    elseif (-not ($Member.Health.ClusterConnectivity.NodeConnectivity))
+    {
+        "X"
+    }
+    elseif (-not ($Member.Health.ClusterConnectivity.NodeConnectivity | Where-Object { $_.ApplianceId -eq $Id }))
+    {
+        "X"
+    }
+    elseif (($Member.Health.ClusterConnectivity.NodeConnectivity | Where-Object { $_.ApplianceId -eq $Id }).IsReachable)
+    {
+        "$([Char]8730)"
+    }
+    else
+    {
+        "X"
+    }
+}
+function Get-ReachableMatrix
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        $Members
+    )
+
+    $Members | ForEach-Object {
+        $local:Reachable = New-Object -TypeName PSObject -Property @{
+            Name = $_.Name
+        }
+        $local:Id = $_.Id
+        $Members | ForEach-Object {
+            $local:Reachable | Add-Member -MemberType NoteProperty -Name $_.Name -Value (Get-Reachable $_ $local:Id)
+        }
+        $local:Reachable
+    }
+}
 
 <#
 .SYNOPSIS
@@ -786,6 +836,8 @@ function Get-SafeguardClusterSummary
     $local:Members = Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members" `
                              -Parameters @{fields = "Id,Name,Ipv4Address,Ipv6Address,Health,EnrolledSince"}
     $local:Errors = @()
+    $local:Timestamps = @()
+    $local:Reachable = (Get-ReachableMatrix $local:Members)
     Write-Host (
     $local:Members | ForEach-Object {
         $local:Object = (New-Object -TypeName PSObject -Property @{
@@ -794,6 +846,11 @@ function Get-SafeguardClusterSummary
             State = $_.Health.State
             Ipv4Address = $_.Ipv4Address
             Ipv6Address = $_.Ipv6Address
+        })
+        $local:Timestamps += (New-Object -TypeName PSObject -Property @{
+            Id = $_.Id
+            Name = $_.Name
+            LocalTimeWhenRun = [System.TimeZone]::CurrentTimeZone.ToLocalTime($_.Health.CheckDate).ToString("yyyy-MM-ddTHH:mm:ss")
         })
         if (-not ($_.EnrolledSince))
         {
@@ -853,11 +910,23 @@ function Get-SafeguardClusterSummary
         $local:Object
     } | Format-Table Id,Name,State,Ipv4Address,Ipv6Address,Communication,Connectivity,Workflow,Policy,Sessions -AutoSize | Out-String)
 
+    Write-Host "---Cluster Health Check Timestamp---"
+    Write-Host(
+    $local:Timestamps | Format-Table Id,Name,LocalTimeWhenRun | Out-String)
+
+    Write-Host "---Node Reachability---"
+    Write-Host(
+    $local:Reachable | Format-Table | Out-String)
+
     Write-Host "---Cluster Errors---`n"
+    if (-not ($local:Errors))
+    {
+        $local:Errors += "None"
+    }
     Write-Host(
     $local:Errors | Out-String)
 
-    Write-Host "`n`n---Operation Status---"
+    Write-Host "`n---Cluster Operation Status---"
     Write-Host(
     Get-SafeguardClusterOperationStatus -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure | Format-Table | Out-String)
 }
