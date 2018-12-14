@@ -272,6 +272,9 @@ Specify this flag to display the GUI login experience to authenticate to the rep
 .PARAMETER NoWait
 Specify this flag to continue immediately without waiting for the enrollment to complete.
 
+.PARAMETER Timeout
+A timeout value in seconds for adding cluster member (default: 1800s or 30m)
+
 .INPUTS
 None.
 
@@ -304,7 +307,9 @@ function Add-SafeguardClusterMember
         [Parameter(Mandatory=$false)]
         [switch]$ReplicaGui,
         [Parameter(Mandatory=$false)]
-        [switch]$NoWait
+        [switch]$NoWait,
+        [Parameter(Mandatory=$false)]
+        [int]$Timeout = 1800
     )
 
     $ErrorActionPreference = "Stop"
@@ -341,7 +346,7 @@ function Add-SafeguardClusterMember
 
     if (-not $NoWait)
     {
-        Wait-ForClusterOperation -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure
+        Wait-ForClusterOperation -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout
     }
     else
     {
@@ -493,6 +498,9 @@ A string containing an ID, name, or network address for the member appliance.
 .PARAMETER NoWait
 Specify this flag to continue immediately without waiting for the failover to complete.
 
+.PARAMETER Timeout
+A timeout value in seconds for setting cluster primary (default: 600s or 10m)
+
 .INPUTS
 None.
 
@@ -521,7 +529,9 @@ function Set-SafeguardClusterPrimary
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Member,
         [Parameter(Mandatory=$false)]
-        [switch]$NoWait
+        [switch]$NoWait,
+        [Parameter(Mandatory=$false)]
+        [int]$Timeout = 600
     )
 
     $ErrorActionPreference = "Stop"
@@ -534,7 +544,7 @@ function Set-SafeguardClusterPrimary
 
     if (-not $NoWait)
     {
-        Wait-ForClusterOperation -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure
+        Wait-ForClusterOperation -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout
     }
     else
     {
@@ -561,6 +571,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER NoWait
 Specify this flag to continue immediately without waiting for the restore to complete.
 
+.PARAMETER Timeout
+A timeout value in seconds for enable (default: 600s or 10m)
+
 .INPUTS
 None.
 
@@ -584,7 +597,9 @@ function Enable-SafeguardClusterPrimary
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
-        [switch]$NoWait
+        [switch]$NoWait,
+        [Parameter(Mandatory=$false)]
+        [int]$Timeout = 600
     )
 
     $ErrorActionPreference = "Stop"
@@ -596,7 +611,7 @@ function Enable-SafeguardClusterPrimary
 
     if (-not $NoWait)
     {
-        Wait-ForSafeguardOnlineStatus -Appliance $Appliance -Insecure:$Insecure -Timeout 300
+        Wait-ForSafeguardOnlineStatus -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout
     }
 }
 
@@ -668,6 +683,9 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER Timeout
+A timeout value in seconds for unlocking cluster (default: 600s or 10m)
+
 .INPUTS
 None.
 
@@ -689,7 +707,9 @@ function Unlock-SafeguardCluster
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [int]$Timeout = 600
     )
 
     $ErrorActionPreference = "Stop"
@@ -706,7 +726,7 @@ function Unlock-SafeguardCluster
         Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
         Write-Host "Attempting to force completion of $($local:OpStatus.Operation) operation..."
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST ClusterStatus/ForceComplete
-        Wait-ForClusterOperation -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure
+        Wait-ForClusterOperation -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout
     }
 }
 
