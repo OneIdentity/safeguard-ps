@@ -659,7 +659,7 @@ function Set-SafeguardUserPassword
         $UserToEdit = (Read-Host "UserToEdit")
     }
     $local:UserId = Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit
-    if (-not $PSBoundParameters.ContainsKey("Password") -or $Password -eq $null)
+    if (-not $PSBoundParameters.ContainsKey("Password") -or $null -eq $Password)
     { 
         $Password = (Read-Host "Password" -AsSecureString)
     }
