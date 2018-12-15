@@ -89,7 +89,8 @@ NestedModules = @(
     'clustering.psm1',
     'a2a.psm1',
     'a2acallers.psm1',
-    'starling.psm1'
+    'starling.psm1',
+    'entitlements.psm1'
     )
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
@@ -165,8 +166,8 @@ FunctionsToExport = @(
     # policies.psm1
     'Get-SafeguardPolicyAsset','Find-SafeguardPolicyAsset','Get-SafeguardPolicyAccount','Find-SafeguardPolicyAccount',
     'Get-SafeguardAccessPolicy','Get-SafeguardAccessPolicyScopeItem','Get-SafeguardAccessPolicyAccessRequestProperty',
-    'Get-SafeguardAccessPolicySessionProperty','Get-SafeguardEntitlement', 'Get-SafeguardUserEntitlementReport',
-    'Get-SafeguardUserLinkedAccount','Add-SafeguardUserLinkedAccount','Remove-SafeguardUserLinkedAccount',
+    'Get-SafeguardAccessPolicySessionProperty','Get-SafeguardUserLinkedAccount','Add-SafeguardUserLinkedAccount',
+    'Remove-SafeguardUserLinkedAccount',
     # events.psm1
     'Get-SafeguardEvent', 'Get-SafeguardEventName', 'Get-SafeguardEventSubscription', 'Find-SafeguardEventSubscription',
     'New-SafeguardEventSubscription', 'Remove-SafeguardEventSubscription', 'Edit-SafeguardEventSubscription',
@@ -195,6 +196,8 @@ FunctionsToExport = @(
     'Get-SafeguardStarlingSetting','Set-SafeguardStarlingSetting',
     # managementShell.psm1
     'Get-SafeguardCommand', 'Get-SafeguardBanner'
+    # entitlements.psm1
+    'New-SafeguardEntitlement','Get-SafeguardEntitlement','Get-SafeguardUserEntitlementReport'
     )
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
