@@ -25,12 +25,12 @@ function Resolve-MemberAppliance
     }
     try
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "ClusterMembers/$Member" `
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members/$Member" `
             -Parameters @{ fields = "Id,IsLeader,Name,Ipv4Address,Ipv6Address,SslCertificateThumbprint,EnrolledSince$($local:GetHealth)" }
     }
     catch
     {
-        $local:Members = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET ClusterMembers `
+        $local:Members = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members" `
                               -Parameters @{ filter = "(Id ieq '$Member') or (Name ieq '$Member') or (Ipv4Address eq '$Member') or (Ipv6Address ieq '$Member')";
                                              fields = "Id,IsLeader,Name,Ipv4Address,Ipv6Address,SslCertificateThumbprint,EnrolledSince$($local:GetHealth)" })
         if (-not $local:Members)
@@ -116,6 +116,56 @@ function Get-ClusterHealthError
         }
     }
 }
+function Get-Reachable
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        $Member,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$Id
+    )
+
+    if ($Member.Id -eq $Id)
+    {
+        "$([Char]8730)"
+    }
+    elseif (-not ($Member.Health.ClusterConnectivity.NodeConnectivity))
+    {
+        "X"
+    }
+    elseif (-not ($Member.Health.ClusterConnectivity.NodeConnectivity | Where-Object { $_.ApplianceId -eq $Id }))
+    {
+        "X"
+    }
+    elseif (($Member.Health.ClusterConnectivity.NodeConnectivity | Where-Object { $_.ApplianceId -eq $Id }).IsReachable)
+    {
+        "$([Char]8730)"
+    }
+    else
+    {
+        "X"
+    }
+}
+function Get-ReachableMatrix
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        $Members
+    )
+
+    $Members | ForEach-Object {
+        $local:Reachable = New-Object -TypeName PSObject -Property @{
+            Name = $_.Name
+        }
+        $local:Id = $_.Id
+        $Members | ForEach-Object {
+            $local:Reachable | Add-Member -MemberType NoteProperty -Name $_.Name -Value (Get-Reachable $_ $local:Id)
+        }
+        $local:Reachable
+    }
+}
 
 <#
 .SYNOPSIS
@@ -178,7 +228,7 @@ function Get-SafeguardClusterMember
     }
     else
     {
-        (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET ClusterMembers).Health
+        (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members").Health
     }
 }
 
@@ -238,7 +288,7 @@ function Get-SafeguardClusterHealth
     }
     else
     {
-        (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET ClusterMembers).Health
+        (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members").Health
     }
 }
 
@@ -272,6 +322,9 @@ Specify this flag to display the GUI login experience to authenticate to the rep
 .PARAMETER NoWait
 Specify this flag to continue immediately without waiting for the enrollment to complete.
 
+.PARAMETER Timeout
+A timeout value in seconds for adding cluster member (default: 1800s or 30m)
+
 .INPUTS
 None.
 
@@ -304,7 +357,9 @@ function Add-SafeguardClusterMember
         [Parameter(Mandatory=$false)]
         [switch]$ReplicaGui,
         [Parameter(Mandatory=$false)]
-        [switch]$NoWait
+        [switch]$NoWait,
+        [Parameter(Mandatory=$false)]
+        [int]$Timeout = 1800
     )
 
     $ErrorActionPreference = "Stop"
@@ -336,12 +391,12 @@ function Add-SafeguardClusterMember
     }
 
     Write-Host "Joining '$ReplicaNetworkAddress' to cluster (primary: '$Appliance')..."
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST ClusterMembers `
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Cluster/Members" `
         -Body @{ Hostname = $ReplicaNetworkAddress; AuthenticationToken = $ReplicaAccessToken }
 
     if (-not $NoWait)
     {
-        Wait-ForClusterOperation -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure
+        Wait-ForClusterOperation -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout
     }
     else
     {
@@ -408,11 +463,11 @@ function Remove-SafeguardClusterMember
     $local:MemberId = (Resolve-MemberApplianceId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Member)
     if (-not $Force)
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "ClusterMembers/$MemberId"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Cluster/Members/$MemberId"
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST ClusterMembers/Reset `
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Cluster/Members/Reset" `
             -JsonBody "{`"Members`": [{`"Id`": `"$($local:MemberId)`",`"IsLeader`": true}],`"PrimaryId`": `"$($local:MemberId)`"}"
     }
 
@@ -465,7 +520,7 @@ function Get-SafeguardClusterPrimary
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET ClusterMembers `
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members" `
             -Parameters @{fields = "Id,IsLeader,Name,Ipv4Address,Ipv6Address,SslCertificateThumbprint,EnrolledSince"
                           filter = "IsLeader eq true"}
 }
@@ -492,6 +547,9 @@ A string containing an ID, name, or network address for the member appliance.
 
 .PARAMETER NoWait
 Specify this flag to continue immediately without waiting for the failover to complete.
+
+.PARAMETER Timeout
+A timeout value in seconds for setting cluster primary (default: 600s or 10m)
 
 .INPUTS
 None.
@@ -521,7 +579,9 @@ function Set-SafeguardClusterPrimary
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Member,
         [Parameter(Mandatory=$false)]
-        [switch]$NoWait
+        [switch]$NoWait,
+        [Parameter(Mandatory=$false)]
+        [int]$Timeout = 600
     )
 
     $ErrorActionPreference = "Stop"
@@ -530,11 +590,11 @@ function Set-SafeguardClusterPrimary
     Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
 
     $MemberId = (Resolve-MemberApplianceId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Member)
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "ClusterMembers/$MemberId/Promote"
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Cluster/Members/$MemberId/Promote"
 
     if (-not $NoWait)
     {
-        Wait-ForClusterOperation -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure
+        Wait-ForClusterOperation -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout
     }
     else
     {
@@ -561,6 +621,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER NoWait
 Specify this flag to continue immediately without waiting for the restore to complete.
 
+.PARAMETER Timeout
+A timeout value in seconds for enable (default: 600s or 10m)
+
 .INPUTS
 None.
 
@@ -584,7 +647,9 @@ function Enable-SafeguardClusterPrimary
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
-        [switch]$NoWait
+        [switch]$NoWait,
+        [Parameter(Mandatory=$false)]
+        [int]$Timeout = 600
     )
 
     $ErrorActionPreference = "Stop"
@@ -592,11 +657,11 @@ function Enable-SafeguardClusterPrimary
 
     Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST ClusterMembers/ActivatePrimary
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Cluster/Members/ActivatePrimary"
 
     if (-not $NoWait)
     {
-        Wait-ForSafeguardOnlineStatus -Appliance $Appliance -Insecure:$Insecure -Timeout 300
+        Wait-ForSafeguardOnlineStatus -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout
     }
 }
 
@@ -668,6 +733,9 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER Timeout
+A timeout value in seconds for unlocking cluster (default: 600s or 10m)
+
 .INPUTS
 None.
 
@@ -689,7 +757,9 @@ function Unlock-SafeguardCluster
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [int]$Timeout = 600
     )
 
     $ErrorActionPreference = "Stop"
@@ -706,11 +776,41 @@ function Unlock-SafeguardCluster
         Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
         Write-Host "Attempting to force completion of $($local:OpStatus.Operation) operation..."
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST ClusterStatus/ForceComplete
-        Wait-ForClusterOperation -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure
+        Wait-ForClusterOperation -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout
     }
 }
 
+<#
+.SYNOPSIS
+Get summary of information about the Safeguard cluster via the Safeguard Web API.
 
+.DESCRIPTION
+This cmdlet will report on the current cluster primary and all of the members.  It will
+report on any errors currently found in cluster health as well as the status of any
+on-going cluster operations.  All information is taken from the perspective of the
+connected appliance.  All of the health information is reported from the cache.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardClusterSummary -AccessToken $token -Appliance 10.5.33.144
+
+.EXAMPLE
+Get-SafeguardClusterSummary
+#>
 function Get-SafeguardClusterSummary
 {
     [CmdletBinding()]
@@ -728,14 +828,16 @@ function Get-SafeguardClusterSummary
 
     Write-Host "`n---Primary---"
     Write-Host (
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET ClusterMembers `
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members" `
             -Parameters @{fields = "Id,Name,Ipv4Address,Ipv6Address"
                           filter = "IsLeader eq true"} | Format-Table | Out-String)
 
     Write-Host "---Cluster---"
-    $local:Members = Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET ClusterMembers `
-                             -Parameters @{fields = "Id,Name,Ipv4Address,Ipv6Address,Health"}
+    $local:Members = Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members" `
+                             -Parameters @{fields = "Id,Name,Ipv4Address,Ipv6Address,Health,EnrolledSince"}
     $local:Errors = @()
+    $local:Timestamps = @()
+    $local:Reachable = (Get-ReachableMatrix $local:Members)
     Write-Host (
     $local:Members | ForEach-Object {
         $local:Object = (New-Object -TypeName PSObject -Property @{
@@ -745,6 +847,21 @@ function Get-SafeguardClusterSummary
             Ipv4Address = $_.Ipv4Address
             Ipv6Address = $_.Ipv6Address
         })
+        $local:Timestamps += (New-Object -TypeName PSObject -Property @{
+            Id = $_.Id
+            Name = $_.Name
+            LocalTimeWhenRun = [System.TimeZone]::CurrentTimeZone.ToLocalTime($_.Health.CheckDate).ToString("yyyy-MM-ddTHH:mm:ss")
+        })
+        if (-not ($_.EnrolledSince))
+        {
+            $local:Object | Add-Member -MemberType NoteProperty -Name "Communication" -Value "Not Enrolled"
+            $local:Object | Add-Member -MemberType NoteProperty -Name "Connectivity" -Value "Not Enrolled"
+            $local:Object | Add-Member -MemberType NoteProperty -Name "Workflow" -Value "Not Enrolled"
+            $local:Object | Add-Member -MemberType NoteProperty -Name "Policy" -Value "Not Enrolled"
+            $local:Object | Add-Member -MemberType NoteProperty -Name "Sessions" -Value "Not Enrolled"
+            $local:Object
+            return # <-- equivalent to continue for ForEach-Object script block
+        }
         if ($_.Health.ClusterCommunication.Status -eq "Healthy")
         {
             $local:Object | Add-Member -MemberType NoteProperty -Name "Communication" -Value "$([Char]8730)"
@@ -793,11 +910,23 @@ function Get-SafeguardClusterSummary
         $local:Object
     } | Format-Table Id,Name,State,Ipv4Address,Ipv6Address,Communication,Connectivity,Workflow,Policy,Sessions -AutoSize | Out-String)
 
+    Write-Host "---Cluster Health Check Timestamp---"
+    Write-Host(
+    $local:Timestamps | Format-Table Id,Name,LocalTimeWhenRun | Out-String)
+
+    Write-Host "---Cluster Member Reachability---"
+    Write-Host(
+    $local:Reachable | Format-Table | Out-String)
+
     Write-Host "---Cluster Errors---`n"
+    if (-not ($local:Errors))
+    {
+        $local:Errors += "None"
+    }
     Write-Host(
     $local:Errors | Out-String)
 
-    Write-Host "`n`n---Operation Status---"
+    Write-Host "`n---Cluster Operation Status---"
     Write-Host(
     Get-SafeguardClusterOperationStatus -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure | Format-Table | Out-String)
 }
