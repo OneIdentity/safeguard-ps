@@ -6,11 +6,12 @@ $ErrorActionPreference = "Stop"
 
 if (-not $TargetDir)
 {
-    $TargetDir = (($env:PSModulePath -split ';') | Where-Object { $_.StartsWith($env:UserProfile) })
-    if (-not $TargetDir)
+    $TargetDir = [array]($env:PSModulePath -split ';') | Where-Object { $_.StartsWith($env:UserProfile) }
+    if($TargetDir.Count -eq 0)
     {
         throw "Unable to find a PSModulePath in your user profile (" + $env:UserProfile + "), PSModulePath: " + $env:PSModulePath
     }
+    $TargetDir = $TargetDir[0]
 }
 
 if (-not (Test-Path $TargetDir))
