@@ -113,11 +113,10 @@ function New-SafeguardEntitlement
 
 <#
 .SYNOPSIS
-Create a new Entitlement in Safeguard via the Web API.
+Generates user entitlement report for a set of users in Safeguard via the Web API.
 
 .DESCRIPTION
-Create a new Entitlement in Safeguard. Access policies can be attached 
-to Entitlements. Users and groups can be  
+User entitlement report is a report of what accounts can be accessed by a set of users.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -128,8 +127,8 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
-.PARAMETER Name
-The name of the entitlement.
+.PARAMETER UserList
+An integer containing the ID of the access policy to get or a string containing the name.
 
 .INPUTS
 None.
@@ -138,9 +137,15 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-New-SafeguardEntitlement "Lab Administrator"
+Get-SafeguardUserEntitlementReport -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardUserEntitlementReport testUser1,testUser2
+
+.EXAMPLE
+Get-SafeguardUserEntitlementReport 123
 #>
-function Add-SafeguardEntitlementUser
+function Get-SafeguardUserEntitlementReport
 {
     [CmdletBinding()]
     Param(
@@ -151,25 +156,18 @@ function Add-SafeguardEntitlementUser
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
-        [object]$Entitlement,
-        [Parameter(Mandatory=$true,Position=1)]
-        [array]$Users
+        [object[]]$UserList
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $identities = New-Object System.Collections.ArrayList
-    foreach($user in $users)
+    [object[]]$Users = $null
+    foreach ($User in $UserList)
     {
-        $identities.Add( @{
-            Id=$user.Id; 
-            IdentityProviderId=$user.IdentityProviderId;
-            PrincipalKind='User';
-        } )
+        $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $User)
+        $local:Users += $($local:ResolvedUser).Id
     }
-
-
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-        Core POST "Roles/{$($Entitlement.Id)}/Members/Add" -Body (ConvertTo-Json $identities)
+    $local:Report = Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Reports/Entitlements/UserEntitlement" -Body $Users
+    return $local:Report.UserEntitlements
 }
