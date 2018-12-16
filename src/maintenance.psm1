@@ -987,7 +987,7 @@ function Install-SafeguardPatch
             $WebClient.Headers.Add("Accept", "application/json")
             $WebClient.Headers.Add("Content-type", "application/octet-stream")
             $WebClient.Headers.Add("Authorization", "Bearer $AccessToken")
-            Write-Host "Uploading patch to Safeguard. This operation may take several minutes..."
+            Write-Host "Uploading patch to Safeguard ($Appliance). This operation may take several minutes..."
 
             $Bytes = [System.IO.File]::ReadAllBytes($Patch);
             $ResponseBytes = $WebClient.UploadData("https://$Appliance/service/appliance/v$Version/Patch", "POST", $Bytes) | Out-Null
