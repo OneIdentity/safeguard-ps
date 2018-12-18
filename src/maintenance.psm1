@@ -509,14 +509,18 @@ function Invoke-SafeguardApplianceReboot
 
     if ($local:Confirmed)
     {
+        if (-not $NoWait)
+        {
+            Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+            $local:CurrentState = (Get-SafeguardStatus -Appliance $Appliance -Insecure:$Insecure).ApplianceCurrentState
+        }
         Write-Host "Sending reboot command..."
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance `
             POST ApplianceStatus/Reboot -Body $Reason
 
         if (-not $NoWait)
         {
-            Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-            Wait-ForSafeguardOnlineStatus -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout
+            Wait-ForSafeguardStatus -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout -DesiredStatus $local:CurrentState
         }
     }
     else

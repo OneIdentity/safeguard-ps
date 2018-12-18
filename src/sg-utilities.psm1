@@ -107,6 +107,8 @@ function Wait-ForSafeguardStatus
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    Start-Sleep 5 # up front wait to solve new transition timing issues
+
     $local:StartTime = (Get-Date)
     $local:Status = "Unreachable"
     $local:TimeElapsed = 10
@@ -141,7 +143,6 @@ function Wait-ForSafeguardOnlineStatus
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Start-Sleep 5
     Wait-ForSafeguardStatus -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout -DesiredStatus "Online"
     Write-Host "Safeguard is back online."
 }
