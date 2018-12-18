@@ -25,7 +25,7 @@ function Get-SessionConnectionIdentifier
         else
         {
             $local:Identifier = "$($SafeguardSession["Appliance"]) ($($SafeguardSession["IdentityProvider"])"
-            if (($SafeguardSession["Appliance"]) -ieq "certificate")
+            if (($SafeguardSession["IdentityProvider"]) -ieq "certificate")
             {
                 if ($SafeguardSession["Thumbprint"])
                 {
