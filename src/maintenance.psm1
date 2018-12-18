@@ -408,7 +408,7 @@ function Invoke-SafeguardApplianceShutdown
 
     if ($Force)
     {
-        $Confirmed = $true
+        $local:Confirmed = $true
     }
     else
     {
@@ -587,7 +587,7 @@ function Invoke-SafeguardApplianceFactoryReset
 
     if ($Force)
     {
-        $Confirmed = $true
+        $local:Confirmed = $true
     }
     else
     {
@@ -905,6 +905,9 @@ Use the currently staged patch rather than uploading a new one.
 .PARAMETER NoWait
 Specify this flag to continue immediately without waiting for the patch to install to the connected appliance.
 
+.PARAMETER Force
+Do not prompt for confirmation.
+
 .INPUTS
 None.
 
@@ -933,7 +936,9 @@ function Install-SafeguardPatch
         [Parameter(ParameterSetName="UseExisting",Mandatory=$false)]
         [switch]$UseStagedPatch = $false,
         [Parameter(Mandatory=$false)]
-        [switch]$NoWait
+        [switch]$NoWait,
+        [Parameter(Mandatory=$false)]
+        [switch]$Force
     )
 
     $ErrorActionPreference = "Stop"
@@ -1032,11 +1037,18 @@ function Install-SafeguardPatch
         Wait-ForPatchDistribution -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure
     }
 
-    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
-    $local:Confirmed = (Get-Confirmation "Install Safeguard Patch" `
-                                         "Do you want to install $($local:StagedPatch.Title) on this cluster?" `
-                                         "Starts cluster patch immediately." `
-                                         "Cancels this operation.")
+    if ($Force)
+    {
+        $local:Confirmed = $true
+    }
+    else
+    {
+        Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+        $local:Confirmed = (Get-Confirmation "Install Safeguard Patch" `
+                                            "Do you want to install $($local:StagedPatch.Title) on this cluster?" `
+                                            "Starts cluster patch immediately." `
+                                            "Cancels this operation.")
+    }
     if ($local:Confirmed)
     {
         Write-Host "Starting patch install..."
@@ -1168,8 +1180,8 @@ function Remove-SafeguardBackup
 
     if (-not $BackupId)
     {
-        $CurrentBackupIds = (Get-SafeguardBackup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure).Id -join ", "
-        Write-Host "Available Backups: [ $CurrentBackupIds ]"
+        $local:CurrentBackupIds = (Get-SafeguardBackup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure).Id -join ", "
+        Write-Host "Available Backups: [ $($local:CurrentBackupIds) ]"
         $BackupId = (Read-Host "BackupId")
     }
 
@@ -1261,8 +1273,8 @@ function Export-SafeguardBackup
 
     if (-not $BackupId)
     {
-        $CurrentBackupIds = (Get-SafeguardBackup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure).Id -join ", "
-        Write-Host "Available Backups: [ $CurrentBackupIds ]"
+        $local:CurrentBackupIds = (Get-SafeguardBackup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure).Id -join ", "
+        Write-Host "Available Backups: [ $($local:CurrentBackupIds) ]"
         $BackupId = (Read-Host "BackupId")
     }
     if (-not $OutFile)
