@@ -18,23 +18,30 @@ function Get-SessionConnectionIdentifier
     }
     else
     {
-        $local:Identifier = "$($SafeguardSession["Appliance"]) ($($SafeguardSession["IdentityProvider"])"
-        if (($SafeguardSession["Appliance"]) -ieq "certificate")
+        if ($SafeguardSession["Gui"])
         {
-            if ($SafeguardSession["Thumbprint"])
-            {
-                $local:Identifier = "$($local:Identifier)\$($SafeguardSession["Thumbprint"]))"
-            }
-            else
-            {
-                $local:Identifier = "$($local:Identifier)\$($SafeguardSession["CertificateFile"]))"
-            }
+            "$($SafeguardSession["Appliance"]) (GUI)"
         }
         else
         {
-            $local:Identifier = "$($local:Identifier)\$($SafeguardSession["Username"]))"
+            $local:Identifier = "$($SafeguardSession["Appliance"]) ($($SafeguardSession["IdentityProvider"])"
+            if (($SafeguardSession["Appliance"]) -ieq "certificate")
+            {
+                if ($SafeguardSession["Thumbprint"])
+                {
+                    $local:Identifier = "$($local:Identifier)\$($SafeguardSession["Thumbprint"]))"
+                }
+                else
+                {
+                    $local:Identifier = "$($local:Identifier)\$($SafeguardSession["CertificateFile"]))"
+                }
+            }
+            else
+            {
+                $local:Identifier = "$($local:Identifier)\$($SafeguardSession["Username"]))"
+            }
+            $local:Identifier
         }
-        $local:Identifier
     }
 
 }
