@@ -429,6 +429,12 @@ A string containing an ID, name, or network address for the member appliance.
 .PARAMETER Force
 Specify this flag to force remove the an appliance without quorum.
 
+.PARAMETER Wait
+Specify this flag to wait for the cluster remove operation to complete.
+
+.PARAMETER Timeout
+Timeout in seconds for the Wait parameter (default: 1200 seconds or 20 minutes)
+
 .INPUTS
 None.
 
@@ -454,7 +460,11 @@ function Remove-SafeguardClusterMember
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Member,
         [Parameter(Mandatory=$false)]
-        [switch]$Force
+        [switch]$Force,
+        [Parameter(Mandatory=$false)]
+        [switch]$Wait = $false,
+        [Parameter(Mandatory=$false)]
+        [int]$Timeout = 1200
     )
 
     $ErrorActionPreference = "Stop"
@@ -464,6 +474,7 @@ function Remove-SafeguardClusterMember
     if (-not $Force)
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Cluster/Members/$MemberId"
+        Wait-ForClusterOperation -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout
     }
     else
     {
