@@ -1,3 +1,50 @@
+# Helpers
+function Resolve-SafeguardEntitlementId
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Entitlement
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not ($Entitlement -as [int]))
+    {
+        try
+        {
+            $local:Entitlements = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Roles `
+                                 -Parameters @{ filter = "Name ieq '$Entitlement'" })
+        }
+        catch
+        {
+            Write-Verbose $_
+            Write-Verbose "Caught exception with ieq filter, trying with q parameter"
+            $local:Entitlements = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Roles `
+                                 -Parameters @{ q = $Entitlement })
+        }
+        if (-not $local:Entitlements)
+        {
+            throw "Unable to find Entitlement matching '$Entitlement'"
+        }
+        if ($local:Entitlements.Count -ne 1)
+        {
+            throw "Found $($local:Entitlements.Count) Entitlements matching '$Entitlement'"
+        }
+        $local:Entitlements[0].Id
+    }
+    else
+    {
+        $Entitlement
+    }
+}
 
 <#
 .SYNOPSIS
