@@ -6,6 +6,45 @@ $MyInvocation.MyCommand.ScriptBlock.Module.OnRemove = {
 }
 Edit-SslVersionSupport
 
+function Get-SessionConnectionIdentifier
+{
+    [CmdletBinding()]
+    Param(
+    )
+
+    if (-not $SafeguardSession)
+    {
+        "Not Connected"
+    }
+    else
+    {
+        if ($SafeguardSession["Gui"])
+        {
+            "$($SafeguardSession["Appliance"]) (GUI)"
+        }
+        else
+        {
+            $local:Identifier = "$($SafeguardSession["Appliance"]) ($($SafeguardSession["IdentityProvider"])"
+            if (($SafeguardSession["IdentityProvider"]) -ieq "certificate")
+            {
+                if ($SafeguardSession["Thumbprint"])
+                {
+                    $local:Identifier = "$($local:Identifier)\$($SafeguardSession["Thumbprint"]))"
+                }
+                else
+                {
+                    $local:Identifier = "$($local:Identifier)\$($SafeguardSession["CertificateFile"]))"
+                }
+            }
+            else
+            {
+                $local:Identifier = "$($local:Identifier)\$($SafeguardSession["Username"]))"
+            }
+            $local:Identifier
+        }
+    }
+
+}
 function Show-RstsWindow
 {
     [CmdletBinding()]
@@ -659,6 +698,7 @@ function Connect-Safeguard
                 "Insecure" = $Insecure;
                 "Gui" = $Gui;
             }
+            $Host.UI.RawUI.WindowTitle = "Windows PowerShell -- Safeguard Connection: $(Get-SessionConnectionIdentifier)"
             Write-Host "Login Successful."
         }
     }
@@ -770,7 +810,7 @@ function Disconnect-Safeguard
                     Disable-SslVerification
                     if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
                 }
-                Write-Host "Logging out $($SafeguardSession.IdentityProvider)\$($SafeguardSession.Username)"
+                Write-Host "Logging out $(Get-SessionConnectionIdentifier)"
                 Write-Verbose "Calling Safeguard Logout service..."
                 $local:Headers = @{
                     "Accept" = "application/json";
@@ -779,6 +819,7 @@ function Disconnect-Safeguard
                 }
                 Invoke-RestMethod -Method POST -Headers $local:Headers -Uri "https://$Appliance/service/core/v$Version/Token/Logout"
             }
+            $Host.UI.RawUI.WindowTitle = "Windows PowerShell"
             Write-Host "Log out Successful."
         }
         finally
