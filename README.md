@@ -222,6 +222,7 @@ safeguard-ps can do run:
 - Get-SafeguardVersion
 - Get-SafeguardApplianceVerification
 - Get-SafeguardTime
+- Get-SafeguardApplianceUptime
 - Get-SafeguardHealth
 - Get-SafeguardApplianceName
 - Set-SafeguardApplianceName
