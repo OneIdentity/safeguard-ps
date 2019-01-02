@@ -195,6 +195,62 @@ function Get-SafeguardTime
 
 <#
 .SYNOPSIS
+Get the current uptime on a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Get the current uptime on a Safeguard appliance which will be returned as
+an object with days, hours, minutes, seconds, total seconds, and composite string.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardApplianceUptime
+
+.EXAMPLE
+Get-SafeguardApplianceUptime -Appliance 10.5.32.54 -Insecure
+#>
+function Get-SafeguardApplianceUptime
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Os = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET OperatingSystem)
+    $local:Ts =  [timespan]::FromSeconds($local:Os.UptimeInSeconds)
+    New-Object -TypeName PSObject -Property @{
+        TotalSeconds = $local:Ts.TotalSeconds;
+        Days = $local:Ts.Days;
+        Hours = $local:Ts.Hours;
+        Minutes = $local:Ts.Minutes;
+        Seconds = $local:Ts.Seconds;
+        Value = $local:Ts.ToString("c")
+    }
+}
+
+<#
+.SYNOPSIS
 Get the current health of Safeguard appliance via the Web API.
 
 .DESCRIPTION
