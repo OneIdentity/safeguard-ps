@@ -200,9 +200,9 @@ safeguard-ps can do run:
 - Set-SafeguardSslCertificateForAppliance
 - Clear-SafeguardSslCertificateForAppliance
 - Get-SafeguardSslCertificateForAppliance
-- Get-SafeguardCertificateSigningRequest
-- New-SafeguardCertificateSigningRequest
-- Remove-SafeguardCertificateSigningRequest
+- Get-SafeguardCertificateSigningRequest (Get-SafeguardCsr)
+- New-SafeguardCertificateSigningRequest (New-SafeguardCsr)
+- Remove-SafeguardCertificateSigningRequest (Remove-SafeguardCsr)
 - New-SafeguardTestCertificatePki
 
 ### Networking
@@ -244,6 +244,9 @@ safeguard-ps can do run:
 - Enable-SafeguardBmcConfiguration
 - Disable-SafeguardBmcConfiguration
 - Set-SafeguardBmcAdminPassword
+- Get-SafeguardTls12OnlyStatus
+- Enable-SafeguardTls12Only
+- Disable-SafeguardTls12Only
 
 ### Clustering
 
@@ -297,7 +300,7 @@ safeguard-ps can do run:
 - Get-SafeguardActionableRequest
 - Get-SafeguardRequestableAccount
 - Find-SafeguardRequestableAccount
-- Get-SafeguardAccessRequestPassword
+- Get-SafeguardAccessRequestPassword (Get-SafeguardAccessRequestCheckoutPassword)
 
 ### Users
 
@@ -380,6 +383,7 @@ safeguard-ps can do run:
 - Get-SafeguardAccessPolicyAccessRequestProperty
 - Get-SafeguardAccessPolicySessionProperty
 - Get-SafeguardEntitlement
+- New-SafeguardEntitlement
 - Get-SafeguardUserEntitlementReport
 - Get-SafeguardUserLinkedAccount
 - Add-SafeguardUserLinkedAccount
