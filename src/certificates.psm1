@@ -228,6 +228,44 @@ function Get-SafeguardAuditLogSigningCertificate
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AuditLog/Retention/SigningCertificate"
 }
 
+<#
+.SYNOPSIS
+Upload audit log signing certificate to Safeguard via the Web API.
+
+.DESCRIPTION
+Upload a certificate for signing the audit log when exported for long-term
+retention.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER CertificateFile
+A string containing the path to a certificate PFX or P12 file.
+
+.PARAMETER Password
+A secure string to be used as a passphrase for the certificate PFX or P12 file.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Install-SafeguardAuditLogSigningCertificate -AccessToken $token -Appliance 10.5.32.54
+
+.EXAMPLE
+Install-SafeguardAuditLogSigningCertificate -CertificateFile C:\cert.pfx
+
+.EXAMPLE
+Install-SafeguardAuditLogSigningCertificate -CertificateFile C:\cert.pfx -Password (ConvertTo-SecureString -AsPlainText "TestPassword" -Force)
+#>
 function Install-SafeguardAuditLogSigningCertificate
 {
     [CmdletBinding()]
@@ -301,10 +339,10 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER CertificateFile
-A string containing the path to a certificate PFX file.
+A string containing the path to a certificate PFX or P12 file.
 
 .PARAMETER Password
-A secure string to be used as a passphrase for the certificate PFX file.
+A secure string to be used as a passphrase for the certificate PFX or P12 file.
 
 .PARAMETER Assign
 Install the certificate to this server immediately.
