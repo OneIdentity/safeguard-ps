@@ -934,7 +934,7 @@ function New-SafeguardCertificateSigningRequest
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
-        [ValidateSet('Ssl', 'TimeStamping', 'RdpSigning', 'SessionRecording')]
+        [ValidateSet('Ssl', 'TimeStamping', 'RdpSigning', 'SessionRecording', 'AuditLogSigning')]
         [string]$CertificateType,
         [Parameter(Mandatory=$true,Position=1)]
         [string]$Subject,
