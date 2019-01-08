@@ -108,6 +108,7 @@ FunctionsToExport = @(
     'Install-SafeguardLicense','Uninstall-SafeguardLicense','Get-SafeguardLicense',
     # certificates.psm1
     'Install-SafeguardTrustedCertificate','Uninstall-SafeguardTrustedCertificate','Get-SafeguardTrustedCertificate',
+    'Install-SafeguardAuditLogSigningCertificate','Uninstall-SafeguardAuditLogSigningCertificate','Get-SafeguardAuditLogSigningCertificate',
     'Install-SafeguardSslCertificate','Uninstall-SafeguardSslCertificate','Get-SafeguardSslCertificate',
     'Set-SafeguardSslCertificateForAppliance','Clear-SafeguardSslCertificateForAppliance','Get-SafeguardSslCertificateForAppliance',
     'Get-SafeguardCertificateSigningRequest','New-SafeguardCertificateSigningRequest','Remove-SafeguardCertificateSigningRequest',

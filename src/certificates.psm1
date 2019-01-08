@@ -182,6 +182,192 @@ function Get-SafeguardTrustedCertificate
 
 <#
 .SYNOPSIS
+Get the audit log signing certificate from Safeguard via the Web API.
+
+.DESCRIPTION
+Retrieve the certificate used for signing the audit log via the Web API.
+This certificate is used to sign the audit log when it is exported for long-term
+retention.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardAuditLogSigningCertificate -AccessToken $token -Appliance 10.5.32.54
+
+.EXAMPLE
+Get-SafeguardAuditLogSigningCertificate
+#>
+function Get-SafeguardAuditLogSigningCertificate
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AuditLog/Retention/SigningCertificate"
+}
+
+<#
+.SYNOPSIS
+Upload audit log signing certificate to Safeguard via the Web API.
+
+.DESCRIPTION
+Upload a certificate for signing the audit log when exported for long-term
+retention.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER CertificateFile
+A string containing the path to a certificate PFX or P12 file.
+
+.PARAMETER Password
+A secure string to be used as a passphrase for the certificate PFX or P12 file.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Install-SafeguardAuditLogSigningCertificate -AccessToken $token -Appliance 10.5.32.54
+
+.EXAMPLE
+Install-SafeguardAuditLogSigningCertificate -CertificateFile C:\cert.pfx
+
+.EXAMPLE
+Install-SafeguardAuditLogSigningCertificate -CertificateFile C:\cert.pfx -Password (ConvertTo-SecureString -AsPlainText "TestPassword" -Force)
+#>
+function Install-SafeguardAuditLogSigningCertificate
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$CertificateFile,
+        [Parameter(Mandatory=$false,Position=1)]
+        [SecureString]$Password
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+
+    $local:CertificateContents = (Get-CertificateFileContents $CertificateFile)
+    if (-not $CertificateContents)
+    {
+        throw "No valid certificate to upload"
+    }
+
+    if (-not $Password)
+    {
+        Write-Host "For no password just press enter..."
+        $Password = (Read-host "Password" -AsSecureString)
+    }
+    $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
+
+    Write-Host "Uploading Certificate..."
+    if ($local:PasswordPlainText)
+    {
+        $local:NewCertificate = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            PUT "AuditLog/Retention/SigningCertificate" -Body @{
+                Base64CertificateData = "$($local:CertificateContents)";
+                Passphrase = "$($local:PasswordPlainText)"
+            })
+    }
+    else
+    {
+        $local:NewCertificate = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            PUT "AuditLog/Retention/SigningCertificate" -Body @{
+                Base64CertificateData = "$($local:CertificateContents)" 
+            })
+    }
+
+    $local:NewCertificate
+}
+
+<#
+.SYNOPSIS
+Remove audit log signing certificate from Safeguard via the Web API.
+
+.DESCRIPTION
+Remove the certificate for signing the audit log when exported for long-term
+retention.  It will be replaced by the default.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Uninstall-SafeguardAuditLogSigningCertificate -AccessToken $token -Appliance 10.5.32.54
+
+.EXAMPLE
+Uninstall-SafeguardAuditLogSigningCertificate
+#>
+function Uninstall-SafeguardAuditLogSigningCertificate
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "AuditLog/Retention/SigningCertificate"
+}
+
+<#
+.SYNOPSIS
 Upload SSL certificate to Safeguard appliance via the Web API.
 
 .DESCRIPTION
@@ -200,10 +386,10 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER CertificateFile
-A string containing the path to a certificate PFX file.
+A string containing the path to a certificate PFX or P12 file.
 
 .PARAMETER Password
-A secure string to be used as a passphrase for the certificate PFX file.
+A secure string to be used as a passphrase for the certificate PFX or P12 file.
 
 .PARAMETER Assign
 Install the certificate to this server immediately.
@@ -748,7 +934,7 @@ function New-SafeguardCertificateSigningRequest
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
-        [ValidateSet('Ssl', 'TimeStamping', 'RdpSigning', 'SessionRecording')]
+        [ValidateSet('Ssl', 'TimeStamping', 'RdpSigning', 'SessionRecording', 'AuditLogSigning')]
         [string]$CertificateType,
         [Parameter(Mandatory=$true,Position=1)]
         [string]$Subject,
