@@ -180,6 +180,36 @@ function Get-SafeguardTrustedCertificate
     }
 }
 
+<#
+.SYNOPSIS
+Get the audit log signing certificate from Safeguard via the Web API.
+
+.DESCRIPTION
+Retrieve the certificate used for signing the audit log via the Web API.
+This certificate is used to sign the audit log when it is exported for long-term
+retention.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardAuditLogSigningCertificate -AccessToken $token -Appliance 10.5.32.54
+
+.EXAMPLE
+Get-SafeguardAuditLogSigningCertificate
+#>
 function Get-SafeguardAuditLogSigningCertificate
 {
     [CmdletBinding()]
