@@ -228,6 +228,59 @@ function Get-SafeguardAuditLogSigningCertificate
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AuditLog/Retention/SigningCertificate"
 }
 
+function Install-SafeguardAuditLogSigningCertificate
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$CertificateFile,
+        [Parameter(Mandatory=$false,Position=1)]
+        [SecureString]$Password
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+
+    $local:CertificateContents = (Get-CertificateFileContents $CertificateFile)
+    if (-not $CertificateContents)
+    {
+        throw "No valid certificate to upload"
+    }
+
+    if (-not $Password)
+    {
+        Write-Host "For no password just press enter..."
+        $Password = (Read-host "Password" -AsSecureString)
+    }
+    $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
+
+    Write-Host "Uploading Certificate..."
+    if ($local:PasswordPlainText)
+    {
+        $local:NewCertificate = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            PUT "AuditLog/Retention/SigningCertificate" -Body @{
+                Base64CertificateData = "$($local:CertificateContents)";
+                Passphrase = "$($local:PasswordPlainText)"
+            })
+    }
+    else
+    {
+        $local:NewCertificate = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            PUT "AuditLog/Retention/SigningCertificate" -Body @{
+                Base64CertificateData = "$($local:CertificateContents)" 
+            })
+    }
+
+    $local:NewCertificate
+}
+
 <#
 .SYNOPSIS
 Upload SSL certificate to Safeguard appliance via the Web API.
