@@ -194,6 +194,7 @@ safeguard-ps can do run:
 - Install-SafeguardTrustedCertificate
 - Uninstall-SafeguardTrustedCertificate
 - Get-SafeguardTrustedCertificate
+- Get-SafeguardAuditLogSigningCertificate
 - Install-SafeguardSslCertificate
 - Uninstall-SafeguardSslCertificate
 - Get-SafeguardSslCertificate
