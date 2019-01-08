@@ -321,6 +321,53 @@ function Install-SafeguardAuditLogSigningCertificate
 
 <#
 .SYNOPSIS
+Remove audit log signing certificate from Safeguard via the Web API.
+
+.DESCRIPTION
+Remove the certificate for signing the audit log when exported for long-term
+retention.  It will be replaced by the default.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Uninstall-SafeguardAuditLogSigningCertificate -AccessToken $token -Appliance 10.5.32.54
+
+.EXAMPLE
+Uninstall-SafeguardAuditLogSigningCertificate
+#>
+function Uninstall-SafeguardAuditLogSigningCertificate
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "AuditLog/Retention/SigningCertificate"
+}
+
+<#
+.SYNOPSIS
 Upload SSL certificate to Safeguard appliance via the Web API.
 
 .DESCRIPTION
