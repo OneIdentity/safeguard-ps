@@ -369,6 +369,8 @@ authentication is also supported. Two-factor authentication is not supported.
 First this script retrieves an access token from the embedded redistributable
 secure token service. Then, it exchanges this token for a Safeguard user token.
 
+You must use the -Gui parameter for 2FA login support.
+
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
 
@@ -397,7 +399,7 @@ Client certificate thumbprint to use to authenticate the connection to the RSTS.
 Version of the Web API you are using (default: 2).
 
 .PARAMETER Gui
-Display redistributable STS login window in a browser.
+Display redistributable STS login window in a browser.  Supports 2FA.
 
 .PARAMETER NoSessionVariable
 If this switch is sent the access token will be returned and a login session context variable will not be created.
@@ -413,6 +415,11 @@ None (with LoginSession variable filled out) or AccessToken for calling Web API.
 Connect-Safeguard 10.5.32.54 local -Credential (Get-Credential)
 
 Login Successful.
+
+.EXAMPLE
+Connect-Safeguard 10.5.32.54 -Gui -Insecure
+
+[Opens browser window for normal Safeguard login experience, including 2FA]
 
 
 .EXAMPLE
@@ -493,10 +500,10 @@ function Connect-Safeguard
             $local:GetPrimaryProvidersRelativeURL = "RSTS/UserLogin/LoginController?response_type=token&redirect_uri=urn:InstalledApplication&loginRequestStep=1"
             try
             {
-                $local:ConfiguredProviders = (Invoke-RestMethod -Method POST -Uri "https://$Appliance/$($local:GetPrimaryProvidersRelativeURL)" `
+                $local:ConfiguredProvidersRaw = (Invoke-RestMethod -Method POST -Uri "https://$Appliance/$($local:GetPrimaryProvidersRelativeURL)" `
                                               -Headers @{ "Content-type" = "application/x-www-form-urlencoded" } `
                                               -Body "RelayState=" `
-                                              -ErrorAction SilentlyContinue).Providers.Id
+                                              -ErrorAction SilentlyContinue).Providers
             }
             catch [Net.WebException]
             {
@@ -510,20 +517,49 @@ function Connect-Safeguard
             {
                 Write-Verbose "Initial attempt threw unknown exception"
             }
-            if (-not $local:ConfiguredProviders)
+            if (-not $local:ConfiguredProvidersRaw)
             {
                 try
                 {
                     Write-Verbose "Getting configured identity providers from RSTS service (using GET)..."
-                    $local:ConfiguredProviders = (Invoke-RestMethod -Method GET -Uri "https://$Appliance/$($local:GetPrimaryProvidersRelativeURL)" `
-                                                  -ErrorAction SilentlyContinue).Providers.Id
+                    $local:ConfiguredProvidersRaw = (Invoke-RestMethod -Method GET -Uri "https://$Appliance/$($local:GetPrimaryProvidersRelativeURL)" `
+                                                  -ErrorAction SilentlyContinue).Providers
                 }
                 catch
                 {
                     Write-Verbose "Also threw an unknown exception"
                 }
             }
-            $local:IdentityProviders = ,"certificate" + $local:ConfiguredProviders
+
+            # Built-in providers
+            $local:ConfiguredProviders = ,(New-Object -TypeName PSObject -Property @{
+                Id = "certificate";
+                DisplayName = "certificate"
+            }),(New-Object -TypeName PSObject -Property @{
+                Id = "local";
+                DisplayName = "Local"
+            })
+            $local:ConfiguredProvidersRaw | Sort-Object DisplayName | ForEach-Object {
+                # Trim out local so we can control order
+                if ($_.Id -ine "local")
+                {
+                    $local:ConfiguredProviders += (New-Object -TypeName PSObject -Property @{
+                        Id = $_.Id;
+                        DisplayName = $_.DisplayName
+                    })
+                }
+            }
+
+            $local:IdentityProviders = ($local:ConfiguredProviders | ForEach-Object {
+                if ($_.Id -ieq "certificate" -or $_.Id -ieq "local")
+                {
+                    "$($_.Id)"
+                }
+                else
+                {
+                    "$($_.Id) [$($_.DisplayName)]"
+                }
+            })
             if (-not $IdentityProvider)
             {
                 Write-Verbose "Identity provider not passed in"
@@ -544,9 +580,18 @@ function Connect-Safeguard
                     $IdentityProvider = (Read-Host "Provider")
                 }
             }
-            if ($local:ConfiguredProviders -and ($local:IdentityProviders -notcontains $IdentityProvider.ToLower()))
+            if ($local:ConfiguredProviders -and ($local:ConfiguredProviders.Id.ToLower() -notcontains $IdentityProvider.ToLower() `
+                -and $local:ConfiguredProviders.DisplayName.ToLower() -notcontains $IdentityProvider.ToLower()))
             {
                 throw "IdentityProvider '$($local:IdentityProvider)' not found in ($($local:IdentityProviders -join ", "))"
+            }
+
+            # Allow the caller to specify the domain name for AD
+            $local:ConfiguredProviders | ForEach-Object {
+                if ($_.DisplayName.ToLower() -ieq $IdentityProvider)
+                {
+                    $IdentityProvider = $_.Id
+                }
             }
     
             if ($IdentityProvider -ieq "certificate")
