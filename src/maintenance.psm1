@@ -63,7 +63,95 @@ function Get-SafeguardStatus
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -Anonymous -Appliance $Appliance -Insecure:$Insecure Notification GET Status
+    # Remove the IsClustered property since it is deprecated and inaccurate
+    Invoke-SafeguardMethod -Anonymous -Appliance $Appliance -Insecure:$Insecure Notification GET Status | Select-Object -Property * -ExcludeProperty IsClustered
+}
+
+<#
+.SYNOPSIS
+Get the current availability of Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Get the current availability of Safeguard appliance which will include version
+information, current state, previous state, maintenance status, cluster
+status, and primary appliance IP address.  It will also give the availability
+of individual services from this appliance such as password or session requests,
+password check/change management, policy/configuration changes, etc.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardApplianceAvailability
+
+.EXAMPLE
+Get-SafeguardApplianceAvailability -Appliance 10.5.32.54 -Insecure
+#>
+function Get-SafeguardApplianceAvailability
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -Anonymous -Appliance $Appliance -Insecure:$Insecure Notification GET "Status/Availability"
+}
+
+
+<#
+.SYNOPSIS
+Get the current state of Safeguard appliance via the Web API.
+
+.DESCRIPTION
+This cmdlet only returns this appliance's state via the Web API.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardApplianceState
+
+.EXAMPLE
+Get-SafeguardApplianceState -Appliance 10.5.32.54 -Insecure
+#>
+function Get-SafeguardApplianceState
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -Anonymous -Appliance $Appliance -Insecure:$Insecure Notification GET "Status/State"
 }
 
 <#
