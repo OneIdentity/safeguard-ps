@@ -32,6 +32,8 @@ Get the current status of Safeguard appliance which will include version
 information, current state, previous state, maintenance status, cluster
 status, and primary appliance IP address.
 
+This cmdlet is DEPRECATED.  Use Get-SafeguardApplianceAvailability instead.
+
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
 
