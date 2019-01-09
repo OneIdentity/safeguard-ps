@@ -222,6 +222,8 @@ safeguard-ps can do run:
 ### Maintenance
 
 - Get-SafeguardStatus
+- Get-SafeguardApplianceAvailability
+- Get-SafeguardApplianceState
 - Get-SafeguardVersion
 - Get-SafeguardApplianceVerification
 - Get-SafeguardTime
