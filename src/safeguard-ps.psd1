@@ -244,13 +244,21 @@ PrivateData = @{
         IconUri = 'https://raw.githubusercontent.com/OneIdentity/safeguard-ps/master/SafeguardLogo.ico'
 
         # Pre-release tag
-        Prerelease = '-pre'
+        # Prerelease = '-pre'
 
         # ReleaseNotes of this module
         ReleaseNotes = @"
 safeguard-ps 2.5 Release Notes:
 
-- Added support for new features
+- Bug fixes
+- Support for TLS 1.2 Only setting
+- Configurable timeout for cluster operations
+- Improved cluster cmdlet output
+- Entitlement creation
+- PowerShell window title reflects safeguard connection info
+- Audit log signing certificate cmdlet support
+- Better UX for AD login
+- Improved appliance status cmdlets
 "@
 
     } # End of PSData hashtable
