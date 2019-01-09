@@ -369,6 +369,8 @@ authentication is also supported. Two-factor authentication is not supported.
 First this script retrieves an access token from the embedded redistributable
 secure token service. Then, it exchanges this token for a Safeguard user token.
 
+You must use the -Gui parameter for 2FA login support.
+
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
 
@@ -397,7 +399,7 @@ Client certificate thumbprint to use to authenticate the connection to the RSTS.
 Version of the Web API you are using (default: 2).
 
 .PARAMETER Gui
-Display redistributable STS login window in a browser.
+Display redistributable STS login window in a browser.  Supports 2FA.
 
 .PARAMETER NoSessionVariable
 If this switch is sent the access token will be returned and a login session context variable will not be created.
@@ -413,6 +415,11 @@ None (with LoginSession variable filled out) or AccessToken for calling Web API.
 Connect-Safeguard 10.5.32.54 local -Credential (Get-Credential)
 
 Login Successful.
+
+.EXAMPLE
+Connect-Safeguard 10.5.32.54 -Gui -Insecure
+
+[Opens browser window for normal Safeguard login experience, including 2FA]
 
 
 .EXAMPLE
