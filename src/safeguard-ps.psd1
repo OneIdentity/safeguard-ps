@@ -248,7 +248,7 @@ PrivateData = @{
 
         # ReleaseNotes of this module
         ReleaseNotes = @"
-safeguard-ps 2.5 Release Notes:
+safeguard-ps 2.6 Release Notes:
 
 - Added support for new features
 "@
