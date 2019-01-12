@@ -277,7 +277,7 @@ function New-SafeguardAccessRequest
         [switch]$Insecure,
         [Parameter(Mandatory=$true, Position=0)]
         [object]$AssetToUse,
-        [Parameter(Mandatory=$true, Position=1)]
+        [Parameter(Mandatory=$false, Position=1)]
         [object]$AccountToUse,
         [Parameter(Mandatory=$true, Position=2)]
         [ValidateSet("Password", "SSH", "RemoteDesktop", "RDP", IgnoreCase=$true)]
@@ -301,13 +301,19 @@ function New-SafeguardAccessRequest
     }
 
     $local:AssetId = (Resolve-SafeguardRequestableAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToUse)
-    $local:AccountId = (Resolve-SafeguardRequestableAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
+    if ($AccessRequestType -ieq "Password" -and (-not $AccountToUse))
+    {
+        # Accounts are required for password requests, but not for sessions where you can use bring your own account
+        $AccountToUse = (Read-Host "AccountToUse")
+        $local:AccountId = (Resolve-SafeguardRequestableAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
+    }
 
     $local:Body = @{
         SystemId = $local:AssetId;
-        AccountId = $local:AccountId;
         AccessRequestType = "$AccessRequestType"
     }
+
+    if ($local:AccountId) { $local:Body["AccountId"] = $local:AccountId }
 
     if ($Emergency) { $local:Body["IsEmergency"] = $true }
     if ($ReasonCode)
