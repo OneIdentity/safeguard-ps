@@ -298,7 +298,7 @@ function New-SafeguardDirectory
 
     if ($PSCmdlet.ParameterSetName -eq "Ldap")
     {
-        $local:LdapPlatformId = (Find-SafeguardPlatform "OpenLDAP")[0].Id
+        $local:LdapPlatformId = (Find-SafeguardPlatform "OpenLDAP" -Appliance $Appliance -AccessToken $AccessToken)[0].Id
         $local:Body = @{
             PlatformId = $local:LdapPlatformId;
             ConnectionProperties = @{
@@ -329,7 +329,7 @@ function New-SafeguardDirectory
     }
     else
     {
-        $local:AdPlatformId = (Find-SafeguardPlatform "Active Directory")[0].Id
+        $local:AdPlatformId = (Find-SafeguardPlatform "Active Directory" -Appliance $Appliance -AccessToken $AccessToken)[0].Id
         $local:Body = @{
             PlatformId = $local:AdPlatformId;
             ConnectionProperties = @{
