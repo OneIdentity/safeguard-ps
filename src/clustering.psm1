@@ -391,8 +391,23 @@ function Add-SafeguardClusterMember
     }
 
     Write-Host "Joining '$ReplicaNetworkAddress' to cluster (primary: '$Appliance')..."
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Cluster/Members" `
-        -Body @{ Hostname = $ReplicaNetworkAddress; AuthenticationToken = $ReplicaAccessToken }
+    try
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Cluster/Members" `
+            -Body @{ Hostname = $ReplicaNetworkAddress; AuthenticationToken = $ReplicaAccessToken }
+    }
+    catch
+    {
+        if ($_.Exception.HttpStatusCode -eq 404)
+        {
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "ClusterMembers" `
+                -Body @{ Hostname = $ReplicaNetworkAddress; AuthenticationToken = $ReplicaAccessToken }
+        }
+        else
+        {
+            throw
+        }
+    }
 
     if (-not $NoWait)
     {

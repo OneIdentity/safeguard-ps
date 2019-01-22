@@ -25,6 +25,7 @@ namespace Ex
         public SafeguardMethodException(int httpCode, string httpMessage, int errorCode, string errorMessage, string errorJson)
             : base(httpCode + ": " + httpMessage + " -- " + errorCode + ": " + errorMessage)
         {
+            HttpStatusCode = httpCode;
             ErrorCode = errorCode;
             ErrorMessage = errorMessage;
             ErrorJson = errorJson;
@@ -34,6 +35,7 @@ namespace Ex
         protected SafeguardMethodException
             (SerializationInfo info, StreamingContext context)
             : base(info, context) {}
+        public int HttpStatusCode { get; set; }
         public int ErrorCode { get; set; }
         public string ErrorMessage { get; set; }
         public string ErrorJson { get; set; }
