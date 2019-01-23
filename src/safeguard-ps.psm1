@@ -351,6 +351,73 @@ function Invoke-WithBody
     }
 }
 
+function Invoke-Internal
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$Service,
+        [Parameter(Mandatory=$true,Position=2)]
+        [string]$Method,
+        [Parameter(Mandatory=$true,Position=3)]
+        [int]$Version,
+        [Parameter(Mandatory=$true,Position=4)]
+        [string]$RelativeUrl,
+        [Parameter(Mandatory=$true,Position=5)]
+        [object]$Headers,
+        [Parameter(Mandatory=$false)]
+        [object]$Body,
+        [Parameter(Mandatory=$false)]
+        [object]$JsonBody,
+        [Parameter(Mandatory=$false)]
+        [object]$Parameters,
+        [Parameter(Mandatory=$false)]
+        [string]$InFile,
+        [Parameter(Mandatory=$false)]
+        [string]$OutFile,
+        [Parameter(Mandatory=$false)]
+        [switch]$LongRunningTask,
+        [Parameter(Mandatory=$false)]
+        [int]$Timeout
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    try
+    {
+        switch ($Method.ToLower())
+        {
+            {$_ -in "get","delete"} {
+                Invoke-WithoutBody $Appliance $Service $Method $Version $RelativeUrl $Headers `
+                    -Parameters $Parameters -InFile $InFile -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout 
+                break
+            }
+            {$_ -in "put","post"} {
+                if ($InFile)
+                {
+                    Invoke-WithoutBody $Appliance $Service $Method $Version $RelativeUrl $Headers `
+                        -Parameters $Parameters -InFile $InFile -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout
+                }
+                else
+                {
+                    Invoke-WithBody $Appliance $Service $Method $Version $RelativeUrl $Headers `
+                        -Body $Body -JsonBody $JsonBody `
+                        -Parameters $Parameters -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout
+                }
+                break
+            }
+        }
+    }
+    catch
+    {
+        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+        Out-SafeguardExceptionIfPossible $_.Exception
+    }
+}
+
 <#
 .SYNOPSIS
 Log into a Safeguard appliance in this Powershell session for the purposes
@@ -913,6 +980,9 @@ Relative portion of the Url you would like to call starting after the version.
 .PARAMETER Version
 Version of the Web API you are using (default: 2).
 
+.PARAMETER RetryUrl
+Relative portion of the Url to retry if the RelativeUrl returns 404 (for backwards compatibility).
+
 .PARAMETER Accept
 Specify the Accept header (default: application/json)
 
@@ -990,6 +1060,8 @@ function Invoke-SafeguardMethod
         [string]$RelativeUrl,
         [Parameter(Mandatory=$false)]
         [int]$Version = 2,
+        [Parameter(Mandatory=$false)]
+        [string]$RetryUrl,
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
@@ -1090,43 +1162,32 @@ function Invoke-SafeguardMethod
     }
 
     Write-Verbose "---Request---"
-    Write-Verbose "Headers=$(ConvertTo-Json -InputObject $Headers)"
+    Write-Verbose "Headers=$(ConvertTo-Json -InputObject $local:Headers)"
 
     if (-not $Anonymous)
     {
         $local:Headers["Authorization"] = "Bearer $AccessToken"
     }
 
-
     try
     {
-        switch ($Method.ToLower())
-        {
-            {$_ -in "get","delete"} {
-                Invoke-WithoutBody $Appliance $Service $Method $Version $RelativeUrl $local:Headers `
-                    -Parameters $Parameters -InFile $InFile -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout 
-                break
-            }
-            {$_ -in "put","post"} {
-                if ($InFile)
-                {
-                    Invoke-WithoutBody $Appliance $Service $Method $Version $RelativeUrl $local:Headers `
-                        -Parameters $Parameters -InFile $InFile -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout
-                }
-                else
-                {
-                    Invoke-WithBody $Appliance $Service $Method $Version $RelativeUrl $local:Headers `
+        Invoke-Internal $Appliance $Service $Method $Version $RelativeUrl $local:Headers `
                         -Body $Body -JsonBody $JsonBody `
-                        -Parameters $Parameters -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout
-                }
-                break
-            }
-        }
+                        -Parameters $Parameters -InFile $InFile -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout
     }
     catch
     {
-        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-        Out-SafeguardExceptionIfPossible $_.Exception
+        if ($_.Exception.HttpStatusCode -eq 404)
+        {
+            Write-Verbose "Trying to use RetryUrl: $RetryUrl"
+            Invoke-Internal $Appliance $Service $Method $Version $RetryUrl $local:Headers `
+                            -Body $Body -JsonBody $JsonBody `
+                            -Parameters $Parameters -InFile $InFile -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout
+        }
+        else
+        {
+            throw
+        }
     }
     finally
     {
