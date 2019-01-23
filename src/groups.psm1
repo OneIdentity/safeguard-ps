@@ -317,7 +317,7 @@ function New-SafeguardUserGroup
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-    Import-Module -Name "$PSScriptRoot\directories.psm1" -Scope Local
+    Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
 
     $local:Body = @{ Name = $Name }
     if ($PSCmdlet.ParameterSetName -eq "Local")
@@ -326,13 +326,14 @@ function New-SafeguardUserGroup
     }
     else
     {
-        $local:DirectoryId = (Resolve-SafeguardDirectoryId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Directory)
+        $local:DirectoryId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Directory)
         if (-not $PSBoundParameters.ContainsKey("DomainName"))
         {
-            $local:Domains = (Get-SafeguardDirectoryDomains -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryId)
+            $local:Domains = (Get-SafeguardDirectoryAssetDomains -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -DirectoryAssetId $DirectoryId)
+            
             if (-not ($local:Domains -is [array]))
             {
-                $DomainName = $local:Domains[0].DomainName
+                $DomainName = $local:Domains.DomainName
             }
             else
             {

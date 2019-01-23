@@ -81,7 +81,6 @@ NestedModules = @(
     'requests.psm1',
     'users.psm1',
     'assets.psm1',
-    'directories.psm1',
     'groups.psm1',
     'policies.psm1',
     'managementShell.psm1',
@@ -150,18 +149,11 @@ FunctionsToExport = @(
     'Edit-SafeguardUser','Enable-SafeguardUser','Disable-SafeguardUser','Rename-SafeguardUser',
     # assets.psm1
     'Get-SafeguardAsset','Find-SafeguardAsset','New-SafeguardAsset','Test-SafeguardAsset',
-    'Remove-SafeguardAsset','Edit-SafeguardAsset',
+    'Remove-SafeguardAsset','Edit-SafeguardAsset', 'Sync-SafeguardDirectoryAsset'
     'Get-SafeguardAssetAccount','Find-SafeguardAssetAccount','New-SafeguardAssetAccount','Edit-SafeguardAssetAccount',
     'Set-SafeguardAssetAccountPassword','New-SafeguardAssetAccountRandomPassword',
     'Test-SafeguardAssetAccountPassword','Invoke-SafeguardAssetAccountPasswordChange',
     'Remove-SafeguardAssetAccount','Invoke-SafeguardAssetSshHostKeyDiscovery',
-    # directories.psm1
-    'Get-SafeguardDirectory','New-SafeguardDirectory','Test-SafeguardDirectory',
-    'Remove-SafeguardDirectory','Edit-SafeguardDirectory','Sync-SafeguardDirectory',
-    'Get-SafeguardDirectoryAccount','Find-SafeguardDirectoryAccount','New-SafeguardDirectoryAccount',
-    'Set-SafeguardDirectoryAccountPassword','New-SafeguardDirectoryAccountRandomPassword',
-    'Test-SafeguardDirectoryAccountPassword','Invoke-SafeguardDirectoryAccountPasswordChange',
-    'Edit-SafeguardDirectoryAccount','Remove-SafeguardDirectoryAccount',
     # groups.psm1
     'Get-SafeguardUserGroup','New-SafeguardUserGroup','Remove-SafeguardUserGroup',
     'Edit-SafeguardUserGroup',
