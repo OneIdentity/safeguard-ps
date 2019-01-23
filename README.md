@@ -329,6 +329,7 @@ safeguard-ps can do run:
 - Test-SafeguardAsset
 - Remove-SafeguardAsset
 - Edit-SafeguardAsset
+- Sync-SafeguardDirectoryAsset
 
 ### Asset Accounts
 
@@ -342,15 +343,6 @@ safeguard-ps can do run:
 - Invoke-SafeguardAssetAccountPasswordChange
 - Invoke-SafeguardAssetSshHostKeyDiscovery
 - Remove-SafeguardAssetAccount
-
-### Directories
-
-- Get-SafeguardDirectory
-- New-SafeguardDirectory
-- Test-SafeguardDirectory
-- Remove-SafeguardDirectory
-- Edit-SafeguardDirectory
-- Sync-SafeguardDirectory
 
 ### Directory Accounts
 
