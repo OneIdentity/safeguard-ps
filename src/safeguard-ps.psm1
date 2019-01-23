@@ -1177,7 +1177,7 @@ function Invoke-SafeguardMethod
     }
     catch
     {
-        if ($_.Exception.HttpStatusCode -eq 404)
+        if ($_.Exception.HttpStatusCode -eq 404 -and $RetryUrl)
         {
             Write-Verbose "Trying to use RetryUrl: $RetryUrl"
             Invoke-Internal $Appliance $Service $Method $Version $RetryUrl $local:Headers `
