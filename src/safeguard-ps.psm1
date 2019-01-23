@@ -981,7 +981,12 @@ Relative portion of the Url you would like to call starting after the version.
 Version of the Web API you are using (default: 2).
 
 .PARAMETER RetryUrl
-Relative portion of the Url to retry if the RelativeUrl returns 404 (for backwards compatibility).
+Relative portion of the Url to retry if the initial call returns 404 (for backwards compatibility).
+Retry will only occur if this parameter is included.  If the retry needs to differ only by version,
+you must specify this anyway (even if it is the same value) along with RetryVersion.
+
+.PARAMETER RetryVersion
+Version of the Web API to retry if the initial call returns 404 (for backwards compatibility).
 
 .PARAMETER Accept
 Specify the Accept header (default: application/json)
@@ -1062,6 +1067,8 @@ function Invoke-SafeguardMethod
         [int]$Version = 2,
         [Parameter(Mandatory=$false)]
         [string]$RetryUrl,
+        [Parameter(Mandatory=$false)]
+        [int]$RetryVersion = $Version,
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
@@ -1179,8 +1186,8 @@ function Invoke-SafeguardMethod
     {
         if ($_.Exception.HttpStatusCode -eq 404 -and $RetryUrl)
         {
-            Write-Verbose "Trying to use RetryUrl: $RetryUrl"
-            Invoke-Internal $Appliance $Service $Method $Version $RetryUrl $local:Headers `
+            Write-Verbose "Trying to use RetryVersion: $RetryVersion, and RetryUrl: $RetryUrl"
+            Invoke-Internal $Appliance $Service $Method $RetryVersion $RetryUrl $local:Headers `
                             -Body $Body -JsonBody $JsonBody `
                             -Parameters $Parameters -InFile $InFile -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout
         }
