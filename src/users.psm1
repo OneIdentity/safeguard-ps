@@ -368,7 +368,7 @@ A string containing a mobile phone number for the user.
 
 .PARAMETER AdminRoles
 An array of strings containing the permissions (admin roles) to assign to the user.  You may also specify
-'All' to grant all permissions. Other permissions are: 'GlobalAdmin', 'DirectoryAdmin', 'Auditor',
+'All' to grant all permissions. Other permissions are: 'GlobalAdmin', 'Auditor',
 'AssetAdmin', 'ApplianceAdmin', 'PolicyAdmin', 'UserAdmin', 'HelpdeskAdmin', 'OperationsAdmin'.
 
 .PARAMETER Password
@@ -421,7 +421,7 @@ function New-SafeguardUser
         [Parameter(Mandatory=$false)]
         [string]$MobilePhone = $null,
         [Parameter(Mandatory=$false)]
-        [ValidateSet('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin','All',IgnoreCase=$true)]
+        [ValidateSet('GlobalAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin','All',IgnoreCase=$true)]
         [string[]]$AdminRoles = $null,
         [Parameter(Mandatory=$false)]
         [SecureString]$Password,
@@ -464,7 +464,7 @@ function New-SafeguardUser
 
     if ($AdminRoles -contains "All")
     {
-        $AdminRoles = @('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
+        $AdminRoles = @('GlobalAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
     }
 
     if ($Provider -eq $local:LocalProviderId -and $PSBoundParameters.ContainsKey("Password"))
@@ -711,7 +711,7 @@ A string containing a mobile phone number for the user.
 
 .PARAMETER AdminRoles
 An array of strings containing the permissions (admin roles) to assign to the user.  You may also specify
-'All' to grant all permissions. Other permissions are: 'GlobalAdmin', 'DirectoryAdmin', 'Auditor',
+'All' to grant all permissions. Other permissions are: 'GlobalAdmin', 'Auditor',
 'AssetAdmin', 'ApplianceAdmin', 'PolicyAdmin', 'UserAdmin', 'HelpdeskAdmin', 'OperationsAdmin'.
 
 .PARAMETER UserObject
@@ -757,7 +757,7 @@ function Edit-SafeguardUser
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$MobilePhone = $null,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
-        [ValidateSet('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin','All',IgnoreCase=$true)]
+        [ValidateSet('GlobalAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin','All',IgnoreCase=$true)]
         [string[]]$AdminRoles = $null,
         [Parameter(ParameterSetName="Object",Mandatory=$false)]
         [object]$UserObject
@@ -795,7 +795,7 @@ function Edit-SafeguardUser
         {
             if ($AdminRoles -contains "All")
             {
-                $AdminRoles = @('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
+                $AdminRoles = @('GlobalAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
             }
             $UserObject.AdminRoles = $AdminRoles
         }
