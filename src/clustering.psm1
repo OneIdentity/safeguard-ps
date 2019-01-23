@@ -26,13 +26,15 @@ function Resolve-MemberAppliance
     try
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members/$Member" `
-            -Parameters @{ fields = "Id,IsLeader,Name,Ipv4Address,Ipv6Address,SslCertificateThumbprint,EnrolledSince$($local:GetHealth)" }
+            -Parameters @{ fields = "Id,IsLeader,Name,Ipv4Address,Ipv6Address,SslCertificateThumbprint,EnrolledSince$($local:GetHealth)" } `
+            -RetryUrl "ClusterMembers/$Member"
     }
     catch
     {
         $local:Members = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members" `
                               -Parameters @{ filter = "(Id ieq '$Member') or (Name ieq '$Member') or (Ipv4Address eq '$Member') or (Ipv6Address ieq '$Member')";
-                                             fields = "Id,IsLeader,Name,Ipv4Address,Ipv6Address,SslCertificateThumbprint,EnrolledSince$($local:GetHealth)" })
+                                             fields = "Id,IsLeader,Name,Ipv4Address,Ipv6Address,SslCertificateThumbprint,EnrolledSince$($local:GetHealth)" } `
+                              -RetryUrl "ClusterMembers")
         if (-not $local:Members)
         {
             throw "Unable to find cluster member matching '$Member'"
@@ -228,7 +230,8 @@ function Get-SafeguardClusterMember
     }
     else
     {
-        (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members").Health
+        (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members" `
+            -RetryUrl "ClusterMembers").Health
     }
 }
 
@@ -288,7 +291,8 @@ function Get-SafeguardClusterHealth
     }
     else
     {
-        (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members").Health
+        (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members" `
+            -RetryUrl "ClusterMembers").Health
     }
 }
 
@@ -391,23 +395,8 @@ function Add-SafeguardClusterMember
     }
 
     Write-Host "Joining '$ReplicaNetworkAddress' to cluster (primary: '$Appliance')..."
-    try
-    {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Cluster/Members" `
-            -Body @{ Hostname = $ReplicaNetworkAddress; AuthenticationToken = $ReplicaAccessToken }
-    }
-    catch
-    {
-        if ($_.Exception.HttpStatusCode -eq 404)
-        {
-            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "ClusterMembers" `
-                -Body @{ Hostname = $ReplicaNetworkAddress; AuthenticationToken = $ReplicaAccessToken }
-        }
-        else
-        {
-            throw
-        }
-    }
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Cluster/Members" `
+            -Body @{ Hostname = $ReplicaNetworkAddress; AuthenticationToken = $ReplicaAccessToken } -RetryUrl "ClusterMembers"
 
     if (-not $NoWait)
     {
@@ -488,13 +477,15 @@ function Remove-SafeguardClusterMember
     $local:MemberId = (Resolve-MemberApplianceId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Member)
     if (-not $Force)
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Cluster/Members/$MemberId"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Cluster/Members/$MemberId" `
+            -RetryUrl "ClusterMembers/$MemberId"
         Wait-ForClusterOperation -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout
     }
     else
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Cluster/Members/Reset" `
-            -JsonBody "{`"Members`": [{`"Id`": `"$($local:MemberId)`",`"IsLeader`": true}],`"PrimaryId`": `"$($local:MemberId)`"}"
+            -JsonBody "{`"Members`": [{`"Id`": `"$($local:MemberId)`",`"IsLeader`": true}],`"PrimaryId`": `"$($local:MemberId)`"}" `
+            -RetryUrl "ClusterMembers/Reset"
     }
 
     Write-Host "Not waiting for completion--use Get-SafeguardStatus and Get-SafeguardClusterOperationStatus to see status"
@@ -548,7 +539,7 @@ function Get-SafeguardClusterPrimary
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members" `
             -Parameters @{fields = "Id,IsLeader,Name,Ipv4Address,Ipv6Address,SslCertificateThumbprint,EnrolledSince"
-                          filter = "IsLeader eq true"}
+                          filter = "IsLeader eq true"} -RetryUrl "ClusterMembers"
 }
 
 <#
@@ -616,7 +607,8 @@ function Set-SafeguardClusterPrimary
     Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
 
     $MemberId = (Resolve-MemberApplianceId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Member)
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Cluster/Members/$MemberId/Promote"
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Cluster/Members/$MemberId/Promote" `
+        -RetryUrl "ClusterMembers/$MemberId/Promote"
 
     if (-not $NoWait)
     {
@@ -683,7 +675,8 @@ function Enable-SafeguardClusterPrimary
 
     Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Cluster/Members/ActivatePrimary"
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Cluster/Members/ActivatePrimary" `
+        -RetryUrl "ClusterMembers/ActivatePrimary"
 
     if (-not $NoWait)
     {
@@ -737,7 +730,8 @@ function Get-SafeguardClusterOperationStatus
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET ClusterStatus
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Status" `
+        -RetryUrl "ClusterStatus"
 }
 
 <#
@@ -801,7 +795,8 @@ function Unlock-SafeguardCluster
     {
         Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
         Write-Host "Attempting to force completion of $($local:OpStatus.Operation) operation..."
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST ClusterStatus/ForceComplete
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Cluster/Status/ForceComplete" `
+            -RetryUrl "ClusterStatus/ForceComplete"
         Wait-ForClusterOperation -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout
     }
 }
@@ -856,11 +851,11 @@ function Get-SafeguardClusterSummary
     Write-Host (
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members" `
             -Parameters @{fields = "Id,Name,Ipv4Address,Ipv6Address"
-                          filter = "IsLeader eq true"} | Format-Table | Out-String)
+                          filter = "IsLeader eq true"} -RetryUrl "ClusterMembers" | Format-Table | Out-String)
 
     Write-Host "---Cluster---"
     $local:Members = Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members" `
-                             -Parameters @{fields = "Id,Name,Ipv4Address,Ipv6Address,Health,EnrolledSince"}
+                             -Parameters @{fields = "Id,Name,Ipv4Address,Ipv6Address,Health,EnrolledSince"} -RetryUrl "ClusterMembers"
     $local:Errors = @()
     $local:Timestamps = @()
     $local:Reachable = (Get-ReachableMatrix $local:Members)
