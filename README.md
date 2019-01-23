@@ -344,15 +344,6 @@ safeguard-ps can do run:
 - Invoke-SafeguardAssetSshHostKeyDiscovery
 - Remove-SafeguardAssetAccount
 
-### Directories
-
-- Get-SafeguardDirectory
-- New-SafeguardDirectory
-- Test-SafeguardDirectory
-- Remove-SafeguardDirectory
-- Edit-SafeguardDirectory
-- Sync-SafeguardDirectory
-
 ### Directory Accounts
 
 - Get-SafeguardDirectoryAccount
