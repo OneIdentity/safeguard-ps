@@ -49,23 +49,32 @@ function Get-SafeguardAccessCertificationIdentity
 
     $local:Identities = @()
 
+    # Get all Safeguard users from the Local and Certificate providers and report them as identities
+    # For now, we will report all directory identity providers as accounts with anchors
     (Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core Get "Users" -Parameters @{
         fields = "FirstName,LastName,UserName,EmailAddress,WorkPhone,MobilePhone,IdentityProviderName,PrimaryAuthenticationIdentity,DirectoryProperties";
-        filter = "Disabled eq false"
+        filter = "(Disabled eq false) and ((PrimaryAuthenticationProviderName eq 'Local') or (PrimaryAuthenticationProviderName eq 'Certificate'))"
     }) | ForEach-Object {
-        # TODO: data sanity checking here--i.e. are these really identities?
-        $local:Identity = New-Object PSObject -Property @{
-            givenName = $_.FirstName;
-            familyName = $_.LastName;
-            email = $_.EmailAddress;
-            anchor = $_.PrimaryAuthenticationIdentity;
-            manager = $null
+        # Additional data sanity checking here? -- i.e. Are these really identities? or Are these really accounts?
+        if ((-not $_.FirstName) -or (-not $_.LastName))
+        {
+            Write-Verbose "Skipping Safeguard user '$($_.UserName)' that does not have a proper first and last name"
         }
-        $local:Identities += $local:Identity
+        else
+        {
+            $local:Identity = New-Object PSObject -Property @{
+                givenName = $_.FirstName;
+                familyName = $_.LastName;
+                email = $_.EmailAddress;
+                anchor = $_.EmailAddress;
+                manager = $null
+            }
+            $local:Identities += $local:Identity
+        }
     }
     if ($PSCmdlet.ParameterSetName -eq "File")
     {
-        $local:OutputFile = (Join-Path $OutputDirectory "identities.csv")
+        $local:OutputFile = (Join-Path $OutputDirectory "$Identifier-identities.csv")
         $local:Identities | Export-Csv -NoTypeInformation -Path $local:OutputFile
         Write-Host "Data written to $($local:OutputFile)"
     }
@@ -97,6 +106,38 @@ function Get-SafeguardAccessCertificationAccount
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Test-SafeguardPermissions -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure GlobalAdmin,UserAdmin,HelpdeskAdmin,Auditor
+
+    $local:Accounts = @()
+
+    # Get all Safeguard users from directory identity providers and report them as accounts with anchors
+    # For now, we will report Local and Certificate users as identities
+    (Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core Get "Users" -Parameters @{
+        fields = "FirstName,LastName,UserName,EmailAddress,WorkPhone,MobilePhone,IdentityProviderName,PrimaryAuthenticationIdentity,DirectoryProperties";
+        filter = "(Disabled eq false) and ((PrimaryAuthenticationProviderName eq 'Local') or (PrimaryAuthenticationProviderName eq 'Certificate'))"
+    }) | ForEach-Object {
+        # Additional data sanity checking here? -- i.e. Are these really identities? or Are these really accounts?
+        if ((-not $_.FirstName) -or (-not $_.LastName))
+        {
+            Write-Verbose "Skipping Safeguard user '$($_.UserName)' that does not have a proper first and last name"
+        }
+        else
+        {
+            $local:Account = New-Object PSObject -Property @{
+                # TODO:
+            }
+            $local:Accounts += $local:Account
+        }
+    }
+    if ($PSCmdlet.ParameterSetName -eq "File")
+    {
+        $local:OutputFile = (Join-Path $OutputDirectory "$Identifier-accounts.csv")
+        $local:Accounts | Export-Csv -NoTypeInformation -Path $local:OutputFile
+        Write-Host "Data written to $($local:OutputFile)"
+    }
+    else
+    {
+        $local:Accounts | ConvertTo-Csv -NoTypeInformation
+    }
 }
 
 function Get-SafeguardAccessCertificationGroup
