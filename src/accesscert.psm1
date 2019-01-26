@@ -112,18 +112,31 @@ function Get-SafeguardAccessCertificationAccount
     # Get all Safeguard users from directory identity providers and report them as accounts with anchors
     # For now, we will report Local and Certificate users as identities
     (Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core Get "Users" -Parameters @{
-        fields = "FirstName,LastName,UserName,EmailAddress,WorkPhone,MobilePhone,IdentityProviderName,PrimaryAuthenticationIdentity,DirectoryProperties";
-        filter = "(Disabled eq false) and ((PrimaryAuthenticationProviderName eq 'Local') or (PrimaryAuthenticationProviderName eq 'Certificate'))"
+        fields = "Id,UserName,EmailAddress,PrimaryAuthenticationIdentity,IdentityProviderTypeReferenceName,DirectoryProperties";
+        filter = "(Disabled eq false) and ((PrimaryAuthenticationProviderName ne 'Local') and (PrimaryAuthenticationProviderName ne 'Certificate'))"
     }) | ForEach-Object {
-        # Additional data sanity checking here? -- i.e. Are these really identities? or Are these really accounts?
-        if ((-not $_.FirstName) -or (-not $_.LastName))
+        # Additional data sanity checking here? -- i.e. Are these really accounts? or Are these really identities?
+        if ($false)
         {
-            Write-Verbose "Skipping Safeguard user '$($_.UserName)' that does not have a proper first and last name"
+            Write-Verbose "Skipping Safeguard user '$($_.UserName)' that does not have the proper information"
         }
         else
         {
+            if ($_.IdentityProviderTypeReferenceName -eq "ActiveDirectory")
+            {
+                $local:Authority = "ad:$($_.DirectoryProperties.DomainName)"
+                $local:Owner = $_.PrimaryAuthenticationIdentity # Object GUID
+            }
+            else
+            {
+                $local:Authority = "ldap:$($_.DirectoryProperties.DirectoryName)"
+                $local:Owner = $_.PrimaryAuthenticationIdentity # DN
+            }
             $local:Account = New-Object PSObject -Property @{
-                # TODO:
+                authority = $local:Authority;
+                id = $_.Id;
+                userName = $_.UserName;
+                owner = $local:Owner
             }
             $local:Accounts += $local:Account
         }
