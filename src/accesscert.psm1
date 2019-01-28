@@ -235,7 +235,7 @@ function Get-SafeguardAccessCertificationGroup
             $local:Group = New-Object PSObject -Property @{
                 authority = "safeguard:$Identifier"; # all entitlements are local
                 id = "e/$($_.Id)";
-                groupName = $_.Name;
+                groupName = "e/$($_.Name)";
                 displayName = "Entitlement: $($_.Name)";
                 description = $_.Description;
                 owner = $null # TODO: Do we want to try to look up the owner using the created by user ID??
