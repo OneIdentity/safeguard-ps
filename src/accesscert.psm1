@@ -438,8 +438,9 @@ function Get-SafeguardAccessCertificationEntitlement
                 }
                 else
                 {   # access derived from entitlement membership
-                    $local:GroupIndex = "e/$($_.Policy.Id)"
+                    $local:GroupIndex = "e/$($_.Policy.RoleId)"
                 }
+
                 $local:GroupAuthority = $local:Groups[$local:GroupIndex].authority
                 $local:GroupId = $local:Groups[$local:GroupIndex].id
 
