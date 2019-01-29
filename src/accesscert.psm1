@@ -185,12 +185,21 @@ function Get-AccountPermissionText
         [Parameter(Mandatory=$true, Position=2)]
         [string]$AccountSystemName,
         [Parameter(Mandatory=$true, Position=3)]
-        [string]$AccountName
+        [string]$AccountName,
+        [Parameter(Mandatory=$false)]
+        [string]$AccountDomainName
     )
 
     if ($AccountSystemName -ine $SystemName)
     {
-        $local:Permission = "$Protocol session as $AccountSystemName\$AccountName"
+        if ($AccountDomainName)
+        {
+            $local:Permission = "$Protocol session as $AccountDomainName\$AccountName"
+        }
+        else
+        {
+            $local:Permission = "$Protocol session as $AccountSystemName\$AccountName"
+        }
     }
     else
     {
@@ -248,7 +257,8 @@ function Get-PermissionText
         "remotedesktop" {
             if ($PolEnt.Account)
             {
-                $local:Permission = (Get-AccountPermissionText "RDP" $PolEnt.System.Name $PolEnt.Account.SystemName $PolEnt.Account.Name)
+                $local:Permission = (Get-AccountPermissionText "RDP" $PolEnt.System.Name $PolEnt.Account.SystemName $PolEnt.Account.Name `
+                                     -AccountDomainName $PolEnt.Account.DomainName)
             }
             else
             {
@@ -259,7 +269,8 @@ function Get-PermissionText
         "ssh" {
             if ($PolEnt.Account)
             {
-                $local:Permission = (Get-AccountPermissionText "SSH" $PolEnt.System.Name $PolEnt.Account.SystemName $PolEnt.Account.Name)
+                $local:Permission = (Get-AccountPermissionText "SSH" $PolEnt.System.Name $PolEnt.Account.SystemName $PolEnt.Account.Name`
+                                     -AccountDomainName $PolEnt.Account.DomainName)
             }
             else
             {
