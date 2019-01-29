@@ -144,7 +144,7 @@ function Get-AccessCertGroup
     # Get entitlements from Safeguard, which can directly group together safeguard users and assign them to access policies
     (Invoke-SafeguardMethod Core GET "Roles" -Parameters @{
         fields = "Id,Name,Description,CreatedByUserId,Members";
-        filter = "(Members.PrincipalKind eq 'User') and (IsExpired eq false)" # only those containing users
+        filter = "IsExpired eq false" # include all entitlements... we could limit to just those containing users with (Members.PrincipalKind eq 'User')
     }) | ForEach-Object {
         # Additional data sanity checking here?
         if ($false)
@@ -157,7 +157,7 @@ function Get-AccessCertGroup
                 authority = "safeguard:$Identifier"; # all entitlements are local
                 id = "e/$($_.Id)";
                 groupName = "e/$($_.Name)";
-                displayName = "Entitlement: $($_.Name)";
+                displayName = "(Entitlement) $($_.Name)";
                 description = $_.Description;
                 owner = $null # TODO: Do we want to try to look up the owner using the created by user ID??
             }
@@ -306,8 +306,8 @@ function Write-CsvOutput
 
 <#
 .SYNOPSIS
-Get Safeguard identity comma-separated values (CSV) for access certification
-via the Web API.
+Get identity comma-separated values (CSV) for access certification
+via the Safeguard Web API.
 
 .DESCRIPTION
 This utility calls the Safeguard Web API and lists all of the identities from
@@ -384,6 +384,44 @@ function Get-SafeguardAccessCertificationIdentity
         "givenName","familyName","email","anchor","manager"
 }
 
+<#
+.SYNOPSIS
+Get account comma-separated values (CSV) for access certification
+via the Safeguard Web API.
+
+.DESCRIPTION
+In the context of this cmdlet the term 'account' refers to identities that can
+log into Safeguard as opposed to accounts being protected by Safeguard.  This
+is how access certification uses the term.
+
+This utility calls the Safeguard Web API and lists all of the accounts from
+all Safeguard identity providers.  This will include everyone who can log into
+this Safeguard cluster.
+
+This cmdlet require an active Safeguard session which may be established using
+the Connect-Safeguard cmdlet.
+
+.PARAMETER Identifier
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER OutputDirectory
+Output directory to store CSV file (default: current directory)
+
+.PARAMETER StdOut
+Print CSV to the console rather than to a file.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file or CSV text.
+
+.EXAMPLE
+Get-SafeguardAccessCertificationAccount "SG-US-Cluster1"
+
+.EXAMPLE
+Get-SafeguardAccessCertificationAccount "SG-US-Cluster1" -StdOut
+#>
 function Get-SafeguardAccessCertificationAccount
 {
     [CmdletBinding(DefaultParameterSetName="File")]
@@ -407,6 +445,44 @@ function Get-SafeguardAccessCertificationAccount
         "authority","id","userName","owner"
 }
 
+<#
+.SYNOPSIS
+Get group comma-separated values (CSV) for access certification
+via the Safeguard Web API.
+
+.DESCRIPTION
+In the context of this cmdlet the term 'group' includes both Safeguard user
+groups and Safeguard entitlements because Safeguard users can be added
+directly as members to assign access.
+
+This utility calls the Safeguard Web API and lists all of the groups.  This will
+be a list of all of the memberships that an account could be given that could
+grant access.
+
+This cmdlet require an active Safeguard session which may be established using
+the Connect-Safeguard cmdlet.
+
+.PARAMETER Identifier
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER OutputDirectory
+Output directory to store CSV file (default: current directory)
+
+.PARAMETER StdOut
+Print CSV to the console rather than to a file.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file or CSV text.
+
+.EXAMPLE
+Get-SafeguardAccessCertificationGroup "SG-US-Cluster1"
+
+.EXAMPLE
+Get-SafeguardAccessCertificationGroup "SG-US-Cluster1" -StdOut
+#>
 function Get-SafeguardAccessCertificationGroup
 {
     [CmdletBinding(DefaultParameterSetName="File")]
@@ -430,6 +506,42 @@ function Get-SafeguardAccessCertificationGroup
         "authority","id","groupName","displayName","description","owner"
 }
 
+<#
+.SYNOPSIS
+Get entitlement comma-separated values (CSV) for access certification
+via the Safeguard Web API.
+
+.DESCRIPTION
+In the context of this cmdlet the term 'entitlement' refers to individual access
+rules that are more commonly called access policies in Safeguard.
+
+This utility calls the Safeguard Web API and processes all access rules into
+entitlements for use with access ceritfication.
+
+This cmdlet require an active Safeguard session which may be established using
+the Connect-Safeguard cmdlet.
+
+.PARAMETER Identifier
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER OutputDirectory
+Output directory to store CSV file (default: current directory)
+
+.PARAMETER StdOut
+Print CSV to the console rather than to a file.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file or CSV text.
+
+.EXAMPLE
+Get-SafeguardAccessCertificationGroup "SG-US-Cluster1"
+
+.EXAMPLE
+Get-SafeguardAccessCertificationGroup "SG-US-Cluster1" -StdOut
+#>
 function Get-SafeguardAccessCertificationEntitlement
 {
     [CmdletBinding(DefaultParameterSetName="File")]
