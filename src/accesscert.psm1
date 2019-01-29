@@ -304,6 +304,40 @@ function Write-CsvOutput
     }
 }
 
+<#
+.SYNOPSIS
+Get Safeguard identity comma-separated values (CSV) for access certification
+via the Web API.
+
+.DESCRIPTION
+This utility calls the Safeguard Web API and lists all of the identities from
+the local Safeguard identity provider for which Safeguard is the identity
+authority.
+
+This cmdlet require an active Safeguard session which may be established using
+the Connect-Safeguard cmdlet.
+
+.PARAMETER Identifier
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER OutputDirectory
+Output directory to store CSV file (default: current directory)
+
+.PARAMETER StdOut
+Print CSV to the console rather than to a file.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file or CSV text.
+
+.EXAMPLE
+Get-SafeguardAccessCertificationIdentity "SG-US-Cluster1"
+
+.EXAMPLE
+Get-SafeguardAccessCertificationIdentity "SG-US-Cluster1" -StdOut
+#>
 function Get-SafeguardAccessCertificationIdentity
 {
     [CmdletBinding(DefaultParameterSetName="File")]
