@@ -51,21 +51,31 @@ function Get-AccessCertAccount
             if ($_.IdentityProviderTypeReferenceName -eq "Local")
             {
                 $local:Authority = "safeguard:$Identifier"
-                $local:Owner = $_.UserName
+                $local:Id = $_.Id
+                if ($_.EmailAddress)
+                {
+                    $local:Owner = $_.EmailAddress
+                }
+                else
+                {
+                    $local:Owner = $null
+                }
             }
             elseif ($_.IdentityProviderTypeReferenceName -eq "ActiveDirectory")
             {
                 $local:Authority = "ad:$($_.DirectoryProperties.DomainName)"
+                $local:Id = $_.PrimaryAuthenticationIdentity # Object GUID
                 $local:Owner = $_.PrimaryAuthenticationIdentity # Object GUID
             }
             else
             {
                 $local:Authority = "ldap:$($_.DirectoryProperties.DirectoryName)"
+                $local:Id = $_.DirectoryProperties.DistinguishedName # DN
                 $local:Owner = $_.DirectoryProperties.DistinguishedName # DN
             }
             $local:Account = New-Object PSObject -Property @{
                 authority = $local:Authority;
-                id = $_.Id;
+                id = $Local:Id;
                 userName = $_.UserName;
                 owner = $local:Owner
             }
