@@ -200,7 +200,7 @@ FunctionsToExport = @(
     'Get-SafeguardStarlingSetting','Set-SafeguardStarlingSetting',
     # accesscert.psm1
     'Get-SafeguardAccessCertificationIdentity','Get-SafeguardAccessCertificationAccount','Get-SafeguardAccessCertificationGroup',
-    'Get-SafeguardAccessCertificationEntitlement','Get-ADAccountCertificationIdentity',
+    'Get-SafeguardAccessCertificationEntitlement','Get-ADAccessCertificationIdentity','Update-SafeguardAccessCertificationGroupFromAD',
     # managementShell.psm1
     'Get-SafeguardCommand', 'Get-SafeguardBanner'
     # entitlements.psm1

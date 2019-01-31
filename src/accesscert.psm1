@@ -679,7 +679,7 @@ function Test-ADModuleAvailable
     }
 }
 
-function Get-ADAccountCertificationIdentity
+function Get-ADAccessCertificationIdentity
 {
     [CmdletBinding(DefaultParameterSetName="File")]
     Param(
@@ -787,4 +787,71 @@ function Get-ADAccountCertificationIdentity
 
     Write-CsvOutput ($PSCmdlet.ParameterSetName -eq "File") (Join-Path $OutputDirectory "$DomainName-identities.csv") $local:Identities `
         "givenName","familyName","email","anchor","manager"
+}
+
+function Update-SafeguardAccessCertificationGroupFromAD
+{
+    [CmdletBinding(DefaultParameterSetName="File")]
+    Param(
+        [Parameter(Mandatory=$false, Position=0)]
+        [string]$CsvFile,
+        [Parameter(Mandatory=$false, ParameterSetName="StdOut")]
+        [switch]$StdOut,
+        [Parameter(Mandatory=$false)]
+        [string]$DomainName,
+        [Parameter(Mandatory=$false)]
+        [PSCredential]$Credential
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Test-ADModuleAvailable
+
+    $local:CredentialMap = @{}
+    $local:CredentialMap[$DomainName] = $Credential
+
+    $local:Groups = @()
+    (Import-Csv $CsvFile) | ForEach-Object {
+        $local:Group = $_
+        $local:Authority = $local:Group.authority
+        if ($local:Authority.StartsWith("ad:"))
+        {
+            $local:Domain = $local:Authority.Substring(3)
+            if ($local:CredentialMap.ContainsKey($Domain))
+            {
+                $local:Creds = $local:CredentialMap[$Domain]
+            }
+            else
+            {
+                $local:Creds = (Get-Credential -Message "Active Directory login ($Domain)")
+                $local:CredentialMap[$Domain] = $local:Creds
+            }
+            $local:AdGroup = (Get-ADGroup -Identity $local:Group.id -Server $Domain -Credential $local:Creds -Properties ManagedBy)
+            if ($local:AdGroup.ManagedBy)
+            {
+                $local:AdUser = (Get-ADUser -Identity $local:AdGroup.ManagedBy -Server $Domain -Credential $local:Creds -Properties EmailAddress)
+                if ($local:AdUser.EmailAddress)
+                {
+                    $local:Group.owner = $local:AdUser.EmailAddress
+                }
+                else
+                {
+                    Write-Verbose "AD user '$($local:AdUser.SamAccountName)' owns '$($local:AdGroup.SamAccountName)' but doesn't have an email"
+                }
+            }
+            else
+            {
+                Write-Verbose "AD group '$($local:AdGroup.SamAccountName)' doesn't have managedBy set"
+            }
+        }
+        else
+        {
+            Write-Verbose "Ignoring non-AD authority '$($local:Authority)'"
+        }
+        $local:Groups += $local:Group
+    }
+
+    Write-CsvOutput (-not $StdOut) $CsvFile $local:Groups `
+        "authority","id","groupName","displayName","description","owner"
 }
