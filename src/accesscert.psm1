@@ -415,7 +415,7 @@ function Get-SafeguardAccessCertificationIdentity
                 familyName = $_.LastName;
                 email = $_.EmailAddress;
                 anchor = $_.UserName;
-                manager = $null
+                manager = $null # Safeguard doesn't have the concept of organizational hierarchy (manager)
             }
             $local:Identities += $local:Identity
         }
@@ -603,7 +603,7 @@ function Get-SafeguardAccessCertificationEntitlement
     $local:AccountsTable = (Get-AccessCertAccount $Identifier -AsLookupTable)
     $local:GroupsTable = (Get-AccessCertGroup $Identifier -AsLookupTable)
 
-    Write-Progress -Activity "Compiling entitlements" -Status "0 of $($local:AccountsTable.Count)" -PercentComplete 0
+    Write-Progress -Activity "Compiling entitlements" -Status "0 of $($local:AccountsTable.Count) accounts" -PercentComplete 0
 
     $local:AccountKeys = [string[]]$local:AccountsTable.Keys
     for ($i=0; $i -lt $local:AccountsTable.Count; $i++)
@@ -664,4 +664,127 @@ function Get-SafeguardAccessCertificationEntitlement
 
     Write-CsvOutput ($PSCmdlet.ParameterSetName -eq "File") (Join-Path $OutputDirectory "$Identifier-entitlements.csv") $local:Entitlements `
         "accountAuthority","accountId","permission","resource","groupAuthority","groupId"
+}
+
+# AD only helpers
+function Test-ADModuleAvailable
+{
+    try
+    {
+        Get-Command Get-ADUser | Out-Null
+    }
+    catch
+    {
+        throw "You must load the ActiveDirectory PowerShell module from Microsoft to use this cmdlet"
+    }
+}
+
+function Get-ADAccountCertificationIdentity
+{
+    [CmdletBinding(DefaultParameterSetName="File")]
+    Param(
+        [Parameter(Mandatory=$false, ParameterSetName="File", Position=0)]
+        [string]$OutputDirectory = (Get-Location),
+        [Parameter(Mandatory=$false, ParameterSetName="StdOut")]
+        [switch]$StdOut,
+        [Parameter(Mandatory=$true)]
+        [string]$DomainName,
+        [Parameter(Mandatory=$false)]
+        [PSCredential]$Credential = (Get-Credential -Message "Active Directory login ($DomainName)"),
+        [Parameter(Mandatory=$false)]
+        [string[]]$Groups
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Test-ADModuleAvailable
+
+    $local:UsersTable = @{}
+    if ($Groups)
+    {
+        for ($i=0; $i -lt $Groups.Count; $i++)
+        {
+            $local:GroupName = $Groups[$i]
+            Write-Progress -Activity "Getting identity list from AD" -Status "Building identity index ($($i + 1) of $($Groups.Count))" `
+                -PercentComplete ([int]($i / $Groups.Count * 100))
+            try
+            {
+                $local:GroupDn = (Get-ADGroup -Identity $local:GroupName -Server $DomainName -Credential $Credential).DistinguishedName
+            }
+            catch
+            {
+                Write-Warning "Group '$($local:GroupName)' not found"
+            }
+            # all users with a sAMAccountName that are not disabled and a member of the group
+            Get-ADUser -LDAPFilter "(&(objectCategory=Person)(sAMAccountName=*)(!userAccountControl:1.2.840.113556.1.4.803:=2)(memberOf=$($local:GroupDn)))" `
+                       -Server $DomainName -Credential $Credential `
+                       -Properties "Manager","GivenName","Surname","EmailAddress" | ForEach-Object {
+                if ($_.GivenName -and $_.Surname)
+                {
+                    $local:UsersTable[$_.DistinguishedName] = $_
+                }
+                else
+                {
+                    Write-Verbose "Ignoring '$($_.SamAccountName)', because it doesn't have givenName and familyName"
+                }
+            }
+        }
+        Write-Progress -Activity "Getting identity list from AD" -Status "Building identity index" -PercentComplete 100 -Completed
+    }
+    else
+    {
+        Write-Progress -Activity "Getting identity list from AD" -Status "Building identity index" -PercentComplete 10
+        # all users with a sAMAccountName that are not disabled
+        Get-ADUser -LDAPFilter "(&(objectCategory=Person)(sAMAccountName=*)(!userAccountControl:1.2.840.113556.1.4.803:=2))" `
+                   -Server $DomainName -Credential $Credential `
+                   -Properties "Manager","GivenName","Surname","EmailAddress" | ForEach-Object {
+            if ($_.GivenName -and $_.Surname)
+            {
+                $local:UsersTable[$_.DistinguishedName] = $_
+            }
+            else
+            {
+                Write-Verbose "Ignoring '$($_.SamAccountName)', because it doesn't have givenName and familyName"
+            }
+        }
+        Write-Progress -Activity "Getting identity list from AD" -Status "Building identity index" -PercentComplete 100 -Completed
+    }
+
+    $local:Identities = @()
+    $local:UserKeys = [string[]]$local:UsersTable.Keys
+    for ($i=0; $i -lt $local:UsersTable.Count; $i++)
+    {
+        $local:Percent = [int]($i / $local:UsersTable.Count * 100)
+        Write-Progress -Activity "Processing identities" -Status "$($i + 1) of $($local:UsersTable.Count)" -PercentComplete $local:Percent
+
+        $local:UserKey = $local:UserKeys[$i]
+        $local:User = $local:UsersTable[$local:UserKey]
+        if ($local:User.Manager)
+        {
+            $local:Manager = $local:UsersTable[$local:User.Manager]
+        }
+        else
+        {
+            $local:Manager = $null
+        }
+        $local:Identity = New-Object PSObject -Property @{
+            givenName = $local:User.GivenName;
+            familyName = $local:User.Surname;
+            email = $local:User.EmailAddress;
+            anchor = $local:User.EmailAddress;
+            manager = $null
+        }
+        if ($local:Manager)
+        {
+            $local:Identity.manager = $local:Manager.EmailAddress
+        }
+        $local:Identities += $local:Identity
+    }
+
+    Write-Progress -Activity "Processing identities" -Status "$($local:UsersTable.Count) of $($local:UsersTable.Count)" `
+        -PercentComplete 100 -Completed
+
+    Write-CsvOutput ($PSCmdlet.ParameterSetName -eq "File") (Join-Path $OutputDirectory "$DomainName-identities.csv") $local:Identities `
+        "givenName","familyName","email","anchor","manager"
 }
