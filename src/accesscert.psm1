@@ -27,13 +27,22 @@ function Get-AccessCertAccount
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true, Position=0)]
-        [string]$Identifier
+        [string]$Identifier,
+        [Parameter(Mandatory=$false)]
+        [switch]$AsLookupTable
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:Accounts = @()
+    if ($AsLookupTable)
+    {
+        $local:Accounts = @{}
+    }
+    else
+    {
+        $local:Accounts = @()
+    }
 
     # Get all Safeguard users from directory identity providers and report them as accounts with anchors
     # For now, we will report Local and Certificate users as identities
@@ -79,7 +88,14 @@ function Get-AccessCertAccount
                 userName = $_.UserName;
                 owner = $local:Owner
             }
-            $local:Accounts += $local:Account
+            if ($AsLookupTable)
+            {
+                $local:Accounts[[int]$_.Id] = $local:Account # add to lookup table
+            }
+            else
+            {
+                $local:Accounts += $local:Account  # add to array
+            }
         }
     }
 
@@ -146,7 +162,7 @@ function Get-AccessCertGroup
             }
             if ($AsLookupTable)
             {
-                $local:Groups[$_.Id] = $local:Group # add to lookup table
+                $local:Groups[[string]$_.Id] = $local:Group # add to lookup table
             }
             else
             {
@@ -584,17 +600,19 @@ function Get-SafeguardAccessCertificationEntitlement
     Test-Permission PolicyAdmin,Auditor
 
     $local:Entitlements = @()
-    $local:Accounts = (Get-AccessCertAccount $Identifier)
-    $local:Groups = (Get-AccessCertGroup $Identifier -AsLookupTable)
+    $local:AccountsTable = (Get-AccessCertAccount $Identifier -AsLookupTable)
+    $local:GroupsTable = (Get-AccessCertGroup $Identifier -AsLookupTable)
 
-    Write-Progress -Activity "Compiling entitlements" -Status "0 of $($local:Accounts.Count)" -PercentComplete 0
+    Write-Progress -Activity "Compiling entitlements" -Status "0 of $($local:AccountsTable.Count)" -PercentComplete 0
 
-    for ($i=0; $i -lt $local:Accounts.Count; $i++)
+    $local:AccountKeys = [string[]]$local:AccountsTable.Keys
+    for ($i=0; $i -lt $local:AccountsTable.Count; $i++)
     {
-        $local:Percent = [int]($i / $local:Accounts.Count * 100)
-        Write-Progress -Activity "Compiling entitlements" -Status "$($i + 1) of $($local:Accounts.Count)" -PercentComplete $local:Percent
+        $local:Percent = [int]($i / $local:AccountsTable.Count * 100)
+        Write-Progress -Activity "Compiling entitlements" -Status "$($i + 1) of $($local:AccountsTable.Count)" -PercentComplete $local:Percent
 
-        $local:Ent = (Invoke-SafeguardMethod Core POST "Reports/Entitlements/UserEntitlement" -Body (,$local:Accounts[$i].id) `
+        [int]$local:AccountKey = $local:AccountKeys[$i]
+        $local:Ent = (Invoke-SafeguardMethod Core POST "Reports/Entitlements/UserEntitlement" -Body (,$local:AccountKey) `
             -Parameters @{
                 fields = "UserEntitlements.User,UserEntitlements.PolicyEntitlements"
             })
@@ -604,15 +622,15 @@ function Get-SafeguardAccessCertificationEntitlement
             $local:Ent.UserEntitlements.PolicyEntitlements | ForEach-Object {
                 if ($_.RoleIdentity)
                 {   # access derived from group membership
-                    $local:GroupIndex = "$($_.RoleIdentity.Id)"
+                    $local:GroupKey = "$($_.RoleIdentity.Id)"
                 }
                 else
                 {   # access derived from entitlement membership
-                    $local:GroupIndex = "e/$($_.Policy.RoleId)"
+                    $local:GroupKey = "e/$($_.Policy.RoleId)"
                 }
 
-                $local:GroupAuthority = $local:Groups[$local:GroupIndex].authority
-                $local:GroupId = $local:Groups[$local:GroupIndex].id
+                $local:GroupAuthority = $local:GroupsTable[$local:GroupKey].authority
+                $local:GroupId = $local:GroupsTable[$local:GroupKey].id
 
                 $local:Resource = "$($_.System.Name)"
                 if ($_.System.Name -ine $_.System.NetworkAddress)
@@ -624,8 +642,8 @@ function Get-SafeguardAccessCertificationEntitlement
                 if ($local:Permission)
                 {
                     $local:Entitlement = New-Object PSObject -Property @{
-                        accountAuthority = $local:Accounts[$i].authority;
-                        accountId = $local:Accounts[$i].id;
+                        accountAuthority = $local:AccountsTable[$local:AccountKey].authority;
+                        accountId = $local:AccountsTable[$local:AccountKey].id;
                         permission = $local:Permission;
                         resource = $local:Resource;
                         groupAuthority = $local:GroupAuthority;
@@ -641,7 +659,7 @@ function Get-SafeguardAccessCertificationEntitlement
         }
     }
 
-    Write-Progress -Activity "Compiling entitlements" -Status "Safeguard user $($local:Accounts.Count) of $($local:Accounts.Count)" `
+    Write-Progress -Activity "Compiling entitlements" -Status "Safeguard user $($local:AccountsTable.Count) of $($local:AccountsTable.Count)" `
         -PercentComplete 100 -Completed
 
     Write-CsvOutput ($PSCmdlet.ParameterSetName -eq "File") (Join-Path $OutputDirectory "$Identifier-entitlements.csv") $local:Entitlements `
