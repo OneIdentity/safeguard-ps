@@ -368,7 +368,7 @@ This utility calls the Safeguard Web API and lists all of the identities from
 the local Safeguard identity provider for which Safeguard is the identity
 authority.
 
-This cmdlet require an active Safeguard session which may be established using
+This cmdlet requires an active Safeguard session which may be established using
 the Connect-Safeguard cmdlet.
 
 .PARAMETER Identifier
@@ -513,7 +513,7 @@ This utility calls the Safeguard Web API and lists all of the groups.  This will
 be a list of all of the memberships that an account could be given that could
 grant access.
 
-This cmdlet require an active Safeguard session which may be established using
+This cmdlet requires an active Safeguard session which may be established using
 the Connect-Safeguard cmdlet.
 
 .PARAMETER Identifier
@@ -572,7 +572,7 @@ rules that are more commonly called access policies in Safeguard.
 This utility calls the Safeguard Web API and processes all access rules into
 entitlements for use with access ceritfication.
 
-This cmdlet require an active Safeguard session which may be established using
+This cmdlet requires an active Safeguard session which may be established using
 the Connect-Safeguard cmdlet.
 
 .PARAMETER Identifier
@@ -693,6 +693,47 @@ function Test-ADModuleAvailable
     }
 }
 
+<#
+.SYNOPSIS
+Get identity comma-separated values (CSV) for access certification
+from Active Directory.
+
+.DESCRIPTION
+This utility calls the Active Directory PowerShell module and lists some or
+all of the identities.
+
+This cmdlet requires a credential to call Active Directory.
+
+.PARAMETER Identifier
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER OutputDirectory
+Output directory to store CSV file (default: current directory)
+
+.PARAMETER StdOut
+Print CSV to the console rather than to a file.
+
+.PARAMETER DomainName
+Active Directory domain to connect to.
+
+.PARAMETER Credential
+PowerShell credential to use when connecting to the domain.
+
+.PARAMETER Groups
+A list of groups to limit the number of users collected from the domain.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file or CSV text.
+
+.EXAMPLE
+Get-ADAccessCertificationIdentity -Domain prod.example.com -Credential (Get-Credential)
+
+.EXAMPLE
+Get-ADAccessCertificationIdentity -Domain prod.example.com -StdOut
+#>
 function Get-ADAccessCertificationIdentity
 {
     [CmdletBinding(DefaultParameterSetName="File")]
