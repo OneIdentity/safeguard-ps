@@ -713,17 +713,13 @@ function Test-SafeguardAsset
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$false,Position=0)]
+        [Parameter(Mandatory=$true,Position=0)]
         [object]$AssetToTest
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if (-not $PSBoundParameters.ContainsKey("AssetToTest"))
-    {
-        $AssetToTest = (Read-Host "AssetToTest")
-    }
     $local:AssetId = Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToTest
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
@@ -772,17 +768,12 @@ function Remove-SafeguardAsset
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$false,Position=0)]
+        [Parameter(Mandatory=$true,Position=0)]
         [object]$AssetToDelete
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    if (-not $PSBoundParameters.ContainsKey("AssetToDelete"))
-    {
-        $AssetToDelete = (Read-Host "AssetToDelete")
-    }
 
     $local:AssetId = Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToDelete
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Assets/$($local:AssetId)"
@@ -1240,7 +1231,9 @@ function New-SafeguardAssetAccount
         [Parameter(Mandatory=$false)]
         [string]$Description,
         [Parameter(Mandatory=$false)]
-        [string]$DomainName
+        [string]$DomainName,
+        [Parameter(Mandatory=$false)]
+        [string]$DistinguishedName
     )
 
     $ErrorActionPreference = "Stop"
@@ -1255,6 +1248,7 @@ function New-SafeguardAssetAccount
 
     if ($PSBoundParameters.ContainsKey("Description")) { $local:Body.Description = $Description }
     if ($PSBoundParameters.ContainsKey("DomainName")) { $local:Body.DomainName = $DomainName }
+    if ($PSBoundParameters.ContainsKey("DistinguishedName")) { $local:Body.DistinguishedName = $DistinguishedName }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts" -Body $local:Body
 }
