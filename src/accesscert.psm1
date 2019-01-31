@@ -844,11 +844,52 @@ function Get-ADAccessCertificationIdentity
         "givenName","familyName","email","anchor","manager"
 }
 
+<#
+.SYNOPSIS
+Update an existing group comma-separated values (CSV) for access certification
+that was extracted from Safeguard to add group owner information.
+
+.DESCRIPTION
+This utility takes a group CSV file and calls the Active Directory PowerShell module 
+to look up groups to see if the managedBy attribute is set and then adds the owner
+to the CSV based on the user specified in that attribute.
+
+This cmdlet requires a credential(s) to call Active Directory.  If multiple domains
+are encountered while iterating over the CSV, then this cmdlet will prompt for additional
+credentials.
+
+.PARAMETER Identifier
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER File
+Group CSV file to process.
+
+.PARAMETER StdOut
+Print updated CSV to the console rather than to a file.
+
+.PARAMETER DomainName
+Active Directory domain to connect to.
+
+.PARAMETER Credential
+PowerShell credential to use when connecting to the domain.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file or CSV text.
+
+.EXAMPLE
+Update-SafeguardAccessCertificationGroupFromAD groups.csv -Domain prod.example.com -Credential (Get-Credential)
+
+.EXAMPLE
+Update-SafeguardAccessCertificationGroupFromAD groups.csv -StdOut
+#>
 function Update-SafeguardAccessCertificationGroupFromAD
 {
     [CmdletBinding(DefaultParameterSetName="File")]
     Param(
-        [Parameter(Mandatory=$false, Position=0)]
+        [Parameter(Mandatory=$true, Position=0)]
         [string]$CsvFile,
         [Parameter(Mandatory=$false, ParameterSetName="StdOut")]
         [switch]$StdOut,
