@@ -73,14 +73,28 @@ function Get-AccessCertAccount
             elseif ($_.IdentityProviderTypeReferenceName -eq "ActiveDirectory")
             {
                 $local:Authority = "ad:$($_.DirectoryProperties.DomainName)"
-                $local:Id = $_.PrimaryAuthenticationIdentity # Object GUID
-                $local:Owner = $_.PrimaryAuthenticationIdentity # Object GUID
+                $local:Id = $_.DirectoryProperties.ObjectSid # could be Object GUID as well
+                if ($_.EmailAddress)
+                {
+                    $local:Owner = $_.EmailAddress
+                }
+                else
+                {
+                    $local:Owner = $null
+                }
             }
             else
             {
                 $local:Authority = "ldap:$($_.DirectoryProperties.DirectoryName)"
                 $local:Id = $_.DirectoryProperties.DistinguishedName # DN
-                $local:Owner = $_.DirectoryProperties.DistinguishedName # DN
+                if ($_.EmailAddress)
+                {
+                    $local:Owner = $_.EmailAddress
+                }
+                else
+                {
+                    $local:Owner = $null
+                }
             }
             $local:Account = New-Object PSObject -Property @{
                 authority = $local:Authority;
@@ -143,7 +157,7 @@ function Get-AccessCertGroup
             elseif ($_.DirectoryProperties.NetbiosName) # if it has net bios info it is AD
             {
                 $local:Authority = "ad:$($_.DirectoryProperties.DomainName)"
-                $local:Id = $_.DirectoryProperties.ObjectGuid
+                $local:Id = $_.DirectoryProperties.ObjectSid
                 $local:Owner = $null
             }
             else
