@@ -121,21 +121,24 @@ function Get-AccessCertGroup
             if (-not ($_.DirectoryProperties.DomainName)) # no directory info means local
             {
                 $local:Authority = "safeguard:$Identifier"
+                $local:Id = $_.Id
                 $local:Owner = $null # TODO: Do we want to try to look up the owner using the created by user ID??
             }
             elseif ($_.DirectoryProperties.NetbiosName) # if it has net bios info it is AD
             {
                 $local:Authority = "ad:$($_.DirectoryProperties.DomainName)"
+                $local:Id = $_.DirectoryProperties.ObjectGuid
                 $local:Owner = $null
             }
             else
             {
                 $local:Authority = "ldap:$($_.DirectoryProperties.DirectoryName)"
+                $local:Id = $_.DirectoryProperties.DistinguishedName
                 $local:Owner = $null
             }
             $local:Group = New-Object PSObject -Property @{
                 authority = $local:Authority;
-                id = $_.Id;
+                id = $local:Id;
                 groupName = $_.Name;
                 displayName = $_.Name;
                 description = $_.Description;
@@ -143,7 +146,7 @@ function Get-AccessCertGroup
             }
             if ($AsLookupTable)
             {
-                $local:Groups["$($local:Group.id)"] = $local:Group # add to lookup table
+                $local:Groups[$_.Id] = $local:Group # add to lookup table
             }
             else
             {
@@ -558,10 +561,10 @@ None.
 A CSV file or CSV text.
 
 .EXAMPLE
-Get-SafeguardAccessCertificationGroup "SG-US-Cluster1"
+Get-SafeguardAccessCertificationEntitlement "SG-US-Cluster1"
 
 .EXAMPLE
-Get-SafeguardAccessCertificationGroup "SG-US-Cluster1" -StdOut
+Get-SafeguardAccessCertificationEntitlement "SG-US-Cluster1" -StdOut
 #>
 function Get-SafeguardAccessCertificationEntitlement
 {
