@@ -1017,7 +1017,7 @@ function Sync-SafeguardDirectoryAsset
     {
         throw "Asset '$($local:DirectoryAsset.Name)' is not a directory asset"
     }
-    Write-Host "Triggered sync for directory: $($local:DirectoryAsset.Name)"
+    Write-Host "Triggering sync for directory: $($local:DirectoryAsset.Name)"
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Assets/$local:AssetPartitionId/Synchronize?assetId=$($local:DirectoryAsset.Id)"
 }
 

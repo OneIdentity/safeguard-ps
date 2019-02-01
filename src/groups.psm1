@@ -32,7 +32,7 @@ function Resolve-SafeguardGroupId
     if (-not ($Group -as [int]))
     {
         $local:Groups = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
-                                                -Parameters @{ filter = "Name ieq '$Group'" })
+                                                -Parameters @{ filter = "Name ieq '$Group'" } -RetryVersion 2 -RetryUrl "$local:RelativeUrl") 
         if (-not $local:Groups)
         {
             throw "Unable to find $($GroupType.ToLower()) group matching '$Group'"
@@ -80,11 +80,11 @@ function Get-SafeguardGroup
     if ($PSBoundParameters.ContainsKey("GroupToGet") -and $GroupToGet)
     {
         $local:GroupId = Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $GroupType $GroupToGet
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$local:RelativeUrl/$($local:GroupId)"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$local:RelativeUrl/$($local:GroupId)" -RetryVersion 2 -RetryUrl "$local:RelativeUrl/$($local:GroupId)"
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl -RetryVersion 2 -RetryUrl "$local:RelativeUrl"
     }
 }
 function New-SafeguardGroup
@@ -121,7 +121,7 @@ function New-SafeguardGroup
     $local:Body = @{ Name = $Name }
     if ($PSBoundParameters.ContainsKey("Description")) { $local:Body.Description = $Description }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST $local:RelativeUrl -Body $local:Body
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST $local:RelativeUrl -Body $local:Body -RetryVersion 2 -RetryUrl "$local:RelativeUrl"
 }
 function Remove-SafeguardGroup
 {
@@ -153,7 +153,7 @@ function Remove-SafeguardGroup
     $local:RelativeUrl = "$($GroupType)Groups"
     $local:GroupId = (Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $GroupType $GroupToDelete)
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "$($local:RelativeUrl)/$($local:GroupId)" -Body $local:Body
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "$($local:RelativeUrl)/$($local:GroupId)" -Body $local:Body -RetryVersion 2 -RetryUrl "$($local:RelativeUrl)/$($local:GroupId)"
 }
 function Edit-SafeguardGroup
 {
@@ -190,7 +190,7 @@ function Edit-SafeguardGroup
     $local:RelativeUrl = "$($GroupType)Groups"
     $local:GroupId = (Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $GroupType $GroupToEdit)
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "$($local:RelativeUrl)/$($local:GroupId)/Members/$Operation" -Body $ObjectToOperate
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "$($local:RelativeUrl)/$($local:GroupId)/Members/$Operation" -Body $ObjectToOperate -RetryVersion 2 -RetryUrl "$($local:RelativeUrl)/$($local:GroupId)/Members/$Operation"
 }
 
 <#
@@ -273,8 +273,8 @@ for LDAP.
 .PARAMETER Description
 A string containing the description for a new group specific to Safeguard.
 
-.PARAMETER Directory
-An integer containing the ID of the directory to get or a string containing the name.
+.PARAMETER DirectoryIdentityProviderId
+An integer containing the ID of the directory identity provider Id to get or a string containing the name.
 
 .PARAMETER DomainName
 A string containing the name of the domain within the directory where necessary.  A directory
@@ -310,14 +310,14 @@ function New-SafeguardUserGroup
         [Parameter(ParameterSetName="Local",Mandatory=$false,Position=1)]
         [string]$Description,
         [Parameter(ParameterSetName="Directory",Mandatory=$true,Position=1)]
-        [object]$Directory,
+        [object]$DirectoryIdentityProviderId,
         [Parameter(ParameterSetName="Directory",Mandatory=$false,Position=2)]
         [string]$DomainName
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-    Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
+    Import-Module -Name "$PSScriptRoot\users.psm1" -Scope Local
 
     $local:Body = @{ Name = $Name }
     if ($PSCmdlet.ParameterSetName -eq "Local")
@@ -326,11 +326,16 @@ function New-SafeguardUserGroup
     }
     else
     {
-        $local:DirectoryId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Directory)
+        $local:DirectoryIdentityProvider = (Get-SafeguardIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Directory)
+
         if (-not $PSBoundParameters.ContainsKey("DomainName"))
         {
-            $local:Domains = (Get-SafeguardDirectoryAssetDomains -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -DirectoryAssetId $DirectoryId)
-            
+            $local:Domains = $local:DirectoryIdentityProvider.DirectoryProperties.Domains
+            if($null -eq $local:Domains)
+            {
+                $local:Domains = $local:DirectoryIdentityProvider.Domains
+            }
+
             if (-not ($local:Domains -is [array]))
             {
                 $DomainName = $local:Domains.DomainName
@@ -345,10 +350,10 @@ function New-SafeguardUserGroup
                 $DomainName = $local:Domains[$local:DomainNameIndex].DomainName
             }
         }
-        $local:Body.DirectoryProperties = @{ DirectoryId = $local:DirectoryId; DomainName = $DomainName }
+        $local:Body.DirectoryProperties = @{ DirectoryId = $local:DirectoryIdentityProvider.Id; DomainName = $DomainName }
     }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST UserGroups -Body $local:Body
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST UserGroups -Body $local:Body -RetryVersion 2 -RetryUrl "UserGroups"
 }
 
 <#
