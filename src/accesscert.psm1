@@ -428,7 +428,7 @@ function Get-SafeguardAccessCertificationIdentity
                 givenName = $_.FirstName;
                 familyName = $_.LastName;
                 email = $_.EmailAddress;
-                anchor = $_.UserName;
+                anchor = $_.EmailAddress;
                 manager = $null # Safeguard doesn't have the concept of organizational hierarchy (manager)
             }
             $local:Identities += $local:Identity
