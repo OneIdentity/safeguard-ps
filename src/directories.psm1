@@ -38,7 +38,7 @@ function Resolve-SafeguardDirectoryId
             Write-Verbose $_
             Write-Verbose "Caught exception with ieq filter, trying with q parameter"
             $local:Directories = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Directories `
-                                      -Parameters @{ q = $Directory } $DirectoryId)
+                                      -Parameters @{ q = $Directory } -Version 2)
         }
         if (-not $local:Directories)
         {
@@ -292,8 +292,8 @@ function New-SafeguardDirectory
         [string]$ServiceAccountName,
         [Parameter(Mandatory=$true,ParameterSetName="Ldap",Position=0)]
         [string]$ServiceAccountDistinguishedName,
-        [Parameter(Mandatory=$true,ParameterSetName="Ad",Position=2)]
-        [Parameter(Mandatory=$true,ParameterSetName="Ldap",Position=1)]
+        [Parameter(Mandatory=$false,ParameterSetName="Ad",Position=2)]
+        [Parameter(Mandatory=$false,ParameterSetName="Ldap",Position=1)]
         [SecureString]$ServiceAccountPassword,
         [Parameter(Mandatory=$true,ParameterSetName="Ldap")]
         [string]$NetworkAddress,
@@ -1003,7 +1003,7 @@ function New-SafeguardDirectoryAccount
         [object]$ParentDirectory,
         [Parameter(Mandatory=$true,Position=1)]
         [string]$NewAccountName,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$false)]
         [string]$DomainName,
         [Parameter(Mandatory=$false)]
         [string]$DistinguishedName,
