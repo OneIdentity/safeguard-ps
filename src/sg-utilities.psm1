@@ -334,8 +334,17 @@ function Resolve-SafeguardSystemId
     }
     catch
     {
-        Write-Verbose "Unable to resolve to asset ID"
-        throw "Cannot determine system ID for '$System'"
+        Write-Verbose "Unable to resolve to asset ID, trying directories"
+        try 
+        {
+            Import-Module -Name "$PSScriptRoot\directories.psm1" -Scope Local
+            Resolve-SafeguardDirectoryId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $System
+        }
+        catch
+        {
+            Write-Verbose "Unable to resolve to directory ID"
+            throw "Cannot determine system ID for '$System'"
+        }
     }
 }
 
@@ -363,8 +372,17 @@ function Resolve-SafeguardAccountIdWithoutSystemId
     }
     catch
     {
-        Write-Verbose "Unable to resolve to asset account ID"
-        throw "Cannot determine account ID for '$Account'"
+        Write-Verbose "Unable to resolve to asset account ID, trying directories"
+        try 
+        {
+            Import-Module -Name "$PSScriptRoot\directories.psm1" -Scope Local
+            Resolve-SafeguardDirectoryAccountId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $Account
+        }
+        catch
+        {
+            Write-Verbose "Unable to resolve to directory account ID"
+            throw "Cannot determine account ID for '$Account'"
+        }
     }
 }
 
@@ -394,8 +412,17 @@ function Resolve-SafeguardAccountIdWithSystemId
     }
     catch
     {
-        Write-Verbose "Unable to resolve to asset account ID"
-        throw "Cannot determine system ID for '$System'"
+        Write-Verbose "Unable to resolve to asset account ID, trying directories"
+        try 
+        {
+            Import-Module -Name "$PSScriptRoot\directories.psm1" -Scope Local
+            Resolve-SafeguardDirectoryAccountId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -DirectoryId $SystemId $Account
+        }
+        catch
+        {
+            Write-Verbose "Unable to resolve to directory account ID"
+            throw "Cannot determine system ID for '$System'"
+        }
     }
 }
 

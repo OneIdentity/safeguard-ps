@@ -279,7 +279,7 @@ function Find-SafeguardPlatform
         try
         {
             $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
-                                    -Parameters @{ filter = "DisplayName icontains '$SearchString' or Name icontains '$SearchString'" })
+                                    -Parameters @{ filter = "DisplayName icontains '$SearchString' or Name icontains '$SearchString'" } -RetryVersion 2 -RetryUrl "Platforms")
         }
         catch
         {
@@ -290,14 +290,14 @@ function Find-SafeguardPlatform
         {
             Write-Verbose "No results yet, trying with q parameter"
             $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
-                                    -Parameters @{ q = $SearchString })
+                                    -Parameters @{ q = $SearchString } -RetryVersion 2 -RetryUrl "Platforms")
         }
         $local:Platforms
     }
     else
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
-            -Parameters @{ filter = $QueryFilter }
+            -Parameters @{ filter = $QueryFilter } -RetryVersion 2 -RetryUrl "Platforms"
     }
 }
 
