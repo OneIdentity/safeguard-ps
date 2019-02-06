@@ -71,36 +71,37 @@ function Show-RstsWindow
         public class RstsWindow {
             private const string ClientId = "00000000-0000-0000-0000-000000000000";
             private const string RedirectUri = "urn%3AInstalledApplication";
-            private readonly string _url;
             private readonly string _appliance;
-            public RstsWindow(string appliance, string primaryProviderId = "", string secondaryProviderId = "") {
+            private System.Windows.Forms.Form _form;
+            private WebBrowser _browser;
+            public RstsWindow(string appliance) {
                 _appliance = appliance;
-                if (!string.IsNullOrEmpty(primaryProviderId) && !string.IsNullOrEmpty(secondaryProviderId))
-                    _url = string.Format("https://{0}/RSTS/Login?response_type=code&client_id={1}&redirect_uri={2}&primaryproviderid={3}&secondaryproviderid={4}", 
-                    _appliance, ClientId, RedirectUri, HttpUtility.UrlEncode(primaryProviderId), HttpUtility.UrlEncode(secondaryProviderId));
-                else
-                    _url = string.Format("https://{0}/RSTS/Login?response_type=code&client_id={1}&redirect_uri={2}", _appliance, ClientId, RedirectUri);
+                _form = new Form() { Text = string.Format("{0} - Safeguard Login", _appliance),
+                                     Width = 640, Height = 720, StartPosition = FormStartPosition.CenterParent };
+                _browser = new WebBrowser() { Dock = DockStyle.Fill, AllowNavigation = true };
+                _form.Controls.Add(_browser);
+                _browser.DocumentTitleChanged += (sender, args) => {
+                    var b = (WebBrowser)sender;
+                    if (Regex.IsMatch(b.DocumentTitle, "error=[^&]*|code=[^&]*")) {
+                        AuthorizationCode = b.DocumentTitle.Substring(5);
+                        _form.DialogResult = DialogResult.OK;
+                        _form.Hide(); }
+                };
             }
             public string AuthorizationCode { get; set; }
-            public bool Show() {
+            public bool Show(string primaryProviderId = "", string secondaryProviderId = "") {
                 try {
-                    using (var form = new System.Windows.Forms.Form() { Text = string.Format("{0} - Safeguard Login", _appliance),
-                                                                        Width = 640, Height = 720, StartPosition = FormStartPosition.CenterParent }) {
-                        using (var browser = new WebBrowser() { Dock = DockStyle.Fill, Url = new Uri(_url) }) {
-                            form.Controls.Add(browser);
-                            browser.ScriptErrorsSuppressed = true;
-                            browser.DocumentTitleChanged += (sender, args) => {
-                                var b = (WebBrowser)sender;
-                                if (Regex.IsMatch(b.DocumentTitle, "error=[^&]*|code=[^&]*")) {
-                                    AuthorizationCode = b.DocumentTitle.Substring(5);
-                                    form.DialogResult = DialogResult.OK;
-                                    form.Close(); } };
-                            if (form.ShowDialog() == DialogResult.OK) { return true; }
-                        }
-                        return false;
-                    }
-                }
-                catch (Exception e) {
+                    string url;
+                    if (!string.IsNullOrEmpty(primaryProviderId) && !string.IsNullOrEmpty(secondaryProviderId))
+                        url = string.Format("https://{0}/RSTS/Login?response_type=code&client_id={1}&redirect_uri={2}&primaryproviderid={3}&secondaryproviderid={4}",
+                            _appliance, ClientId, RedirectUri, HttpUtility.UrlEncode(primaryProviderId), HttpUtility.UrlEncode(secondaryProviderId));
+                    else
+                        url = string.Format("https://{0}/RSTS/Login?response_type=code&client_id={1}&redirect_uri={2}", _appliance, ClientId, RedirectUri);
+                    _browser.Stop();
+                    _browser.Navigate(url);
+                    if (_form.ShowDialog() == DialogResult.OK) { return true; }
+                    return false;
+                } catch (Exception e) {
                     var color = Console.ForegroundColor; Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine(e); Console.ForegroundColor = color;
                     return false;
@@ -110,8 +111,11 @@ function Show-RstsWindow
 "@ -ReferencedAssemblies System.Windows.Forms,System.Web
     }
 
-    $local:Browser = New-Object -TypeName RstsWindow -ArgumentList $Appliance,$PrimaryProviderId,$SecondaryProviderId
-    if (!$local:Browser.Show())
+    if (-not $global:Browser)
+    {
+        $local:Browser = New-Object -TypeName RstsWindow -ArgumentList $Appliance
+    }
+    if (!$local:Browser.Show($PrimaryProviderId, $SecondaryProviderId))
     {
         throw "Unable to correctly manipulate browser"
     }
