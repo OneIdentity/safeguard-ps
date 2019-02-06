@@ -50,7 +50,11 @@ function Show-RstsWindow
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
-        [string]$Appliance
+        [string]$Appliance,
+        [Parameter(Mandatory=$false,Position=1)]
+        [string]$PrimaryProviderId = "",
+        [Parameter(Mandatory=$false,Position=2)]
+        [string]$SecondaryProviderId = ""
     )
 
     $ErrorActionPreference = "Stop"
@@ -60,49 +64,58 @@ function Show-RstsWindow
     {
         Write-Verbose "Adding the PSType for rSTS Web form interaction"
         Add-Type -TypeDefinition  @"
-using System;
-using System.Text.RegularExpressions;
-using System.Windows.Forms;
-public class RstsWindow {
-    private const string ClientId = "00000000-0000-0000-0000-000000000000";
-    private const string RedirectUri = "urn%3AInstalledApplication";
-    private readonly string _url;
-    private readonly string _appliance;
-    public RstsWindow(string appliance) {
-        _appliance = appliance;
-        _url = string.Format("https://{0}/RSTS/Login?response_type=code&client_id={1}&redirect_uri={2}", _appliance, ClientId, RedirectUri);
-    }
-    public string AuthorizationCode { get; set; }
-    public bool Show() {
-        try {
-            using (var form = new System.Windows.Forms.Form() { Text = string.Format("{0} - Safeguard Login", _appliance),
-                                                                Width = 640, Height = 720, StartPosition = FormStartPosition.CenterParent }) {
-                using (var browser = new WebBrowser() { Dock = DockStyle.Fill, Url = new Uri(_url) }) {
-                    form.Controls.Add(browser);
-                    browser.ScriptErrorsSuppressed = true;
-                    browser.DocumentTitleChanged += (sender, args) => {
-                        var b = (WebBrowser)sender;
-                        if (Regex.IsMatch(b.DocumentTitle, "error=[^&]*|code=[^&]*")) {
-                            AuthorizationCode = b.DocumentTitle.Substring(5);
-                            form.DialogResult = DialogResult.OK;
-                            form.Close(); } };
-                    if (form.ShowDialog() == DialogResult.OK) { return true; }
+        using System;
+        using System.Text.RegularExpressions;
+        using System.Web;
+        using System.Windows.Forms;
+        public class RstsWindow {
+            private const string ClientId = "00000000-0000-0000-0000-000000000000";
+            private const string RedirectUri = "urn%3AInstalledApplication";
+            private readonly string _appliance;
+            private System.Windows.Forms.Form _form;
+            private WebBrowser _browser;
+            public RstsWindow(string appliance) {
+                _appliance = appliance;
+                _form = new Form() { Text = string.Format("{0} - Safeguard Login", _appliance),
+                                     Width = 640, Height = 720, StartPosition = FormStartPosition.CenterParent };
+                _browser = new WebBrowser() { Dock = DockStyle.Fill, AllowNavigation = true };
+                _form.Controls.Add(_browser);
+                _browser.DocumentTitleChanged += (sender, args) => {
+                    var b = (WebBrowser)sender;
+                    if (Regex.IsMatch(b.DocumentTitle, "error=[^&]*|code=[^&]*")) {
+                        AuthorizationCode = b.DocumentTitle.Substring(5);
+                        _form.DialogResult = DialogResult.OK;
+                        _form.Hide(); }
+                };
+            }
+            public string AuthorizationCode { get; set; }
+            public bool Show(string primaryProviderId = "", string secondaryProviderId = "") {
+                try {
+                    string url;
+                    if (!string.IsNullOrEmpty(primaryProviderId) && !string.IsNullOrEmpty(secondaryProviderId))
+                        url = string.Format("https://{0}/RSTS/Login?response_type=code&client_id={1}&redirect_uri={2}&primaryproviderid={3}&secondaryproviderid={4}",
+                            _appliance, ClientId, RedirectUri, HttpUtility.UrlEncode(primaryProviderId), HttpUtility.UrlEncode(secondaryProviderId));
+                    else
+                        url = string.Format("https://{0}/RSTS/Login?response_type=code&client_id={1}&redirect_uri={2}", _appliance, ClientId, RedirectUri);
+                    _browser.Stop();
+                    _browser.Navigate(url);
+                    if (_form.ShowDialog() == DialogResult.OK) { return true; }
+                    return false;
+                } catch (Exception e) {
+                    var color = Console.ForegroundColor; Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine(e); Console.ForegroundColor = color;
+                    return false;
                 }
-                return false;
             }
         }
-        catch (Exception e) {
-            var color = Console.ForegroundColor; Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine(e); Console.ForegroundColor = color;
-            return false;
-        }
-    }
-}
-"@ -ReferencedAssemblies System.Windows.Forms
+"@ -ReferencedAssemblies System.Windows.Forms,System.Web
     }
 
-    $local:Browser = New-Object -TypeName RstsWindow -ArgumentList $Appliance
-    if (!$local:Browser.Show())
+    if (-not $global:Browser)
+    {
+        $local:Browser = New-Object -TypeName RstsWindow -ArgumentList $Appliance
+    }
+    if (!$local:Browser.Show($PrimaryProviderId, $SecondaryProviderId))
     {
         throw "Unable to correctly manipulate browser"
     }
@@ -114,7 +127,11 @@ function Get-RstsTokenFromGui
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
-        [string]$Appliance
+        [string]$Appliance,
+        [Parameter(Mandatory=$false,Position=1)]
+        [string]$PrimaryProviderId = "",
+        [Parameter(Mandatory=$false,Position=2)]
+        [string]$SecondaryProviderId = ""
     )
 
     $ErrorActionPreference = "Stop"
@@ -125,7 +142,7 @@ function Get-RstsTokenFromGui
         throw "This -Gui parameter is not supported in PowerShell Core"
     }
 
-    Show-RstsWindow $Appliance
+    Show-RstsWindow $Appliance $PrimaryProviderId $SecondaryProviderId
     $local:Code = $global:AuthorizationCode
     Remove-Variable -Name AuthorizationCode -Scope Global -Force -ErrorAction "SilentlyContinue"
     if (-not $local:Code)
@@ -715,6 +732,19 @@ function Connect-Safeguard
     "StsAccessToken": "$($local:RstsResponse.access_token)"
 }
 "@)
+        if ($local:LoginResponse.Status -eq "Needs2FA" -and $Gui)
+        {
+            $local:RstsResponse = (Get-RstsTokenFromGui $Appliance $local:LoginResponse.PrimaryProviderId $local:LoginResponse.SecondaryProviderId)
+            Write-Verbose "Re-calling Safeguard LoginResponse service..."
+            $local:LoginResponse = (Invoke-RestMethod -Method POST -Headers @{
+                "Accept" = "application/json";
+                "Content-type" = "application/json"
+            } -Uri "https://$Appliance/service/core/v$Version/Token/LoginResponse" -Body @"
+{
+    "StsAccessToken": "$($local:RstsResponse.access_token)"
+}
+"@)
+        }
 
         if ($local:LoginResponse.Status -ine "Success")
         {
