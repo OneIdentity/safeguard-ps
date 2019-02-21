@@ -800,7 +800,7 @@ function Add-SafeguardUserLinkedAccount
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:PolicyAccount = (Get-SafeguardPolicyAccount $DirectoryToAdd $AccountToAdd)
+    $local:PolicyAccount = (Get-SafeguardPolicyAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToAdd $AccountToAdd)
     if (-not $local:PolicyAccount)
     {
         throw "Unable to locate specified policy account"
@@ -870,7 +870,7 @@ function Remove-SafeguardUserLinkedAccount
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:PolicyAccount = (Get-SafeguardPolicyAccount $DirectoryToRemove $AccountToRemove)
+    $local:PolicyAccount = (Get-SafeguardPolicyAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToRemove $AccountToRemove)
     if (-not $local:PolicyAccount)
     {
         throw "Unable to locate specified policy account"

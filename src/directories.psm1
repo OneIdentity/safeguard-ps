@@ -736,7 +736,7 @@ function Get-SafeguardDirectoryAccount
     if ($PSBoundParameters.ContainsKey("DirectoryToGet"))
     {
         $local:DirectoryId = (Resolve-SafeguardDirectoryId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToGet)
-        if ($PSBoundParameters.ContainsKey("DirectoryToGet"))
+        if ($PSBoundParameters.ContainsKey("$AccountToGet"))
         {
             $local:AccountId = (Resolve-SafeguardDirectoryAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -DirectoryId $local:DirectoryId $AccountToGet)
             Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "DirectoryAccounts/$($local:AccountId)"

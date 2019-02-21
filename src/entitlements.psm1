@@ -160,6 +160,62 @@ function New-SafeguardEntitlement
 
 <#
 .SYNOPSIS
+Remove entitlements in Safeguard via the Web API.
+
+.DESCRIPTION
+Entitlement is a set of access request policies that restrict system access to authorized users
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER EntitlementToDelete
+An integer containing the ID or a string containing the name of the entitlement to delete.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardEntitlement -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Remove-SafeguardEntitlement testEntitlement
+
+.EXAMPLE
+Remove-SafeguardEntitlement 123
+#>
+function Remove-SafeguardEntitlement
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$EntitlementToDelete
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:EntitlementId = Resolve-SafeguardEntitlementId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $EntitlementToDelete
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Roles/$($local:EntitlementId)"
+
+}
+
+<#
+.SYNOPSIS
 Generates user entitlement report for a set of users in Safeguard via the Web API.
 
 .DESCRIPTION
