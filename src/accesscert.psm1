@@ -647,9 +647,13 @@ function Get-SafeguardAccessCertificationEntitlement
                 $local:GroupId = $local:GroupsTable[$local:GroupKey].id
 
                 $local:Resource = "$($_.System.Name)"
-                if ($_.System.Name -ine $_.System.NetworkAddress)
+                if ($_.System.Name -ine $_.System.NetworkAddress -and $_.System.NetworkAddress)
                 {   # add in the network address if it provides additional asset identification info
                     $local:Resource += " [$($_.System.NetworkAddress)]"
+                }
+                elseif ($_.System.Name -ine $_.Account.DomainName -and $_.Account.DomainName)
+                {   # add in the network address if it provides additional asset identification info
+                    $local:Resource += " [$($_.Account.DomainName)]"
                 }
 
                 $local:Permission = (Get-PermissionText $_)
