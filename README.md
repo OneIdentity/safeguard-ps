@@ -389,6 +389,7 @@ safeguard-ps can do run:
 - Get-SafeguardAccessPolicySessionProperty
 - Get-SafeguardEntitlement
 - New-SafeguardEntitlement
+- Remove-SafeguardEntitlement
 - Get-SafeguardUserEntitlementReport
 - Get-SafeguardUserLinkedAccount
 - Add-SafeguardUserLinkedAccount
