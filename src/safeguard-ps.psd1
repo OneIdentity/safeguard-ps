@@ -102,6 +102,8 @@ FunctionsToExport = @(
     'Connect-Safeguard','Disconnect-Safeguard','Invoke-SafeguardMethod',
     'Get-SafeguardAccessTokenStatus','Update-SafeguardAccessToken',
     'Get-SafeguardLoggedInUser',
+    # csv utility (also in safeguard-ps.psm1)
+    'Open-CsvInExcel',
     # datatypes.psm1
     'Get-SafeguardIdentityProviderType','Get-SafeguardPlatform','Find-SafeguardPlatform',
     'Get-SafeguardTimeZone','Get-SafeguardTransferProtocol',
@@ -202,7 +204,7 @@ FunctionsToExport = @(
     'Get-SafeguardAccessCertificationIdentity','Get-SafeguardAccessCertificationAccount','Get-SafeguardAccessCertificationGroup',
     'Get-SafeguardAccessCertificationEntitlement','Get-ADAccessCertificationIdentity','Update-SafeguardAccessCertificationGroupFromAD',
     # managementShell.psm1
-    'Get-SafeguardCommand', 'Get-SafeguardBanner'
+    'Get-SafeguardCommand', 'Get-SafeguardBanner',
     # entitlements.psm1
     'New-SafeguardEntitlement','Get-SafeguardEntitlement','Remove-SafeguardEntitlement','Get-SafeguardUserEntitlementReport'
     )

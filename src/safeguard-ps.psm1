@@ -1019,10 +1019,10 @@ you must specify this anyway (even if it is the same value) along with RetryVers
 Version of the Web API to retry if the initial call returns 404 (for backwards compatibility).
 
 .PARAMETER Accept
-Specify the Accept header (default: application/json)
+Specify the Accept header (default: application/json), Use text/csv to request CSV output.
 
 .PARAMETER ContentType
-Specify the Content-type header (default: application/json)
+Specify the Content-type header (default: application/json).
 
 .PARAMETER AccessToken
 A string containing the bearer token to be used with Safeguard Web API.
@@ -1057,6 +1057,9 @@ JSON response from Safeguard Web API.
 
 .EXAMPLE
 Invoke-SafeguardMethod -AccessToken $token -Appliance 10.5.32.54 Core GET Assets/16/Accounts
+
+.EXAMPLE
+Invoke-SafeguardMethod Core GET Users -Accept "text/csv" -OutFile sg-users.csv
 
 .EXAMPLE
 Invoke-SafeguardMethod -Appliance 10.5.32.54 -Anonymous notification GET SystemVerification/Manufacturing
@@ -1443,4 +1446,75 @@ function Get-SafeguardLoggedInUser
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Me
+}
+
+<#
+.SYNOPSIS
+Simple utility for opening CSV files in Excel from the command line.
+
+.DESCRIPTION
+Sometimes a CSV file will not open properly in Microsoft Excel, because Excel doesn't
+properly identify the delimiters and attributes of the plain text file.  This cmdlet
+tells Excel how to interpret the file so that it is properly loaded as a spreadsheet.
+
+This cmdlet can be used in conjunction with Invoke-SafeguardMethod.  Passing the
+-Accept "text/csv" parameter to Invoke-SafeguardMethod will cause it to request CSV
+rather than JSON from the API.  This CSV can be saved to a file using the -OutFile
+parameter.
+
+.PARAMETER FilePath
+IP address or hostname of a Safeguard appliance.
+
+.INPUTS
+None.
+
+.OUTPUTS
+None.
+
+.EXAMPLE
+Open-CsvInExcel .\test.csv
+
+.EXAMPLE
+Open-CsvInExcel C:\Temp\my-sg-users.csv
+#>
+function Open-CsvInExcel
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true)]
+        [string]$FilePath
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not $global:SgExcel)
+    {
+        if (-not ([AppDomain]::CurrentDomain.GetAssemblies() | Where-Object { $_ -match "Microsoft.Office.Interop.Excel" }))
+        {
+            try
+            {
+                Add-Type -AssemblyName Microsoft.Office.Interop.Excel
+            }
+            catch
+            {
+                throw "Unable to load Microsoft Excel interop, is Excel installed?"
+            }
+            $global:SgExcel = (New-Object -ComObject Excel.Application)
+        }
+    }
+
+    $local:FullPath = (Resolve-Path $FilePath)
+
+    $global:SgExcel.Workbooks.OpenText(
+        $local:FullPath,
+        [Microsoft.Office.Interop.Excel.XlPlatform]::xlWindows,
+        1, # start from row 1
+        [Microsoft.Office.Interop.Excel.XlTextParsingType]::xlDelimited,
+        [Microsoft.Office.Interop.Excel.XlTextQualifier]::xlTextQualifierDoubleQuote,
+        $false, # consecutive delimiters not merged
+        $false, # no tab delimiter
+        $false, # no semicolon delimiter
+        $true) # yes, comma delimiter
+    $global:SgExcel.Visible = $true
 }
