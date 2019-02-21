@@ -604,7 +604,7 @@ Do not prompt for confirmation.
 Specify this flag to continue immediately without waiting for the patch to install to the connected appliance.
 
 .PARAMETER Timeout
-A timeout value in seconds, only used if waiting (default: 15 minutes or 900 seconds).
+A timeout value in seconds, only used if waiting (default: 30 minutes or 1800 seconds).
 
 .INPUTS
 None.
@@ -635,7 +635,7 @@ function Invoke-SafeguardApplianceReboot
         [Parameter(Mandatory=$false)]
         [switch]$NoWait = $false,
         [Parameter(Mandatory=$false)]
-        [int]$Timeout = 900
+        [int]$Timeout = 1800
     )
 
     $ErrorActionPreference = "Stop"
@@ -853,11 +853,11 @@ function Get-SafeguardSupportBundle
     }
 
     # Handle options and timeout
-    $DefaultTimeout = 600
+    $DefaultTimeout = 1200
     $Url = "https://$Appliance/service/appliance/v$Version/SupportBundle"
     if ($IncludeExtendedEventLog)
     {
-        $DefaultTimeout = 900
+        $DefaultTimeout = 1800
         $Url += "?includeEventLogs=true"
     }
     else
@@ -866,7 +866,7 @@ function Get-SafeguardSupportBundle
     }
     if ($IncludeExtendedSessionsLog)
     {
-        $DefaultTimeout = 1800
+        $DefaultTimeout = 3600
         $Url += "&IncludeSessions=true"
     }
     else
@@ -1043,7 +1043,7 @@ Version of the Web API you are using (default: 2).
 A string containing the path to a patch file.
 
 .PARAMETER Timeout
-A timeout value in seconds for uploading; also used to wait for installation (default: 1800s or 30m)
+A timeout value in seconds for uploading; also used to wait for installation (default: 5400s or 90m)
 
 .PARAMETER UseStagedPatch
 Use the currently staged patch rather than uploading a new one.
@@ -1078,7 +1078,7 @@ function Install-SafeguardPatch
         [Parameter(ParameterSetName="NewPatch",Mandatory=$true,Position=0)]
         [string]$Patch,
         [Parameter(ParameterSetName="NewPatch",Mandatory=$false)]
-        [int]$Timeout = 1800,
+        [int]$Timeout = 5400,
         [Parameter(ParameterSetName="UseExisting",Mandatory=$false)]
         [switch]$UseStagedPatch = $false,
         [Parameter(Mandatory=$false)]
@@ -1361,7 +1361,7 @@ A string containing a backup ID, which is a GUID.
 A string containing the path to store the backup (default: SG-<id>-backup-<backup date>.sgb)
 
 .PARAMETER Timeout
-A timeout value in seconds for uploading (default: 600s or 10m)
+A timeout value in seconds for uploading (default: 1200s or 20m)
 
 .INPUTS
 None.
@@ -1389,7 +1389,7 @@ function Export-SafeguardBackup
         [Parameter(Mandatory=$false,Position=1)]
         [string]$OutFile,
         [Parameter(Mandatory=$false)]
-        [int]$Timeout = 600
+        [int]$Timeout = 1200
     )
 
     $ErrorActionPreference = "Stop"
@@ -1495,7 +1495,7 @@ Version of the Web API you are using (default: 2).
 A string containing the path to a backup file.
 
 .PARAMETER Timeout
-A timeout value in seconds for uploading (default: 600s or 10m)
+A timeout value in seconds for uploading (default: 1200s or 20m)
 
 .INPUTS
 None.
@@ -1521,7 +1521,7 @@ function Import-SafeguardBackup
         [Parameter(Mandatory=$true,Position=0)]
         [string]$BackupFile,
         [Parameter(Mandatory=$false)]
-        [int]$Timeout = 600
+        [int]$Timeout = 1200
     )
 
     $ErrorActionPreference = "Stop"
@@ -1618,7 +1618,7 @@ A string containing a backup ID, which is a GUID.
 Specify this flag to continue immediately without waiting for the restore to complete.
 
 .PARAMETER Timeout
-A timeout value in seconds for restore (default: 1800s or 30m)
+A timeout value in seconds for restore (default: 3600s or 60m)
 
 .INPUTS
 None.
@@ -1647,7 +1647,7 @@ function Restore-SafeguardBackup
         [Parameter(Mandatory=$false)]
         [switch]$NoWait,
         [Parameter(ParameterSetName="NewPatch",Mandatory=$false)]
-        [int]$Timeout = 1800
+        [int]$Timeout = 3600
     )
 
     $ErrorActionPreference = "Stop"
