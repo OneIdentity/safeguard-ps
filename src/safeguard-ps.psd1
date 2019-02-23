@@ -91,7 +91,8 @@ NestedModules = @(
     'a2acallers.psm1',
     'starling.psm1',
     'entitlements.psm1',
-    'accesscert.psm1'
+    'accesscert.psm1',
+    'reports.psm1'
     )
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
@@ -102,6 +103,8 @@ FunctionsToExport = @(
     'Connect-Safeguard','Disconnect-Safeguard','Invoke-SafeguardMethod',
     'Get-SafeguardAccessTokenStatus','Update-SafeguardAccessToken',
     'Get-SafeguardLoggedInUser',
+    # csv utility (also in safeguard-ps.psm1)
+    'Open-CsvInExcel',
     # datatypes.psm1
     'Get-SafeguardIdentityProviderType','Get-SafeguardPlatform','Find-SafeguardPlatform',
     'Get-SafeguardTimeZone','Get-SafeguardTransferProtocol',
@@ -202,9 +205,13 @@ FunctionsToExport = @(
     'Get-SafeguardAccessCertificationIdentity','Get-SafeguardAccessCertificationAccount','Get-SafeguardAccessCertificationGroup',
     'Get-SafeguardAccessCertificationEntitlement','Get-ADAccessCertificationIdentity','Update-SafeguardAccessCertificationGroupFromAD',
     # managementShell.psm1
-    'Get-SafeguardCommand', 'Get-SafeguardBanner'
+    'Get-SafeguardCommand', 'Get-SafeguardBanner',
     # entitlements.psm1
-    'New-SafeguardEntitlement','Get-SafeguardEntitlement','Remove-SafeguardEntitlement','Get-SafeguardUserEntitlementReport'
+    'New-SafeguardEntitlement','Get-SafeguardEntitlement','Remove-SafeguardEntitlement','Get-SafeguardUserEntitlementReport',
+    # reports.psm1
+    'Get-SafeguardReportAccountWithoutPassword','Get-SafeguardReportDailyAccessRequest',
+    'Get-SafeguardReportDailyPasswordCheckFail','Get-SafeguardReportDailyPasswordCheckSuccess',
+    'Get-SafeguardReportDailyPasswordChangeFail','Get-SafeguardReportDailyPasswordChangeSuccess'
     )
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
