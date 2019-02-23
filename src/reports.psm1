@@ -87,7 +87,7 @@ function Invoke-AuditLogMethod
 Get CSV report of accounts without passwords.
 
 .DESCRIPTION
-This cmdlet will generate CSV for every account that has been added to Safeguard
+This cmdlet will generate CSV containing every account that has been added to Safeguard
 that does not have a password stored in Safeguard.
 
 This cmdlet will generate and save a CSV file by default.  This file can be opened
@@ -155,6 +155,55 @@ function Get-SafeguardReportAccountWithoutPassword
     Out-FileAndExcel -OutFile $local:OutFile -Excel:$Excel
 }
 
+<#
+.SYNOPSIS
+Get CSV report of access requests for a given date (24 hour period).
+
+.DESCRIPTION
+This cmdlet will generate CSV containing every instance of access requests that either
+released a password or initialized a session during a 24 hour period.  Dates in Safeguard
+are UTC, but this cmdlet will use the local time for the 24 hour period.
+
+This cmdlet will generate and save a CSV file by default.  This file can be opened
+in Excel automatically using the -Excel parameter or the Open-CsvInExcel cmdlet.
+You may alternatively send the CSV output to standard out.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER OutputDirectory
+String containing the directory where to create the CSV file.
+
+.PARAMETER Excel
+Automatically open the CSV file into excel after it is generation.
+
+.PARAMETER StdOut
+Send CSV to standard out instead of generating a file.
+
+.PARAMETER LocalDate
+The date for which to run the report (Default is today).  Ex. "2019-02-14".
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file or CSV text.
+
+.EXAMPLE
+Get-SafeguardReportDailyAccessRequest -StdOut
+
+.EXAMPLE
+Get-SafeguardReportDailyAccessRequest -OutputDirectory "C:\reports\" -Excel
+
+.EXAMPLE
+Get-SafeguardReportDailyAccessRequest -LocalDate "2019-02-22" -Excel
+#>
 function Get-SafeguardReportDailyAccessRequest
 {
     [CmdletBinding(DefaultParameterSetName="File")]
