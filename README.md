@@ -449,3 +449,12 @@ safeguard-ps can do run:
 - Get-SafeguardStarlingJoinUrl
 - Get-SafeguardStarlingSetting
 - Set-SafeguardStarlingSetting
+
+### Reports
+
+- Get-SafeguardReportAccountWithoutPassword
+- Get-SafeguardReportDailyAccessRequest
+- Get-SafeguardReportDailyPasswordChangeFail
+- Get-SafeguardReportDailyPasswordChangeSuccess
+- Get-SafeguardReportDailyPasswordCheckFail
+- Get-SafeguardReportDailyPasswordCheckSuccess
