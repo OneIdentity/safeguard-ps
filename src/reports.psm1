@@ -237,6 +237,55 @@ function Get-SafeguardReportDailyAccessRequest
         -OutFile $local:OutFile -Excel:$Excel
 }
 
+<#
+.SYNOPSIS
+Get CSV report of password check failures for a given date (24 hour period).
+
+.DESCRIPTION
+This cmdlet will generate CSV containing every instance of password check
+failures for a 24 hour period.  Dates in Safeguard are UTC, but this cmdlet
+will use the local time for the 24 hour period.
+
+This cmdlet will generate and save a CSV file by default.  This file can be opened
+in Excel automatically using the -Excel parameter or the Open-CsvInExcel cmdlet.
+You may alternatively send the CSV output to standard out.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER OutputDirectory
+String containing the directory where to create the CSV file.
+
+.PARAMETER Excel
+Automatically open the CSV file into excel after it is generation.
+
+.PARAMETER StdOut
+Send CSV to standard out instead of generating a file.
+
+.PARAMETER LocalDate
+The date for which to run the report (Default is today).  Ex. "2019-02-14".
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file or CSV text.
+
+.EXAMPLE
+Get-SafeguardReportDailyPasswordCheckFail -StdOut
+
+.EXAMPLE
+Get-SafeguardReportDailyPasswordCheckFail -OutputDirectory "C:\reports\" -Excel
+
+.EXAMPLE
+Get-SafeguardReportDailyPasswordCheckFail -LocalDate "2019-02-22" -Excel
+#>
 function Get-SafeguardReportDailyPasswordCheckFail
 {
     [CmdletBinding(DefaultParameterSetName="File")]
@@ -270,6 +319,55 @@ function Get-SafeguardReportDailyPasswordCheckFail
         -OutFile $local:OutFile -Excel:$Excel
 }
 
+<#
+.SYNOPSIS
+Get CSV report of successful password checks for a given date (24 hour period).
+
+.DESCRIPTION
+This cmdlet will generate CSV containing every instance of password checks that
+succeeded for a 24 hour period.  Dates in Safeguard are UTC, but this cmdlet
+will use the local time for the 24 hour period.
+
+This cmdlet will generate and save a CSV file by default.  This file can be opened
+in Excel automatically using the -Excel parameter or the Open-CsvInExcel cmdlet.
+You may alternatively send the CSV output to standard out.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER OutputDirectory
+String containing the directory where to create the CSV file.
+
+.PARAMETER Excel
+Automatically open the CSV file into excel after it is generation.
+
+.PARAMETER StdOut
+Send CSV to standard out instead of generating a file.
+
+.PARAMETER LocalDate
+The date for which to run the report (Default is today).  Ex. "2019-02-14".
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file or CSV text.
+
+.EXAMPLE
+Get-SafeguardReportDailyPasswordCheckSuccess -StdOut
+
+.EXAMPLE
+Get-SafeguardReportDailyPasswordCheckSuccess -OutputDirectory "C:\reports\" -Excel
+
+.EXAMPLE
+Get-SafeguardReportDailyPasswordCheckSuccess -LocalDate "2019-02-22" -Excel
+#>
 function Get-SafeguardReportDailyPasswordCheckSuccess
 {
     [CmdletBinding(DefaultParameterSetName="File")]
@@ -303,6 +401,55 @@ function Get-SafeguardReportDailyPasswordCheckSuccess
         -OutFile $local:OutFile -Excel:$Excel
 }
 
+<#
+.SYNOPSIS
+Get CSV report of password change failures for a given date (24 hour period).
+
+.DESCRIPTION
+This cmdlet will generate CSV containing every instance of password changes that
+failed for a 24 hour period.  Dates in Safeguard are UTC, but this cmdlet
+will use the local time for the 24 hour period.
+
+This cmdlet will generate and save a CSV file by default.  This file can be opened
+in Excel automatically using the -Excel parameter or the Open-CsvInExcel cmdlet.
+You may alternatively send the CSV output to standard out.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER OutputDirectory
+String containing the directory where to create the CSV file.
+
+.PARAMETER Excel
+Automatically open the CSV file into excel after it is generation.
+
+.PARAMETER StdOut
+Send CSV to standard out instead of generating a file.
+
+.PARAMETER LocalDate
+The date for which to run the report (Default is today).  Ex. "2019-02-14".
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file or CSV text.
+
+.EXAMPLE
+Get-SafeguardReportDailyPasswordChangeFail -StdOut
+
+.EXAMPLE
+Get-SafeguardReportDailyPasswordChangeFail -OutputDirectory "C:\reports\" -Excel
+
+.EXAMPLE
+Get-SafeguardReportDailyPasswordChangeFail -LocalDate "2019-02-22" -Excel
+#>
 function Get-SafeguardReportDailyPasswordChangeFail
 {
     [CmdletBinding(DefaultParameterSetName="File")]
@@ -336,6 +483,55 @@ function Get-SafeguardReportDailyPasswordChangeFail
         -OutFile $local:OutFile -Excel:$Excel
 }
 
+<#
+.SYNOPSIS
+Get CSV report of successful password changes for a given date (24 hour period).
+
+.DESCRIPTION
+This cmdlet will generate CSV containing every instance of successful password changes
+for a 24 hour period.  Dates in Safeguard are UTC, but this cmdlet
+will use the local time for the 24 hour period.
+
+This cmdlet will generate and save a CSV file by default.  This file can be opened
+in Excel automatically using the -Excel parameter or the Open-CsvInExcel cmdlet.
+You may alternatively send the CSV output to standard out.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER OutputDirectory
+String containing the directory where to create the CSV file.
+
+.PARAMETER Excel
+Automatically open the CSV file into excel after it is generation.
+
+.PARAMETER StdOut
+Send CSV to standard out instead of generating a file.
+
+.PARAMETER LocalDate
+The date for which to run the report (Default is today).  Ex. "2019-02-14".
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file or CSV text.
+
+.EXAMPLE
+Get-SafeguardReportDailyPasswordChangeSuccess -StdOut
+
+.EXAMPLE
+Get-SafeguardReportDailyPasswordChangeSuccess -OutputDirectory "C:\reports\" -Excel
+
+.EXAMPLE
+Get-SafeguardReportDailyPasswordChangeSuccess -LocalDate "2019-02-22" -Excel
+#>
 function Get-SafeguardReportDailyPasswordChangeSuccess
 {
     [CmdletBinding(DefaultParameterSetName="File")]
