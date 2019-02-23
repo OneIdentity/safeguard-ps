@@ -82,7 +82,48 @@ function Invoke-AuditLogMethod
     Out-FileAndExcel -OutFile $local:OutFile -Excel:$Excel
 }
 
+<#
+.SYNOPSIS
+Get CSV report of accounts without passwords.
 
+.DESCRIPTION
+This cmdlet will generate CSV for every account that has been added to Safeguard
+that does not have a password stored in Safeguard.
+
+This cmdlet will generate and save a CSV file by default.  This file can be opened
+in Excel automatically using the -Excel parameter or the Open-CsvInExcel cmdlet.
+You may alternatively send the CSV output to standard out.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER OutputDirectory
+String containing the directory where to create the CSV file.
+
+.PARAMETER Excel
+Automatically open the CSV file into excel after it is generation.
+
+.PARAMETER StdOut
+Send CSV to standard out instead of generating a file.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file or CSV text.
+
+.EXAMPLE
+Get-SafeguardReportAccountWithoutPassword -StdOut
+
+.EXAMPLE
+Get-SafeguardReportAccountWithoutPassword -OutputDirectory "C:\reports\" -Excel
+#>
 function Get-SafeguardReportAccountWithoutPassword
 {
     [CmdletBinding(DefaultParameterSetName="File")]
