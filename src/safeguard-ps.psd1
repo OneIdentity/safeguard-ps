@@ -255,13 +255,16 @@ PrivateData = @{
         IconUri = 'https://raw.githubusercontent.com/OneIdentity/safeguard-ps/master/SafeguardLogo.ico'
 
         # Pre-release tag
-        Prerelease = '-pre'
+        # Prerelease = '-pre'
 
         # ReleaseNotes of this module
         ReleaseNotes = @"
 safeguard-ps 2.6 Release Notes:
 
-- Added support for new features
+- Fixed issue with bring your own account access request broker
+- Fixed issue with 2FA login for AD users
+- Added support for Starling Access Certification (works with Safeguard 2.5 as well)
+- Added CSV reports for access requests and password check and change using "text/csv" Accept header
 "@
 
     } # End of PSData hashtable
