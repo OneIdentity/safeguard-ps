@@ -477,6 +477,7 @@ function Remove-SafeguardClusterMember
     $local:MemberId = (Resolve-MemberApplianceId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Member)
     if (-not $Force)
     {
+        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Cluster/Members/$MemberId" `
             -RetryUrl "ClusterMembers/$MemberId"
         Wait-ForClusterOperation -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout
