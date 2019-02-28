@@ -284,7 +284,8 @@ function Wait-ForPatchDistribution
 
     $local:TimeElapsed = 0
 
-    if ((Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET ClusterMembers).Count -gt 1)
+    if ((Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET "Cluster/Members" `
+        -RetryUrl "ClusterMembers").Count -gt 1)
     {
         $local:StartTime = (Get-Date)
         $local:Status = "Unknown"
