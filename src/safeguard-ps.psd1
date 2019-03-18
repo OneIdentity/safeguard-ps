@@ -204,7 +204,7 @@ FunctionsToExport = @(
     # accesscert.psm1
     'Get-SafeguardAccessCertificationIdentity','Get-SafeguardAccessCertificationAccount','Get-SafeguardAccessCertificationGroup',
     'Get-SafeguardAccessCertificationEntitlement','Get-ADAccessCertificationIdentity','Update-SafeguardAccessCertificationGroupFromAD',
-    'Get-SafeguardAccessCertificationAll'
+    'Get-SafeguardAccessCertificationAll',
     # managementShell.psm1
     'Get-SafeguardCommand', 'Get-SafeguardBanner',
     # entitlements.psm1
