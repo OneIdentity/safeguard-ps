@@ -128,6 +128,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER Name
 The name of the entitlement.
 
+.PARAMETER $MemberUsers
+Array of Id or name of the users to be added to the entitlement
+
 .INPUTS
 None.
 
@@ -148,14 +151,26 @@ function New-SafeguardEntitlement
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
-        [string]$Name
+        [string]$Name,
+        [Parameter(Mandatory=$false,Position=1)]
+        [object[]]$MemberUsers
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    [object[]]$Members = $null
+    ForEach($user in $MemberUsers)
+    {
+        $local:ResolvedUserId = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $User).Id
+        $local:Member = @{
+            Id = $ResolvedUserId
+        }
+        $local:Members += $($local:Member)
+    }
+
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-        Core POST Roles -Body @{ Name = $Name; }
+        Core POST Roles -Body @{ Name = $Name; Members = $local:Members}
 }
 
 <#

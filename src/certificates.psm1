@@ -734,9 +734,12 @@ function Clear-SafeguardSslCertificateForAppliance
     $local:NewIds = $local:CurrentIds | Where-Object { $_.Id -ne $ApplianceId }
     if (-not $local:NewIds)
     {
-        $local:NewIds = @()
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "SslCertificates/$Thumbprint/Appliances" -JsonBody "[]"
     }
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "SslCertificates/$Thumbprint/Appliances" -Body $local:NewIds
+    else 
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "SslCertificates/$Thumbprint/Appliances" -Body $local:NewIds
+    }
 }
 
 <#
