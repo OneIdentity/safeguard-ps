@@ -358,6 +358,46 @@ function Write-CsvOutput
     }
 }
 
+# Helper function to produce a single Identities file in the format $Identifier-identities.csv
+function Get-IdentitiesFile
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]$Identifier,
+        [Parameter(Mandatory=$true, Position=1)]
+        [string]$OutputDirectory,
+        [Parameter(Mandatory=$true, Position=2)]
+        [string]$DomainName,
+        [Parameter(Mandatory=$true, Position=3)]
+        [PSCredential]$Credential,
+        [Parameter(Mandatory=$false)]
+        [switch]$IncludeSafeguardIdentities
+	)
+	
+	$local:adIdentitiesFile = Join-Path $OutputDirectory $DomainName-identities.csv
+	$local:sgIdentitiesFile = Join-Path $OutputDirectory $Identifier-identities.csv
+	
+	if ($IncludeSafeguardIdentities)
+	{
+		# Get both and merge into a single file with the desired file name
+		Get-SafeguardAccessCertificationIdentity -Identifier $Identifier -OutputDirectory $OutputDirectory
+		Get-ADAccessCertificationIdentity -OutputDirectory $OutputDirectory -DomainName $DomainName -Credential $Credential -Groups $Groups
+
+		Get-Content $local:adIdentitiesFile | Select-Object -Skip 1 | Add-Content $local:sgIdentitiesFile
+
+		Remove-Item $local:adIdentitiesFile
+	}
+	else
+	{
+		# Get AD only and rename to the desired file name
+		Get-ADAccessCertificationIdentity -OutputDirectory $OutputDirectory -DomainName $DomainName -Credential $Credential -Groups $Groups
+
+		Remove-Item $local:sgIdentitiesFile -ErrorAction Ignore
+		Rename-Item -Path $local:adIdentitiesFile -NewName $local:sgIdentitiesFile
+	}
+}
+
 <#
 .SYNOPSIS
 Get identity comma-separated values (CSV) for access certification
@@ -954,4 +994,74 @@ function Update-SafeguardAccessCertificationGroupFromAD
 
     Write-CsvOutput (-not $StdOut) $CsvFile $local:Groups `
         "authority","id","groupName","displayName","description","owner"
+}
+
+<#
+.SYNOPSIS
+Get all comma-separated values (CSV) files for Access Certification.
+
+.DESCRIPTION
+This utility wraps calls to the Safeguard Access Certification cmdlets.  It
+produces four CSV files suitable for import into Access Certification.
+
+This cmdlet requires an active Safeguard session which may be established using
+the Connect-Safeguard cmdlet.
+
+This cmdlet requires a credential to call Active Directory.
+
+.PARAMETER Identifier
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER OutputDirectory
+Output directory to store CSV file (default: current directory)
+
+.PARAMETER DomainName
+Active Directory domain to connect to.
+
+.PARAMETER IncludeSafeguardIdentities
+Include identities local to the Safeguard appliance.
+
+.PARAMETER Credential
+PowerShell credential to use when connecting to the domain.
+
+.PARAMETER Groups
+A list of groups to limit the number of users collected from the domain.
+
+.INPUTS
+None.
+
+.OUTPUTS
+Four CSV files suitable for import into Access Certification.
+
+.EXAMPLE
+Get-SafeguardAccessCertificationAll "SG-US-Cluster1" "C:\Temp" "AdDomain.local"
+
+.EXAMPLE
+Get-SafeguardAccessCertificationAll "SG-US-Cluster1" "C:\Temp" "AdDomain.local" -IncludeSafeguardIdentities -Credential administrator -Groups Group1,Group2,Group3
+#>
+function Get-SafeguardAccessCertificationAll
+{
+    [CmdletBinding(DefaultParameterSetName="File")]
+    Param(
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]$Identifier,
+        [Parameter(Mandatory=$true, Position=1)]
+        [string]$OutputDirectory = (Get-Location),
+        [Parameter(Mandatory=$true, Position=2)]
+        [string]$DomainName,
+        [Parameter(Mandatory=$false)]
+        [switch]$IncludeSafeguardIdentities,
+        [Parameter(Mandatory=$false)]
+        [PSCredential]$Credential = (Get-Credential -Message "Active Directory login ($DomainName)"),
+        [Parameter(Mandatory=$false)]
+        [string[]]$Groups)
+
+	Get-SafeguardAccessCertificationAccount -Identifier $Identifier -OutputDirectory $OutputDirectory
+
+	Get-SafeguardAccessCertificationGroup -Identifier $Identifier -OutputDirectory $OutputDirectory
+	Update-SafeguardAccessCertificationGroupFromAD -CsvFile (Join-Path $OutputDirectory $Identifier-groups.csv) -DomainName $DomainName -Credential $Credential
+
+	Get-SafeguardAccessCertificationEntitlement -Identifier $Identifier -OutputDirectory $OutputDirectory
+
+	Get-IdentitiesFile $Identifier $OutputDirectory $DomainName $Credential -IncludeSafeguardIdentities:$IncludeSafeguardIdentities.IsPresent
 }
