@@ -455,7 +455,7 @@ function Get-SafeguardAccessCertificationIdentity
     # For now, we will report all directory identity providers as accounts with anchors
     (Invoke-SafeguardMethod Core GET "Users" -Parameters @{
         fields = "FirstName,LastName,UserName,EmailAddress,WorkPhone,MobilePhone,IdentityProviderTypeReferenceName,PrimaryAuthenticationIdentity,DirectoryProperties";
-        filter = "(Disabled eq false) and ((PrimaryAuthenticationProviderName eq 'Local') or (PrimaryAuthenticationProviderName eq 'Certificate'))"
+        filter = "(Id gt 0) and (Disabled eq false) and ((PrimaryAuthenticationProviderName eq 'Local') or (PrimaryAuthenticationProviderName eq 'Certificate'))"
     }) | ForEach-Object {
         # Additional data sanity checking here? -- i.e. Are these really identities? or Are these really accounts?
         if ((-not $_.FirstName) -or (-not $_.LastName))
