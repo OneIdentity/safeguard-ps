@@ -338,7 +338,7 @@ function Write-CsvOutput
         [bool]$WriteToFile,
         [Parameter(Mandatory=$true, Position=1)]
         [string]$OutputFile,
-        [Parameter(Mandatory=$true, Position=2)]
+        [Parameter(Mandatory=$false, Position=2)]
         [object[]]$Payload,
         [Parameter(Mandatory=$true, Position=3)]
         [string[]]$FormatList
