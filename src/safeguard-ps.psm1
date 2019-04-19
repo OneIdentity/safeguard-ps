@@ -791,14 +791,36 @@ function Connect-Safeguard
         }
 
         Write-Verbose "Calling Safeguard LoginResponse service..."
-        $local:LoginResponse = (Invoke-RestMethod -Method POST -Headers @{
-            "Accept" = "application/json";
-            "Content-type" = "application/json"
-        } -Uri "https://$Appliance/service/core/v$Version/Token/LoginResponse" -Body @"
+        try
+        {
+            $local:LoginResponse = (Invoke-RestMethod -Method POST -Headers @{
+                "Accept" = "application/json";
+                "Content-type" = "application/json"
+            } -Uri "https://$Appliance/service/core/v$Version/Token/LoginResponse" -Body @"
 {
     "StsAccessToken": "$($local:RstsResponse.access_token)"
 }
 "@)
+        }
+        catch
+        {
+            if ([int]($_.Exception.Response.StatusCode) -eq 404)
+            {
+                $Version -= 1
+                $local:LoginResponse = (Invoke-RestMethod -Method POST -Headers @{
+                    "Accept" = "application/json";
+                    "Content-type" = "application/json"
+                } -Uri "https://$Appliance/service/core/v$Version/Token/LoginResponse" -Body @"
+{
+    "StsAccessToken": "$($local:RstsResponse.access_token)"
+}
+"@)
+            }
+            else
+            {
+                throw
+            }
+        }
         if ($local:LoginResponse.Status -eq "Needs2FA" -and $Gui)
         {
             $local:RstsResponse = (Get-RstsTokenFromGui $Appliance $local:LoginResponse.PrimaryProviderId $local:LoginResponse.SecondaryProviderId)
@@ -812,7 +834,6 @@ function Connect-Safeguard
 }
 "@)
         }
-
         if ($local:LoginResponse.Status -ine "Success")
         {
             throw $local:LoginResponse
@@ -1131,6 +1152,12 @@ function Invoke-SafeguardMethod
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    if (-not ($PSBoundParameters.ContainsKey("Version")) -and $SafeguardSession)
+    {
+        # Use version from the connection if included in the session
+        # Connect-Safeguard will automatically downgrade if v2 was required to call LoginResponse
+        $Version = $SafeguardSession["Version"]
+    }
     if (-not ($PSBoundParameters.ContainsKey("Insecure")) -and $SafeguardSession)
     {
         # This only covers the case where Invoke-SafeguardMethod is called directly.
