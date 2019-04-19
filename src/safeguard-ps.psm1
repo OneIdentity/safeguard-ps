@@ -791,14 +791,36 @@ function Connect-Safeguard
         }
 
         Write-Verbose "Calling Safeguard LoginResponse service..."
-        $local:LoginResponse = (Invoke-RestMethod -Method POST -Headers @{
-            "Accept" = "application/json";
-            "Content-type" = "application/json"
-        } -Uri "https://$Appliance/service/core/v$Version/Token/LoginResponse" -Body @"
+        try
+        {
+            $local:LoginResponse = (Invoke-RestMethod -Method POST -Headers @{
+                "Accept" = "application/json";
+                "Content-type" = "application/json"
+            } -Uri "https://$Appliance/service/core/v$Version/Token/LoginResponse" -Body @"
 {
     "StsAccessToken": "$($local:RstsResponse.access_token)"
 }
 "@)
+        }
+        catch
+        {
+            if ([int]($_.Exception.Response.StatusCode) -eq 404)
+            {
+                $Version = 2
+                $local:LoginResponse = (Invoke-RestMethod -Method POST -Headers @{
+                    "Accept" = "application/json";
+                    "Content-type" = "application/json"
+                } -Uri "https://$Appliance/service/core/v$Version/Token/LoginResponse" -Body @"
+{
+    "StsAccessToken": "$($local:RstsResponse.access_token)"
+}
+"@)
+            }
+            else
+            {
+                throw
+            }
+        }
         if ($local:LoginResponse.Status -eq "Needs2FA" -and $Gui)
         {
             $local:RstsResponse = (Get-RstsTokenFromGui $Appliance $local:LoginResponse.PrimaryProviderId $local:LoginResponse.SecondaryProviderId)
@@ -812,7 +834,6 @@ function Connect-Safeguard
 }
 "@)
         }
-
         if ($local:LoginResponse.Status -ine "Success")
         {
             throw $local:LoginResponse
