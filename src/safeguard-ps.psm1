@@ -806,7 +806,7 @@ function Connect-Safeguard
         {
             if ([int]($_.Exception.Response.StatusCode) -eq 404)
             {
-                $Version = 2
+                $Version -= 1
                 $local:LoginResponse = (Invoke-RestMethod -Method POST -Headers @{
                     "Accept" = "application/json";
                     "Content-type" = "application/json"
