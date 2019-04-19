@@ -210,6 +210,10 @@ function Get-SafeguardDirectory
                 (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure) | Where-Object {($_.PlatformId -eq $local:LdapPlatformId) -or ($_.PlatformId -eq $local:AdPlatformId)}
             }
         }
+        else
+        {
+            throw
+        }
     }
 }
 
@@ -384,6 +388,10 @@ function New-SafeguardDirectory
                 New-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -DisplayName $ServiceAccountDomainName -Platform $local:AdPlatformId -ServiceAccountName $ServiceAccountName -ServiceAccountDomainName $ServiceAccountDomainName -ServiceAccountPassword $ServiceAccountPassword -ServiceAccountCredentialType "password" -Description $Description
             }
         }
+        else
+        {
+            throw
+        }
     }
     
 }
@@ -450,6 +458,10 @@ function Test-SafeguardDirectory
         {
             Test-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetToTest $DirectoryToTest        
         }
+        else
+        {
+            throw
+        }
     }
 }
 
@@ -512,6 +524,10 @@ function Remove-SafeguardDirectory
         if ($_.Exception.HttpStatusCode -eq 404 -or $_.Exception.HttpStatusCode -eq 405)
         {
             Remove-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetToDelete $DirectoryToDelete
+        }
+        else
+        {
+            throw
         }
     }
 }
@@ -676,6 +692,10 @@ function Edit-SafeguardDirectory
         {
             Edit-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetObject $DirectoryObject
         }
+        else
+        {
+            throw
+        }
     }
 }
 
@@ -741,6 +761,10 @@ function Sync-SafeguardDirectory
         if ($_.Exception.HttpStatusCode -eq 404 -or $_.Exception.HttpStatusCode -eq 405)
         {
             Sync-SafeguardDirectoryAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition -DirectoryAssetToSync $DirectoryToSync
+        }
+        else
+        {
+            throw
         }
     }
 }
@@ -858,6 +882,10 @@ function Get-SafeguardDirectoryAccount
                 }
             }
         }
+        else
+        {
+            throw
+        }
     }
 }
 
@@ -943,6 +971,10 @@ function Find-SafeguardDirectoryAccount
             {
                 (Find-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -QueryFilter $QueryFilter) | Where-Object {($_.PlatformId -eq $local:LdapPlatformId) -or ($_.PlatformId -eq $local:AdPlatformId)}
             }
+        }
+        else
+        {
+            throw
         }
     }
 }
@@ -1059,6 +1091,10 @@ function New-SafeguardDirectoryAccount
         {
             New-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -ParentAsset $ParentDirectory -NewAccountName $NewAccountName -DomainName $DomainName -DistinguishedName $DistinguishedName -Description $Description
         }
+        else
+        {
+            throw
+        }
     }
 }
 
@@ -1127,6 +1163,10 @@ function Edit-SafeguardDirectoryAccount
         {
             $AccountObject = Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AccountToGet $AccountObject.Id
             Edit-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AccountObject $AccountObject
+        }
+        else
+        {
+            throw
         }
     }
 }
@@ -1225,6 +1265,10 @@ function Set-SafeguardDirectoryAccountPassword
                 Set-SafeguardAssetAccountPassword -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -NewPassword $NewPassword -AccountToSet $AccountToSet
             }
         }
+        else
+        {
+            throw
+        }
     }
 }
 
@@ -1309,6 +1353,10 @@ function New-SafeguardDirectoryAccountRandomPassword
                 New-SafeguardAssetAccountRandomPassword -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AccountToUse $AccountToUse
             }
         }
+        else
+        {
+            throw
+        }
     }
 }
 
@@ -1391,6 +1439,10 @@ function Test-SafeguardDirectoryAccountPassword
             {
                 Test-SafeguardAssetAccountPassword -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AccountToUse $AccountToUse
             }
+        }
+        else
+        {
+            throw
         }
     }
 }
@@ -1475,6 +1527,10 @@ function Invoke-SafeguardDirectoryAccountPasswordChange
                 Invoke-SafeguardAssetAccountPasswordChange -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AccountToUse $AccountToUse
             }
         }
+        else
+        {
+            throw
+        }
     }
 }
 
@@ -1557,6 +1613,10 @@ function Remove-SafeguardDirectoryAccount
             {
                 Remove-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AccountToDelete $AccountToDelete
             }
+        }
+        else
+        {
+            throw
         }
     }
 }
