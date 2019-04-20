@@ -109,7 +109,7 @@ function Test-SafeguardMinVersionInternal
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     [int]$local:Major,[int]$local:Minor = $MinVersion.split(".")
-    $local:CurrentVersion = (Invoke-SafeguardMethod -Anonymous -Appliance $Appliance -Insecure:$Insecure Appliance GET Version)
+    $local:CurrentVersion = (Invoke-SafeguardMethod -Anonymous -Appliance $Appliance -Insecure:$Insecure Appliance GET Version -RetryVersion 2)
     if (([int]$local:CurrentVersion.Major) -gt $local:Major `
         -or (([int]$local:CurrentVersion.Major) -eq $local:Major -and ([int]$local:CurrentVersion.Minor) -ge $local:Minor))
     {
