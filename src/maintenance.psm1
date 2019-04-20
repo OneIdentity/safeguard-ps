@@ -201,6 +201,57 @@ function Get-SafeguardVersion
 
 <#
 .SYNOPSIS
+Test whether the version of a Safeguard appliance is greater than
+or equal to a minimum version via the Web API.
+
+.DESCRIPTION
+Get the version information from a Safeguard appliance and compare
+whether it is greater than or equal to a minimum version provided
+as a string in x.y format.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.PARAMETER MinVersion
+A string containing the desired minimum major and minor version in x.y format.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Test-SafeguardVersion 2.3
+
+.EXAMPLE
+Test-SafeguardVersion -Appliance 10.5.32.54 -Insecure 2.6
+#>
+function Test-SafeguardVersion
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [ValidatePattern("^\d+\.\d+$")]
+        [string]$MinVersion
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+    Test-SafeguardMinVersionInternal -Appliance $Appliance -Insecure:$Insecure -MinVersion $MinVersion
+}
+
+<#
+.SYNOPSIS
 Get the system verification information on a Safeguard appliance via the Web API.
 
 .DESCRIPTION
