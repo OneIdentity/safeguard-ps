@@ -123,7 +123,7 @@ FunctionsToExport = @(
     'Install-SafeguardDesktopClient',
     # maintenance.psm1
     'Get-SafeguardStatus','Get-SafeguardApplianceAvailability','Get-SafeguardApplianceState',
-    'Get-SafeguardVersion','Get-SafeguardApplianceVerification','Get-SafeguardTime',
+    'Get-SafeguardVersion','Test-SafeguardVersion','Get-SafeguardApplianceVerification','Get-SafeguardTime',
     'Get-SafeguardApplianceUptime','Get-SafeguardHealth','Get-SafeguardApplianceName','Set-SafeguardApplianceName',
     'Invoke-SafeguardApplianceShutdown','Invoke-SafeguardApplianceReboot','Invoke-SafeguardApplianceFactoryReset',
     'Get-SafeguardSupportBundle','Get-SafeguardPatch','Clear-SafeguardPatch','Install-SafeguardPatch',
@@ -153,7 +153,7 @@ FunctionsToExport = @(
     'Edit-SafeguardUser','Enable-SafeguardUser','Disable-SafeguardUser','Rename-SafeguardUser',
     # assets.psm1
     'Get-SafeguardAsset','Find-SafeguardAsset','New-SafeguardAsset','Test-SafeguardAsset',
-    'Remove-SafeguardAsset','Edit-SafeguardAsset',
+    'Remove-SafeguardAsset','Edit-SafeguardAsset', 'Sync-SafeguardDirectoryAsset'
     'Get-SafeguardAssetAccount','Find-SafeguardAssetAccount','New-SafeguardAssetAccount','Edit-SafeguardAssetAccount',
     'Set-SafeguardAssetAccountPassword','New-SafeguardAssetAccountRandomPassword',
     'Test-SafeguardAssetAccountPassword','Invoke-SafeguardAssetAccountPasswordChange',

@@ -21,14 +21,14 @@ function Resolve-SafeguardUserId
         try
         {
             $local:Users = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
-                                -Parameters @{ filter = "UserName ieq '$User'" })
+                                -Parameters @{ filter = "UserName ieq '$User'" } -RetryVersion 2 -RetryUrl "Users")
         }
         catch
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with ieq filter, trying with q parameter"
             $local:Users = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
-                                -Parameters @{ q = $User })
+                                -Parameters @{ q = $User } -RetryVersion 2 -RetryUrl "Users")
         }
         if (-not $local:Users)
         {
@@ -101,27 +101,27 @@ function Get-SafeguardIdentityProvider
     {
         if ($ProviderToGet -as [int])
         {
-            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "IdentityProviders/$ProviderToGet"
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "IdentityProviders/$ProviderToGet" -RetryVersion 2 -RetryUrl "IdentityProviders/$ProviderToGet"
         }
         else
         {
             try
             {
                 Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
-                    -Parameters @{ filter = "Name ieq '$ProviderToGet'" }
+                    -Parameters @{ filter = "Name ieq '$ProviderToGet'" } -RetryVersion 2 -RetryUrl "IdentityProviders"
             }
             catch
             {
                 Write-Verbose $_
                 Write-Verbose "Caught exception with ieq filter, trying with q parameter"
                 Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
-                    -Parameters @{ q = $ProviderToGet }
+                    -Parameters @{ q = $ProviderToGet } -RetryVersion 2 -RetryUrl "IdentityProviders"
             }
         }
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders -RetryVersion 2 -RetryUrl "IdentityProviders"
     }
 }
 
@@ -244,11 +244,11 @@ function Get-SafeguardUser
     if ($PSBoundParameters.ContainsKey("UserToGet"))
     {
         $local:UserId = Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToGet
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Users/$local:UserId"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Users/$local:UserId" -RetryVersion 2 -RetryUrl "Users/$local:UserId"
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users -RetryVersion 2 -RetryUrl "Users"
     }
 }
 
@@ -370,6 +370,8 @@ A string containing a mobile phone number for the user.
 An array of strings containing the permissions (admin roles) to assign to the user.  You may also specify
 'All' to grant all permissions. Other permissions are: 'GlobalAdmin', 'DirectoryAdmin', 'Auditor',
 'AssetAdmin', 'ApplianceAdmin', 'PolicyAdmin', 'UserAdmin', 'HelpdeskAdmin', 'OperationsAdmin'.
+'DirectoryAdmin' has been deprecated. 'All' does not grant 'DirectoryAdmin' permission. 
+Add 'DirectoryAdmin' permission individually for older Safeguard appliance.
 
 .PARAMETER Password
 SecureString containing the password.
@@ -464,7 +466,15 @@ function New-SafeguardUser
 
     if ($AdminRoles -contains "All")
     {
-        $AdminRoles = @('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
+        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+        if (Test-SafeguardMinVersionInternal -Appliance $Appliance -Insecure:$Insecure -MinVersion "2.7")
+        {
+            $AdminRoles = @('GlobalAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
+        }
+        else
+        {
+            $AdminRoles = @('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
+        }
     }
 
     if ($Provider -eq $local:LocalProviderId -and $PSBoundParameters.ContainsKey("Password"))
@@ -474,7 +484,7 @@ function New-SafeguardUser
         {
             $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
             Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Users/ValidatePassword" -Body `
-                $local:PasswordPlainText
+                $local:PasswordPlainText -RetryVersion 2 -RetryUrl "Users/ValidatePassword"
             $local:PasswordPlainText = ""
         }
         catch
@@ -501,7 +511,7 @@ function New-SafeguardUser
         {
             $local:Body.PrimaryAuthenticationIdentity = $Thumbprint
         }
-        $local:NewUser = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Users -Body $local:Body)
+        $local:NewUser = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Users -Body $local:Body -RetryVersion 2 -RetryUrl "Users")
         if ($Provider -eq $local:LocalProviderId)
         {
             Write-Host "Setting password for new user..."
@@ -531,7 +541,7 @@ function New-SafeguardUser
             UserName = $NewUserName;
             AdminRoles = $AdminRoles;
             DirectoryProperties = @{ DomainName = $DomainName }
-        }
+        } -RetryVersion 2 -RetryUrl "Users"
     }
 }
 
@@ -667,7 +677,7 @@ function Set-SafeguardUserPassword
     $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$($local:UserId)/Password" `
-        -Body $local:PasswordPlainText
+        -Body $local:PasswordPlainText -RetryVersion 2 -RetryUrl "Users/$($local:UserId)/Password"
 }
 
 <#
@@ -711,8 +721,10 @@ A string containing a mobile phone number for the user.
 
 .PARAMETER AdminRoles
 An array of strings containing the permissions (admin roles) to assign to the user.  You may also specify
-'All' to grant all permissions. Other permissions are: 'GlobalAdmin', 'DirectoryAdmin', 'Auditor',
-'AssetAdmin', 'ApplianceAdmin', 'PolicyAdmin', 'UserAdmin', 'HelpdeskAdmin', 'OperationsAdmin'.
+'All' to grant all permissions. Other permissions are: 'GlobalAdmin', 'DirectoryAdmin','Auditor',
+'AssetAdmin', 'ApplianceAdmin', 'PolicyAdmin', 'UserAdmin', 'HelpdeskAdmin', 'OperationsAdmin'. 
+'DirectoryAdmin' has been deprecated. 'All' does not grant 'DirectoryAdmin' permission.
+Add 'DirectoryAdmin' permission individually for older Safeguard appliance.
 
 .PARAMETER UserObject
 An object containing the existing user with desired properties set.
@@ -795,13 +807,13 @@ function Edit-SafeguardUser
         {
             if ($AdminRoles -contains "All")
             {
-                $AdminRoles = @('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
+                $AdminRoles = @('GlobalAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
             }
             $UserObject.AdminRoles = $AdminRoles
         }
     }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$($UserObject.Id)" -Body $UserObject
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$($UserObject.Id)" -Body $UserObject -RetryVersion 2 -RetryUrl "Users/$($UserObject.Id)"
 }
 
 <#

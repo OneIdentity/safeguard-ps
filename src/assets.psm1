@@ -106,7 +106,71 @@ function Resolve-SafeguardAssetAccountId
         $Account
     }
 }
+function Resolve-SafeguardAssetPartitionId
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$AssetPartition
+    )
 
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not ($AssetPartition -as [int]))
+    {
+        try
+        {
+            $local:AssetPartitions = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AssetPartitions `
+                                 -Parameters @{ filter = "Name ieq '$AssetPartition'" })
+        }
+        catch
+        {
+            Write-Verbose $_
+            Write-Verbose "Caught exception with ieq filter, trying with q parameter"
+            $local:AssetPartitions = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AssetPartitions `
+                                 -Parameters @{ q = $AssetPartition })
+        }
+        if (-not $local:AssetPartitions)
+        {
+            throw "Unable to find asset partition matching '$AssetPartition'"
+        }
+        if ($local:AssetPartitions.Count -ne 1)
+        {
+            throw "Found $($local:AssetPartitions.Count) asset partitions matching '$AssetPartition'"
+        }
+        $local:AssetPartitions[0].Id
+    }
+    else
+    {
+        $AssetPartition
+    }
+}
+function Get-SafeguardDirectoryAssetDomains
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [int]$DirectoryAssetId
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Assets/$DirectoryAssetId).DirectoryAssetProperties.Domains
+}
 <#
 .SYNOPSIS
 Discover SSH host key by connecting to asset managed by Safeguard via the Web API.
@@ -378,6 +442,9 @@ A string containing the service account name.
 .PARAMETER ServiceAccountPassword
 A SecureString containing the password to use for the service account.
 
+.PARAMETER ServiceAccountCredentialType
+Type of credential to use to authenticate the asset.
+
 .PARAMETER ServiceAccountSecretKey
 A string containing an API access key for the service account.
 
@@ -386,6 +453,16 @@ Whether or not to skip SSH host key discovery for platforms that support it.
 
 .PARAMETER AcceptSshHostKey
 Whether or not to auto-accept SSH host key for platforms that support it.
+
+.PARAMETER ServiceAccountDistinguishedName
+A string containing the LDAP distinguished name of a service account.  This is used for
+creating LDAP directories.
+
+.PARAMETER NoSslEncryption
+Do not use SSL encryption for LDAP directory.
+
+.PARAMETER DoNotVerifyServerSslCertificate
+Do not verify Server SSL certificate of LDAP directory.
 
 .INPUTS
 None.
@@ -398,10 +475,13 @@ New-SafeguardAsset -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
 New-SafeguardAsset winserver.domain.corp 31 archie
+
+.EXAMPLE
+New-SafeguardAsset -Platform 3 -ServiceAccountDomainName "a.b.corp" -ServiceAccountName "foo"
 #>
 function New-SafeguardAsset
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Ad")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -415,27 +495,39 @@ function New-SafeguardAsset
         [string]$Description,
         [Parameter(Mandatory=$false)]
         [int]$AssetPartitionId = -1,
-        [Parameter(Mandatory=$true,Position=0)]
-        [string]$NetworkAddress,
-        [Parameter(Mandatory=$false,Position=1)]
+        [Parameter(Mandatory=$true,Position=1)]
         [object]$Platform,
-        [Parameter(Mandatory=$false)]
-        [int]$Port,
-        [Parameter(Mandatory=$false)]
-        [ValidateSet("None","Password","SshKey","DirectoryPassword","LocalHostPassword","AccessKey","AccountPassword",IgnoreCase=$true)]
-        [string]$ServiceAccountCredentialType,
-        [Parameter(Mandatory=$false)]
-        [string]$ServiceAccountDomainName,
-        [Parameter(Mandatory=$false,Position=2)]
-        [string]$ServiceAccountName,
-        [Parameter(Mandatory=$false,Position=3)]
-        [SecureString]$ServiceAccountPassword,
         [Parameter(Mandatory=$false)]
         [string]$ServiceAccountSecretKey,
         [Parameter(Mandatory=$false)]
         [switch]$NoSshHostKeyDiscovery = $false,
         [Parameter(Mandatory=$false)]
-        [switch]$AcceptSshHostKey = $false
+        [switch]$AcceptSshHostKey = $false,
+        [Parameter(Mandatory=$false)]
+        [ValidateSet("None","Password","SshKey","DirectoryPassword","LocalHostPassword","AccessKey","AccountPassword",IgnoreCase=$true)]
+        [string]$ServiceAccountCredentialType,
+        [Parameter(Mandatory=$true,ParameterSetName="Ldap",Position=0)]
+        [string]$ServiceAccountDistinguishedName,
+        [Parameter(Mandatory=$false,ParameterSetName="Ldap")]
+        [switch]$NoSslEncryption,
+        [Parameter(Mandatory=$false,ParameterSetName="Ldap")]
+        [switch]$DoNotVerifyServerSslCertificate,
+        [Parameter(Mandatory=$false,ParameterSetName="Asset")]
+        [Parameter(Mandatory=$true,ParameterSetName="Ad",Position=0)]
+        [string]$ServiceAccountDomainName,
+        [Parameter(Mandatory=$true,ParameterSetName="Asset",Position=2)]
+        [Parameter(Mandatory=$true,ParameterSetName="Ad",Position=1)]
+        [string]$ServiceAccountName,
+        [Parameter(Mandatory=$true,ParameterSetName="Asset", Position=0)]
+        [Parameter(Mandatory=$true,ParameterSetName="Ldap")]
+        [string]$NetworkAddress,
+        [Parameter(Mandatory=$false,ParameterSetName="Asset")]
+        [Parameter(Mandatory=$false,ParameterSetName="Ldap")]
+        [int]$Port,
+        [Parameter(Mandatory=$false,ParameterSetName="Asset",Position=3)]
+        [Parameter(Mandatory=$false,ParameterSetName="Ad",Position=2)]
+        [Parameter(Mandatory=$false,ParameterSetName="Ldap",Position=1)]
+        [SecureString]$ServiceAccountPassword
     )
 
     $ErrorActionPreference = "Stop"
@@ -443,22 +535,33 @@ function New-SafeguardAsset
     Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
     Import-Module -Name "$PSScriptRoot\datatypes.psm1" -Scope Local
 
-    if (-not $PSBoundParameters.ContainsKey("DisplayName"))
+    if (-not $PSCmdlet.ParameterSetName -eq "Ad")
     {
-        if (Test-IpAddress $NetworkAddress)
+        if (-not $PSBoundParameters.ContainsKey("NetworkAddress"))
         {
-            $DisplayName = (Read-Host "DisplayName")
-        }
-        else
-        {
-            $DisplayName = $NetworkAddress
+            $NetworkAddress = (Read-Host "NetworkAddress")
         }
     }
 
-    if (-not $PSBoundParameters.ContainsKey("Platform"))
+    if (-not $PSBoundParameters.ContainsKey("DisplayName"))
     {
-        $Platform = (Read-Host "Enter platform ID or search string")
+        if ($PSCmdlet.ParameterSetName -eq "Ad")
+        {
+            $DisplayName = $ServiceAccountDomainName
+        }
+        else 
+        {
+            if (Test-IpAddress $NetworkAddress)
+            {
+                $DisplayName = $NetworkAddress
+            }
+            else
+            {
+                $DisplayName = (Read-Host "DisplayName")
+            }
+        }
     }
+
     $local:PlatformId = Resolve-SafeguardPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Platform
 
     if (-not $PSBoundParameters.ContainsKey("ServiceAccountCredentialType"))
@@ -471,6 +574,8 @@ function New-SafeguardAsset
     }
 
     if ($PSBoundParameters.ContainsKey("Port")) { $local:ConnectionProperties.Port = $Port }
+    if ($PSBoundParameters.ContainsKey("ServiceAccountDomainName")) { $local:ConnectionProperties.ServiceAccountDomainName = $ServiceAccountDomainName }
+
     if ($ServiceAccountCredentialType -ne "None")
     {
         switch ($ServiceAccountCredentialType.ToLower())
@@ -478,7 +583,10 @@ function New-SafeguardAsset
             {$_ -in "password","accountpassword","accesskey"} {
                 if (-not $PSBoundParameters.ContainsKey("ServiceAccountName"))
                 {
-                    $ServiceAccountName = (Read-Host "ServiceAccountName")
+                    if (-not $PSCmdlet.ParameterSetName -eq "Ldap")
+                    {
+                        $ServiceAccountName = (Read-Host "ServiceAccountName")
+                    }
                 }
                 $local:ConnectionProperties.ServiceAccountName = $ServiceAccountName
                 if ($ServiceAccountCredentialType -eq "AccessKey")
@@ -511,6 +619,24 @@ function New-SafeguardAsset
     {
         # No Service Account -- so don't detect SSH host key
         $NoSshHostKeyDiscovery = $true
+    }
+
+    #Ldap Connection properties
+    if ($PSCmdlet.ParameterSetName -eq "Ldap")
+    {
+        $local:ConnectionProperties.UseSslEncryption = $true;
+        $local:ConnectionProperties.VerifySslCertificate = $true;
+        $local:ConnectionProperties.ServiceAccountDistinguishedName = $ServiceAccountDistinguishedName;
+
+        if ($NoSslEncryption)
+        {
+            $local:ConnectionProperties.UseSslEncryption = $false
+            $local:ConnectionProperties.VerifySslCertificate = $false
+        }
+        if ($DoNotVerifyServerSslCertificate)
+        {
+            $local:ConnectionProperties.VerifySslCertificate = $false
+        }
     }
 
     $local:Body = @{
@@ -587,17 +713,13 @@ function Test-SafeguardAsset
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$false,Position=0)]
+        [Parameter(Mandatory=$true,Position=0)]
         [object]$AssetToTest
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if (-not $PSBoundParameters.ContainsKey("AssetToTest"))
-    {
-        $AssetToTest = (Read-Host "AssetToTest")
-    }
     $local:AssetId = Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToTest
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
@@ -646,17 +768,12 @@ function Remove-SafeguardAsset
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$false,Position=0)]
+        [Parameter(Mandatory=$true,Position=0)]
         [object]$AssetToDelete
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    if (-not $PSBoundParameters.ContainsKey("AssetToDelete"))
-    {
-        $AssetToDelete = (Read-Host "AssetToDelete")
-    }
 
     $local:AssetId = Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToDelete
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Assets/$($local:AssetId)"
@@ -706,8 +823,21 @@ A string containing the service account name.
 .PARAMETER ServiceAccountPassword
 A SecureString containing the password to use for the service account.
 
+.PARAMETER ServiceAccountCredentialType
+Type of credential to use to authenticate the asset.
+
 .PARAMETER ServiceAccountSecretKey
 A string containing an API access key for the service account.
+
+.PARAMETER ServiceAccountDistinguishedName
+A string containing the LDAP distinguished name of a service account.  This is used for
+creating LDAP directories.
+
+.PARAMETER NoSslEncryption
+Do not use SSL encryption for LDAP directory.
+
+.PARAMETER DoNotVerifyServerSslCertificate
+Do not verify Server SSL certificate of LDAP directory.
 
 .PARAMETER AssetObject
 An object containing the existing asset with desired properties set.
@@ -723,6 +853,9 @@ Edit-SafeguardAsset -AccessToken $token -Appliance 10.5.32.54 -Insecure -AssetOb
 
 .EXAMPLE
 Edit-SafeguardAsset winserver.domain.corp 31 archie
+
+.EXAMPLE
+Edit-SafeguardAsset -AssetToEdit "fooLdapAsset" -UseSslEncryption $True
 #>
 function Edit-SafeguardAsset
 {
@@ -757,6 +890,12 @@ function Edit-SafeguardAsset
         [SecureString]$ServiceAccountPassword,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$ServiceAccountSecretKey,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$ServiceAccountDistinguishedName,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [boolean]$UseSslEncryption,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [boolean]$VerifyServerSslCertificate,
         [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
         [object]$AssetObject
     )
@@ -789,6 +928,17 @@ function Edit-SafeguardAsset
         if ($PSBoundParameters.ContainsKey("ServiceAccountCredentialType")) { $AssetObject.ConnectionProperties.ServiceAccountCredentialType = $ServiceAccountCredentialType }
         if ($PSBoundParameters.ContainsKey("ServiceAccountDomainName")) { $AssetObject.ConnectionProperties.ServiceAccountDomainName = $ServiceAccountDomainName }
         if ($PSBoundParameters.ContainsKey("ServiceAccountName")) { $AssetObject.ConnectionProperties.ServiceAccountName = $ServiceAccountName }
+
+        #Ldap Connection properties
+        if ($PSBoundParameters.ContainsKey("ServiceAccountDistinguishedName")) { $AssetObject.ConnectionProperties.ServiceAccountDistinguishedName = $ServiceAccountDistinguishedName }
+        if ($PSBoundParameters.ContainsKey("UseSslEncryption")) { $AssetObject.ConnectionProperties.UseSslEncryption = $UseSslEncryption }
+        if ($PSBoundParameters.ContainsKey("VerifyServerSslCertificate")) { $AssetObject.ConnectionProperties.VerifySslCertificate = $VerifyServerSslCertificate }
+        if (-not $UseSslEncryption)
+        {
+            $AssetObject.ConnectionProperties.UseSslEncryption = $false
+            $AssetObject.ConnectionProperties.VerifySslCertificate = $false
+        }
+
         if ($PSBoundParameters.ContainsKey("ServiceAccountPassword"))
         {
             $AssetObject.ConnectionProperties.ServiceAccountPassword = `
@@ -797,7 +947,7 @@ function Edit-SafeguardAsset
         if ($PSBoundParameters.ContainsKey("ServiceAccountSecretKey")) { AssetObject.ConnectionProperties.ServiceAccountSecretKey = $ServiceAccountSecretKey }
 
         # Body
-        if ($PSBoundParameters.ContainsKey("DisplayName")) { $AssetObject.DisplayName = $DisplayName }
+        if ($PSBoundParameters.ContainsKey("DisplayName")) { $AssetObject.Name = $DisplayName }
         if ($PSBoundParameters.ContainsKey("Description")) { $AssetObject.Description = $Description }
         if ($PSBoundParameters.ContainsKey("NetworkAddress")) { $AssetObject.NetworkAddress = $NetworkAddress }
         if ($PSBoundParameters.ContainsKey("Platform"))
@@ -808,6 +958,67 @@ function Edit-SafeguardAsset
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Assets/$($AssetObject.Id)" -Body $AssetObject
+}
+
+<#
+.SYNOPSIS
+synchronize an existing directory in Safeguard via the Web API.
+
+.DESCRIPTION
+synchronize an existing directory in Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER DirectoryToSync
+An integer containing the ID of the directory to synchronize or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Sync-SafeguardDirectoryAsset -AccessToken $token -Appliance 10.5.32.54 -Insecure -1 5
+
+.EXAMPLE
+Sync-SafeguardDirectoryAsset fooPartition internal.domain.corp
+#>
+function Sync-SafeguardDirectoryAsset
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$true,Position=1)]
+        [object]$DirectoryAssetToSync
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:AssetPartitionId = (Resolve-SafeguardAssetPartitionId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetPartition)
+    $local:DirectoryAsset = Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryAssetToSync
+    
+    if(-not $local:DirectoryAsset.IsDirectory)
+    {
+        throw "Asset '$($local:DirectoryAsset.Name)' is not a directory asset"
+    }
+    Write-Host "Triggering sync for directory: $($local:DirectoryAsset.Name)"
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Assets/$local:AssetPartitionId/Synchronize?assetId=$($local:DirectoryAsset.Id)"
 }
 
 <#
@@ -988,6 +1199,9 @@ A string containing the name for the account.
 .PARAMETER Description
 A string containing the description for the account.
 
+.PARAMETER DomainName
+A string containing the domain name for the account.
+
 .INPUTS
 None.
 
@@ -1015,7 +1229,11 @@ function New-SafeguardAssetAccount
         [Parameter(Mandatory=$true,Position=1)]
         [string]$NewAccountName,
         [Parameter(Mandatory=$false)]
-        [string]$Description
+        [string]$Description,
+        [Parameter(Mandatory=$false)]
+        [string]$DomainName,
+        [Parameter(Mandatory=$false)]
+        [string]$DistinguishedName
     )
 
     $ErrorActionPreference = "Stop"
@@ -1029,6 +1247,8 @@ function New-SafeguardAssetAccount
     }
 
     if ($PSBoundParameters.ContainsKey("Description")) { $local:Body.Description = $Description }
+    if ($PSBoundParameters.ContainsKey("DomainName")) { $local:Body.DomainName = $DomainName }
+    if ($PSBoundParameters.ContainsKey("DistinguishedName")) { $local:Body.DistinguishedName = $DistinguishedName }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts" -Body $local:Body
 }
@@ -1060,6 +1280,9 @@ An integer containing the ID of the account to edit or a string containing the n
 
 .PARAMETER Description
 A string containing the description for the account.
+
+.PARAMETER DomainName
+A string containing the domain name for the account.
 
 .PARAMETER AccountObject
 An object containing the existing asset account with desired properties set.
@@ -1095,6 +1318,8 @@ function Edit-SafeguardAssetAccount
         [object]$AccountToEdit,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$Description,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$DomainName,
         [Parameter(ParameterSetName="Object",Mandatory=$true)]
         [object]$AccountObject
     )
@@ -1122,9 +1347,10 @@ function Edit-SafeguardAssetAccount
 
     if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
     {
-        $AccountObject = (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:AccountId)
+        $AccountObject = (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AccountToGet $local:AccountId)
 
         if ($PSBoundParameters.ContainsKey("Description")) { $AccountObject.Description = $Description }
+        if ($PSBoundParameters.ContainsKey("DomainName")) { $AccountObject.DomainName = $DomainName }
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AssetAccounts/$($AccountObject.Id)" -Body $AccountObject

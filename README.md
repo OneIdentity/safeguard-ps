@@ -329,6 +329,7 @@ safeguard-ps can do run:
 - Test-SafeguardAsset
 - Remove-SafeguardAsset
 - Edit-SafeguardAsset
+- Sync-SafeguardDirectoryAsset
 
 ### Asset Accounts
 
