@@ -481,7 +481,7 @@ New-SafeguardAsset -Platform 3 -ServiceAccountDomainName "a.b.corp" -ServiceAcco
 #>
 function New-SafeguardAsset
 {
-    [CmdletBinding(DefaultParameterSetName="Ad")]
+    [CmdletBinding(DefaultParameterSetName="Asset")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -515,7 +515,7 @@ function New-SafeguardAsset
         [Parameter(Mandatory=$false,ParameterSetName="Asset")]
         [Parameter(Mandatory=$true,ParameterSetName="Ad",Position=0)]
         [string]$ServiceAccountDomainName,
-        [Parameter(Mandatory=$true,ParameterSetName="Asset",Position=2)]
+        [Parameter(Mandatory=$false,ParameterSetName="Asset",Position=1)]
         [Parameter(Mandatory=$true,ParameterSetName="Ad",Position=1)]
         [string]$ServiceAccountName,
         [Parameter(Mandatory=$true,ParameterSetName="Asset", Position=0)]
@@ -524,7 +524,7 @@ function New-SafeguardAsset
         [Parameter(Mandatory=$false,ParameterSetName="Asset")]
         [Parameter(Mandatory=$false,ParameterSetName="Ldap")]
         [int]$Port,
-        [Parameter(Mandatory=$false,ParameterSetName="Asset",Position=3)]
+        [Parameter(Mandatory=$false,ParameterSetName="Asset",Position=2)]
         [Parameter(Mandatory=$false,ParameterSetName="Ad",Position=2)]
         [Parameter(Mandatory=$false,ParameterSetName="Ldap",Position=1)]
         [SecureString]$ServiceAccountPassword
@@ -551,7 +551,7 @@ function New-SafeguardAsset
         }
         else 
         {
-            if (Test-IpAddress $NetworkAddress)
+            if (-not (Test-IpAddress $NetworkAddress))
             {
                 $DisplayName = $NetworkAddress
             }
