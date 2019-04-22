@@ -1244,8 +1244,10 @@ function Invoke-SafeguardMethod
     }
     catch
     {
-        if ($_.Exception.HttpStatusCode -eq 404 -and $RetryUrl)
+        if ($_.Exception -and ($_.Exception.HttpStatusCode -eq 404 -and ($RetryUrl -or ($RetryVersion -ne $Version))))
         {
+            if (-not $RetryVersion) { $RetryVersion = $Version}
+            if (-not $RetryUrl) { $RetryUrl = $RelativeUrl}
             Write-Verbose "Trying to use RetryVersion: $RetryVersion, and RetryUrl: $RetryUrl"
             Invoke-Internal $Appliance $Service $Method $RetryVersion $RetryUrl $local:Headers `
                             -Body $Body -JsonBody $JsonBody `
@@ -1253,6 +1255,9 @@ function Invoke-SafeguardMethod
         }
         else
         {
+            Write-Verbose "NOT FOUND: YOU MAY BE USING AN OLDER VERSION OF SAFEGUARD API:"
+            Write-Verbose "    TRY CONNECTING WITH THE Version PARAMETER SET TO $($Version - 1), OR"
+            Write-Verbose "    DOWNLOAD THE VERSION OF safeguard-ps MATCHING YOUR VERSION OF SAFEGUARD"
             throw
         }
     }

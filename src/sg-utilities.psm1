@@ -92,6 +92,34 @@ namespace Ex
     }
     throw $local:ExceptionToThrow
 }
+function Test-SafeguardMinVersionInternal
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true)]
+        [ValidatePattern("^\d+\.\d+")]
+        [string]$MinVersion
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    [int]$local:Major,[int]$local:Minor = $MinVersion.split(".")
+    $local:CurrentVersion = (Invoke-SafeguardMethod -Anonymous -Appliance $Appliance -Insecure:$Insecure Appliance GET Version -RetryVersion 2)
+    if (([int]$local:CurrentVersion.Major) -gt $local:Major `
+        -or (([int]$local:CurrentVersion.Major) -eq $local:Major -and ([int]$local:CurrentVersion.Minor) -ge $local:Minor))
+    {
+        $true
+    }
+    else
+    {
+        $false
+    }
+}
 function Wait-ForSafeguardStatus
 {
     [CmdletBinding()]

@@ -466,7 +466,15 @@ function New-SafeguardUser
 
     if ($AdminRoles -contains "All")
     {
-        $AdminRoles = @('GlobalAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
+        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+        if (Test-SafeguardMinVersionInternal -Appliance $Appliance -Insecure:$Insecure -MinVersion "2.7")
+        {
+            $AdminRoles = @('GlobalAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
+        }
+        else
+        {
+            $AdminRoles = @('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
+        }
     }
 
     if ($Provider -eq $local:LocalProviderId -and $PSBoundParameters.ContainsKey("Password"))
