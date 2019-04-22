@@ -380,12 +380,17 @@ function New-SafeguardDirectory
             if ($PSCmdlet.ParameterSetName -eq "Ldap")
             {
                 $local:LdapPlatformId = (Find-SafeguardPlatform "OpenLDAP" -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure)[0].Id
-                New-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -DisplayName $NetworkAddress -Platform $local:LdapPlatformId -ServiceAccountDistinguishedName $ServiceAccountDistinguishedName -ServiceAccountPassword $ServiceAccountPassword -ServiceAccountCredentialType "password" -Description $Description -NetworkAddress $NetworkAddress -Port $Port -NoSslEncryption:$NoSslEncryption -DoNotVerifyServerSslCertificate:$DoNotVerifyServerSslCertificate
+                New-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -DisplayName $NetworkAddress -Platform $local:LdapPlatformId `
+                    -ServiceAccountDistinguishedName $ServiceAccountDistinguishedName -ServiceAccountPassword $ServiceAccountPassword `
+                    -ServiceAccountCredentialType "password" -Description $Description -NetworkAddress $NetworkAddress -Port $Port `
+                    -NoSslEncryption:$NoSslEncryption -DoNotVerifyServerSslCertificate:$DoNotVerifyServerSslCertificate
             }
             else
             {
                 $local:AdPlatformId = (Find-SafeguardPlatform "Active Directory" -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure)[0].Id
-                New-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -DisplayName $ServiceAccountDomainName -Platform $local:AdPlatformId -ServiceAccountName $ServiceAccountName -ServiceAccountDomainName $ServiceAccountDomainName -ServiceAccountPassword $ServiceAccountPassword -ServiceAccountCredentialType "password" -Description $Description
+                New-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -DisplayName $ServiceAccountDomainName -Platform $local:AdPlatformId `
+                    -ServiceAccountName $ServiceAccountName -ServiceAccountDomainName $ServiceAccountDomainName -ServiceAccountPassword $ServiceAccountPassword `
+                    -ServiceAccountCredentialType "password" -NetworkAddress $ServiceAccountDomainName -Description $Description
             }
         }
         else
