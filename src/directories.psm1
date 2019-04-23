@@ -1,4 +1,55 @@
 # Helper
+function Resolve-SafeguardDirectoryIdentityProviderId
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Directory
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not ($Directory -as [int]))
+    {
+        try
+        {
+            $local:Idps = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
+                               -Parameters @{ Filter = "Name ieq '$Directory'" })
+            if (-not $local:Idps)
+            {
+                $local:Idps = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
+                                   -Parameters @{ Filter = "DirectoryProperties.Domains.DomainName ieq '$Directory'" })
+            }
+        }
+        catch
+        {
+            Write-Verbose $_
+            Write-Verbose "Caught exception with ieq filter, trying with q parameter"
+            $local:Idps = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
+                                      -Parameters @{ q = $Directory })
+        }
+        if (-not $local:Idps)
+        {
+            throw "Unable to find directory identity provider matching '$Directory'"
+        }
+        if ($local:Idps.Count -ne 1)
+        {
+            throw "Found $($local:Idps.Count) directory identity providers matching '$Directory'"
+        }
+        $local:Idps[0].Id
+    }
+    else
+    {
+        $Directory
+    }
+}
 function Resolve-SafeguardDirectoryId
 {
     [CmdletBinding()]
@@ -54,25 +105,6 @@ function Resolve-SafeguardDirectoryId
     {
         $Directory
     }
-}
-function Get-SafeguardDirectoryDomains
-{
-    [CmdletBinding()]
-    Param(
-        [Parameter(Mandatory=$false)]
-        [string]$Appliance,
-        [Parameter(Mandatory=$false)]
-        [object]$AccessToken,
-        [Parameter(Mandatory=$false)]
-        [switch]$Insecure,
-        [Parameter(Mandatory=$true,Position=0)]
-        [int]$DirectoryId
-    )
-
-    $ErrorActionPreference = "Stop"
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Directories/$DirectoryId -Version 2).Domains
 }
 function Resolve-SafeguardDirectoryAccountId
 {
@@ -182,16 +214,8 @@ function Get-SafeguardDirectoryIdentityProvider
 
     if ($PSBoundParameters.ContainsKey("DirectoryToGet"))
     {
-        if ($DirectoryToGet -is [int])
-        {
-            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
-                -Parameters @{ Filter = "Id eq $DirectoryToGet" }
-        }
-        else
-        {
-            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
-                -Parameters @{ Filter = "Name ieq '$DirectoryToGet'" }
-        }
+        $local:Id = Resolve-SafeguardDirectoryIdentityProviderId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToGet
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "IdentityProviders/$($local:Id)"
     }
     else
     {
@@ -374,6 +398,8 @@ function New-SafeguardDirectoryIdentityProvider
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST IdentityProviders -Body $local:Body
 }
+
+
 
 <#
 .SYNOPSIS
