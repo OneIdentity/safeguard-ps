@@ -1,4 +1,55 @@
 # Helper
+function Resolve-SafeguardDirectoryIdentityProviderId
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Directory
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not ($Directory -as [int]))
+    {
+        try
+        {
+            $local:Idps = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
+                               -Parameters @{ Filter = "Name ieq '$Directory'" })
+            if (-not $local:Idps)
+            {
+                $local:Idps = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
+                                   -Parameters @{ Filter = "DirectoryProperties.Domains.DomainName ieq '$Directory'" })
+            }
+        }
+        catch
+        {
+            Write-Verbose $_
+            Write-Verbose "Caught exception with ieq filter, trying with q parameter"
+            $local:Idps = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
+                                      -Parameters @{ q = $Directory })
+        }
+        if (-not $local:Idps)
+        {
+            throw "Unable to find directory identity provider matching '$Directory'"
+        }
+        if ($local:Idps.Count -ne 1)
+        {
+            throw "Found $($local:Idps.Count) directory identity providers matching '$Directory'"
+        }
+        $local:Idps[0].Id
+    }
+    else
+    {
+        $Directory
+    }
+}
 function Resolve-SafeguardDirectoryId
 {
     [CmdletBinding()]
@@ -55,25 +106,6 @@ function Resolve-SafeguardDirectoryId
         $Directory
     }
 }
-function Get-SafeguardDirectoryDomains
-{
-    [CmdletBinding()]
-    Param(
-        [Parameter(Mandatory=$false)]
-        [string]$Appliance,
-        [Parameter(Mandatory=$false)]
-        [object]$AccessToken,
-        [Parameter(Mandatory=$false)]
-        [switch]$Insecure,
-        [Parameter(Mandatory=$true,Position=0)]
-        [int]$DirectoryId
-    )
-
-    $ErrorActionPreference = "Stop"
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Directories/$DirectoryId -Version 2).Domains
-}
 function Resolve-SafeguardDirectoryAccountId
 {
     [CmdletBinding()]
@@ -129,6 +161,295 @@ function Resolve-SafeguardDirectoryAccountId
     {
         $Account
     }
+}
+
+<#
+.SYNOPSIS
+Get directory identity providers used by Safeguard via the Web API.
+
+.DESCRIPTION
+Safeguard directory users can be added from Safeguard directory identity providers to
+enable domain users to log into Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER DirectoryToGet
+An integer containing the ID of the directory to get or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardDirectoryIdentityProvider -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardDirectoryIdentityProvider x.domain.corp
+#>
+function Get-SafeguardDirectoryIdentityProvider
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$DirectoryToGet
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($PSBoundParameters.ContainsKey("DirectoryToGet"))
+    {
+        $local:Id = Resolve-SafeguardDirectoryIdentityProviderId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToGet
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "IdentityProviders/$($local:Id)"
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
+            -Parameters @{ Filter = "(TypeReferenceName eq 'ActiveDirectory') or (TypeReferenceName eq 'Ldap')" }
+    }
+}
+
+<#
+.SYNOPSIS
+Create new directory identity provider in Safeguard via the Web API.
+
+.DESCRIPTION
+Create a new directory in Safeguard for adding directory users that can log into
+Safeguard via the Web API.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ServiceAccountDomainName
+A string containing the service account domain name if it has one.  This is used
+for creating AD directories.
+
+.PARAMETER ServiceAccountName
+A string containing the service account name.  This is used for creating AD directories.
+
+.PARAMETER ServiceAccountDistinguishedName
+A string containing the LDAP distinguished name of a service account.  This is used for
+creating LDAP directories.
+
+.PARAMETER ServiceAccountPassword
+A SecureString containing the password to use for the service account.
+
+.PARAMETER NetworkAddress
+A string containing the network address for this directory.  This is used for creating
+LDAP directories.
+
+.PARAMETER Port
+An integer containing the port for this directory.  This is used for creating
+LDAP directories.
+
+.PARAMETER NoSslEncryption
+Do not use SSL encryption for LDAP directory.
+
+.PARAMETER DoNotVerifyServerSslCertificate
+Do not verify Server SSL certificate of LDAP directory.
+
+.PARAMETER DisplayName
+Name for the identity provider (default for AD is ServiceAccountDomainName)
+
+.PARAMETER Description
+A string containing a description for this directory.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+New-SafeguardDirectoryIdentityProvider -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+New-SafeguardDirectoryIdentityProvider internal.domain.corp svc-user
+
+.EXAMPLE
+New-SafeguardDirectoryIdentityProvider -ServiceAccountDistinguishedName "cn=dev-sa,ou=people,dc=ldap,dc=domain,dc=corp" -NoSslEncryption
+#>
+function New-SafeguardDirectoryIdentityProvider
+{
+    [CmdletBinding(DefaultParameterSetName="Ad")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,ParameterSetName="Ad",Position=0)]
+        [string]$ServiceAccountDomainName,
+        [Parameter(Mandatory=$true,ParameterSetName="Ad",Position=1)]
+        [string]$ServiceAccountName,
+        [Parameter(Mandatory=$true,ParameterSetName="Ldap",Position=0)]
+        [string]$ServiceAccountDistinguishedName,
+        [Parameter(Mandatory=$false,ParameterSetName="Ad",Position=2)]
+        [Parameter(Mandatory=$false,ParameterSetName="Ldap",Position=1)]
+        [SecureString]$ServiceAccountPassword,
+        [Parameter(Mandatory=$true,ParameterSetName="Ldap")]
+        [string]$NetworkAddress,
+        [Parameter(Mandatory=$false,ParameterSetName="Ldap")]
+        [int]$Port,
+        [Parameter(Mandatory=$false,ParameterSetName="Ldap")]
+        [switch]$NoSslEncryption,
+        [Parameter(Mandatory=$false,ParameterSetName="Ldap")]
+        [switch]$DoNotVerifyServerSslCertificate,
+        [Parameter(Mandatory=$false)]
+        [string]$DisplayName,
+        [Parameter(Mandatory=$false)]
+        [string]$Description
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not $PSBoundParameters.ContainsKey("ServiceAccountPassword"))
+    {
+        $ServiceAccountPassword = (Read-Host -AsSecureString "ServiceAccountPassword")
+    }
+
+    if (-not $PSBoundParameters.ContainsKey("DisplayName"))
+    {
+        if ($ServiceAccountDomainName)
+        {
+            $DisplayName = $ServiceAccountDomainName
+        }
+        else
+        {
+            $DisplayName = (Read-Host "DisplayName")
+        }
+    }
+
+    if ($PSCmdlet.ParameterSetName -eq "Ldap")
+    {
+        $local:Body = @{
+            Name = $DisplayName;
+            TypeReferenceName = "Ldap";
+            DirectoryProperties = @{
+                ConnectionProperties = @{
+                    UseSslEncryption = $true;
+                    VerifySslCertificate = $true;
+                    ServiceAccountDistinguishedName = $ServiceAccountDistinguishedName;
+                    ServiceAccountPassword = `
+                        [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($ServiceAccountPassword))
+                }
+            }
+        }
+        if ($PSBoundParameters.ContainsKey("NetworkAddress"))
+        {
+            $local:Body.ConnectionProperties.NetworkAddress = $NetworkAddress
+        }
+        if ($PSBoundParameters.ContainsKey("Port"))
+        {
+            $local:Body.ConnectionProperties.Port = $Port
+        }
+        if ($NoSslEncryption)
+        {
+            $local:Body.ConnectionProperties.UseSslEncryption = $false
+            $local:Body.ConnectionProperties.VerifySslCertificate = $false
+        }
+        if ($DoNotVerifyServerSslCertificate)
+        {
+            $local:Body.ConnectionProperties.VerifySslCertificate = $false
+        }
+    }
+    else
+    {
+        $local:Body = @{
+            Name = $DisplayName;
+            TypeReferenceName = "ActiveDirectory";
+            DirectoryProperties = @{
+                ConnectionProperties = @{
+                    ServiceAccountDomainName = $ServiceAccountDomainName;
+                    ServiceAccountName = $ServiceAccountName;
+                    ServiceAccountPassword = `
+                        [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($ServiceAccountPassword))
+                }
+            }
+        }
+    }
+    if ($PSBoundParameters.ContainsKey("Description"))
+    {
+        $local:Body.Description = $Description
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST IdentityProviders -Body $local:Body
+}
+
+<#
+.SYNOPSIS
+Remove a directory identity provider from Safeguard via the Web API.
+
+.DESCRIPTION
+Remove a directory identify provider from Safeguard. Make sure it is not
+in use before you remove it.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER DirectoryToDelete
+An integer containing the ID of the directory to remove or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardDirectoryIdentityProvider -AccessToken $token -Appliance 10.5.32.54 -Insecure 5
+
+.EXAMPLE
+Remove-SafeguardDirectoryIdentityProvider internal.domain.corp
+#>
+function Remove-SafeguardDirectoryIdentityProvider
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$DirectoryToDelete
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:IdpId = (Resolve-SafeguardDirectoryIdentityProviderId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToDelete)
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "IdentityProviders/$($local:IdpId)"
 }
 
 <#
@@ -219,11 +540,14 @@ function Get-SafeguardDirectory
 
 <#
 .SYNOPSIS
-Create new directory in Safeguard via the Web API.
+Create new directory asset in Safeguard via the Web API.
 
 .DESCRIPTION
-Create a new directory in Safeguard that can be used to manage accounts and
-enables the creation of Safeguard users from that directory.
+Create a new directory in Safeguard that can be used to manage accounts.  As of
+Safeguard version 2.7 and greater this cmdlet no longer creates an identity
+provider, so it will no longer allow the creation of Safeguard users from the
+added directory.  To create Safeguard users from a directory, use the
+New-SafeguardDirectoryIdentityProvider cmdlet to add the identity provider..
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -314,14 +638,33 @@ function New-SafeguardDirectory
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     Import-Module -Name "$PSScriptRoot\datatypes.psm1" -Scope Local
+    Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
 
-    try 
+    if (-not $PSBoundParameters.ContainsKey("ServiceAccountPassword"))
     {
-        if (-not $PSBoundParameters.ContainsKey("ServiceAccountPassword"))
+        $ServiceAccountPassword = (Read-Host -AsSecureString "ServiceAccountPassword")
+    }
+
+    if (Test-SafeguardMinVersionInternal -Appliance $Appliance -Insecure:$Insecure -MinVersion 2.7)
+    {
+        if ($PSCmdlet.ParameterSetName -eq "Ldap")
         {
-            $ServiceAccountPassword = (Read-Host -AsSecureString "ServiceAccountPassword")
+            $local:LdapPlatformId = (Find-SafeguardPlatform "OpenLDAP" -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure)[0].Id
+            New-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -DisplayName $NetworkAddress -Platform $local:LdapPlatformId `
+                -ServiceAccountDistinguishedName $ServiceAccountDistinguishedName -ServiceAccountPassword $ServiceAccountPassword `
+                -ServiceAccountCredentialType "password" -Description $Description -NetworkAddress $NetworkAddress -Port $Port `
+                -NoSslEncryption:$NoSslEncryption -DoNotVerifyServerSslCertificate:$DoNotVerifyServerSslCertificate
         }
-    
+        else
+        {
+            $local:AdPlatformId = (Find-SafeguardPlatform "Active Directory" -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure)[0].Id
+            New-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -DisplayName $ServiceAccountDomainName -Platform $local:AdPlatformId `
+                -ServiceAccountName $ServiceAccountName -ServiceAccountDomainName $ServiceAccountDomainName -ServiceAccountPassword $ServiceAccountPassword `
+                -ServiceAccountCredentialType "password" -NetworkAddress $ServiceAccountDomainName -Description $Description
+        }
+    }
+    else
+    {
         if ($PSCmdlet.ParameterSetName -eq "Ldap")
         {
             $local:LdapPlatformId = (Find-SafeguardPlatform "OpenLDAP" -Appliance $Appliance -AccessToken $AccessToken)[0].Id
@@ -370,30 +713,9 @@ function New-SafeguardDirectory
         {
             $local:Body.Description = $Description
         }
-    
+
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Directories -Body $local:Body -Version 2
     }
-    catch 
-    {
-        if ($_.Exception.HttpStatusCode -eq 404 -or $_.Exception.HttpStatusCode -eq 405)
-        {
-            if ($PSCmdlet.ParameterSetName -eq "Ldap")
-            {
-                $local:LdapPlatformId = (Find-SafeguardPlatform "OpenLDAP" -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure)[0].Id
-                New-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -DisplayName $NetworkAddress -Platform $local:LdapPlatformId -ServiceAccountDistinguishedName $ServiceAccountDistinguishedName -ServiceAccountPassword $ServiceAccountPassword -ServiceAccountCredentialType "password" -Description $Description -NetworkAddress $NetworkAddress -Port $Port -NoSslEncryption:$NoSslEncryption -DoNotVerifyServerSslCertificate:$DoNotVerifyServerSslCertificate
-            }
-            else
-            {
-                $local:AdPlatformId = (Find-SafeguardPlatform "Active Directory" -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure)[0].Id
-                New-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -DisplayName $ServiceAccountDomainName -Platform $local:AdPlatformId -ServiceAccountName $ServiceAccountName -ServiceAccountDomainName $ServiceAccountDomainName -ServiceAccountPassword $ServiceAccountPassword -ServiceAccountCredentialType "password" -Description $Description
-            }
-        }
-        else
-        {
-            throw
-        }
-    }
-    
 }
 
 <#

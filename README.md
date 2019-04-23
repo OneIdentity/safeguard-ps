@@ -346,6 +346,9 @@ safeguard-ps can do run:
 
 ### Directories
 
+- Get-SafeguardDirectoryIdentityProvider
+- New-SafeguardDirectoryIdentityProvider
+- Remove-SafeguardDirectoryIdentityProvider
 - Get-SafeguardDirectory
 - New-SafeguardDirectory
 - Test-SafeguardDirectory
