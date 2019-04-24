@@ -12,8 +12,8 @@ function Test-SupportForClusterPatch
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:Version = (Get-SafeguardVersion -Appliance $Appliance -Insecure:$Insecure)
-    if ($local:Version.Major -gt 2 -or ($local:Version.Major -eq 2 -and $local:Version.Minor -gt 0))
+    $local:ApplianceVersion = (Get-SafeguardVersion -Appliance $Appliance -Insecure:$Insecure)
+    if ($local:ApplianceVersion.Major -gt 2 -or ($local:ApplianceVersion.Major -eq 2 -and $local:ApplianceVersion.Minor -gt 0))
     {
         $true
     }
@@ -866,7 +866,7 @@ function Get-SafeguardSupportBundle
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
-        [int]$Version = 2,
+        [int]$Version = 3,
         [Parameter(Mandatory=$false)]
         [int]$Timeout,
         [Parameter(Mandatory=$false)]
@@ -882,6 +882,10 @@ function Get-SafeguardSupportBundle
     if ($SafeguardSession)
     {
         $Insecure = $SafeguardSession["Insecure"]
+    }
+    if (-not ($PSBoundParameters.ContainsKey("Version")) -and $SafeguardSession)
+    {
+        $Version = $SafeguardSession["Version"]
     }
     if (-not $Appliance -and $SafeguardSession)
     {
@@ -1127,7 +1131,7 @@ function Install-SafeguardPatch
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
-        [int]$Version = 2,
+        [int]$Version = 3,
         [Parameter(ParameterSetName="NewPatch",Mandatory=$true,Position=0)]
         [string]$Patch,
         [Parameter(ParameterSetName="NewPatch",Mandatory=$false)]
@@ -1147,6 +1151,10 @@ function Install-SafeguardPatch
     {
         $Insecure = $SafeguardSession["Insecure"]
     }
+    if (-not ($PSBoundParameters.ContainsKey("Version")) -and $SafeguardSession)
+    {
+        $Version = $SafeguardSession["Version"]
+    }
     if (-not $Appliance -and $SafeguardSession)
     {
         $Appliance = $SafeguardSession["Appliance"]
@@ -1161,7 +1169,7 @@ function Install-SafeguardPatch
     }
     if (-not $AccessToken)
     {
-        $AccessToken = (Connect-Safeguard -Appliance $Appliance -Insecure:$Insecure -NoSessionVariable)
+        $AccessToken = (Connect-Safeguard -Appliance $Appliance -Insecure:$Insecure -NoSessionVariable -Version $Version)
     }
 
     if (-not $UseStagedPatch)
@@ -1436,7 +1444,7 @@ function Export-SafeguardBackup
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
-        [int]$Version = 2,
+        [int]$Version = 3,
         [Parameter(Mandatory=$false,Position=0)]
         [string]$BackupId,
         [Parameter(Mandatory=$false,Position=1)]
@@ -1452,6 +1460,10 @@ function Export-SafeguardBackup
     if ($SafeguardSession)
     {
         $Insecure = $SafeguardSession["Insecure"]
+    }
+    if (-not ($PSBoundParameters.ContainsKey("Version")) -and $SafeguardSession)
+    {
+        $Version = $SafeguardSession["Version"]
     }
     if (-not $Appliance -and $SafeguardSession)
     {
@@ -1570,7 +1582,7 @@ function Import-SafeguardBackup
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
-        [int]$Version = 2,
+        [int]$Version = 3,
         [Parameter(Mandatory=$true,Position=0)]
         [string]$BackupFile,
         [Parameter(Mandatory=$false)]
@@ -1584,6 +1596,10 @@ function Import-SafeguardBackup
     if ($SafeguardSession)
     {
         $Insecure = $SafeguardSession["Insecure"]
+    }
+    if (-not ($PSBoundParameters.ContainsKey("Version")) -and $SafeguardSession)
+    {
+        $Version = $SafeguardSession["Version"]
     }
     if (-not $Appliance -and $SafeguardSession)
     {
