@@ -12,8 +12,8 @@ function Test-SupportForClusterPatch
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:Version = (Get-SafeguardVersion -Appliance $Appliance -Insecure:$Insecure)
-    if ($local:Version.Major -gt 2 -or ($local:Version.Major -eq 2 -and $local:Version.Minor -gt 0))
+    $local:ApplianceVersion = (Get-SafeguardVersion -Appliance $Appliance -Insecure:$Insecure)
+    if ($local:ApplianceVersion.Major -gt 2 -or ($local:ApplianceVersion.Major -eq 2 -and $local:ApplianceVersion.Minor -gt 0))
     {
         $true
     }
