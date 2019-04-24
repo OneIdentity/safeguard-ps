@@ -866,7 +866,7 @@ function Get-SafeguardSupportBundle
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
-        [int]$Version = 2,
+        [int]$Version = 3,
         [Parameter(Mandatory=$false)]
         [int]$Timeout,
         [Parameter(Mandatory=$false)]
@@ -882,6 +882,10 @@ function Get-SafeguardSupportBundle
     if ($SafeguardSession)
     {
         $Insecure = $SafeguardSession["Insecure"]
+    }
+    if (-not ($PSBoundParameters.ContainsKey("Version")) -and $SafeguardSession)
+    {
+        $Version = $SafeguardSession["Version"]
     }
     if (-not $Appliance -and $SafeguardSession)
     {
@@ -1127,7 +1131,7 @@ function Install-SafeguardPatch
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
-        [int]$Version = 2,
+        [int]$Version = 3,
         [Parameter(ParameterSetName="NewPatch",Mandatory=$true,Position=0)]
         [string]$Patch,
         [Parameter(ParameterSetName="NewPatch",Mandatory=$false)]
@@ -1146,6 +1150,10 @@ function Install-SafeguardPatch
     if ($SafeguardSession)
     {
         $Insecure = $SafeguardSession["Insecure"]
+    }
+    if (-not ($PSBoundParameters.ContainsKey("Version")) -and $SafeguardSession)
+    {
+        $Version = $SafeguardSession["Version"]
     }
     if (-not $Appliance -and $SafeguardSession)
     {
@@ -1436,7 +1444,7 @@ function Export-SafeguardBackup
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
-        [int]$Version = 2,
+        [int]$Version = 3,
         [Parameter(Mandatory=$false,Position=0)]
         [string]$BackupId,
         [Parameter(Mandatory=$false,Position=1)]
@@ -1452,6 +1460,10 @@ function Export-SafeguardBackup
     if ($SafeguardSession)
     {
         $Insecure = $SafeguardSession["Insecure"]
+    }
+    if (-not ($PSBoundParameters.ContainsKey("Version")) -and $SafeguardSession)
+    {
+        $Version = $SafeguardSession["Version"]
     }
     if (-not $Appliance -and $SafeguardSession)
     {
@@ -1570,7 +1582,7 @@ function Import-SafeguardBackup
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
-        [int]$Version = 2,
+        [int]$Version = 3,
         [Parameter(Mandatory=$true,Position=0)]
         [string]$BackupFile,
         [Parameter(Mandatory=$false)]
@@ -1584,6 +1596,10 @@ function Import-SafeguardBackup
     if ($SafeguardSession)
     {
         $Insecure = $SafeguardSession["Insecure"]
+    }
+    if (-not ($PSBoundParameters.ContainsKey("Version")) -and $SafeguardSession)
+    {
+        $Version = $SafeguardSession["Version"]
     }
     if (-not $Appliance -and $SafeguardSession)
     {

@@ -1157,6 +1157,10 @@ function Invoke-SafeguardMethod
         # Use version from the connection if included in the session
         # Connect-Safeguard will automatically downgrade if v2 was required to call LoginResponse
         $Version = $SafeguardSession["Version"]
+        if (-not ($PSBoundParameters.ContainsKey("RetryVersion")))
+        {
+            $RetryVersion = $Version;
+        }
     }
     if (-not ($PSBoundParameters.ContainsKey("Insecure")) -and $SafeguardSession)
     {
