@@ -1169,7 +1169,7 @@ function Install-SafeguardPatch
     }
     if (-not $AccessToken)
     {
-        $AccessToken = (Connect-Safeguard -Appliance $Appliance -Insecure:$Insecure -NoSessionVariable)
+        $AccessToken = (Connect-Safeguard -Appliance $Appliance -Insecure:$Insecure -NoSessionVariable -Version $Version)
     }
 
     if (-not $UseStagedPatch)
