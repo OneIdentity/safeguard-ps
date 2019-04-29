@@ -15,7 +15,17 @@ to facilitate install via `Import-Module`.  It can also be updated using the
 `Update-Module` to get the latest functionality.
 
 By default Powershell modules are installed for all users, and you need to be 
-running as Administrator to install them.  The following one-liners are helpful:
+running as Administrator to install them.
+
+```Powershell
+> Install-Module safeguard-ps -Verbose
+```
+
+```Powershell
+> Update-Module safeguard-ps -Verbose
+```
+
+If you don't have an Administrator prompt open, the following one-liners are helpful:
 
 ```Powershell
 > Start-Process powershell.exe -ArgumentList "Install-Module safeguard-ps -Verbose; pause" -Verb RunAs -Wait
@@ -25,7 +35,7 @@ running as Administrator to install them.  The following one-liners are helpful:
 > Start-Process powershell.exe -ArgumentList "Update-Module safeguard-ps -Verbose; pause" -Verb RunAs -Wait
 ```
 
-Or, you can install them just for you:
+Or, you can install them just for you using the `-Scope` parameter which will never require Administrator permission:
 
 ```Powershell
 > Install-Module safeguard-ps -Scope CurrentUser -Verbose
