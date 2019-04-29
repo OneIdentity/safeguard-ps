@@ -35,7 +35,8 @@ If you don't have an Administrator prompt open, the following one-liners are hel
 > Start-Process powershell.exe -ArgumentList "Update-Module safeguard-ps -Verbose; pause" -Verb RunAs -Wait
 ```
 
-Or, you can install them just for you using the `-Scope` parameter which will never require Administrator permission:
+Or, you can install them just for you using the `-Scope` parameter which will 
+never require Administrator permission:
 
 ```Powershell
 > Install-Module safeguard-ps -Scope CurrentUser -Verbose
@@ -56,6 +57,11 @@ you should use:
 ```
 
 as specified above.
+
+If you run into errors while upgrading make sure that you upgrade for all users
+if the module was originally installed for all users.  If the module was originally
+installed for just the current user, be sure to use the `-Scope` parameter to again
+specify `CurrentUser` when running the `Update-Module` cmdlet.
 
 ## Getting Started
 
