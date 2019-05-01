@@ -11,11 +11,21 @@ One Identity Safeguard Powershell module and scripting resources.
 
 This Powershell module is published to the 
 [PowerShell Gallery](https://www.powershellgallery.com/packages/safeguard-ps)
-to facilitate install via `Import-Module`.  It can also be updated using the
-`Update-Module` to get the latest functionality.
+to make t as easy as possible to install using the built-in `Import-Module` cmdlet.
+It can also be updated using the `Update-Module` to get the latest functionality.
 
 By default Powershell modules are installed for all users, and you need to be 
-running as Administrator to install them.  The following one-liners are helpful:
+running Powershell as an Administrator to install for all users.
+
+```Powershell
+> Install-Module safeguard-ps -Verbose
+```
+
+```Powershell
+> Update-Module safeguard-ps -Verbose
+```
+
+If you don't have an Administrator prompt open, the following one-liners are helpful:
 
 ```Powershell
 > Start-Process powershell.exe -ArgumentList "Install-Module safeguard-ps -Verbose; pause" -Verb RunAs -Wait
@@ -25,7 +35,8 @@ running as Administrator to install them.  The following one-liners are helpful:
 > Start-Process powershell.exe -ArgumentList "Update-Module safeguard-ps -Verbose; pause" -Verb RunAs -Wait
 ```
 
-Or, you can install them just for you:
+Or, you can install them just for you using the `-Scope` parameter which will 
+never require Administrator permission:
 
 ```Powershell
 > Install-Module safeguard-ps -Scope CurrentUser -Verbose
@@ -46,6 +57,11 @@ you should use:
 ```
 
 as specified above.
+
+If you run into errors while upgrading make sure that you upgrade for all users
+if the module was originally installed for all users.  If the module was originally
+installed for just the current user, be sure to use the `-Scope` parameter to again
+specify `CurrentUser` when running the `Update-Module` cmdlet.
 
 ## Getting Started
 
@@ -68,7 +84,7 @@ other cmdlets provided by the module.
 
 Client certificate authentication is also available in `Connect-Safeguard`.
 This can be done either using a PFX certificate file or a SHA-1 thumbprint
-of a certificate store in the Current User personal certificate store.
+of a certificate stored in the Current User personal certificate store.
 
 Two-factor authentication can only be performed using the `-Gui` parameter,
 so that the built-in secure token service can use the browser agent to
@@ -124,10 +140,10 @@ should not be expected to match.
 
 For Example:
 
-safeguard-ps 2.1.0.55 would correspond to Safeguard 2.1.0.5687
+safeguard-ps 2.2.152 would correspond to Safeguard 2.2.0.6958.
 
-This does not mean that safeguard-ps 2.1.0.55 won't work at all with
-Safeguard 2.0.1.5037.  For the most part the cmdlets will still work, but
+This does not mean that safeguard-ps 2.2.152 won't work at all with
+Safeguard 2.4.0.7846.  For the most part the cmdlets will still work, but
 you may occasionally come across things that are broken.
 
 For the best results, please try to match the first two version numbers of
@@ -136,7 +152,7 @@ you are communicating with.  The most important thing for safeguard-ps is
 the version of the Safeguard Web API, which will never change between
 where only the third and fourth numbers differ.
 
-### Moving to Three Digit Version Number
+### Pre-release Builds
 
 As of version 2.2.x, safeguard-ps began using a three digit version number.
 It also now supports prerelease builds.  This is so the next version of
@@ -144,6 +160,15 @@ safeguard-ps can be developed in lock step with the Safeguard product.
 
 Dropping the third number is insignificant as the Safeguard Web API never
 changes in those releases.
+
+### API v3
+
+Safeguard 2.7 shipped with a new version of the Safeguard API (v3).  The
+safeguard-ps 2.7 module was updated to use the v3 API by default.  Safeguard
+2.7 serves both the v2 and v3 APIs, but the v3 version of the API is the only
+one guaranteed to work.  Please try to match the first and second version
+numbers between Safeguard and safeguard-ps as instructed above to avoid any
+compatibility issues.
 
 ## Powershell cmdlets
 
@@ -160,6 +185,9 @@ safeguard-ps can do run:
 ```Powershell
 > Get-SafeguardCommand
 ```
+
+Please report anything you see from the output that is missing, and we will
+update this list.
 
 ### ManagementShell
 
