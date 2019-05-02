@@ -1263,7 +1263,10 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardA2aCredentialRetrievalInformation "Ticket System" linux.test.machine root
+Get-SafeguardA2aCredentialRetrievalInformation
+
+.EXAMPLE
+Get-SafeguardA2aCredentialRetrievalInformation linux.test.machine root
 #>
 function Get-SafeguardA2aCredentialRetrievalInformation
 {
@@ -1274,12 +1277,18 @@ function Get-SafeguardA2aCredentialRetrievalInformation
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false, Position = 0)]
+        [string]$AssetName,
+        [Parameter(Mandatory=$false, Position = 1)]
+        [string]$AccountName,
+        [Parameter(Mandatory=$false, Position = 2)]
+        [string]$DomainName
     )
 
-    Get-SafeguardA2a -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure | ForEach-Object {
+    $local:Infos = ((Get-SafeguardA2a -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure) | ForEach-Object {
         $local:A2a = $_
-        Get-SafeguardA2aCredentialRetrieval -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -ParentA2a $local:A2a.Id | ForEach-Object {
+        (Get-SafeguardA2aCredentialRetrieval -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -ParentA2a $local:A2a.Id) | ForEach-Object {
             $local:Hash = [ordered]@{
                 AppName = $local:A2a.AppName;
                 Description = $local:A2a.Description;
@@ -1291,8 +1300,11 @@ function Get-SafeguardA2aCredentialRetrievalInformation
             }
             New-Object PSObject -Property $local:Hash
         }
-    }
-    
+    })
+    if ($AssetName) { $local:Infos = ($local:Infos | Where-Object { $_.AssetName -ieq $AssetName }) }
+    if ($AccountName) { $local:Infos = ($local:Infos | Where-Object { $_.AccountName -ieq $AccountName }) }
+    if ($DomainName) { $local:Infos = ($local:Infos | Where-Object { $_.DomainName -ieq $DomainName }) }
+    $local:Infos
 }
 
 <#
