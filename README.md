@@ -446,6 +446,7 @@ update this list.
 - New-SafeguardA2a
 - Remove-SafeguardA2a
 - Edit-SafeguardA2a
+- Get-SafeguardA2aCredentialRetrievalInformation
 - Get-SafeguardA2aCredentialRetrieval
 - Add-SafeguardA2aCredentialRetrieval
 - Remove-SafeguardA2aCredentialRetrieval
