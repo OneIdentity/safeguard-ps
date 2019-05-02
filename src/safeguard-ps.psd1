@@ -191,6 +191,7 @@ FunctionsToExport = @(
     'Get-SafeguardA2aCredentialRetrievalIpRestriction','Set-SafeguardA2aCredentialRetrievalIpRestriction',
     'Clear-SafeguardA2aCredentialRetrievalIpRestriction',
     'Reset-SafeguardA2aCredentialRetrievalApiKey','Get-SafeguardA2aCredentialRetrievalApiKey',
+    'Get-SafeguardA2aCredentialRetrievalInformation',
     # a2a.psm1 -- access request broker
     'Get-SafeguardA2aAccessRequestBroker','Set-SafeguardA2aAccessRequestBroker','Clear-SafeguardA2aAccessRequestBroker',
     'Get-SafeguardA2aAccessRequestBrokerIpRestriction','Set-SafeguardA2aAccessRequestBrokerIpRestriction',

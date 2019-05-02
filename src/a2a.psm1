@@ -1241,6 +1241,74 @@ function Get-SafeguardA2aCredentialRetrievalApiKey
 
 <#
 .SYNOPSIS
+Get summary information of A2A registrations in Safeguard via the Web API.
+
+.DESCRIPTION
+Get summary information of A2A registrations in Safeguard to make it easier to call
+Safeguard A2A with the appropriate parameters.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardA2aCredentialRetrievalInformation
+
+.EXAMPLE
+Get-SafeguardA2aCredentialRetrievalInformation linux.test.machine root
+#>
+function Get-SafeguardA2aCredentialRetrievalInformation
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false, Position = 0)]
+        [string]$AssetName,
+        [Parameter(Mandatory=$false, Position = 1)]
+        [string]$AccountName,
+        [Parameter(Mandatory=$false, Position = 2)]
+        [string]$DomainName
+    )
+
+    $local:Infos = ((Get-SafeguardA2a -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure) | ForEach-Object {
+        $local:A2a = $_
+        (Get-SafeguardA2aCredentialRetrieval -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -ParentA2a $local:A2a.Id) | ForEach-Object {
+            $local:Hash = [ordered]@{
+                AppName = $local:A2a.AppName;
+                Description = $local:A2a.Description;
+                CertificateUserThumbPrint = $local:A2a.CertificateUserThumbPrint;
+                ApiKey = $_.ApiKey;
+                AssetName = $_.SystemName;
+                AccountName = $_.AccountName;
+                DomainName = $_.DomainName;
+            }
+            New-Object PSObject -Property $local:Hash
+        }
+    })
+    if ($AssetName) { $local:Infos = ($local:Infos | Where-Object { $_.AssetName -ieq $AssetName }) }
+    if ($AccountName) { $local:Infos = ($local:Infos | Where-Object { $_.AccountName -ieq $AccountName }) }
+    if ($DomainName) { $local:Infos = ($local:Infos | Where-Object { $_.DomainName -ieq $DomainName }) }
+    $local:Infos
+}
+
+<#
+.SYNOPSIS
 Get the configuration used for brokering access requests to an A2A registration in Safeguard
 via the Web API.
 

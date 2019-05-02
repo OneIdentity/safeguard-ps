@@ -170,6 +170,36 @@ one guaranteed to work.  Please try to match the first and second version
 numbers between Safeguard and safeguard-ps as instructed above to avoid any
 compatibility issues.
 
+## Getting Started With A2A
+
+Once you have configured your A2A registration in Safeguard, you can get
+the information to call Safeguard A2A by running the following:
+
+```Powershell
+> Get-SafeguardA2aCredentialRetrievalInformation
+```
+
+This will report the certificate thumbprint you need to use as well as the
+API key required to request a specific account password.
+
+The best practice is to install your user certificate in the Windows
+User Certificate Store (user the Personal folder).  Then, you can reference
+the certificate securely in safeguard-ps just using the thumbprint.
+
+You can see the thumbprints of certificates currently installed in your Windows
+User Certificate Store using the following command:
+
+```Powershell
+> Get-ChildItem Cert:\CurrentUser\My
+```
+
+To retrieve a password via A2A from PowerShell use `Get-SafeguardA2aPassword`.
+For example:
+
+```Powershell
+> Get-SafeguardA2aPassword 10.5.5.5 -Thumbprint 756766BB590D7FA9CA9E1971A4AE41BB9CEC82F1 -ApiKey JeD9HIgGZM+CYZcVk6YHDNCp4W36DNsjS1TDi+S5HzI=
+```
+
 ## Powershell cmdlets
 
 The following cmdlets are currently supported.  More will be added to this
@@ -446,6 +476,7 @@ update this list.
 - New-SafeguardA2a
 - Remove-SafeguardA2a
 - Edit-SafeguardA2a
+- Get-SafeguardA2aCredentialRetrievalInformation
 - Get-SafeguardA2aCredentialRetrieval
 - Add-SafeguardA2aCredentialRetrieval
 - Remove-SafeguardA2aCredentialRetrieval
