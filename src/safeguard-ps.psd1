@@ -81,6 +81,7 @@ NestedModules = @(
     'requests.psm1',
     'users.psm1',
     'assets.psm1',
+    'assetpartitions.psm1',
     'directories.psm1',
     'groups.psm1',
     'policies.psm1',
