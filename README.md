@@ -379,6 +379,9 @@ update this list.
 - Disable-SafeguardUser
 - Rename-SafeguardUser
 
+### Asset Partitions
+- Get-SafeguardAssetPartition
+
 ### Assets
 
 - Get-SafeguardAsset
