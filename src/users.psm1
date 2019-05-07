@@ -1,4 +1,50 @@
-# Helper
+# Helpers
+function Resolve-SafeguardUserObject
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$User
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not ($User -as [int]))
+    {
+        try
+        {
+            $local:Users = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
+                                -Parameters @{ filter = "UserName ieq '$User'" } -RetryVersion 2 -RetryUrl "Users")
+        }
+        catch
+        {
+            Write-Verbose $_
+            Write-Verbose "Caught exception with ieq filter, trying with q parameter"
+            $local:Users = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
+                                -Parameters @{ q = $User } -RetryVersion 2 -RetryUrl "Users")
+        }
+        if (-not $local:Users)
+        {
+            throw "Unable to find user matching '$User'"
+        }
+        if ($local:Users.Count -ne 1)
+        {
+            throw "Found $($local:Users.Count) users matching '$User'"
+        }
+        $local:Users[0]
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Users/$User"
+    }
+}
 function Resolve-SafeguardUserId
 {
     [CmdletBinding()]
@@ -243,7 +289,7 @@ function Get-SafeguardUser
 
     if ($PSBoundParameters.ContainsKey("UserToGet"))
     {
-        $local:UserId = Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToGet
+        $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToGet)
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Users/$local:UserId" -RetryVersion 2 -RetryUrl "Users/$local:UserId"
     }
     else
@@ -602,7 +648,7 @@ function Remove-SafeguardUser
         $UserToDelete = (Read-Host "UserToDelete")
 
     }
-    $local:UserId = Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToDelete
+    $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToDelete)
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Users/$($local:UserId)"
 }
@@ -668,7 +714,7 @@ function Set-SafeguardUserPassword
     {
         $UserToEdit = (Read-Host "UserToEdit")
     }
-    $local:UserId = Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit
+    $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit)
     if (-not $PSBoundParameters.ContainsKey("Password") -or $null -eq $Password)
     { 
         $Password = (Read-Host "Password" -AsSecureString)
@@ -789,7 +835,7 @@ function Edit-SafeguardUser
         {
             $UserToEdit = (Read-Host "UserToEdit")
         }
-        $local:UserId = Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit
+        $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit)
     }
     
     if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
@@ -872,7 +918,7 @@ function Enable-SafeguardUser
     {
         $UserToEdit = (Read-Host "UserToEdit")
     }
-    $local:UserId = Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit
+    $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit)
     $local:UserObject = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:UserId)
     $local:UserObject.Disabled = $false
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$($UserObject.Id)" -Body $local:UserObject
@@ -934,7 +980,7 @@ function Disable-SafeguardUser
     {
         $UserToEdit = (Read-Host "UserToEdit")
     }
-    $local:UserId = Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit
+    $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit)
     $local:UserObject = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:UserId)
     $local:UserObject.Disabled = $true
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$($UserObject.Id)" -Body $local:UserObject
@@ -1001,7 +1047,7 @@ function Rename-SafeguardUser
     {
         $UserToEdit = (Read-Host "UserToEdit")
     }
-    $local:UserId = Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit
+    $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit)
     if (-not $PSBoundParameters.ContainsKey("NewUserName") -or -not $NewUserName)
     { 
         $NewUserName = (Read-Host "NewUserName")

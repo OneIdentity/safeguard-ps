@@ -67,11 +67,48 @@ function Get-SafeguardAssetPartition
 
     if ($PSBoundParameters.ContainsKey("PartitionToGet"))
     {
-        $local:PartitionId = Resolve-SafeguardAssetPartitionId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToGet
+        $local:PartitionId = Resolve-SafeguardAssetPartitionId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $PartitionToGet
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetPartitions/$($local:PartitionId)"
     }
     else
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetPartitions"
     }
+}
+
+function New-SafeguardAssetPartition
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]$Name,
+        [Parameter(Mandatory=$false)]
+        [string]$Description,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Owners
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Body = @{
+        Name = $Name
+    }
+    if ($PSBoundParameters.ContainsKey("Description")) { $local:Body.Description = $Description }
+    if ($PSBoundParameters.ContainsKey("Owners")) 
+    {
+        Import-Module -Name "$PSScriptRoot\users.psm1" -Scope Local
+        $local:Body.Owners = @()
+        $Owners | ForEach-Object {
+            $local:Body.Owners += (Resolve-SafeguardUserObject -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $_)
+        }
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetPartitions" -Body $local:Body
 }

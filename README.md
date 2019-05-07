@@ -402,6 +402,7 @@ update this list.
 
 ### Asset Partitions
 - Get-SafeguardAssetPartition
+- New-SafeguardAssetPartition
 
 ### Assets
 
