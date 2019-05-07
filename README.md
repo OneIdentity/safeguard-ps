@@ -200,6 +200,27 @@ For example:
 > Get-SafeguardA2aPassword 10.5.5.5 -Thumbprint 756766BB590D7FA9CA9E1971A4AE41BB9CEC82F1 -ApiKey JeD9HIgGZM+CYZcVk6YHDNCp4W36DNsjS1TDi+S5HzI=
 ```
 
+## Reporting and CSV output
+
+Safeguard 2.6 added the capability of returning CSV from the API by passing in
+an Accept header set to 'text/csv'.  Several reporting cmdlets were built on
+this functionality.
+
+Run:
+
+```Powershell
+> Get-SafeguardCommand report
+```
+
+to see all of these reporting cmdlets.
+
+The following video shows how the reporting cmdlets work, including parameters
+for opening the output directly in Excel.
+
+[Reporting Cmdlet video](https://youtu.be/mWNaCH7eB70)
+
+[![Reporting Cmdlet video](https://img.youtube.com/vi/mWNaCH7eB70/0.jpg)](https://www.youtube.com/watch?v=mWNaCH7eB70)
+
 ## Powershell cmdlets
 
 The following cmdlets are currently supported.  More will be added to this
