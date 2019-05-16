@@ -160,7 +160,8 @@ FunctionsToExport = @(
     'Test-SafeguardAssetAccountPassword','Invoke-SafeguardAssetAccountPasswordChange',
     'Remove-SafeguardAssetAccount','Invoke-SafeguardAssetSshHostKeyDiscovery',
     # assetpartitions.psm1
-    'Get-SafeguardAssetPartition','New-SafeguardAssetPartition','Remove-SafeguardAssetPartition'
+    'Get-SafeguardAssetPartition','New-SafeguardAssetPartition','Remove-SafeguardAssetPartition',
+    'Edit-SafeguardAssetPartition',
     # directories.psm1
     'Get-SafeguardDirectoryIdentityProvider','New-SafeguardDirectoryIdentityProvider','Remove-SafeguardDirectoryIdentityProvider',
     'Get-SafeguardDirectory','New-SafeguardDirectory','Test-SafeguardDirectory',

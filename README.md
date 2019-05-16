@@ -404,6 +404,7 @@ update this list.
 - Get-SafeguardAssetPartition
 - New-SafeguardAssetPartition
 - Remove-SafeguardAssetPartition
+- Edit-SafeguardAssetPartition
 
 ### Assets
 

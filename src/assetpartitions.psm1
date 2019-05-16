@@ -267,3 +267,107 @@ function Remove-SafeguardAssetPartition
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "AssetPartitions/$($local:PartitionId)"
     }
 }
+
+<#
+.SYNOPSIS
+Edit existing asset in Safeguard via the Web API.
+
+.DESCRIPTION
+Edit an existing asset in Safeguard that can be used to manage accounts.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartitionToEdit
+An integer containing the ID of the asset partition to edit or a string containing the name.
+
+.PARAMETER Name
+A string containing the name for this asset partition.
+
+.PARAMETER Description
+A string containing a description for this asset.
+
+.PARAMETER Owners
+A list strings containing the names of the owners for the new asset partition.
+
+.PARAMETER AssetObject
+An object containing the existing asset partition with desired properties set.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Edit-SafeguardAsset -AccessToken $token -Appliance 10.5.32.54 -Insecure -AssetObject $obj
+
+.EXAMPLE
+Edit-SafeguardAsset winserver.domain.corp 31 archie
+
+.EXAMPLE
+Edit-SafeguardAsset -AssetToEdit "fooLdapAsset" -UseSslEncryption $True
+#>
+function Edit-SafeguardAssetPartition
+{
+    [CmdletBinding(DefaultParameterSetName="Attributes")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false,Position=0)]
+        [object]$AssetPartitionToEdit,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$Name,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$Description,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string[]]$Owners,
+        [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
+        [object]$AssetPartitionObject
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $AssetPartitionObject)
+    {
+        throw "AssetPartitionObject must not be null"
+    }
+
+    if ($PsCmdlet.ParameterSetName -eq "Attributes")
+    {
+        if (-not $PSBoundParameters.ContainsKey("AssetPartitionToEdit"))
+        {
+            $AssetPartitionToEdit = (Read-Host "AssetPartitionToEdit")
+        }
+        $local:AssetPartitionId = Resolve-SafeguardAssetPartitionId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetPartitionToEdit
+    }
+
+    if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
+    {
+        $AssetPartitionObject = (Get-SafeguardAssetPartition -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:AssetPartitionId)
+
+        if ($PSBoundParameters.ContainsKey("Name")) { $AssetPartitionObject.Name = $Name }
+        if ($PSBoundParameters.ContainsKey("Description")) { $AssetPartitionObject.Description = $Description }
+        if ($PSBoundParameters.ContainsKey("Owners")) 
+        {
+            Import-Module -Name "$PSScriptRoot\users.psm1" -Scope Local
+            $AssetPartitionObject.Owners = @()
+            $Owners | ForEach-Object {
+                $AssetPartitionObject.Owners += (Resolve-SafeguardUserObject -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $_)
+            }
+        }
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AssetPartitions/$($AssetPartitionObject.Id)" -Body $AssetPartitionObject
+}
