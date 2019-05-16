@@ -2037,12 +2037,12 @@ function Get-SafeguardDirectoryMigrationData
         $local:MigratedDirectories | ForEach-Object {
             if ($local:IdentityProvder.ObjectName -eq $_.ObjectName)
             {
-                $local:MigrationData += (New-Object PSObject -Property @{
+                $local:MigrationData += (New-Object PSObject -Property ([ordered]@{
                     SchemaType = "IdentityProvider";
                     Name = $_.ObjectName;
                     OldId = $_.ObjectId;
                     NewId = $local:IdentityProvder.ObjectId
-                })
+                }))
             }
         }
     }
@@ -2051,12 +2051,12 @@ function Get-SafeguardDirectoryMigrationData
         $local:MigratedDirectories | ForEach-Object {
             if ($local:DirectoryAsset.ObjectName -eq $_.ObjectName)
             {
-                $local:MigrationData += (New-Object PSObject -Property @{
+                $local:MigrationData += (New-Object PSObject -Property ([ordered]@{
                     SchemaType = "Directory";
                     Name = $_.ObjectName;
                     OldId = $_.ObjectId;
                     NewId = $local:DirectoryAsset.ObjectId
-                })
+                }))
             }
         }
     }
