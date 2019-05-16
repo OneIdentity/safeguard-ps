@@ -1945,3 +1945,121 @@ function Remove-SafeguardDirectoryAccount
         }
     }
 }
+
+<#
+.SYNOPSIS
+Get directory migration data from Safeguard audit log via the Web API.
+
+.DESCRIPTION
+Early versions of Safeguard treated directories as a dual entity that was
+part identity provider (used for Safeguard user login) and part asset
+(used for managing Safeguard accounts).  Safeguard version 2.7 and greater
+removed the concept of directories as a dual entity and split them into
+identity providers and assets.  This cmdlet will get a report of the migrated
+directories and what their new identity provider and asset IDs are.
+
+Use the -Verbose parameter to dsee additional information.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.EXAMPLE
+Get-SafeguardDirectoryMigrationData
+
+.EXAMPLE
+Get-SafeguardDirectoryMigrationData -Verbose
+#>
+function Get-SafeguardDirectoryMigrationData
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+    Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+
+    if (-not (Test-SafeguardMinVersionInternal -Appliance $Appliance -Insecure:$Insecure -MinVersion 2.7))
+    {
+        throw "Directory migration data is only available for Safeguard version 2.7 and greater"
+    }
+
+    $local:DirectoriesCreated = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+        Core GET "AuditLog/ObjectChanges/Directory" `
+        -Parameters @{filter = "EventName eq 'DirectoryCreated'"; fields = "LogTime,EventName,ObjectName,ObjectId"})
+    Write-Verbose "Directories Created:"
+    Write-Verbose ($local:DirectoriesCreated | Format-Table | Out-String)
+
+    $local:DirectoriesDeleted = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+        Core GET "AuditLog/ObjectChanges/Directory" `
+        -Parameters @{filter = "EventName eq 'DirectoryDeleted'"; fields = "LogTime,EventName,ObjectName,ObjectId"})
+    Write-Verbose "Directories Deleted:"
+    Write-Verbose ($local:DirectoriesDeleted | Format-Table | Out-String)
+
+    $local:IdentityProvidersCreated = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+        Core GET "AuditLog/ObjectChanges/IdentityProvider" `
+        -Parameters @{filter = "EventName eq 'IdentityProviderCreated'"; fields = "LogTime,EventName,ObjectName,ObjectId"})
+    Write-Verbose "Directory Identity Providers Created:"
+    Write-Verbose ($local:IdentityProvidersCreated | Format-Table | Out-String)
+
+    $local:DirectoryAssetsCreated = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+        Core GET "AuditLog/ObjectChanges/Asset" `
+        -Parameters @{filter = "EventName eq 'AssetCreated' and NewValue contains '`"IsDirectory`":true'"; fields = "LogTime,EventName,ObjectName,ObjectId"})
+    Write-Verbose "Directory Assets Created:"
+    Write-Verbose ($local:DirectoryAssetsCreated | Format-Table | Out-String)
+
+    Write-Verbose "Pruning Deleted Directories..."
+    $local:MigratedDirectories = @()
+    $local:DirectoriesCreated | ForEach-Object {
+        if (-not ($_.ObjectId -in $local:DirectoriesDeleted.ObjectId))
+        {
+            $local:MigratedDirectories += $_
+        }
+    }
+    Write-Verbose "$($local:DirectoriesCreated.Count - $local:MigratedDirectories.Count) directories pruned from migration data set"
+
+    Write-Verbose "Calculating Directory Migration Data..."
+    $local:MigrationData = @()
+    $local:IdentityProvidersCreated | ForEach-Object {
+        $local:IdentityProvder = $_
+        $local:MigratedDirectories | ForEach-Object {
+            if ($local:IdentityProvder.ObjectName -eq $_.ObjectName)
+            {
+                $local:MigrationData += (New-Object PSObject -Property @{
+                    SchemaType = "IdentityProvider";
+                    Name = $_.ObjectName;
+                    OldId = $_.ObjectId;
+                    NewId = $local:IdentityProvder.ObjectId
+                })
+            }
+        }
+    }
+    $local:DirectoryAssetsCreated | ForEach-Object {
+        $local:DirectoryAsset = $_
+        $local:MigratedDirectories | ForEach-Object {
+            if ($local:DirectoryAsset.ObjectName -eq $_.ObjectName)
+            {
+                $local:MigrationData += (New-Object PSObject -Property @{
+                    SchemaType = "Directory";
+                    Name = $_.ObjectName;
+                    OldId = $_.ObjectId;
+                    NewId = $local:DirectoryAsset.ObjectId
+                })
+            }
+        }
+    }
+
+    $local:MigrationData
+}

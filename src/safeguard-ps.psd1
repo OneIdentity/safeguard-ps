@@ -169,7 +169,7 @@ FunctionsToExport = @(
     'Get-SafeguardDirectoryAccount','Find-SafeguardDirectoryAccount','New-SafeguardDirectoryAccount',
     'Set-SafeguardDirectoryAccountPassword','New-SafeguardDirectoryAccountRandomPassword',
     'Test-SafeguardDirectoryAccountPassword','Invoke-SafeguardDirectoryAccountPasswordChange',
-    'Edit-SafeguardDirectoryAccount','Remove-SafeguardDirectoryAccount',
+    'Edit-SafeguardDirectoryAccount','Remove-SafeguardDirectoryAccount','Get-SafeguardDirectoryMigrationData',
     # groups.psm1
     'Get-SafeguardUserGroup','New-SafeguardUserGroup','Remove-SafeguardUserGroup',
     'Edit-SafeguardUserGroup',

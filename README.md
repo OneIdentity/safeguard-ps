@@ -440,6 +440,7 @@ update this list.
 - Remove-SafeguardDirectory
 - Edit-SafeguardDirectory
 - Sync-SafeguardDirectory
+- Get-SafeguardDirectoryMigrationData
 
 ### Directory Accounts
 
