@@ -1946,7 +1946,35 @@ function Remove-SafeguardDirectoryAccount
     }
 }
 
+<#
+.SYNOPSIS
+Get directory migration data from Safeguard audit log via the Web API.
 
+.DESCRIPTION
+Early versions of Safeguard treated directories as a dual entity that was
+part identity provider (used for Safeguard user login) and part asset
+(used for managing Safeguard accounts).  Safeguard version 2.7 and greater
+removed the concept of directories as a dual entity and split them into
+identity providers and assets.  This cmdlet will get a report of the migrated
+directories and what their new identity provider and asset IDs are.
+
+Use the -Verbose parameter to dsee additional information.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.EXAMPLE
+Get-SafeguardDirectoryMigrationData
+
+.EXAMPLE
+Get-SafeguardDirectoryMigrationData -Verbose
+#>
 function Get-SafeguardDirectoryMigrationData
 {
     [CmdletBinding()]
@@ -2000,6 +2028,7 @@ function Get-SafeguardDirectoryMigrationData
             $local:MigratedDirectories += $_
         }
     }
+    Write-Verbose "$($local:DirectoriesCreated.Count - $local:MigratedDirectories.Count) directories pruned from migration data set"
 
     Write-Verbose "Calculating Directory Migration Data..."
     $local:MigrationData = @()
