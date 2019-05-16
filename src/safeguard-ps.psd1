@@ -81,6 +81,7 @@ NestedModules = @(
     'requests.psm1',
     'users.psm1',
     'assets.psm1',
+    'assetpartitions.psm1',
     'directories.psm1',
     'groups.psm1',
     'policies.psm1',
@@ -158,6 +159,9 @@ FunctionsToExport = @(
     'Set-SafeguardAssetAccountPassword','New-SafeguardAssetAccountRandomPassword',
     'Test-SafeguardAssetAccountPassword','Invoke-SafeguardAssetAccountPasswordChange',
     'Remove-SafeguardAssetAccount','Invoke-SafeguardAssetSshHostKeyDiscovery',
+    # assetpartitions.psm1
+    'Get-SafeguardAssetPartition','New-SafeguardAssetPartition','Remove-SafeguardAssetPartition',
+    'Edit-SafeguardAssetPartition',
     # directories.psm1
     'Get-SafeguardDirectoryIdentityProvider','New-SafeguardDirectoryIdentityProvider','Remove-SafeguardDirectoryIdentityProvider',
     'Get-SafeguardDirectory','New-SafeguardDirectory','Test-SafeguardDirectory',

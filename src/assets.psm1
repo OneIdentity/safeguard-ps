@@ -106,52 +106,7 @@ function Resolve-SafeguardAssetAccountId
         $Account
     }
 }
-function Resolve-SafeguardAssetPartitionId
-{
-    [CmdletBinding()]
-    Param(
-        [Parameter(Mandatory=$false)]
-        [string]$Appliance,
-        [Parameter(Mandatory=$false)]
-        [object]$AccessToken,
-        [Parameter(Mandatory=$false)]
-        [switch]$Insecure,
-        [Parameter(Mandatory=$true,Position=0)]
-        [object]$AssetPartition
-    )
 
-    $ErrorActionPreference = "Stop"
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    if (-not ($AssetPartition -as [int]))
-    {
-        try
-        {
-            $local:AssetPartitions = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AssetPartitions `
-                                 -Parameters @{ filter = "Name ieq '$AssetPartition'" })
-        }
-        catch
-        {
-            Write-Verbose $_
-            Write-Verbose "Caught exception with ieq filter, trying with q parameter"
-            $local:AssetPartitions = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AssetPartitions `
-                                 -Parameters @{ q = $AssetPartition })
-        }
-        if (-not $local:AssetPartitions)
-        {
-            throw "Unable to find asset partition matching '$AssetPartition'"
-        }
-        if ($local:AssetPartitions.Count -ne 1)
-        {
-            throw "Found $($local:AssetPartitions.Count) asset partitions matching '$AssetPartition'"
-        }
-        $local:AssetPartitions[0].Id
-    }
-    else
-    {
-        $AssetPartition
-    }
-}
 function Get-SafeguardDirectoryAssetDomains
 {
     [CmdletBinding()]
@@ -421,8 +376,13 @@ NetworkAddress is an IP address rather than a DNS name.
 .PARAMETER Description
 A string containing a description for this asset.
 
+.PARAMETER AssetPartition
+An integer containing an ID  or a string containing the name of the asset partition 
+where this asset should be created.
+
 .PARAMETER AssetPartitionId
 An integer containing the asset partition ID where this asset should be created.
+(If specified, this will override the Partition parameter)
 
 .PARAMETER NetworkAddress
 A string containing the network address for this asset.
@@ -493,6 +453,8 @@ function New-SafeguardAsset
         [string]$DisplayName,
         [Parameter(Mandatory=$false)]
         [string]$Description,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
         [Parameter(Mandatory=$false)]
         [int]$AssetPartitionId = -1,
         [Parameter(Mandatory=$true,Position=1)]
@@ -636,6 +598,15 @@ function New-SafeguardAsset
         if ($DoNotVerifyServerSslCertificate)
         {
             $local:ConnectionProperties.VerifySslCertificate = $false
+        }
+    }
+
+    if (-not $PSBoundParameters.ContainsKey("AssetPartitionId"))
+    {
+        if ($PSBoundParameters.ContainsKey("AssetPartition"))
+        {
+            Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
+            $AssetPartitionId = (Resolve-SafeguardAssetPartitionId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetPartition)
         }
     }
 
@@ -1010,6 +981,7 @@ function Sync-SafeguardDirectoryAsset
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
     $local:AssetPartitionId = (Resolve-SafeguardAssetPartitionId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetPartition)
     $local:DirectoryAsset = Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryAssetToSync
     
