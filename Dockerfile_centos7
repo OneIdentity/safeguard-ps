@@ -1,4 +1,4 @@
-FROM microsoft/powershell:centos7
+FROM mcr.microsoft.com/powershell:centos-7
 MAINTAINER support@oneidentity.com
 
 COPY ["install-local.ps1", "/tmp/safeguard/"]
