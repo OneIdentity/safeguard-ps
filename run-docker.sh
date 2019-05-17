@@ -19,7 +19,13 @@ EOF
     exit 0
 }
 
-case $1 in
+if [ -z "$1" ]; then
+    ImageType=alpine
+else
+    ImageType=$1
+fi
+
+case $ImageType in
 ubuntu | ubuntu18.04)
     DockerFile="Dockerfile_ubuntu18.04"
     ;;
@@ -44,7 +50,6 @@ fedora | fedora28)
 esac
 
 ScriptDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-ImageType=$1
 
 echo "Rebuilding the image: safeguard-ps:$ImageType ..."
 $ScriptDir/build-docker.sh $ImageType

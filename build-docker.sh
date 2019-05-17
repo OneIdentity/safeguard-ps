@@ -19,7 +19,13 @@ EOF
     exit 0
 }
 
-case $1 in
+if [ -z "$1" ]; then
+    ImageType=alpine
+else
+    ImageType=$1
+fi
+
+case $ImageType in
 ubuntu | ubuntu18.04)
     DockerFile="Dockerfile_ubuntu18.04"
     ;;
@@ -44,11 +50,10 @@ fedora | fedora28)
 esac
 
 ScriptDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-ImageType=$1
 
 if [ ! -z "$(docker images -q safeguard-ps:$ImageType)" ]; then
     echo "Cleaning up the old image: safeguard-ps:$ImageType ..."
-    docker rmi "safeguard-ps:$ImageType"
+    docker rmi --force "safeguard-ps:$ImageType"
 fi
 echo "Building a new image: safeguard-ps:$ImageType ..."
 docker build --no-cache -t "safeguard-ps:$ImageType" -f $DockerFile $ScriptDir
