@@ -480,7 +480,6 @@ update this list.
 - Get-SafeguardEntitlement
 - New-SafeguardEntitlement
 - Remove-SafeguardEntitlement
-- Get-SafeguardUserEntitlementReport
 - Get-SafeguardUserLinkedAccount
 - Add-SafeguardUserLinkedAccount
 - Remove-SafeguardUserLinkedAccount
@@ -559,3 +558,4 @@ update this list.
 - Get-SafeguardReportDailyPasswordChangeSuccess
 - Get-SafeguardReportDailyPasswordCheckFail
 - Get-SafeguardReportDailyPasswordCheckSuccess
+- Get-SafeguardReportUserEntitlement

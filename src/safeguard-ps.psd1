@@ -214,11 +214,12 @@ FunctionsToExport = @(
     # managementShell.psm1
     'Get-SafeguardCommand', 'Get-SafeguardBanner',
     # entitlements.psm1
-    'New-SafeguardEntitlement','Get-SafeguardEntitlement','Remove-SafeguardEntitlement','Get-SafeguardUserEntitlementReport',
+    'New-SafeguardEntitlement','Get-SafeguardEntitlement','Remove-SafeguardEntitlement',
     # reports.psm1
     'Get-SafeguardReportAccountWithoutPassword','Get-SafeguardReportDailyAccessRequest',
     'Get-SafeguardReportDailyPasswordCheckFail','Get-SafeguardReportDailyPasswordCheckSuccess',
-    'Get-SafeguardReportDailyPasswordChangeFail','Get-SafeguardReportDailyPasswordChangeSuccess'
+    'Get-SafeguardReportDailyPasswordChangeFail','Get-SafeguardReportDailyPasswordChangeSuccess',
+    'Get-SafeguardReportUserEntitlement'
     )
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
@@ -268,7 +269,7 @@ PrivateData = @{
         ReleaseNotes = @"
 safeguard-ps 2.7 Release Notes:
 
-- Added support for new features
+- Removed Get-SafeguardUserEntitlementReport cmdlet and replaced it with Get-SafeguardReportUserEntitlement
 "@
 
     } # End of PSData hashtable

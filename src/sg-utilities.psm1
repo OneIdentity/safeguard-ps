@@ -47,39 +47,68 @@ namespace Ex
     if ($ThrownException.Response)
     {
         Write-Verbose "---Response Status---"
-        Write-Verbose "$([int]$ThrownException.Response.StatusCode) $($ThrownException.Response.StatusDescription)"
+        if ($ThrownException.Response | Get-Member StatusDescription -MemberType Properties)
+        {
+            $local:StatusDescription = $ThrownException.Response.StatusDescription
+        }
+        elseif ($ThrownException.Response | Get-Member ReasonPhrase -MemberType Properties)
+        {
+            $local:StatusDescription = $ThrownException.Response.ReasonPhrase
+        }
+        Write-Verbose "$([int]$ThrownException.Response.StatusCode) $($local:StatusDescription)"
         Write-Verbose "---Response Body---"
-        $local:Stream = $ThrownException.Response.GetResponseStream()
-        $local:Reader = New-Object System.IO.StreamReader($local:Stream)
-        $local:Reader.BaseStream.Position = 0
-        $local:Reader.DiscardBufferedData()
-        $local:ResponseBody = $local:Reader.ReadToEnd()
-        Write-Verbose $local:ResponseBody
-        $local:Reader.Dispose()
-        try # try/catch is a workaround for this bug in PowerShell:
-        {   # https://stackoverflow.com/questions/41272128/does-convertfrom-json-respect-erroraction
-            $local:ResponseObject = (ConvertFrom-Json $local:ResponseBody) # -ErrorAction SilentlyContinue
-        }
-        catch {}
-        if ($local:ResponseObject.Code) # Safeguard error
+        if ($ThrownException.Response | Get-Member GetResponseStream -MemberType Methods)
         {
-            $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
-                [int]$ThrownException.Response.StatusCode, $ThrownException.Response.StatusDescription,
-                $local:ResponseObject.Code, $local:ResponseObject.Message, $local:ResponseBody
-            ))
+            $local:Stream = $ThrownException.Response.GetResponseStream()
+            $local:Reader = New-Object System.IO.StreamReader($local:Stream)
+            $local:Reader.BaseStream.Position = 0
+            $local:Reader.DiscardBufferedData()
+            $local:ResponseBody = $local:Reader.ReadToEnd()
+            $local:Reader.Dispose()
         }
-        elseif ($local:ResponseObject.error_description) # rSTS error
+        elseif ($ThrownException.Response | Get-Member Content -MemberType Properties)
+        { # different properties and methods on net core
+            try 
+            {
+                $local:ResponseBody = $ThrownException.Response.Content.ReadAsStringAsync().Result
+            }
+            catch {}
+        }
+        if ($local:ResponseBody)
         {
-            $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
-                [int]$ThrownException.Response.StatusCode, $ThrownException.Response.StatusDescription,
-                0, $local:ResponseObject.error_description, $local:ResponseBody
-            ))
+            Write-Verbose $local:ResponseBody
+            try # try/catch is a workaround for this bug in PowerShell:
+            {   # https://stackoverflow.com/questions/41272128/does-convertfrom-json-respect-erroraction
+                $local:ResponseObject = (ConvertFrom-Json $local:ResponseBody) # -ErrorAction SilentlyContinue
+            }
+            catch {}
+            if ($local:ResponseObject.Code) # Safeguard error
+            {
+                $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
+                    [int]$ThrownException.Response.StatusCode, $local:StatusDescription,
+                    $local:ResponseObject.Code, $local:ResponseObject.Message, $local:ResponseBody
+                ))
+            }
+            elseif ($local:ResponseObject.error_description) # rSTS error
+            {
+                $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
+                    [int]$ThrownException.Response.StatusCode, $local:StatusDescription,
+                    0, $local:ResponseObject.error_description, $local:ResponseBody
+                ))
+            }
+            else # ??
+            {
+                $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
+                    [int]$ThrownException.Response.StatusCode, $local:StatusDescription,
+                    0, "", $local:ResponseBody
+                ))
+            }
         }
         else # ??
         {
             $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
-                [int]$ThrownException.Response.StatusCode, $ThrownException.Response.StatusDescription,
-                0, "", $local:ResponseBody
+                [int]$ThrownException.Response.StatusCode, $local:StatusDescription,
+                0, "", "<unable to retrieve response content>"
             ))
         }
     }

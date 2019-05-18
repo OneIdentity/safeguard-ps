@@ -76,9 +76,11 @@ function Invoke-AuditLogMethod
 
     # Calling AuditLog with just an endDate returns a result using a startDate 24 hours before the specified endDate
     Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $RelativeUrl -Accept "text/csv" -OutFile $local:OutFile -Parameters @{
-        endDate = (Format-DateTimeAsString $local:EndDate);
-        filter = $Filter; fields = $Fields }
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $RelativeUrl `
+        -Accept "text/csv" -OutFile $local:OutFile `
+        -Parameters @{
+            endDate = (Format-DateTimeAsString $local:EndDate);
+            filter = $Filter; fields = $Fields }
 
     Out-FileAndExcel -OutFile $local:OutFile -Excel:$Excel
 }
@@ -564,4 +566,98 @@ function Get-SafeguardReportDailyPasswordChangeSuccess
         ("LogTime,SystemId,AccountId,SystemName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
         "AssetPartitionId,AssetPartitionName,ProfileId,ProfileName,SyncGroupId,SyncGroupName,ApplianceId,ApplianceName") `
         -OutFile $local:OutFile -Excel:$Excel
+}
+
+<#
+.SYNOPSIS
+Generates user entitlement report for a set of users in Safeguard via the Web API.
+
+.DESCRIPTION
+User entitlement report is a report of what accounts can be accessed by a set of users.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER UserList
+An integer containing the ID of the access policy to get or a string containing the name.
+
+.PARAMETER OutputDirectory
+String containing the directory where to create the CSV file.
+
+.PARAMETER Excel
+Automatically open the CSV file into excel after it is generation.
+
+.PARAMETER StdOut
+Send CSV to standard out instead of generating a file.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardReportUserEntitlement -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardReportUserEntitlement testUser1,testUser2
+
+.EXAMPLE
+Get-SafeguardReportUserEntitlement 123
+#>
+function Get-SafeguardReportUserEntitlement
+{
+    [CmdletBinding(DefaultParameterSetName="File")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object[]]$UserList,
+        [Parameter(Mandatory=$false, ParameterSetName="File")]
+        [string]$OutputDirectory = (Get-Location),
+        [Parameter(Mandatory=$false, ParameterSetName="File")]
+        [switch]$Excel = $false,
+        [Parameter(Mandatory=$false, ParameterSetName="StdOut")]
+        [switch]$StdOut
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+    if (-not (Test-SafeguardMinVersionInternal -Appliance $Appliance -Insecure:$Insecure -MinVersion "2.7"))
+    {
+        throw "This cmdlet requires Safeguard version 2.7 or greater"
+    }
+
+    $local:OutFile = (Get-OutFileForParam -OutputDirectory $OutputDirectory -FileName "sg-user-entitlements-$((Get-Date).ToString("yyyy-MM-dd")).csv" -StdOut:$StdOut)
+
+    if ($UserList)
+    {
+        [object[]]$local:Users = $null
+        foreach ($local:User in $UserList)
+        {
+            $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $User)
+            $local:Users += $($local:ResolvedUser).Id
+        }
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Reports/Entitlements/UserEntitlements" `
+            -Parameters @{ userIds = ($Users -join ",") } -Accept "text/csv" -OutFile $local:OutFile
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Reports/Entitlements/UserEntitlements" `
+            -Accept "text/csv" -OutFile $local:OutFile
+    }
+
+    Out-FileAndExcel -OutFile $local:OutFile -Excel:$Excel
 }
