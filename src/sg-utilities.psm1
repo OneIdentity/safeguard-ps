@@ -55,7 +55,7 @@ namespace Ex
         {
             $local:StatusDescription = $ThrownException.Response.ReasonPhrase
         }
-        Write-Verbose "$([int]$ThrownException.Response.StatusCode) $($local:StatusDescription))"
+        Write-Verbose "$([int]$ThrownException.Response.StatusCode) $($local:StatusDescription)"
         Write-Verbose "---Response Body---"
         if ($ThrownException.Response | Get-Member GetResponseStream -MemberType Methods)
         {
@@ -70,7 +70,7 @@ namespace Ex
         { # different properties and methods on net core
             try 
             {
-                $local:ResponseBody = $ThrownException.Response.Content.ReadAsStringAsync().Wait().Result
+                $local:ResponseBody = $ThrownException.Response.Content.ReadAsStringAsync().Result
             }
             catch {}
         }
@@ -108,7 +108,7 @@ namespace Ex
         {
             $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
                 [int]$ThrownException.Response.StatusCode, $local:StatusDescription,
-                0, "", ""
+                0, "", "<unable to retrieve response content>"
             ))
         }
     }
