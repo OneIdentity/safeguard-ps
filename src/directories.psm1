@@ -1998,25 +1998,30 @@ function Get-SafeguardDirectoryMigrationData
 
     $local:DirectoriesCreated = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
         Core GET "AuditLog/ObjectChanges/Directory" `
-        -Parameters @{filter = "EventName eq 'DirectoryCreated'"; fields = "LogTime,EventName,ObjectName,ObjectId"})
+        -Parameters @{filter = "EventName eq 'DirectoryCreated'"; fields = "LogTime,EventName,ObjectName,ObjectId";
+                      startDate = (Get-EntireAuditLogStartDateAsString)})
     Write-Verbose "Directories Created:"
     Write-Verbose ($local:DirectoriesCreated | Format-Table | Out-String)
 
     $local:DirectoriesDeleted = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
         Core GET "AuditLog/ObjectChanges/Directory" `
-        -Parameters @{filter = "EventName eq 'DirectoryDeleted'"; fields = "LogTime,EventName,ObjectName,ObjectId"})
+        -Parameters @{filter = "EventName eq 'DirectoryDeleted'"; fields = "LogTime,EventName,ObjectName,ObjectId";
+                      startDate = (Get-EntireAuditLogStartDateAsString)})
     Write-Verbose "Directories Deleted:"
     Write-Verbose ($local:DirectoriesDeleted | Format-Table | Out-String)
 
     $local:IdentityProvidersCreated = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
         Core GET "AuditLog/ObjectChanges/IdentityProvider" `
-        -Parameters @{filter = "EventName eq 'IdentityProviderCreated'"; fields = "LogTime,EventName,ObjectName,ObjectId"})
+        -Parameters @{filter = "EventName eq 'IdentityProviderCreated'"; fields = "LogTime,EventName,ObjectName,ObjectId";
+                      startDate = (Get-EntireAuditLogStartDateAsString)})
     Write-Verbose "Directory Identity Providers Created:"
     Write-Verbose ($local:IdentityProvidersCreated | Format-Table | Out-String)
 
     $local:DirectoryAssetsCreated = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
         Core GET "AuditLog/ObjectChanges/Asset" `
-        -Parameters @{filter = "EventName eq 'AssetCreated' and NewValue contains '`"IsDirectory`":true'"; fields = "LogTime,EventName,ObjectName,ObjectId"})
+        -Parameters @{filter = "EventName eq 'AssetCreated' and NewValue contains '`"IsDirectory`":true'";
+                      fields = "LogTime,EventName,ObjectName,ObjectId";
+                      startDate = (Get-EntireAuditLogStartDateAsString)})
     Write-Verbose "Directory Assets Created:"
     Write-Verbose ($local:DirectoryAssetsCreated | Format-Table | Out-String)
 

@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/powershell:ubuntu-16.04
+FROM mcr.microsoft.com/powershell:fedora-28
 MAINTAINER support@oneidentity.com
 
 COPY ["install-local.ps1", "/tmp/safeguard/"]

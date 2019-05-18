@@ -75,8 +75,9 @@ function Invoke-AuditLogMethod
     $local:EndDate = ($DayOnly.AddDays(1))
 
     # Calling AuditLog with just an endDate returns a result using a startDate 24 hours before the specified endDate
+    Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $RelativeUrl -Accept "text/csv" -OutFile $local:OutFile -Parameters @{
-        endDate = "$($local:EndDate.ToString("yyyy-MM-ddTHH:mm:sszzz"))";
+        endDate = (Format-DateTimeAsString $local:EndDate);
         filter = $Filter; fields = $Fields }
 
     Out-FileAndExcel -OutFile $local:OutFile -Excel:$Excel
