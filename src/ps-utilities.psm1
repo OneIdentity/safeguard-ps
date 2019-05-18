@@ -149,7 +149,7 @@ function Get-Tool
     }
     throw "Unable to find $Tool"
 }
-
+# Helper function for getting a client certificate from either the system store or from a PFX file
 function Use-CertificateFile
 {
     [CmdletBinding()]

@@ -185,7 +185,7 @@ function New-SafeguardUrl
     {
         $local:Url += "?"
         $Parameters.Keys | ForEach-Object {
-            $local:Url += ($_ + "=" + $Parameters.Item($_) + "&")
+            $local:Url += ($_ + "=" + [uri]::EscapeDataString($Parameters.Item($_)) + "&")
         }
         $local:Url = $local:Url -replace ".$"
     }

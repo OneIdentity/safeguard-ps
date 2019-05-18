@@ -501,3 +501,23 @@ function Resolve-ReasonCodeId
         $ReasonCode
     }
 }
+# Helper function for formatting dates (useful for passing to audit log query parameters)
+function Format-DateTimeAsString
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [DateTime]$DateTime
+    )
+
+    "$($DateTime.ToString("yyyy-MM-ddTHH:mm:sszzz"))"
+}
+# Helper function to get begin time for audit log
+function Get-EntireAuditLogStartDateAsString
+{
+    [CmdletBinding()]
+    Param(
+    )
+
+    Format-DateTimeAsString ((Get-Date -Month 1 -Day 1 -Year 2017 -Hour 0 -Minute 0 -Second 0).ToUniversalTime())
+}
