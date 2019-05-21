@@ -372,13 +372,13 @@ function Get-IdentitiesFile
         [Parameter(Mandatory=$true, Position=3)]
         [PSCredential]$Credential,
         [Parameter(Mandatory=$false)]
-        [switch]$IncludeSafeguardIdentities
+        [switch]$ExcludeSafeguardIdentities
 	)
 	
 	$local:adIdentitiesFile = Join-Path $OutputDirectory $DomainName-identities.csv
 	$local:sgIdentitiesFile = Join-Path $OutputDirectory $Identifier-identities.csv
 	
-	if ($IncludeSafeguardIdentities)
+	if (-not $ExcludeSafeguardIdentities)
 	{
 		# Get both and merge into a single file with the desired file name
 		Get-SafeguardAccessCertificationIdentity -Identifier $Identifier -OutputDirectory $OutputDirectory
@@ -1050,7 +1050,7 @@ function Get-SafeguardAccessCertificationAll
         [Parameter(Mandatory=$true, Position=2)]
         [string]$DomainName,
         [Parameter(Mandatory=$false)]
-        [switch]$IncludeSafeguardIdentities,
+        [switch]$ExcludeSafeguardIdentities,
         [Parameter(Mandatory=$false)]
         [PSCredential]$Credential = (Get-Credential -Message "Active Directory login ($DomainName)"),
         [Parameter(Mandatory=$false)]
@@ -1063,5 +1063,5 @@ function Get-SafeguardAccessCertificationAll
 
 	Get-SafeguardAccessCertificationEntitlement -Identifier $Identifier -OutputDirectory $OutputDirectory
 
-	Get-IdentitiesFile $Identifier $OutputDirectory $DomainName $Credential -IncludeSafeguardIdentities:$IncludeSafeguardIdentities.IsPresent
+	Get-IdentitiesFile $Identifier $OutputDirectory $DomainName $Credential -ExcludeSafeguardIdentities:$ExcludeSafeguardIdentities.IsPresent
 }
