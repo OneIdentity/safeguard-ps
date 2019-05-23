@@ -581,6 +581,35 @@ function Edit-SafeguardDirectoryIdentityProvider
 }
 
 <#
+.SYNOPSIS
+Get the schema mapping from a directory identity provider in Safeguard via the Web API.
+
+.DESCRIPTION
+Edit an existing directory identity provider in Safeguard that can be used to manage accounts.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER DirectoryToEdit
+An integer containing the ID of the directory identity provider to edit or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardDirectoryIdentityProviderSchemaMapping -AccessToken $token -Appliance 10.5.32.54 -Insecure internal.domain.corp
+
+.EXAMPLE
+Get-SafeguardDirectoryIdentityProviderSchemaMapping internal.domain.corp
 #>
 function Get-SafeguardDirectoryIdentityProviderSchemaMapping
 {
@@ -604,6 +633,38 @@ function Get-SafeguardDirectoryIdentityProviderSchemaMapping
 }
 
 <#
+.SYNOPSIS
+Set the schema mapping for a directory identity provider in Safeguard via the Web API.
+
+.DESCRIPTION
+Edit an existing directory identity provider in Safeguard that can be used to manage accounts.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER DirectoryToEdit
+An integer containing the ID of the directory identity provider to edit or a string containing the name.
+
+.PARAMETER SchemaMappingObj
+An object containing the directory identity provider schema mapping with desired properties set.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Set-SafeguardDirectoryIdentityProviderSchemaMapping -AccessToken $token -Appliance 10.5.32.54 -Insecure internal.domain.corp -SchemaMappingObj $schema
+
+.EXAMPLE
+Set-SafeguardDirectoryIdentityProviderSchemaMapping internal.domain.corp @{ DescriptionAttribute = "userPrincipalName" }
 #>
 function Set-SafeguardDirectoryIdentityProviderSchemaMapping
 {
