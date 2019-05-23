@@ -229,7 +229,7 @@ function Get-SafeguardDirectoryIdentityProvider
 Create new directory identity provider in Safeguard via the Web API.
 
 .DESCRIPTION
-Create a new directory in Safeguard for adding directory users that can log into
+Create a new directory identity provider in Safeguard for adding directory users that can log into
 Safeguard via the Web API.
 
 .PARAMETER Appliance
@@ -243,37 +243,37 @@ Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER ServiceAccountDomainName
 A string containing the service account domain name if it has one.  This is used
-for creating AD directories.
+for creating AD directory identity providers.
 
 .PARAMETER ServiceAccountName
 A string containing the service account name.  This is used for creating AD directories.
 
 .PARAMETER ServiceAccountDistinguishedName
 A string containing the LDAP distinguished name of a service account.  This is used for
-creating LDAP directories.
+creating LDAP directory identity providers.
 
 .PARAMETER ServiceAccountPassword
 A SecureString containing the password to use for the service account.
 
 .PARAMETER NetworkAddress
-A string containing the network address for this directory.  This is used for creating
-LDAP directories.
+A string containing the network address for this directory identity provider.  This is used for creating
+LDAP directory identity providers.
 
 .PARAMETER Port
-An integer containing the port for this directory.  This is used for creating
-LDAP directories.
+An integer containing the port for this directory identity provider.  This is used for creating
+LDAP directory identity providers.
 
 .PARAMETER NoSslEncryption
-Do not use SSL encryption for LDAP directory.
+Do not use SSL encryption for LDAP directory identity provider.
 
 .PARAMETER DoNotVerifyServerSslCertificate
-Do not verify Server SSL certificate of LDAP directory.
+Do not verify Server SSL certificate of LDAP directory identity provider.
 
 .PARAMETER DisplayName
-Name for the identity provider (default for AD is ServiceAccountDomainName)
+Name for the directory identity provider (default for AD is ServiceAccountDomainName)
 
 .PARAMETER Description
-A string containing a description for this directory.
+A string containing a description for this directory identity provider.
 
 .INPUTS
 None.
@@ -417,7 +417,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER DirectoryToDelete
-An integer containing the ID of the directory to remove or a string containing the name.
+An integer containing the ID of the directory identity provider to remove or a string containing the name.
 
 .INPUTS
 None.
@@ -450,6 +450,134 @@ function Remove-SafeguardDirectoryIdentityProvider
 
     $local:IdpId = (Resolve-SafeguardDirectoryIdentityProviderId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToDelete)
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "IdentityProviders/$($local:IdpId)"
+}
+
+<#
+.SYNOPSIS
+Edit existing directory identity provider in Safeguard via the Web API.
+
+.DESCRIPTION
+Edit an existing directory identity provider in Safeguard that can be used to manage accounts.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER DirectoryToEdit
+An integer containing the ID of the directory identity provider to edit or a string containing the name.
+
+.PARAMETER NetworkAddress
+A string containing the network address for this directory identity provider.  This is used for creating
+LDAP directory identity providers.
+
+.PARAMETER Port
+An integer containing the port for this directory identiy provider.  This is used for creating
+LDAP directory identity providers.
+
+.PARAMETER NoSslEncryption
+Do not use SSL encryption for LDAP directory identity provider.
+
+.PARAMETER DoNotVerifyServerSslCertificate
+Do not verify Server SSL certificate of LDAP directory identity provider.
+
+.PARAMETER Description
+A string containing a description for this directory identity provider.
+
+.PARAMETER DirectoryObject
+An object containing the existing directory identity provider with desired properties set.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Edit-SafeguardDirectoryIdentityProvider -AccessToken $token -Appliance 10.5.32.54 -Insecure internal.domain.corp
+
+.EXAMPLE
+Edit-SafeguardDirectoryIdentityProvider ldap.domain.corp -ServiceAccountDistinguishedName "cn=dev-sa,ou=people,dc=ldap,dc=domain,dc=corp" -NoSslEncryption
+
+.EXAMPLE
+Edit-SafeguardDirectoryIdentityProvider -DirectoryObject $obj
+#>
+function Edit-SafeguardDirectoryIdentityProvider
+{
+    [CmdletBinding(DefaultParameterSetName="Attributes")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$true,Position=0)]
+        [object]$DirectoryToEdit,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$NetworkAddress,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [int]$Port,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [switch]$NoSslEncryption,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [switch]$DoNotVerifyServerSslCertificate,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$DisplayName,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$Description,
+        [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
+        [object]$DirectoryObject
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $DirectoryObject)
+    {
+        throw "DirectoryObject must not be null"
+    }
+
+    if ($PsCmdlet.ParameterSetName -eq "Attributes")
+    {
+        if (-not $PSBoundParameters.ContainsKey("DirectoryToEdit"))
+        {
+            $DirectoryToEdit = (Read-Host "DirectoryToEdit")
+        }
+        $local:IdpId = (Resolve-SafeguardDirectoryIdentityProviderId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToEdit)
+    }
+
+    if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
+    {
+        $IdpObject = (Get-SafeguardDirectoryIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:IdpId)
+
+        # Connection Properties
+        if (-not $IdpObject.DirectoryProperties.ConnectionProperties) { $IdpObject.DirectoryProperties.ConnectionProperties = @{} }
+        if (-not $IdpObject.DirectoryProperties) { $IdpObject.DirectoryProperties = @{} }
+        if ($PSBoundParameters.ContainsKey("Port")) { $IdpObject.DirectoryProperties.ConnectionProperties.Port = $Port }
+        if ($NoSslEncryption)
+        {
+            $IdpObject.DirectoryProperties.ConnectionProperties.UseSslEncryption = $false
+            $IdpObject.DirectoryProperties.ConnectionProperties.VerifySslCertificate = $false
+        }
+        if ($DoNotVerifyServerSslCertificate)
+        {
+            $IdpObject.DirectoryProperties.ConnectionProperties.VerifySslCertificate = $false
+        }
+
+        # Body
+        if ($PSBoundParameters.ContainsKey("DisplayName")) { $IdpObject.Name = $DisplayName }
+        if ($PSBoundParameters.ContainsKey("Description")) { $IdpObject.Description = $Description }
+        if ($PSBoundParameters.ContainsKey("NetworkAddress")) { $IdpObject.NetworkAddress = $NetworkAddress }
+
+        $DirectoryObject = $IdpObject
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "IdentityProviders/$($DirectoryObject.Id)" -Body $DirectoryObject
 }
 
 <#
@@ -547,7 +675,7 @@ Create a new directory in Safeguard that can be used to manage accounts.  As of
 Safeguard version 2.7 and greater this cmdlet no longer creates an identity
 provider, so it will no longer allow the creation of Safeguard users from the
 added directory.  To create Safeguard users from a directory, use the
-New-SafeguardDirectoryIdentityProvider cmdlet to add the identity provider..
+New-SafeguardDirectoryIdentityProvider cmdlet to add the identity provider.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.

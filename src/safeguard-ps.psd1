@@ -163,7 +163,8 @@ FunctionsToExport = @(
     'Get-SafeguardAssetPartition','New-SafeguardAssetPartition','Remove-SafeguardAssetPartition',
     'Edit-SafeguardAssetPartition',
     # directories.psm1
-    'Get-SafeguardDirectoryIdentityProvider','New-SafeguardDirectoryIdentityProvider','Remove-SafeguardDirectoryIdentityProvider',
+    'Get-SafeguardDirectoryIdentityProvider','New-SafeguardDirectoryIdentityProvider',
+    'Remove-SafeguardDirectoryIdentityProvider','Edit-SafeguardDirectoryIdentityProvider',
     'Get-SafeguardDirectory','New-SafeguardDirectory','Test-SafeguardDirectory',
     'Remove-SafeguardDirectory','Edit-SafeguardDirectory','Sync-SafeguardDirectory',
     'Get-SafeguardDirectoryAccount','Find-SafeguardDirectoryAccount','New-SafeguardDirectoryAccount',
