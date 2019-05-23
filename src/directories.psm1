@@ -553,32 +553,84 @@ function Edit-SafeguardDirectoryIdentityProvider
 
     if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
     {
-        $IdpObject = (Get-SafeguardDirectoryIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:IdpId)
+        $local:IdpObject = (Get-SafeguardDirectoryIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:IdpId)
 
         # Connection Properties
-        if (-not $IdpObject.DirectoryProperties.ConnectionProperties) { $IdpObject.DirectoryProperties.ConnectionProperties = @{} }
-        if (-not $IdpObject.DirectoryProperties) { $IdpObject.DirectoryProperties = @{} }
-        if ($PSBoundParameters.ContainsKey("Port")) { $IdpObject.DirectoryProperties.ConnectionProperties.Port = $Port }
+        if (-not $local:IdpObject.DirectoryProperties.ConnectionProperties) { $local:IdpObject.DirectoryProperties.ConnectionProperties = @{} }
+        if (-not $local:IdpObject.DirectoryProperties) { $local:IdpObject.DirectoryProperties = @{} }
+        if ($PSBoundParameters.ContainsKey("Port")) { $local:IdpObject.DirectoryProperties.ConnectionProperties.Port = $Port }
         if ($NoSslEncryption)
         {
-            $IdpObject.DirectoryProperties.ConnectionProperties.UseSslEncryption = $false
-            $IdpObject.DirectoryProperties.ConnectionProperties.VerifySslCertificate = $false
+            $local:IdpObject.DirectoryProperties.ConnectionProperties.UseSslEncryption = $false
+            $local:IdpObject.DirectoryProperties.ConnectionProperties.VerifySslCertificate = $false
         }
         if ($DoNotVerifyServerSslCertificate)
         {
-            $IdpObject.DirectoryProperties.ConnectionProperties.VerifySslCertificate = $false
+            $local:IdpObject.DirectoryProperties.ConnectionProperties.VerifySslCertificate = $false
         }
 
         # Body
-        if ($PSBoundParameters.ContainsKey("DisplayName")) { $IdpObject.Name = $DisplayName }
-        if ($PSBoundParameters.ContainsKey("Description")) { $IdpObject.Description = $Description }
-        if ($PSBoundParameters.ContainsKey("NetworkAddress")) { $IdpObject.NetworkAddress = $NetworkAddress }
+        if ($PSBoundParameters.ContainsKey("DisplayName")) { $local:IdpObject.Name = $DisplayName }
+        if ($PSBoundParameters.ContainsKey("Description")) { $local:IdpObject.Description = $Description }
+        if ($PSBoundParameters.ContainsKey("NetworkAddress")) { $local:IdpObject.NetworkAddress = $NetworkAddress }
 
-        $DirectoryObject = $IdpObject
+        $DirectoryObject = $local:IdpObject
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "IdentityProviders/$($DirectoryObject.Id)" -Body $DirectoryObject
 }
+
+<#
+#>
+function Get-SafeguardDirectoryIdentityProviderSchemaMapping
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$DirectoryToGet
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    (Get-SafeguardDirectoryIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+        $DirectoryToGet).DirectoryProperties.SchemaProperties.UserProperties
+}
+
+<#
+#>
+function Set-SafeguardDirectoryIdentityProviderSchemaMapping
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$DirectoryToGet,
+        [Parameter(Mandatory=$true,Position=1)]
+        [object]$SchemaMappingObj
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:IdpObject = (Get-SafeguardDirectoryIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToGet)
+    $local:IdpObject.DirectoryProperties.SchemaProperties.UserProperties = $SchemaMappingObj
+
+    (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "IdentityProviders/$($local:IdpObject.Id)" `
+        -Body $local:IdpObject).DirectoryProperties.SchemaProperties.UserProperties
+}
+
 
 <#
 .SYNOPSIS
