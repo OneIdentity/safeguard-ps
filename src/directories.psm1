@@ -599,6 +599,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER DirectoryToEdit
 An integer containing the ID of the directory identity provider to edit or a string containing the name.
 
+.PARAMETER SchemaType
+A string containing which schema type to get.
+
 .INPUTS
 None.
 
@@ -606,10 +609,10 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardDirectoryIdentityProviderSchemaMapping -AccessToken $token -Appliance 10.5.32.54 -Insecure internal.domain.corp
+Get-SafeguardDirectoryIdentityProviderSchemaMapping -AccessToken $token -Appliance 10.5.32.54 -Insecure internal.domain.corp -SchemaType Group
 
 .EXAMPLE
-Get-SafeguardDirectoryIdentityProviderSchemaMapping internal.domain.corp
+Get-SafeguardDirectoryIdentityProviderSchemaMapping internal.domain.corp User
 #>
 function Get-SafeguardDirectoryIdentityProviderSchemaMapping
 {
@@ -622,14 +625,22 @@ function Get-SafeguardDirectoryIdentityProviderSchemaMapping
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
-        [object]$DirectoryToGet
+        [object]$DirectoryToGet,
+        [Parameter(Mandatory=$true,Position=1)]
+        [ValidateSet("User","Group",IgnoreCase=$true)]
+        [string]$SchemaType
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    (Get-SafeguardDirectoryIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-        $DirectoryToGet).DirectoryProperties.SchemaProperties.UserProperties
+    $local:SchemaProperties = (Get-SafeguardDirectoryIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+        $DirectoryToGet).DirectoryProperties.SchemaProperties
+    switch ($SchemaType)
+    {
+        User {$local:SchemaProperties.UserProperties}
+        Group {$local:SchemaProperties.GroupProperties | Format-List}
+    }
 }
 
 <#
@@ -651,6 +662,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER DirectoryToEdit
 An integer containing the ID of the directory identity provider to edit or a string containing the name.
 
+.PARAMETER SchemaType
+A string containing which schema type to get.
+
 .PARAMETER SchemaMappingObj
 An object containing the directory identity provider schema mapping with desired properties set.
 
@@ -661,10 +675,10 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Set-SafeguardDirectoryIdentityProviderSchemaMapping -AccessToken $token -Appliance 10.5.32.54 -Insecure internal.domain.corp -SchemaMappingObj $schema
+Set-SafeguardDirectoryIdentityProviderSchemaMapping -AccessToken $token -Appliance 10.5.32.54 -Insecure internal.domain.corp -SchemaType User -SchemaMappingObj $schema
 
 .EXAMPLE
-Set-SafeguardDirectoryIdentityProviderSchemaMapping internal.domain.corp @{ DescriptionAttribute = "userPrincipalName" }
+Set-SafeguardDirectoryIdentityProviderSchemaMapping internal.domain.corp user @{ DescriptionAttribute = "userPrincipalName" }
 #>
 function Set-SafeguardDirectoryIdentityProviderSchemaMapping
 {
@@ -679,6 +693,9 @@ function Set-SafeguardDirectoryIdentityProviderSchemaMapping
         [Parameter(Mandatory=$true,Position=0)]
         [object]$DirectoryToGet,
         [Parameter(Mandatory=$true,Position=1)]
+        [ValidateSet("User","Group",IgnoreCase=$true)]
+        [string]$SchemaType,
+        [Parameter(Mandatory=$true,Position=2)]
         [object]$SchemaMappingObj
     )
 
@@ -686,10 +703,21 @@ function Set-SafeguardDirectoryIdentityProviderSchemaMapping
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:IdpObject = (Get-SafeguardDirectoryIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToGet)
-    $local:IdpObject.DirectoryProperties.SchemaProperties.UserProperties = $SchemaMappingObj
 
-    (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "IdentityProviders/$($local:IdpObject.Id)" `
-        -Body $local:IdpObject).DirectoryProperties.SchemaProperties.UserProperties
+    switch ($SchemaType)
+    {
+        User {
+            $local:IdpObject.DirectoryProperties.SchemaProperties.UserProperties = $SchemaMappingObj
+            (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "IdentityProviders/$($local:IdpObject.Id)" `
+                -Body $local:IdpObject).DirectoryProperties.SchemaProperties.UserProperties
+        }
+        Group {
+            $local:IdpObject.DirectoryProperties.SchemaProperties.GroupProperties = $SchemaMappingObj
+            (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "IdentityProviders/$($local:IdpObject.Id)" `
+                -Body $local:IdpObject).DirectoryProperties.SchemaProperties.GroupProperties | Format-List
+        }
+    }
+    
 }
 
 
