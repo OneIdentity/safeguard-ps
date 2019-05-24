@@ -492,12 +492,22 @@ function Set-SafeguardStarlingSetting
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
         [string]$SettingKey,
-        [Parameter(Mandatory=$true,Position=1)]
+        [Parameter(Mandatory=$false,Position=1)]
         [string]$SettingValue
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not $PSBoundParameters.ContainsKey("SettingValue"))
+    {
+        $SettingValue = (Read-Host "SettingValue")
+    }
+
+    if (-not $SettingValue)
+    {
+        $SettingValue = $null
+    }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Settings/Starling $SettingKey" `
         -Body @{
