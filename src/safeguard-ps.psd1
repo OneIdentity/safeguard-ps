@@ -265,13 +265,20 @@ PrivateData = @{
         IconUri = 'https://raw.githubusercontent.com/OneIdentity/safeguard-ps/master/SafeguardLogo.ico'
 
         # Pre-release tag
-        Prerelease = '-pre'
+        # Prerelease = '-pre'
 
         # ReleaseNotes of this module
         ReleaseNotes = @"
 safeguard-ps 2.7 Release Notes:
 
-- Removed Get-SafeguardUserEntitlementReport cmdlet and replaced it with Get-SafeguardReportUserEntitlement
+- Added better support for Docker and container development
+- Updated safeguard-ps to support Safeguard 2.7 directory changes
+  - `*-SafeguardDirectory` cmdlets now manage directory assets
+  - `*-SafeguardDirectoryIdentityProvider` cmdlets now manage directory identity providers
+- Added support for modifying directory schema mappings
+- Removed `Get-SafeguardUserEntitlementReport` cmdlet and replaced it with `Get-SafeguardReportUserEntitlement`
+- Added basic support for asset partitions
+- Added `Get-SafeguardA2aCredentialRetrievalInformation` to make it easier to gather information for calling A2A
 "@
 
     } # End of PSData hashtable
