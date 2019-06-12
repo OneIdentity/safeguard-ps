@@ -11,7 +11,7 @@
 RootModule = 'safeguard-ps.psm1'
 
 # Version number of this module.
-ModuleVersion = '2.7.99999'
+ModuleVersion = '2.8.99999'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -269,9 +269,9 @@ PrivateData = @{
 
         # ReleaseNotes of this module
         ReleaseNotes = @"
-safeguard-ps 2.7 Release Notes:
+safeguard-ps 2.8 Release Notes:
 
-- Removed Get-SafeguardUserEntitlementReport cmdlet and replaced it with Get-SafeguardReportUserEntitlement
+- Updates and bug fixes.
 "@
 
     } # End of PSData hashtable
