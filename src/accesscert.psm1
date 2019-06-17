@@ -802,7 +802,7 @@ function Get-SafeguardAccessCertificationEntitlement
                     $local:Resource += " [$($_.AccountDomainName)]"
                 }
 
-                $local:Permission = (Get-PermissionText $_)
+                $local:Permission = (Get-PermissionTextV3 $_)
                 if ($local:Permission)
                 {
                     $local:Entitlement = New-Object PSObject -Property @{
