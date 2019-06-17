@@ -264,13 +264,14 @@ function Get-NoAccountPermissionText
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    switch ($SessionAccountType.ToLower())
+    switch -regex ($SessionAccountType.ToLower())
     {
-        "usersupplied" {
+        ## updated for v3 with linkedsession and customsession // local session and directorysession should be handled with account ##
+        "usersupplied|customsession" {
             $local:Permission = "$Protocol session with user-supplied credentials"
             break
         }
-        "linkedaccount" {
+        "linkedaccount|linkedsession" {
             $local:Permission = "$Protocol session as linked account"
             break
         }
@@ -324,6 +325,53 @@ function Get-PermissionText
         default {
             $local:Permission = $null
             Write-Warning "Unrecognized access request type '$($PolEnt.Policy.AccessRequestProperties.AccessRequestType)'"
+            break
+        }
+    }
+
+    $local:Permission
+}
+function Get-PermissionTextV3
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true, Position=0)]
+        [object]$PolEnt
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    switch ($PolEnt.AccessRequestType.ToLower())
+    {
+        "password" { $local:Permission = "checkout $($PolEnt.AccountName) password"; break }
+        "remotedesktop" {
+            if ($PolEnt.Account)
+            {
+                $local:Permission = (Get-AccountPermissionText "RDP" $PolEnt.AssetName $PolEnt.AccountAssetName $PolEnt.AccountName `
+                                     -AccountDomainName $PolEnt.AccountDomainName)
+            }
+            else
+            {
+                $local:Permission = (Get-NoAccountPermissionText "RDP" $PolEnt.AccountRequestType)
+            }
+            break
+        }
+        "ssh" {
+            if ($PolEnt.Account)
+            {
+                $local:Permission = (Get-AccountPermissionText "SSH" $PolEnt.AssetName $PolEnt.AccountAssetName $PolEnt.AccountName`
+                                     -AccountDomainName $PolEnt.AccountDomainName)
+            }
+            else
+            {
+                $local:Permission = (Get-NoAccountPermissionText "SSH" $PolEnt.AccountRequestType)
+            }
+            break
+        }
+        default {
+            $local:Permission = $null
+            Write-Warning "Unrecognized access request type '$($PolEnt.AccessRequestType)'"
             break
         }
     }
@@ -666,34 +714,92 @@ function Get-SafeguardAccessCertificationEntitlement
         Write-Progress -Activity "Compiling entitlements" -Status "$($i + 1) of $($local:AccountsTable.Count)" -PercentComplete $local:Percent
 
         [int]$local:AccountKey = $local:AccountKeys[$i]
-        $local:Ent = (Invoke-SafeguardMethod Core POST "Reports/Entitlements/UserEntitlement" -Body (,$local:AccountKey) `
-            -Parameters @{
-                fields = "UserEntitlements.User,UserEntitlements.PolicyEntitlements"
-            })
-
-        if ($local:Ent.UserEntitlements.PolicyEntitlements)
+        if ($SafeguardSession.Version -lt 3)
         {
-            $local:Ent.UserEntitlements.PolicyEntitlements | ForEach-Object {
-                if ($_.RoleIdentity)
+            ###################################
+            ## Entitlement Lookup for v2 API ##
+            ###################################
+            $local:Ent = (Invoke-SafeguardMethod Core POST "Reports/Entitlements/UserEntitlement" -Body (,$local:AccountKey) `
+                -Parameters @{
+                    fields = "UserEntitlements.User,UserEntitlements.PolicyEntitlements"
+                })
+
+            if ($local:Ent.UserEntitlements.PolicyEntitlements)
+            {
+                $local:Ent.UserEntitlements.PolicyEntitlements | ForEach-Object {
+                    if ($_.RoleIdentity)
+                    {   # access derived from group membership
+                        $local:GroupKey = "$($_.RoleIdentity.Id)"
+                    }
+                    else
+                    {   # access derived from entitlement membership
+                        $local:GroupKey = "e/$($_.Policy.RoleId)"
+                    }
+
+                    $local:GroupAuthority = $local:GroupsTable[$local:GroupKey].authority
+                    $local:GroupId = $local:GroupsTable[$local:GroupKey].id
+
+                    $local:Resource = "$($_.System.Name)"
+                    if ($_.System.Name -ine $_.System.NetworkAddress -and $_.System.NetworkAddress)
+                    {   # add in the network address if it provides additional asset identification info
+                        $local:Resource += " [$($_.System.NetworkAddress)]"
+                    }
+                    elseif ($_.System.Name -ine $_.Account.DomainName -and $_.Account.DomainName)
+                    {   # add in the domain name if it provides additional asset identification info
+                        $local:Resource += " [$($_.Account.DomainName)]"
+                    }
+
+                    $local:Permission = (Get-PermissionText $_)
+                    if ($local:Permission)
+                    {
+                        $local:Entitlement = New-Object PSObject -Property @{
+                            accountAuthority = $local:AccountsTable[$local:AccountKey].authority;
+                            accountId = $local:AccountsTable[$local:AccountKey].id;
+                            permission = $local:Permission;
+                            resource = $local:Resource;
+                            groupAuthority = $local:GroupAuthority;
+                            groupId = $local:GroupId
+                        }
+                        $local:Entitlements += $local:Entitlement
+                    }
+                }
+            }
+            else
+            {
+                Write-Verbose "No entitlement information found for Safeguard user '$($local:Ent.UserEntitlements.User.UserName)'"
+            }
+        }
+        else
+        {
+            ###################################
+            ## Entitlement Lookup for v3 API ##
+            ###################################
+            $local:Ents = (Invoke-SafeguardMethod Core GET "Reports/Entitlements/UserEntitlements" `
+                -Parameters @{
+                    userIds = (,$local:AccountKey)
+                })
+
+            $local:Ents | ForEach-Object {
+                if ($_.RoleIdentityType -ieq "Group")
                 {   # access derived from group membership
-                    $local:GroupKey = "$($_.RoleIdentity.Id)"
+                    $local:GroupKey = "$($_.RoleIdentityId)"
                 }
                 else
                 {   # access derived from entitlement membership
-                    $local:GroupKey = "e/$($_.Policy.RoleId)"
+                    $local:GroupKey = "e/$($_.RoleId)"
                 }
 
                 $local:GroupAuthority = $local:GroupsTable[$local:GroupKey].authority
                 $local:GroupId = $local:GroupsTable[$local:GroupKey].id
 
-                $local:Resource = "$($_.System.Name)"
-                if ($_.System.Name -ine $_.System.NetworkAddress -and $_.System.NetworkAddress)
+                $local:Resource = "$($_.AssetName)"
+                if ($_.AssetName -ine $_.AssetNetworkAddress -and $_.AssetNetworkAddress)
                 {   # add in the network address if it provides additional asset identification info
-                    $local:Resource += " [$($_.System.NetworkAddress)]"
+                    $local:Resource += " [$($_.AssetNetworkAddress)]"
                 }
-                elseif ($_.System.Name -ine $_.Account.DomainName -and $_.Account.DomainName)
-                {   # add in the network address if it provides additional asset identification info
-                    $local:Resource += " [$($_.Account.DomainName)]"
+                elseif ($_.AssetName -ine $_.AccountDomainName -and $_.AccountDomainName)
+                {   # add in the domain name if it provides additional asset identification info
+                    $local:Resource += " [$($_.AccountDomainName)]"
                 }
 
                 $local:Permission = (Get-PermissionText $_)
@@ -710,10 +816,6 @@ function Get-SafeguardAccessCertificationEntitlement
                     $local:Entitlements += $local:Entitlement
                 }
             }
-        }
-        else
-        {
-            Write-Verbose "No entitlement information found for Safeguard user '$($local:Ent.UserEntitlements.User.UserName)'"
         }
     }
 
