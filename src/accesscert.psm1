@@ -15,6 +15,12 @@ function Test-Permission
         throw "This cmdlet requires that you log in with the Connect-Safeguard cmdlet"
     }
 
+    if ($SafeguardSession.Version -ne 2)
+    {
+        Write-Warning "This cmdlet has not been updated to support the v3 API"
+        throw "This cmdlet requires that you log in with the Connect-Safeguard cmdlet using the -Version parameter set to 2"
+    }
+
     $local:AdminRoles = (Invoke-SafeguardMethod Core GET "Me").AdminRoles
     $local:Intersection = ($PossiblePermissions | Where-Object { $local:AdminRoles -contains $_ })
     if (-not $local:Intersection)
