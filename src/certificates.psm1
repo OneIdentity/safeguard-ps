@@ -650,7 +650,7 @@ function Set-SafeguardSslCertificateForAppliance
     {
         $ApplianceId = (Invoke-SafeguardMethod -Anonymous -Appliance $Appliance -Insecure:$Insecure Notification GET Status).ApplianceId
     }
-    $ApplianceId = $ApplianceId.ToUpper()
+    
 
     Write-Host "Setting $Thumbprint as current SSL Certificate for $ApplianceId..."
     $local:CurrentIds = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "SslCertificates/$Thumbprint/Appliances")
