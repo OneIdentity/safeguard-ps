@@ -562,3 +562,4 @@ update this list.
 - Get-SafeguardReportDailyPasswordCheckFail
 - Get-SafeguardReportDailyPasswordCheckSuccess
 - Get-SafeguardReportUserEntitlement
+- Get-SafeguardReportUserGroupMembership

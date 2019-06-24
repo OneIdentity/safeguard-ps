@@ -221,7 +221,7 @@ FunctionsToExport = @(
     'Get-SafeguardReportAccountWithoutPassword','Get-SafeguardReportDailyAccessRequest',
     'Get-SafeguardReportDailyPasswordCheckFail','Get-SafeguardReportDailyPasswordCheckSuccess',
     'Get-SafeguardReportDailyPasswordChangeFail','Get-SafeguardReportDailyPasswordChangeSuccess',
-    'Get-SafeguardReportUserEntitlement'
+    'Get-SafeguardReportUserEntitlement','Get-SafeguardReportUserGroupMembership'
     )
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
