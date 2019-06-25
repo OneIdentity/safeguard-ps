@@ -600,7 +600,7 @@ Send CSV to standard out instead of generating a file.
 None.
 
 .OUTPUTS
-JSON response from Safeguard Web API.
+A CSV file or CSV text.
 
 .EXAMPLE
 Get-SafeguardReportUserEntitlement -AccessToken $token -Appliance 10.5.32.54 -Insecure
@@ -660,4 +660,216 @@ function Get-SafeguardReportUserEntitlement
     }
 
     Out-FileAndExcel -OutFile $local:OutFile -Excel:$Excel
+}
+
+<#
+.SYNOPSIS
+Generates report of user group memberships for users in Safeguard via the Web API.
+
+.DESCRIPTION
+User membership report includes which users are in which groups along with
+a few of the attributes of those users.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER OutputDirectory
+String containing the directory where to create the CSV file.
+
+.PARAMETER Excel
+Automatically open the CSV file into excel after it is generation.
+
+.PARAMETER StdOut
+Send CSV to standard out instead of generating a file.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file or CSV text.
+
+.EXAMPLE
+Get-SafeguardReportUserGroupMembership -Excel
+
+.EXAMPLE
+Get-SafeguardReportUserGroupMembership -StdOut
+#>
+function Get-SafeguardReportUserGroupMembership
+{
+    [CmdletBinding(DefaultParameterSetName="File")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false, ParameterSetName="File")]
+        [string]$OutputDirectory = (Get-Location),
+        [Parameter(Mandatory=$false, ParameterSetName="File")]
+        [switch]$Excel = $false,
+        [Parameter(Mandatory=$false, ParameterSetName="StdOut")]
+        [switch]$StdOut
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Memberships = @()
+    (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "UserGroups") | ForEach-Object {
+        $local:GroupInfo = New-Object PSObject -Property ([ordered]@{
+            GroupId = $_.Id;
+            GroupName = $_.Name;
+            GroupDescription = $_.Description;
+            GroupDistinguishedName = $_.DirectoryProperties.DistinguishedName
+        })
+        $_.Members | ForEach-Object {
+            $local:MembershipInfo = New-Object PSObject -Property ([ordered]@{
+                GroupName = $local:GroupInfo.GroupName;
+                GroupDescription = $local:GroupInfo.GroupDescription;
+                GroupDistinguishedName = $local:GroupInfo.GroupDistinguishedName;
+                GroupId = $local:GroupInfo.GroupId;
+                UserIdentityProvider = $_.PrimaryAuthenticationProviderName;
+                UserName = $_.UserName;
+                UserDisplayName = $_.DisplayName;
+                UserDescription = $_.Description;
+                UserDistinguishedName = $_.DirectoryProperties.DistinguishedName;
+                UserIdentityProviderId = $_.PrimaryAuthenticationProviderId;
+                UserId = $_.Id;
+                UserAdminRoles = ($_.AdminRoles -join ", ");
+                UserIsPartitionOwner = $_.IsPartitionOwner;
+                UserEmailAddress = $_.EmailAddress;
+                UserWorkPhone = $_.WorkPhone;
+                UserMobilePhone = $_.MobilePhone;
+                UserSecondaryMobilePhone = $_.SecondaryMobilePhone
+            })
+            $local:Memberships += $local:MembershipInfo
+        }
+    }
+
+    if ($StdOut)
+    {
+        $local:Memberships | ConvertTo-Csv -NoTypeInformation
+    }
+    else
+    {
+        $local:OutFile = (Get-OutFileForParam -OutputDirectory $OutputDirectory -FileName "sg-usergroup-memberships-$((Get-Date).ToString("yyyy-MM-dd")).csv" -StdOut:$StdOut)
+        $local:Memberships | ConvertTo-Csv -NoTypeInformation | Out-File $local:OutFile
+        Out-FileAndExcel -OutFile $local:OutFile -Excel:$Excel
+    }
+}
+
+<#
+.SYNOPSIS
+Generates report of account management configuration in Safeguard via the Web API.
+
+.DESCRIPTION
+Account management configuration report includes information for each asset and
+account: asset partition, profile, password policy, check schedule, change
+schedule, and sync group.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER OutputDirectory
+String containing the directory where to create the CSV file.
+
+.PARAMETER Excel
+Automatically open the CSV file into excel after it is generation.
+
+.PARAMETER StdOut
+Send CSV to standard out instead of generating a file.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file or CSV text.
+
+.EXAMPLE
+Get-SafeguardReportAssetManagementConfiguration -Excel
+
+.EXAMPLE
+Get-SafeguardReportAssetManagementConfiguration -StdOut
+#>
+function Get-SafeguardReportAssetManagementConfiguration
+{
+    [CmdletBinding(DefaultParameterSetName="File")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false, ParameterSetName="File")]
+        [string]$OutputDirectory = (Get-Location),
+        [Parameter(Mandatory=$false, ParameterSetName="File")]
+        [switch]$Excel = $false,
+        [Parameter(Mandatory=$false, ParameterSetName="StdOut")]
+        [switch]$StdOut
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:ProfileLookupTable = @{}
+    (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance `
+            -Insecure:$Insecure Core GET "AssetPartitions/Profiles") | ForEach-Object {
+        $local:ProfileLookupTable["$($_.AssetParitionId)_$($_.Id)"] = $_
+    }
+    $local:Configurations = @()
+    (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance `
+            -Insecure:$Insecure Core GET "AssetAccounts") | ForEach-Object {
+        $local:Profile = $local:ProfileLookupTable["$($_.AssetParitionId)_$($_.EffectiveProfileId)"]
+        $local:Configuration = New-Object PSObject -Property ([ordered]@{
+            AssetPartitionName = $_.AssetPartitionName;
+            AssetName = $_.AssetName;
+            AccountName = $_.Name;
+            AccountDescription = $_.Description;
+            AccountDistinguishedName = $_.DistinguishedName;
+            PlatformDisplayName = $_.PlatformDisplayName;
+            AssetPartitionId = $_.AssetParitionId;
+            AssetId = $_.AssetId;
+            AccountId = $_.Id;
+            ProfileName = $_.EffectiveProfileName;
+            SyncGroupName = $_.SyncGroupName;
+            AccountPasswordRuleName = $local:Profile.AccountPasswordRuleName;
+            AccountPasswordRuleDescription = $local:Profile.AccountPasswordRule.Description;
+            CheckScheduleName = $local:Profile.CheckScheduleName;
+            CheckScheduleDescription = $local:Profile.CheckSchedule.Description;
+            ChangeScheduleName = $local:Profile.ChangeScheduleName;
+            ChangeScheduleDescription = $local:Profile.ChangeSchedule.Description;
+            ProfileId = $_.EffectiveProfileId;
+            AccountPasswordRuleId = $local:Profile.AccountPasswordRuleId;
+            CheckScheduleId = $local:Profile.CheckScheduleId;
+            ChangeScheduleId = $local:Profile.ChangeScheduleId;
+            SyncGroupId = $_.SyncGroupId;
+            SyncGroupPriority = $_.SyncGroupPriority
+        })
+        $local:Configurations += $local:Configuration
+    }
+
+    if ($StdOut)
+    {
+        $local:Configurations | ConvertTo-Csv -NoTypeInformation
+    }
+    else
+    {
+        $local:OutFile = (Get-OutFileForParam -OutputDirectory $OutputDirectory -FileName "sg-usergroup-memberships-$((Get-Date).ToString("yyyy-MM-dd")).csv" -StdOut:$StdOut)
+        $local:Configurations | ConvertTo-Csv -NoTypeInformation | Out-File $local:OutFile
+        Out-FileAndExcel -OutFile $local:OutFile -Excel:$Excel
+    }
 }
