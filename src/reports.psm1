@@ -765,6 +765,45 @@ function Get-SafeguardReportUserGroupMembership
     }
 }
 
+<#
+.SYNOPSIS
+Generates report of account management configuration in Safeguard via the Web API.
+
+.DESCRIPTION
+Account management configuration report includes information for each asset and
+account: asset partition, profile, password policy, check schedule, change
+schedule, and sync group.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER OutputDirectory
+String containing the directory where to create the CSV file.
+
+.PARAMETER Excel
+Automatically open the CSV file into excel after it is generation.
+
+.PARAMETER StdOut
+Send CSV to standard out instead of generating a file.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file or CSV text.
+
+.EXAMPLE
+Get-SafeguardReportAssetManagementConfiguration -Excel
+
+.EXAMPLE
+Get-SafeguardReportAssetManagementConfiguration -StdOut
+#>
 function Get-SafeguardReportAssetManagementConfiguration
 {
     [CmdletBinding(DefaultParameterSetName="File")]
