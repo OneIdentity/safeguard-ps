@@ -600,7 +600,7 @@ Send CSV to standard out instead of generating a file.
 None.
 
 .OUTPUTS
-JSON response from Safeguard Web API.
+A CSV file or CSV text.
 
 .EXAMPLE
 Get-SafeguardReportUserEntitlement -AccessToken $token -Appliance 10.5.32.54 -Insecure
@@ -662,6 +662,44 @@ function Get-SafeguardReportUserEntitlement
     Out-FileAndExcel -OutFile $local:OutFile -Excel:$Excel
 }
 
+<#
+.SYNOPSIS
+Generates report of user group memberships for users in Safeguard via the Web API.
+
+.DESCRIPTION
+User membership report includes which users are in which groups along with
+a few of the attributes of those users.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER OutputDirectory
+String containing the directory where to create the CSV file.
+
+.PARAMETER Excel
+Automatically open the CSV file into excel after it is generation.
+
+.PARAMETER StdOut
+Send CSV to standard out instead of generating a file.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file or CSV text.
+
+.EXAMPLE
+Get-SafeguardReportUserGroupMembership -Excel
+
+.EXAMPLE
+Get-SafeguardReportUserGroupMembership -StdOut
+#>
 function Get-SafeguardReportUserGroupMembership
 {
     [CmdletBinding(DefaultParameterSetName="File")]
