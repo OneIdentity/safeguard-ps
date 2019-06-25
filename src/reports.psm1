@@ -764,3 +764,73 @@ function Get-SafeguardReportUserGroupMembership
         Out-FileAndExcel -OutFile $local:OutFile -Excel:$Excel
     }
 }
+
+function Get-SafeguardReportAssetManagementConfiguration
+{
+    [CmdletBinding(DefaultParameterSetName="File")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false, ParameterSetName="File")]
+        [string]$OutputDirectory = (Get-Location),
+        [Parameter(Mandatory=$false, ParameterSetName="File")]
+        [switch]$Excel = $false,
+        [Parameter(Mandatory=$false, ParameterSetName="StdOut")]
+        [switch]$StdOut
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:ProfileLookupTable = @{}
+    (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance `
+            -Insecure:$Insecure Core GET "AssetPartitions/Profiles") | ForEach-Object {
+        $local:ProfileLookupTable["$($_.AssetParitionId)_$($_.Id)"] = $_
+    }
+    $local:Configurations = @()
+    (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance `
+            -Insecure:$Insecure Core GET "AssetAccounts") | ForEach-Object {
+        $local:Profile = $local:ProfileLookupTable["$($_.AssetParitionId)_$($_.EffectiveProfileId)"]
+        $local:Configuration = New-Object PSObject -Property ([ordered]@{
+            AssetPartitionName = $_.AssetPartitionName;
+            AssetName = $_.AssetName;
+            AccountName = $_.Name;
+            AccountDescription = $_.Description;
+            AccountDistinguishedName = $_.DistinguishedName;
+            PlatformDisplayName = $_.PlatformDisplayName;
+            AssetPartitionId = $_.AssetParitionId;
+            AssetId = $_.AssetId;
+            AccountId = $_.Id;
+            ProfileName = $_.EffectiveProfileName;
+            SyncGroupName = $_.SyncGroupName;
+            AccountPasswordRuleName = $local:Profile.AccountPasswordRuleName;
+            AccountPasswordRuleDescription = $local:Profile.AccountPasswordRule.Description;
+            CheckScheduleName = $local:Profile.CheckScheduleName;
+            CheckScheduleDescription = $local:Profile.CheckSchedule.Description;
+            ChangeScheduleName = $local:Profile.ChangeScheduleName;
+            ChangeScheduleDescription = $local:Profile.ChangeSchedule.Description;
+            ProfileId = $_.EffectiveProfileId;
+            AccountPasswordRuleId = $local:Profile.AccountPasswordRuleId;
+            CheckScheduleId = $local:Profile.CheckScheduleId;
+            ChangeScheduleId = $local:Profile.ChangeScheduleId;
+            SyncGroupId = $_.SyncGroupId;
+            SyncGroupPriority = $_.SyncGroupPriority
+        })
+        $local:Configurations += $local:Configuration
+    }
+
+    if ($StdOut)
+    {
+        $local:Configurations | ConvertTo-Csv -NoTypeInformation
+    }
+    else
+    {
+        $local:OutFile = (Get-OutFileForParam -OutputDirectory $OutputDirectory -FileName "sg-usergroup-memberships-$((Get-Date).ToString("yyyy-MM-dd")).csv" -StdOut:$StdOut)
+        $local:Configurations | ConvertTo-Csv -NoTypeInformation | Out-File $local:OutFile
+        Out-FileAndExcel -OutFile $local:OutFile -Excel:$Excel
+    }
+}

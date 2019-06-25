@@ -563,3 +563,4 @@ update this list.
 - Get-SafeguardReportDailyPasswordCheckSuccess
 - Get-SafeguardReportUserEntitlement
 - Get-SafeguardReportUserGroupMembership
+- Get-SafeguardReportAssetManagementConfiguration
