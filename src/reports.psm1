@@ -955,7 +955,8 @@ function Get-SafeguardReportA2aEntitlement
                 AccountName = $_.AccountName;
                 DomainName = $_.DomainName;
                 AccountType = $_.AccountType;
-                AccountDisabled = $_.AccountDisabled
+                IPRestrictions = ($_.IpRestrictions -join ", ");
+                AccountDisabled = [bool]($_.AccountDisabled)
             })
             $local:Entitlements += $local:Entitlement
         }
