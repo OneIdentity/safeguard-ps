@@ -873,3 +873,102 @@ function Get-SafeguardReportAssetManagementConfiguration
         Out-FileAndExcel -OutFile $local:OutFile -Excel:$Excel
     }
 }
+
+<#
+.SYNOPSIS
+Generates report of a2a entitlements in Safeguard via the Web API.
+
+.DESCRIPTION
+A2A entitlement report contains information about every A2A registration,
+the certificate user that can call the account retrieval, and which accounts
+can be retrieved.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER OutputDirectory
+String containing the directory where to create the CSV file.
+
+.PARAMETER Excel
+Automatically open the CSV file into excel after it is generation.
+
+.PARAMETER StdOut
+Send CSV to standard out instead of generating a file.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file or CSV text.
+
+.EXAMPLE
+Get-SafeguardReportA2aEntitlement -Excel
+
+.EXAMPLE
+Get-SafeguardReportA2aEntitlement -StdOut
+#>
+function Get-SafeguardReportA2aEntitlement
+{
+    [CmdletBinding(DefaultParameterSetName="File")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false, ParameterSetName="File")]
+        [string]$OutputDirectory = (Get-Location),
+        [Parameter(Mandatory=$false, ParameterSetName="File")]
+        [switch]$Excel = $false,
+        [Parameter(Mandatory=$false, ParameterSetName="StdOut")]
+        [switch]$StdOut
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Entitlements = @()
+
+    (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+            Core GET "A2ARegistrations") | ForEach-Object {
+        $local:A2a = $_
+        (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                Core GET "A2ARegistrations/$($local:A2a.Id)/RetrievableAccounts") | ForEach-Object {
+            $local:Entitlement = New-Object PSObject -Property ([ordered]@{
+                A2ARegistrationId = $local:A2a.Id;
+                AppName = $local:A2a.AppName;
+                Description = $local:A2a.Description;
+                Disabled = $local:A2a.Disabled;
+                CertificateUserId = $local:A2a.CertificateUserId;
+                CertificateUser = $local:A2a.CertificateUser;
+                CertificateUserDisplayName = $local:A2a.CertificateUserDisplayName;
+                AssetId = $_.SystemId;
+                AccountId = $_.AccountId;
+                AssetName = $_.SystemName;
+                AccountName = $_.AccountName;
+                DomainName = $_.DomainName;
+                AccountType = $_.AccountType;
+                AccountDisabled = $_.AccountDisabled
+            })
+            $local:Entitlements += $local:Entitlement
+        }
+    }
+
+    if ($StdOut)
+    {
+        $local:Entitlements | ConvertTo-Csv -NoTypeInformation
+    }
+    else
+    {
+        $local:OutFile = (Get-OutFileForParam -OutputDirectory $OutputDirectory -FileName "sg-a2a-entitlements-$((Get-Date).ToString("yyyy-MM-dd")).csv" -StdOut:$StdOut)
+        $local:Entitlements | ConvertTo-Csv -NoTypeInformation | Out-File $local:OutFile
+        Out-FileAndExcel -OutFile $local:OutFile -Excel:$Excel
+    }
+}

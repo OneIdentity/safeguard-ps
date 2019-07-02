@@ -564,3 +564,4 @@ update this list.
 - Get-SafeguardReportUserEntitlement
 - Get-SafeguardReportUserGroupMembership
 - Get-SafeguardReportAssetManagementConfiguration
+- Get-SafeguardReportA2aEntitlement
