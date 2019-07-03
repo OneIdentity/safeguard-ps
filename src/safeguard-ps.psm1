@@ -488,6 +488,10 @@ Display redistributable STS login window in a browser.  Supports 2FA.
 .PARAMETER NoSessionVariable
 If this switch is sent the access token will be returned and a login session context variable will not be created.
 
+.PARAMETER NoWindowTitle
+If this switch is sent safeguard-ps won't try to set the window title, which can cause failures when the PowerShell
+runtime doesn't allow user interaction; for example, when running safeguard-ps from C#.
+
 .INPUTS
 None.
 
