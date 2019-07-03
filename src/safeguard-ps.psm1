@@ -559,7 +559,9 @@ function Connect-Safeguard
         [Parameter(Mandatory=$false)]
         [int]$Version = 3,
         [Parameter(Mandatory=$false)]
-        [switch]$NoSessionVariable = $false
+        [switch]$NoSessionVariable = $false,
+        [Parameter(Mandatory=$false)]
+        [switch]$NoWindowTitle = $false
     )
 
     $ErrorActionPreference = "Stop"
@@ -860,8 +862,12 @@ function Connect-Safeguard
                 "CertificateFile" = $CertificateFile;
                 "Insecure" = $Insecure;
                 "Gui" = $Gui;
+                "NoWindowTitle" = $NoWindowTitle
             }
-            $Host.UI.RawUI.WindowTitle = "Windows PowerShell -- Safeguard Connection: $(Get-SessionConnectionIdentifier)"
+            if (-not $NoWindowTitle)
+            {
+                $Host.UI.RawUI.WindowTitle = "Windows PowerShell -- Safeguard Connection: $(Get-SessionConnectionIdentifier)"
+            }
             Write-Host "Login Successful."
         }
     }
@@ -967,6 +973,11 @@ function Disconnect-Safeguard
                 $Version = $SafeguardSession["Version"]
                 $AccessToken = $SafeguardSession["AccessToken"]
                 $Insecure = $SafeguardSession["Insecure"]
+                $NoWindowTitle = $false
+                if ($SafeguardSession.ContainsKey("NoWindowTitle"))
+                {
+                    $NoWindowTitle = $SafeguardSession["NoWindowTitle"]
+                }
                 Edit-SslVersionSupport
                 if ($Insecure)
                 {
@@ -982,7 +993,10 @@ function Disconnect-Safeguard
                 }
                 Invoke-RestMethod -Method POST -Headers $local:Headers -Uri "https://$Appliance/service/core/v$Version/Token/Logout"
             }
-            $Host.UI.RawUI.WindowTitle = "Windows PowerShell"
+            if (-not $NoWindowTitle)
+            {
+                $Host.UI.RawUI.WindowTitle = "Windows PowerShell"
+            }
             Write-Host "Log out Successful."
         }
         finally
