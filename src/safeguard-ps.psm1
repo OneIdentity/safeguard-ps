@@ -488,6 +488,10 @@ Display redistributable STS login window in a browser.  Supports 2FA.
 .PARAMETER NoSessionVariable
 If this switch is sent the access token will be returned and a login session context variable will not be created.
 
+.PARAMETER NoWindowTitle
+If this switch is sent safeguard-ps won't try to set the window title, which can cause failures when the PowerShell
+runtime doesn't allow user interaction; for example, when running safeguard-ps from C#.
+
 .INPUTS
 None.
 
@@ -559,7 +563,9 @@ function Connect-Safeguard
         [Parameter(Mandatory=$false)]
         [int]$Version = 3,
         [Parameter(Mandatory=$false)]
-        [switch]$NoSessionVariable = $false
+        [switch]$NoSessionVariable = $false,
+        [Parameter(Mandatory=$false)]
+        [switch]$NoWindowTitle = $false
     )
 
     $ErrorActionPreference = "Stop"
@@ -860,8 +866,12 @@ function Connect-Safeguard
                 "CertificateFile" = $CertificateFile;
                 "Insecure" = $Insecure;
                 "Gui" = $Gui;
+                "NoWindowTitle" = $NoWindowTitle
             }
-            $Host.UI.RawUI.WindowTitle = "Windows PowerShell -- Safeguard Connection: $(Get-SessionConnectionIdentifier)"
+            if (-not $NoWindowTitle)
+            {
+                $Host.UI.RawUI.WindowTitle = "Windows PowerShell -- Safeguard Connection: $(Get-SessionConnectionIdentifier)"
+            }
             Write-Host "Login Successful."
         }
     }
@@ -967,6 +977,11 @@ function Disconnect-Safeguard
                 $Version = $SafeguardSession["Version"]
                 $AccessToken = $SafeguardSession["AccessToken"]
                 $Insecure = $SafeguardSession["Insecure"]
+                $NoWindowTitle = $false
+                if ($SafeguardSession.ContainsKey("NoWindowTitle"))
+                {
+                    $NoWindowTitle = $SafeguardSession["NoWindowTitle"]
+                }
                 Edit-SslVersionSupport
                 if ($Insecure)
                 {
@@ -982,7 +997,10 @@ function Disconnect-Safeguard
                 }
                 Invoke-RestMethod -Method POST -Headers $local:Headers -Uri "https://$Appliance/service/core/v$Version/Token/Logout"
             }
-            $Host.UI.RawUI.WindowTitle = "Windows PowerShell"
+            if (-not $NoWindowTitle)
+            {
+                $Host.UI.RawUI.WindowTitle = "Windows PowerShell"
+            }
             Write-Host "Log out Successful."
         }
         finally
