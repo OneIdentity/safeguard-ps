@@ -272,7 +272,7 @@ PrivateData = @{
         ReleaseNotes = @"
 safeguard-ps 2.8 Release Notes:
 
-- Updates and bug fixes.
+- Fixed an issue with New-SafeguardAccessRequest -AccountToUse parameter.
 "@
 
     } # End of PSData hashtable
