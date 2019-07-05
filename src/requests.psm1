@@ -301,18 +301,20 @@ function New-SafeguardAccessRequest
     }
 
     $local:AssetId = (Resolve-SafeguardRequestableAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToUse)
-    if ($AccessRequestType -ieq "Password" -and (-not $AccountToUse))
-    {
-        # Accounts are required for password requests, but not for sessions where you can use bring your own account
-        $AccountToUse = (Read-Host "AccountToUse")
-        $local:AccountId = (Resolve-SafeguardRequestableAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
-    }
-
     $local:Body = @{
         SystemId = $local:AssetId;
         AccessRequestType = "$AccessRequestType"
     }
 
+    if ($AccessRequestType -ieq "Password")
+    {
+        # Accounts are required for password requests, but not for sessions where you can use bring your own account
+        if (-not $AccountToUse)
+        {
+            $AccountToUse = (Read-Host "AccountToUse")
+        }
+        $local:AccountId = (Resolve-SafeguardRequestableAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
+    }
     if ($local:AccountId) { $local:Body["AccountId"] = $local:AccountId }
 
     if ($Emergency) { $local:Body["IsEmergency"] = $true }
