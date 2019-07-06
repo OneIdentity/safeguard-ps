@@ -142,7 +142,44 @@ function Invoke-SafeguardA2aCredentialRetrieval
     }
 }
 
-function Get-SafeguardA2aRetrievableAccounts
+<#
+.SYNOPSIS
+Get a list of all the accounts retrievable from the A2A service using this
+certificate user.
+
+.DESCRIPTION
+The purpose of this cmdlet is to know which accounts can be retrieved using A2A
+without having to go through access request workflow.  This cmdlet will also
+give the API Key to use to request the account.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER CertificateFile
+A string containing the path to a certificate file to use for authentication.
+
+.PARAMETER Password
+A secure string containing the password for decrypting the certificate file.
+
+.PARAMETER Thumbprint
+A string containing the thumbprint of a certificate the system certificate store.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardA2aRetrievableAccount -Appliance 10.5.32.54 -CertificateFile C:\certs\file.pfx -Password $pass
+
+.EXAMPLE
+Get-SafeguardA2aRetrievableAccount 10.5.32.54 -Thumbprint 756766BB590D7FA9CA9E1971A4AE41BB9CEC82F1
+#>
+function Get-SafeguardA2aRetrievableAccount
 {
     [CmdletBinding(DefaultParameterSetName="CertStore")]
     Param(
