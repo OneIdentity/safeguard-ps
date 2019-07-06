@@ -948,7 +948,7 @@ function Get-SafeguardReportA2aEntitlement
                 Disabled = $local:A2a.Disabled;
                 CertificateUserId = $local:A2a.CertificateUserId;
                 CertificateUser = $local:A2a.CertificateUser;
-                CertificateUserDisplayName = $local:A2a.CertificateUserDisplayName;
+                CertificateUserThumbprint = $local:A2a.CertificateUserThumbprint;
                 AssetId = $_.SystemId;
                 AccountId = $_.AccountId;
                 AssetName = $_.SystemName;
