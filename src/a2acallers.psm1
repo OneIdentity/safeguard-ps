@@ -197,9 +197,9 @@ function Get-SafeguardA2aRetrievableAccounts
                 AppName = $local:Reg.AppName;
                 Description = $local:Reg.Description;
                 Disabled = $local:Disabled;
-                CertificateUserId = $local:A2a.CertificateUserId;
-                CertificateUser = $local:A2a.CertificateUser;
-                CertificateUserDisplayName = $local:A2a.CertificateUserDisplayName;
+                CertificateUserId = $local:Reg.CertificateUserId;
+                CertificateUser = $local:Reg.CertificateUser;
+                CertificateUserThumbprint = $local:Reg.CertificateUserThumbprint;
                 ApiKey = $_.ApiKey;
                 AssetId = $_.SystemId;
                 AssetName = $_.SystemName;
