@@ -16,6 +16,9 @@ function Invoke-SafeguardA2aMethodWithCertificate
         [Parameter(Mandatory=$false)]
         [string]$Authorization,
         [Parameter(Mandatory=$true)]
+        [ValidateSet("a2a", "core", IgnoreCase=$true)]
+        [string]$Service,
+        [Parameter(Mandatory=$true)]
         [string]$Method,
         [Parameter(Mandatory=$true)]
         [string]$RelativeUrl,
@@ -29,46 +32,53 @@ function Invoke-SafeguardA2aMethodWithCertificate
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
+
+    if ($Insecure)
+    {
+        Disable-SslVerification
+        if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+    }
+
+    $local:Headers = @{
+            "Accept" = "application/json";
+            "Content-type" = "application/json"
+        }
+
+    if ($Authorization)
+    {
+        $local:Headers["Authorization"] = $Authorization
+    }
+
+    Write-Verbose "---Request---"
+    Write-Verbose "Headers=$(ConvertTo-Json -InputObject $Headers)"
+
+    $Service = $Service.ToLower()
+
+    $local:BodyInternal = $null
+    if ($Body) 
+    {
+        $local:BodyInternal = (ConvertTo-Json -InputObject $Body)
+        Write-Verbose "---Request Body---"
+        Write-Verbose "$($local:BodyInternal)"
+    }
+
+    if (-not $Thumbprint)
+    {
+        Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+        $local:Cert = (Use-CertificateFile $CertificateFile $Password)
+    }
+
     try
     {
-        if ($Insecure)
-        {
-            Disable-SslVerification
-            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
-        }
-
-        $local:Headers = @{
-                "Accept" = "application/json";
-                "Content-type" = "application/json"
-            }
-
-        if ($Authorization)
-        {
-            $local:Headers["Authorization"] = $Authorization
-        }
-
-        Write-Verbose "---Request---"
-        Write-Verbose "Headers=$(ConvertTo-Json -InputObject $Headers)"
-
-        $local:BodyInternal = $null
-        if ($Body) 
-        {
-            $local:BodyInternal = (ConvertTo-Json -InputObject $Body)
-            Write-Verbose "---Request Body---"
-            Write-Verbose "$($local:BodyInternal)"
-        }
-
         if (-not $Thumbprint)
         {
-            Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
-            $local:Cert = (Use-CertificateFile $CertificateFile $Password)      
             Invoke-RestMethod -Certificate $local:Cert -Method $Method -Headers $local:Headers `
-                -Uri "https://$Appliance/service/a2a/v$Version/$RelativeUrl" -Body $local:BodyInternal
+                -Uri "https://$Appliance/service/$Service/v$Version/$RelativeUrl" -Body $local:BodyInternal
         }
         else
         {
             Invoke-RestMethod -CertificateThumbprint $Thumbprint -Method $Method -Headers $local:Headers `
-                -Uri "https://$Appliance/service/a2a/v$Version/$RelativeUrl" -Body $local:BodyInternal
+                -Uri "https://$Appliance/service/$Service/v$Version/$RelativeUrl" -Body $local:BodyInternal
         }
     }
     catch
@@ -123,12 +133,82 @@ function Invoke-SafeguardA2aCredentialRetrieval
     if (-not $Thumbprint)
     {
         Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization $Authorization `
-            -CertificateFile $CertificateFile -Password $Password -Method GET -RelativeUrl "Credentials?type=$CredentialType"
+            -CertificateFile $CertificateFile -Password $Password -Service a2a -Method GET -RelativeUrl "Credentials?type=$CredentialType"
     }
     else
     {
         Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization $Authorization `
-            -Thumbprint $Thumbprint -Method GET -RelativeUrl "Credentials?type=$CredentialType"
+            -Thumbprint $Thumbprint -Service a2a -Method GET -RelativeUrl "Credentials?type=$CredentialType"
+    }
+}
+
+function Get-SafeguardA2aRetrievableAccounts
+{
+    [CmdletBinding(DefaultParameterSetName="CertStore")]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(ParameterSetName="File",Mandatory=$true)]
+        [string]$CertificateFile,
+        [Parameter(ParameterSetName="File",Mandatory=$false)]
+        [SecureString]$Password,
+        [Parameter(ParameterSetName="CertStore",Mandatory=$true)]
+        [string]$Thumbprint
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not $Thumbprint)
+    {
+        if (-not $Password)
+        { 
+            $Password = (Read-Host "Password" -AsSecureString)
+        }
+        $local:Registrations = (Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance `
+            -CertificateFile $CertificateFile -Password $Password -Service core -Method GET -RelativeUrl "A2ARegistrations")
+    }
+    else
+    {
+        $local:Registrations = (Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance  `
+            -Thumbprint $Thumbprint -Service core -Method GET -RelativeUrl "A2ARegistrations")
+    }
+    $local:Registrations | ForEach-Object {
+        $local:Reg = $_
+        if (-not $Thumbprint)
+        {
+            $local:Accounts = (Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance  `
+                -CertificateFile $CertificateFile -Password $Password -Service core -Method GET -RelativeUrl "A2ARegistrations/$($local:Reg.Id)/RetrievableAccounts")
+        }
+        else
+        {
+            $local:Accounts = (Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance `
+                -Thumbprint $Thumbprint -Service core -Method GET -RelativeUrl "A2ARegistrations/$($local:Reg.Id)/RetrievableAccounts")
+        }
+        $local:Accounts | ForEach-Object {
+            $local:Disabled = $local:Reg.Disabled
+            if (-not $local:Disabled -and $_.AccountDisabled)
+            {
+                $local:Disabled = $true
+            }
+            New-Object PSObject -Property ([ordered]@{
+                AppName = $local:Reg.AppName;
+                Description = $local:Reg.Description;
+                Disabled = $local:Disabled;
+                CertificateUserId = $local:A2a.CertificateUserId;
+                CertificateUser = $local:A2a.CertificateUser;
+                CertificateUserDisplayName = $local:A2a.CertificateUserDisplayName;
+                ApiKey = $_.ApiKey;
+                AssetId = $_.SystemId;
+                AssetName = $_.SystemName;
+                AccountId = $_.AccountId;
+                AccountName = $_.AccountName;
+                DomainName = $_.DomainName;
+                AccountType = $_.AccountType;
+            })
+        }
     }
 }
 
@@ -476,11 +556,11 @@ function New-SafeguardA2aAccessRequest
     if ($PsCmdlet.ParameterSetName -eq "CertStoreAndNames" -or $PsCmdlet.ParameterSetName -eq "CertStoreAndIds")
     {
         Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
-            -Thumbprint $Thumbprint -Method POST -RelativeUrl AccessRequests -Body $local:Body
+            -Thumbprint $Thumbprint -Service a2a -Method POST -RelativeUrl AccessRequests -Body $local:Body
     }
     else
     {
         Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
-            -CertificateFile $CertificateFile -Password $Password -Method POST -RelativeUrl AccessRequests -Body $local:Body
+            -CertificateFile $CertificateFile -Password $Password -Service a2a -Method POST -RelativeUrl AccessRequests -Body $local:Body
     }
 }
