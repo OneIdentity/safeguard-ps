@@ -526,6 +526,7 @@ update this list.
 
 ### A2A -- Credential Retrieval
 
+- Get-SafeguardA2aRetrievableAccounts
 - Get-SafeguardA2aPassword
 - Get-SafeguardA2aPrivateKey
 
