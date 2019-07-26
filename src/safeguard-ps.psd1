@@ -266,13 +266,20 @@ PrivateData = @{
         IconUri = 'https://raw.githubusercontent.com/OneIdentity/safeguard-ps/master/SafeguardLogo.ico'
 
         # Pre-release tag
-        Prerelease = '-pre'
+        # Prerelease = '-pre'
 
         # ReleaseNotes of this module
         ReleaseNotes = @"
 safeguard-ps 2.8 Release Notes:
 
 - Fixed an issue with New-SafeguardAccessRequest -AccountToUse parameter.
+- Better security when running Docker container
+- Get-SafeguardA2aRetrievableAccounts -- when called as a certificate user, returns listing of available accounts for that certificate (if option is enabled)
+- New reports:
+  - Get-SafeguardReportUserGroupMembership -- a listing of user group memberships
+  - Asset management configuration -- asset management configuration including partition, check schedule, change schedule, password rules, sync groups, and profile
+  - Get-SafeguardReportA2aEntitlement -- entitlement report of which accounts are available via A2A
+
 "@
 
     } # End of PSData hashtable
