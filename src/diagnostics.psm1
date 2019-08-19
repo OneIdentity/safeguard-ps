@@ -298,12 +298,12 @@ None.
 None.
 
 .EXAMPLE
-Invoke-SafeguardDiagnosticPackageUpload .\MyPackage.sgd
+Set-SafeguardDiagnosticPackage .\MyPackage.sgd
 
 .EXAMPLE
-Invoke-SafeguardDiagnosticPackageUpload -AccessToken $token -Appliance 10.5.32.54 -Insecure .\MyPackage.sgd
+Set-SafeguardDiagnosticPackage -AccessToken $token -Appliance 10.5.32.54 -Insecure .\MyPackage.sgd
 #>
-function Invoke-SafeguardDiagnosticPackageUpload
+function Set-SafeguardDiagnosticPackage
 {
     [CmdletBinding()]
     Param(
