@@ -502,6 +502,11 @@ function Resolve-ReasonCodeId
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    if ($ReasonCode.Id -as [int])
+    {
+        $ReasonCode = $ReasonCode.Id
+    }
+
     if (-not ($ReasonCode -as [int]))
     {
         try

@@ -16,6 +16,11 @@ function Resolve-SafeguardDirectoryIdentityProviderId
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    if ($Directory.Id -as [int])
+    {
+        $Directory = $Directory.Id
+    }
+
     if (-not ($Directory -as [int]))
     {
         try
@@ -66,6 +71,11 @@ function Resolve-SafeguardDirectoryId
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($Directory.Id -as [int])
+    {
+        $Directory = $Directory.Id
+    }
 
     if (-not ($Directory -as [int]))
     {
@@ -124,6 +134,11 @@ function Resolve-SafeguardDirectoryAccountId
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($Account.Id -as [int])
+    {
+        $Account = $Account.Id
+    }
 
     if (-not ($Account -as [int]))
     {

@@ -16,6 +16,11 @@ function Resolve-SafeguardPlatform
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    if ($Platform.Id -as [int])
+    {
+        $Platform = $Platform.Id
+    }
+
     while (-not $($Platform -as [int]))
     {
         Write-Host "Searching for platforms with '$Platform'"

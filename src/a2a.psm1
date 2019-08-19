@@ -16,6 +16,11 @@ function Resolve-SafeguardA2aId
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    if ($A2a.Id -as [int])
+    {
+        $A2a = $User.Id
+    }
+
     if (-not ($A2a -as [int]))
     {
         try
@@ -72,7 +77,12 @@ function Resolve-SafeguardA2aAccountId
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if (-not ($A2a -as [int]))
+    if ($Account.Id -as [int])
+    {
+        $Account = $Account.Id
+    }
+
+    if (-not ($Account -as [int]))
     {
         $local:Filter = "AccountName ieq '$Account'"
         if ($PSBoundParameters.ContainsKey("System") -and $System)

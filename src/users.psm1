@@ -16,6 +16,11 @@ function Resolve-SafeguardUserObject
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    if ($User.Id -as [int])
+    {
+        $User = $User.Id
+    }
+
     if (-not ($User -as [int]))
     {
         try
@@ -61,6 +66,11 @@ function Resolve-SafeguardUserId
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($User.Id -as [int])
+    {
+        $User = $User.Id
+    }
 
     if (-not ($User -as [int]))
     {

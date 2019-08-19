@@ -16,6 +16,11 @@ function Resolve-SafeguardRequestableAssetId
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    if ($Asset.Id -as [int])
+    {
+        $Asset = $Asset.Id
+    }
+
     if (-not ($Asset -as [int]))
     {
         try
@@ -68,6 +73,11 @@ function Resolve-SafeguardRequestableAccountId
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($Account.Id -as [int])
+    {
+        $Account = $Account.Id
+    }
 
     if (-not ($Account -as [int]))
     {

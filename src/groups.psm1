@@ -29,6 +29,11 @@ function Resolve-SafeguardGroupId
 
     $local:RelativeUrl = "$($GroupType)Groups"
 
+    if ($Group.Id -as [int])
+    {
+        $Group = $Group.Id
+    }
+
     if (-not ($Group -as [int]))
     {
         $local:Groups = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `

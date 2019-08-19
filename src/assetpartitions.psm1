@@ -16,6 +16,11 @@ function Resolve-SafeguardAssetPartitionId
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    if ($AssetPartition.Id -as [int])
+    {
+        $AssetPartition = $AssetPartition.Id
+    }
+
     if (-not ($AssetPartition -as [int]))
     {
         try

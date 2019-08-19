@@ -14,13 +14,17 @@ function Resolve-SubscriptionEvent
         [Parameter(Mandatory=$true,Position=1)]
         [string[]]$EventsToValidate
     )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
     [string[]]$InvalidEvents = $null
     [object[]]$SubscriptionEvents = $null
     [string[]]$EventNames = Get-SafeguardEventName -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -TypeOfEvent $TypeOfEvent
-    
-    ForEach ($IndividualEvent in $EventsToValidate)
+
+    foreach ($IndividualEvent in $EventsToValidate)
     {
-        if(-Not $EventNames.Contains($IndividualEvent))
+        if (-not $EventNames.Contains($IndividualEvent))
         {
             $InvalidEvents += $IndividualEvent 
         }
@@ -30,7 +34,7 @@ function Resolve-SubscriptionEvent
         $SubscriptionEvents += $local:SubscriptionEvent
     }
 
-    if($InvalidEvents -ne $null)
+    if ($null -ne $InvalidEvents)
     {
         $InvalidEventsList = $InvalidEvents -join ","
         Write-Error -Message "The following are not valid $ObjectTypeToSubscribe events: $InvalidEventsList." -Category InvalidArgument -ErrorAction Stop
