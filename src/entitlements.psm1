@@ -114,7 +114,8 @@ Create a new Entitlement in Safeguard via the Web API.
 
 .DESCRIPTION
 Create a new Entitlement in Safeguard. Access policies can be attached 
-to Entitlements. Users and groups can be  
+to Entitlements. Users and groups can be created using separate cmdlets
+and added as members via this cmdlet.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -128,7 +129,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER Name
 The name of the entitlement.
 
-.PARAMETER $MemberUsers
+.PARAMETER MemberUsers
 Array of Id or name of the users to be added to the entitlement
 
 .INPUTS
