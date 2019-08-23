@@ -16,6 +16,11 @@ function Resolve-SafeguardEntitlementId
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    if ($Entitlement.Id -as [int])
+    {
+        $Entitlement = $Entitlement.Id
+    }
+
     if (-not ($Entitlement -as [int]))
     {
         try
@@ -154,24 +159,37 @@ function New-SafeguardEntitlement
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Name,
         [Parameter(Mandatory=$false,Position=1)]
-        [object[]]$MemberUsers
+        [object[]]$MemberUsers,
+        [Parameter(Mandatory=$false,Position=2)]
+        [object[]]$MemberGroups
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     [object[]]$Members = $null
-    ForEach($user in $MemberUsers)
+    foreach ($local:User in $MemberUsers)
     {
-        $local:ResolvedUserId = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $User).Id
+        $local:ResolvedUserId = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User).Id
         $local:Member = @{
-            Id = $ResolvedUserId
+            Id = $local:ResolvedUserId;
+            PrincipalKind = "User"
         }
         $local:Members += $($local:Member)
     }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-        Core POST Roles -Body @{ Name = $Name; Members = $local:Members}
+    foreach ($local:Group in $MemberGroups)
+    {
+        $local:ResolvedGroupId = (Get-SafeguardUserGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -GroupToGet $local:Group).Id
+        $local:Member = @{
+            Id = $local:ResolvedGroupId;
+            PrincipalKind = "Group"
+        }
+        $local:Members += $($local:Member)
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Roles `
+        -Body @{ Name = $Name; Members = $local:Members}
 }
 
 <#
