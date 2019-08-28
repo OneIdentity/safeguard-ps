@@ -225,3 +225,243 @@ function Invoke-SafeguardSessionsTelnet
         Port = $Port
     }
 }
+
+<#
+.SYNOPSIS
+Get the currently staged safeguard diagnostic package if any exists
+
+.DESCRIPTION
+If no package is currently staged, returns null.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+None.
+
+.EXAMPLE
+Get-SafeguardDiagnosticPackage
+
+.EXAMPLE
+Get-SafeguardDiagnosticPackage -AccessToken $token -Appliance 10.5.32.54 -Insecure
+#>
+function Get-SafeguardDiagnosticPackage
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET DiagnosticPackage
+}
+
+<#
+.SYNOPSIS
+Upload a safeguard diagnostic package .sgd file
+
+.DESCRIPTION
+Try to upload a diagnostic package file. Used to diagnose a specific problem with Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER PackagePath
+A string containing the path to a safeguard diagnostic package file.
+
+.INPUTS
+None.
+
+.OUTPUTS
+None.
+
+.EXAMPLE
+Set-SafeguardDiagnosticPackage .\MyPackage.sgd
+
+.EXAMPLE
+Set-SafeguardDiagnosticPackage -AccessToken $token -Appliance 10.5.32.54 -Insecure .\MyPackage.sgd
+#>
+function Set-SafeguardDiagnosticPackage
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$PackagePath
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST DiagnosticPackage -InFile $PackagePath
+}
+
+<#
+.SYNOPSIS
+Execute a staged safeguard diagnostic package
+
+.DESCRIPTION
+Execute a staged safeguard diagnostic package
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+None.
+
+.EXAMPLE
+Invoke-SafeguardDiagnosticPackage
+
+.EXAMPLE
+Invoke-SafeguardDiagnosticPackage -AccessToken $token -Appliance 10.5.32.54 -Insecure
+#>
+function Invoke-SafeguardDiagnosticPackage
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST DiagnosticPackage/Execute
+}
+
+<#
+.SYNOPSIS
+Download a safeguard diagnostic package log file
+
+.DESCRIPTION
+Try to download a diagnostic package log file generated from an uploaded and executed safeguard diagnostic package.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER OutputPath
+A string containing the path where the downloaded log file will be saved on the local appliance.
+
+.INPUTS
+None.
+
+.OUTPUTS
+None.
+
+.EXAMPLE
+Get-SafeguardDiagnosticPackageLog MyDiagnostic.log
+
+.EXAMPLE
+Get-SafeguardDiagnosticPackageLog -AccessToken $token -Appliance 10.5.32.54 -Insecure MyDiagnostic.log
+#>
+function Get-SafeguardDiagnosticPackageLog
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$OutputPath
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+    
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET DiagnosticPackage/Log -OutFile $OutputPath
+}
+
+<#
+.SYNOPSIS
+Remove a safeguard diagnostic package
+
+.DESCRIPTION
+Remove a safeguard diagnostic package from a safeguard appliance along with any log files it may have generated
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+None.
+
+.EXAMPLE
+Clear-SafeguardDiagnosticPackage
+
+.EXAMPLE
+Clear-SafeguardDiagnosticPackage -AccessToken $token -Appliance 10.5.32.54 -Insecure
+#>
+function Clear-SafeguardDiagnosticPackage
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance DELETE DiagnosticPackage
+}
