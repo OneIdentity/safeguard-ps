@@ -18,6 +18,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER NetworkAddress
 A string containing the network address of the host to try to ping.
 
+.PARAMETER Count
+An integer of the number of echo requests to send.
+
 .INPUTS
 None.
 
@@ -41,14 +44,24 @@ function Invoke-SafeguardPing
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
-        [string]$NetworkAddress
+        [string]$NetworkAddress,
+        [Parameter(Mandatory=$false)]
+        [int]$Count = 4
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST NetworkDiagnostics/Ping -Body @{
-        NetworkAddress = "$NetworkAddress"
+    $local:Timeout = 300
+    if (($Count * 3) -gt $local:Timeout)
+    {
+        $local:Timeout = ($Count * 3)
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST NetworkDiagnostics/Ping `
+        -Timeout $local:Timeout -Body @{
+            NetworkAddress = "$NetworkAddress";
+            NumberEchoRequests = $Count
     }
 }
 
