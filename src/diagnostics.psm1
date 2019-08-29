@@ -52,9 +52,16 @@ function Invoke-SafeguardPing
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST NetworkDiagnostics/Ping -Body @{
-        NetworkAddress = "$NetworkAddress";
-        NumberEchoRequests = $Count
+    $local:Timeout = 300
+    if (($Count * 3) -gt $local:Timeout)
+    {
+        $local:Timeout = ($Count * 3)
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST NetworkDiagnostics/Ping `
+        -Timeout $local:Timeout -Body @{
+            NetworkAddress = "$NetworkAddress";
+            NumberEchoRequests = $Count
     }
 }
 
