@@ -315,6 +315,19 @@ function New-SafeguardAccessRequest
         }
         $local:AccountId = (Resolve-SafeguardRequestableAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
     }
+    else 
+    {
+        if ($PSBoundParameters.ContainsKey("AccountToUse")) 
+        {
+            # Try to resolve AccountId, but do not fail on error
+            try {
+                $local:AccountId = (Resolve-SafeguardRequestableAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
+            }
+            catch {
+                Write-Warning $_
+            }
+        }
+    }
     if ($local:AccountId) { $local:Body["AccountId"] = $local:AccountId }
 
     if ($Emergency) { $local:Body["IsEmergency"] = $true }
