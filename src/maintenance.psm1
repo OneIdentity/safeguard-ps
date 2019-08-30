@@ -1188,44 +1188,20 @@ function Install-SafeguardPatch
 
         try
         {
-            Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
-            Edit-SslVersionSupport
-            if ($Insecure)
+            # https://github.com/OneIdentity/safeguard-ps/issues/142
+			# Upload the patch file in a separate powershell process, so the memory can be released after the patch upload is complete.
+			# Note, the "Insecure" argument here is being passed as a string, because we cannot send a switch type argument in Start-Process command
+            $UploadProcess = start-process powershell -NoNewWindow -PassThru -Wait -ArgumentList "$PSScriptRoot\uploadPatch.ps1 -Patch $Patch -Appliance $Appliance -AccessToken $AccessToken -Version $Version -Timeout $Timeout -Insecure $Insecure"
+            if($UploadProcess.ExitCode -ne 0)
             {
-                Disable-SslVerification
-                if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+                throw "Failed to POST patch to Safeguard"
             }
-            # Use the WebClient class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
-            Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
-            Add-ExWebClientExType
-
-            $WebClient = (New-Object Ex.WebClientEx -ArgumentList @($Timeout))
-            $WebClient.Headers.Add("Accept", "application/json")
-            $WebClient.Headers.Add("Content-type", "application/octet-stream")
-            $WebClient.Headers.Add("Authorization", "Bearer $AccessToken")
-            Write-Host "Uploading patch to Safeguard ($Appliance). This operation may take several minutes..."
-
-            $Bytes = [System.IO.File]::ReadAllBytes($Patch);
-            $ResponseBytes = $WebClient.UploadData("https://$Appliance/service/appliance/v$Version/Patch", "POST", $Bytes) | Out-Null
-            if ($ResponseBytes)
-            {
-                [System.Text.Encoding]::UTF8.GetString($ResponseBytes)
-            }
-        }
-        catch [System.Net.WebException]
-        {
-            Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-            Out-SafeguardExceptionIfPossible $_.Exception
-        }
-        catch
-        {
-            Write-Error $_
-            throw "Failed to POST patch to Safeguard"
         }
         finally
         {
             if ($Insecure)
             {
+                Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
                 Enable-SslVerification
                 if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
             }
