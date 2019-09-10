@@ -16,7 +16,7 @@ function Resolve-SafeguardGroupId
         [object]$Group
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     # Allow case insensitive group types to translate to appropriate case sensitive URL path
@@ -65,7 +65,7 @@ function Get-SafeguardGroup
         [object]$GroupToGet
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     # Allow case insensitive group types to translate to appropriate case sensitive URL path
@@ -106,7 +106,7 @@ function New-SafeguardGroup
         [string]$Description
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     # Allow case insensitive group types to translate to appropriate case sensitive URL path
@@ -140,7 +140,7 @@ function Remove-SafeguardGroup
         [object]$GroupToDelete
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     # Allow case insensitive group types to translate to appropriate case sensitive URL path
@@ -176,7 +176,7 @@ function Edit-SafeguardGroup
         [object]$ObjectToOperate
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     # Allow case insensitive group types to translate to appropriate case sensitive URL path
@@ -241,7 +241,7 @@ function Get-SafeguardUserGroup
         [object]$GroupToGet
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure User $GroupToGet
@@ -315,7 +315,7 @@ function New-SafeguardUserGroup
         [string]$DomainName
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     Import-Module -Name "$PSScriptRoot\users.psm1" -Scope Local
 
@@ -402,7 +402,7 @@ function Remove-SafeguardUserGroup
         [object]$GroupToDelete
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Remove-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure User $GroupToDelete
@@ -466,7 +466,7 @@ function Edit-SafeguardUserGroup
         [object[]]$UserList
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     
     [object[]]$Users = $null
@@ -527,7 +527,7 @@ function Get-SafeguardAssetGroup
         [object]$GroupToGet
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $GroupToGet
@@ -585,7 +585,7 @@ function New-SafeguardAssetGroup
         [string]$Description
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     New-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $Name $Description
@@ -637,7 +637,7 @@ function Remove-SafeguardAssetGroup
         [object]$GroupToDelete
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Remove-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $GroupToDelete
@@ -691,7 +691,7 @@ function Get-SafeguardAccountGroup
         [object]$GroupToGet
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToGet
@@ -748,7 +748,7 @@ function New-SafeguardAccountGroup
         [string]$Description
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     New-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $Name $Description
@@ -800,7 +800,7 @@ function Remove-SafeguardAccountGroup
         [object]$GroupToDelete
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Remove-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToDelete

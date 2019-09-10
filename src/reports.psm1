@@ -11,7 +11,7 @@ function Get-OutFileForParam
         [switch]$StdOut
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if (-not $StdOut)
@@ -33,7 +33,7 @@ function Out-FileAndExcel
         [switch]$Excel
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if ($OutFile)
@@ -69,7 +69,7 @@ function Invoke-AuditLogMethod
         [switch]$Excel
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:EndDate = ($DayOnly.AddDays(1))
@@ -145,7 +145,7 @@ function Get-SafeguardReportAccountWithoutPassword
         [switch]$StdOut
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:OutFile = (Get-OutFileForParam -OutputDirectory $OutputDirectory -FileName "sg-accounts-wo-password-$((Get-Date).ToString("yyyyMMddTHHmmssZz")).csv" -StdOut:$StdOut)
@@ -227,7 +227,7 @@ function Get-SafeguardReportDailyAccessRequest
         [DateTime]$LocalDate = (Get-Date)
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:DayOnly = (New-Object "System.DateTime" -ArgumentList $LocalDate.Year, $LocalDate.Month, $LocalDate.Day)
@@ -309,7 +309,7 @@ function Get-SafeguardReportDailyPasswordCheckFail
         [DateTime]$LocalDate = (Get-Date)
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:DayOnly = (New-Object "System.DateTime" -ArgumentList $LocalDate.Year, $LocalDate.Month, $LocalDate.Day)
@@ -391,7 +391,7 @@ function Get-SafeguardReportDailyPasswordCheckSuccess
         [DateTime]$LocalDate = (Get-Date)
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:DayOnly = (New-Object "System.DateTime" -ArgumentList $LocalDate.Year, $LocalDate.Month, $LocalDate.Day)
@@ -473,7 +473,7 @@ function Get-SafeguardReportDailyPasswordChangeFail
         [DateTime]$LocalDate = (Get-Date)
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:DayOnly = (New-Object "System.DateTime" -ArgumentList $LocalDate.Year, $LocalDate.Month, $LocalDate.Day)
@@ -555,7 +555,7 @@ function Get-SafeguardReportDailyPasswordChangeSuccess
         [DateTime]$LocalDate = (Get-Date)
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:DayOnly = (New-Object "System.DateTime" -ArgumentList $LocalDate.Year, $LocalDate.Month, $LocalDate.Day)
@@ -631,7 +631,7 @@ function Get-SafeguardReportUserEntitlement
         [switch]$StdOut
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
@@ -718,7 +718,7 @@ function Get-SafeguardReportUserGroupMembership
         [switch]$StdOut
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:Memberships = @()
@@ -822,7 +822,7 @@ function Get-SafeguardReportAssetManagementConfiguration
         [switch]$StdOut
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:ProfileLookupTable = @{}
@@ -931,7 +931,7 @@ function Get-SafeguardReportA2aEntitlement
         [switch]$StdOut
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:Entitlements = @()

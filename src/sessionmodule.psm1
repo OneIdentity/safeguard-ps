@@ -7,7 +7,7 @@ function Resolve-CertificateTypeParameter
         [string]$Type
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if (-not $Type)
@@ -71,7 +71,7 @@ function Get-SafeguardSessionContainerStatus
         [string]$Component
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:RelativeUrl = "SessionModuleConfig"
@@ -138,7 +138,7 @@ function Get-SafeguardSessionModuleStatus
         [string]$Component
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:RelativeUrl = "SessionModuleConfig/Status"
@@ -200,7 +200,7 @@ function Get-SafeguardSessionModuleVersion
         [switch]$Insecure
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET "SessionModuleConfig/Version"
@@ -246,7 +246,7 @@ function Reset-SafeguardSessionModule
         [switch]$Insecure
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     Import-Module -name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
 
@@ -301,7 +301,7 @@ function Repair-SafeguardSessionModule
         [switch]$Insecure
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
     Import-Module -name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
@@ -367,7 +367,7 @@ function Get-SafeguardSessionCertificate
         [string]$Type
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $Type = (Resolve-CertificateTypeParameter -Type $Type)
@@ -433,7 +433,7 @@ function Install-SafeguardSessionCertificate
         [SecureString]$Password
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
 
@@ -512,7 +512,7 @@ function Reset-SafeguardSessionCertificate
         [string]$Type
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $Type = (Resolve-CertificateTypeParameter -Type $Type)
@@ -576,7 +576,7 @@ function Get-SafeguardSessionSshAlgorithms
         [string]$AlgorithmType
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:Response = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET SessionSshAlgorithms)
@@ -661,7 +661,7 @@ function Set-SafeguardSessionSshAlgorithms
         [string[]]$NewValue
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:Current = (Get-SafeguardSessionSshAlgorithms -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
@@ -742,7 +742,7 @@ function Add-SafeguardSessionSshAlgorithm
         [string]$AlgorithmToAdd
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:Algs = (Get-SafeguardSessionSshAlgorithms -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Endpoint $AlgorithmType)
@@ -822,7 +822,7 @@ function Remove-SafeguardSessionSshAlgorithm
         [string]$AlgorithmToRemove
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:Algs = (Get-SafeguardSessionSshAlgorithms -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Endpoint $AlgorithmType)

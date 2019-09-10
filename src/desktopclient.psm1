@@ -28,7 +28,7 @@ function Install-SafeguardDesktopClient
         [switch]$Insecure
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
 

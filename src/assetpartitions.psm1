@@ -13,7 +13,7 @@ function Resolve-SafeguardAssetPartitionId
         [object]$AssetPartition
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if (-not ($AssetPartition -as [int]))
@@ -95,7 +95,7 @@ function Get-SafeguardAssetPartition
         [object]$AssetPartitionToGet
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if ($PSBoundParameters.ContainsKey("AssetPartitionToGet"))
@@ -170,7 +170,7 @@ function New-SafeguardAssetPartition
         [string[]]$Owners
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:Body = @{
@@ -246,7 +246,7 @@ function Remove-SafeguardAssetPartition
         [object]$FailoverPartition
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if (-not $PSBoundParameters.ContainsKey("AssetPartitionToDelete"))
@@ -336,7 +336,7 @@ function Edit-SafeguardAssetPartition
         [object]$AssetPartitionObject
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = $PSCmdlet.GetVariableValue("ErrorAction") }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $AssetPartitionObject)
