@@ -577,11 +577,6 @@ function New-SafeguardAsset
             }
         }
     }
-    else
-    {
-        # No Service Account -- so don't detect SSH host key
-        $NoSshHostKeyDiscovery = $true
-    }
 
     #Ldap Connection properties
     if ($PSCmdlet.ParameterSetName -eq "Ldap")
