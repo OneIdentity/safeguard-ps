@@ -118,7 +118,7 @@ function Get-SafeguardEntitlement
 Create a new Entitlement in Safeguard via the Web API.
 
 .DESCRIPTION
-Create a new Entitlement in Safeguard. Access policies can be attached 
+Create a new Entitlement in Safeguard. Access policies can be attached
 to Entitlements. Users and groups can be created using separate cmdlets
 and added as members via this cmdlet.
 
@@ -135,7 +135,10 @@ Ignore verification of Safeguard appliance SSL certificate.
 The name of the entitlement.
 
 .PARAMETER MemberUsers
-Array of Id or name of the users to be added to the entitlement
+Array of IDs or names of the users to be added to the entitlement.
+
+.PARAMETER MemberGroups
+Array of IDs or names of the users to be added to the entitlement.
 
 .INPUTS
 None.
@@ -191,6 +194,8 @@ function New-SafeguardEntitlement
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Roles `
         -Body @{ Name = $Name; Members = $local:Members}
 }
+
+
 
 <#
 .SYNOPSIS

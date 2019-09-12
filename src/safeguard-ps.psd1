@@ -176,7 +176,9 @@ FunctionsToExport = @(
     'Get-SafeguardUserGroup','New-SafeguardUserGroup','Remove-SafeguardUserGroup',
     'Edit-SafeguardUserGroup',
     'Get-SafeguardAssetGroup','New-SafeguardAssetGroup','Remove-SafeguardAssetGroup',
+    'Edit-SafeguardAssetGroup',
     'Get-SafeguardAccountGroup','New-SafeguardAccountGroup','Remove-SafeguardAccountGroup',
+    'Edit-SafeguardAccountGroup',
     # policies.psm1
     'Get-SafeguardPolicyAsset','Find-SafeguardPolicyAsset','Get-SafeguardPolicyAccount','Find-SafeguardPolicyAccount',
     'Get-SafeguardAccessPolicy','Get-SafeguardAccessPolicyScopeItem','Get-SafeguardAccessPolicyAccessRequestProperty',

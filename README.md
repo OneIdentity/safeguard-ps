@@ -466,9 +466,11 @@ update this list.
 - Get-SafeguardAssetGroup
 - New-SafeguardAssetGroup
 - Remove-SafeguardAssetGroup
+- Edit-SafeguardAssetGroup
 - Get-SafeguardAccountGroup
 - New-SafeguardAccountGroup
 - Remove-SafeguardAccountGroup
+- Edit-SafeguardAccountGroup
 
 ### Policy Assets and Policy Accounts (for use in entitlements & access policies)
 
