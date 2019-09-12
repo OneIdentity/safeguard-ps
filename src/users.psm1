@@ -265,6 +265,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER UserToGet
 An integer containing an ID  or a string containing the name of the user to return.
 
+.PARAMETER Fields
+An array of the user property names to return.
+
 .INPUTS
 None.
 
@@ -275,7 +278,7 @@ JSON response from Safeguard Web API.
 Get-SafeguardUser -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
-Get-SafeguardUser petrsnd
+Get-SafeguardUser petrsnd -Fields IdentityProviderId,Id,UserName
 
 .EXAMPLE
 Get-SafeguardUser 123
@@ -291,20 +294,30 @@ function Get-SafeguardUser
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [object]$UserToGet
+        [object]$UserToGet,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
     if ($PSBoundParameters.ContainsKey("UserToGet"))
     {
         $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToGet)
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Users/$local:UserId" -RetryVersion 2 -RetryUrl "Users/$local:UserId"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Users/$local:UserId" `
+            -RetryVersion 2 -RetryUrl "Users/$local:UserId" -Parameters $local:Parameters
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users -RetryVersion 2 -RetryUrl "Users"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
+            -RetryVersion 2 -RetryUrl "Users" -Parameters $local:Parameters
     }
 }
 

@@ -254,6 +254,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER AssetToGet
 An integer containing the ID of the asset to get or a string containing the name.
 
+.PARAMETER Fields
+An array of the asset property names to return.
+
 .INPUTS
 None.
 
@@ -264,7 +267,7 @@ JSON response from Safeguard Web API.
 Get-SafeguardAsset -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
-Get-SafeguardAsset
+Get-SafeguardAsset -Fields Id,Name,NetworkAddress
 #>
 function Get-SafeguardAsset
 {
@@ -277,20 +280,28 @@ function Get-SafeguardAsset
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [object]$AssetToGet
+        [object]$AssetToGet,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
     if ($PSBoundParameters.ContainsKey("AssetToGet"))
     {
         $local:AssetId = Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToGet
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Assets/$($local:AssetId)"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Assets/$($local:AssetId)" -Parameters $local:Parameters
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Assets"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Assets" -Parameters $local:Parameters
     }
 }
 
@@ -1026,6 +1037,9 @@ An integer containing the ID of the asset to get accounts from or a string conta
 .PARAMETER AccountToGet
 An integer containing the ID of the account to get or a string containing the name.
 
+.PARAMETER Fields
+An array of the account property names to return.
+
 .INPUTS
 None.
 
@@ -1036,7 +1050,7 @@ JSON response from Safeguard Web API.
 Get-SafeguardAssetAccount -AccessToken $token -Appliance 10.5.32.54 -Insecure windows.blah.corp administrator
 
 .EXAMPLE
-Get-SafeguardAssetAccount -AccountToGet oracle
+Get-SafeguardAssetAccount -AccountToGet oracle -Fields AssetId,Id,AssetName,Name
 #>
 function Get-SafeguardAssetAccount
 {
@@ -1051,11 +1065,19 @@ function Get-SafeguardAssetAccount
         [Parameter(Mandatory=$false,Position=0)]
         [object]$AssetToGet,
         [Parameter(Mandatory=$false,Position=1)]
-        [object]$AccountToGet
+        [object]$AccountToGet,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
 
     if ($PSBoundParameters.ContainsKey("AssetToGet"))
     {
@@ -1063,11 +1085,11 @@ function Get-SafeguardAssetAccount
         if ($PSBoundParameters.ContainsKey("AccountToGet"))
         {
             $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToGet)
-            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts/$($local:AccountId)"
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts/$($local:AccountId)" -Parameters $local:Parameters
         }
         else
         {
-            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Assets/$($local:AssetId)/Accounts"
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Assets/$($local:AssetId)/Accounts" -Parameters $local:Parameters
         }
     }
     else
@@ -1075,11 +1097,11 @@ function Get-SafeguardAssetAccount
         if ($PSBoundParameters.ContainsKey("AccountToGet"))
         {
             $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToGet)
-            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts/$($local:AccountId)"
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts/$($local:AccountId)" -Parameters $local:Parameters
         }
         else
         {
-            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts"
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts" -Parameters $local:Parameters
         }
     }
 }
