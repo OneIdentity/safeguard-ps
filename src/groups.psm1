@@ -189,19 +189,21 @@ function Edit-SafeguardGroup
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     # Allow case insensitive group types to translate to appropriate case sensitive URL path
+    $local:UrlPart = "Members"
     switch ($GroupType)
     {
-        "user" { $GroupType = "User"; break }
-        "asset" { $GroupType = "Asset"; break }
-        "Account" { $GroupType = "Account"; break }
+        "user" { $GroupType = "User"; $local:UrlPart = "Members"; break }
+        "asset" { $GroupType = "Asset"; $local:UrlPart = "Assets"; break }
+        "Account" { $GroupType = "Account"; $local:UrlPart = "Accounts"; break }
     }
 
     $local:RelativeUrl = "$($GroupType)Groups"
     $local:GroupId = (Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $GroupType $GroupToEdit)
 
     # Modify the group using add or remove endpoint
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "$($local:RelativeUrl)/$($local:GroupId)/Members/$Operation" `
-        -Body $ObjectToOperate -RetryVersion 2 -RetryUrl "$($local:RelativeUrl)/$($local:GroupId)/Members/$Operation" | Out-Null
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST `
+        "$($local:RelativeUrl)/$($local:GroupId)/$($local:UrlPart)/$Operation" -Body $ObjectToOperate `
+        -RetryVersion 2 -RetryUrl "$($local:RelativeUrl)/$($local:GroupId)/$($local:UrlPart)/$Operation" | Out-Null
 
     # Get the result by fetching the group
     Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -GroupType $GroupType -GroupToGet $local:GroupId
@@ -486,7 +488,7 @@ function Edit-SafeguardUserGroup
     [object[]]$local:Users = $null
     foreach ($local:User in $UserList)
     {
-        $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User)
+        $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User -Fields Id,Name)
         $local:Users += $($local:ResolvedUser)
     }
 
@@ -720,7 +722,7 @@ function Edit-SafeguardAssetGroup
     [object[]]$local:Assets = $null
     foreach ($local:Asset in $AssetList)
     {
-        $local:ResolvedAsset = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetToGet $local:Asset)
+        $local:ResolvedAsset = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetToGet $local:Asset -Fields Id,Name)
         $local:Assets += $($local:ResolvedAsset)
     }
 
@@ -959,7 +961,8 @@ function Edit-SafeguardAccountGroup
         {
             throw "Unable to parse account '$($local:AccountPair)' into asset and account"
         }
-        $local:ResolvedAccount = (Get-SafeguardAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetToGet $local:Pair[0] -AccountToGet $local:Pair[1])
+        $local:ResolvedAccount = (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+            -AssetToGet $local:Pair[0] -AccountToGet $local:Pair[1] -Fields AssetId,Id,AssetName,Name)
         $local:Accounts += $($local:ResolvedAccount)
     }
 
