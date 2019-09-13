@@ -485,6 +485,9 @@ An integer containing the ID of the entitlement to get or a string containing th
 .PARAMETER PolicyToGet
 An integer containing the ID of the access policy to get or a string containing the name.
 
+.PARAMETER Fields
+An array of the access policy property names to return.
+
 .INPUTS
 None.
 
@@ -516,29 +519,50 @@ function Get-SafeguardAccessPolicy
         [Parameter(Mandatory=$false)]
         [object]$EntitlementToGet,
         [Parameter(Mandatory=$false,Position=0)]
-        [object]$PolicyToGet
+        [object]$PolicyToGet,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    $local:Parameters = $null
+    if ($PSBoundParameters.ContainsKey("EntitlementToGet") -and $EntitlementToGet)
+    {
+        Import-Module -Name "$PSScriptRoot\entitlements.psm1" -Scope Local
+        $local:EntitlementId = Resolve-SafeguardEntitlementId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $EntitlementToGet
+        $local:Parameters = @{ Filter = "RoleId eq $($local:EntitlementId)" }
+    }
+    if ($Fields)
+    {
+        if ($local:Parameters)
+        {
+            $local:Parameters["fields"] = ($Fields -join ",")
+        }
+        else
+        {
+            $local:Parameters = @{ fields = ($Fields -join ",")}
+        }
+    }
+
     if ($PSBoundParameters.ContainsKey("PolicyToGet") -and $PolicyToGet)
     {
         $local:AccessPolicyId = Resolve-SafeguardAccessPolicyId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $PolicyToGet
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AccessPolicies/$($local:AccessPolicyId)"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            GET "AccessPolicies/$($local:AccessPolicyId)" -Parameters $local:Parameters
     }
     else
     {
         if ($PSBoundParameters.ContainsKey("EntitlementToGet") -and $EntitlementToGet)
         {
-            Import-Module -name "$PSScriptRoot\entitlements.psm1" -Scope Local
-            $local:EntitlementId = Resolve-SafeguardEntitlementId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $EntitlementToGet
-            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AccessPolicies `
-                -Parameters @{ Filter = "RoleId eq $($local:EntitlementId)" }
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                GET AccessPolicies -Parameters $local:Parameters
         }
         else
         {
-            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AccessPolicies
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                GET AccessPolicies -Parameters $local:Parameters
         }
     }
 }
