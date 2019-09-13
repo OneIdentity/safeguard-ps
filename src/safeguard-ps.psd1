@@ -165,6 +165,7 @@ FunctionsToExport = @(
     # directories.psm1
     'Get-SafeguardDirectoryIdentityProvider','New-SafeguardDirectoryIdentityProvider',
     'Remove-SafeguardDirectoryIdentityProvider','Edit-SafeguardDirectoryIdentityProvider',
+    'Get-SafeguardDirectoryIdentityProviderDomain',
     'Get-SafeguardDirectoryIdentityProviderSchemaMapping','Set-SafeguardDirectoryIdentityProviderSchemaMapping',
     'Get-SafeguardDirectory','New-SafeguardDirectory','Test-SafeguardDirectory',
     'Remove-SafeguardDirectory','Edit-SafeguardDirectory','Sync-SafeguardDirectory',

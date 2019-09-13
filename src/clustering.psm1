@@ -313,16 +313,16 @@ function Get-SafeguardClusterHealth
     {
         if ($Category -ieq "NodeConnectivity")
         {
-            $local:Health | Select-Object -ExpandProperty "ClusterConnectivity" | Select-Object -ExpandProperty $Category
+            $local:Health | Select-Object -ExpandProperty "ClusterConnectivity" | Select-Object -ExpandProperty $Category | Format-List
         }
         else
         {
-            $local:Health | Select-Object -ExpandProperty $Category
+            $local:Health | Select-Object -ExpandProperty $Category | Format-List
         }
     }
     else
     {
-        $local:Health
+        $local:Health | Format-List
     }
 }
 

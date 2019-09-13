@@ -241,6 +241,60 @@ function Get-SafeguardDirectoryIdentityProvider
 
 <#
 .SYNOPSIS
+Get domains of a directory identity provider used by Safeguard via the Web API.
+
+.DESCRIPTION
+Safeguard directory users can be added from Safeguard directory identity providers to
+enable domain users to log into Safeguard.  This cmdlet will report on which domains
+are included within that directory identity provider.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER DirectoryToGet
+An integer containing the ID of the directory to get or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardDirectoryIdentityProviderDomain -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardDirectoryIdentityProviderDomain x.domain.corp
+#>
+function Get-SafeguardDirectoryIdentityProviderDomain
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$DirectoryToGet
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    (Get-SafeguardDirectoryIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+        $DirectoryToGet).DirectoryProperties.Domains
+}
+
+<#
+.SYNOPSIS
 Create new directory identity provider in Safeguard via the Web API.
 
 .DESCRIPTION
