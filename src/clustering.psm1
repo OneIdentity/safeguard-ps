@@ -59,7 +59,7 @@ function Resolve-MemberApplianceId
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    (Resolve-MemberAppliance -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Member).Id
+    (Resolve-MemberAppliance -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Member -Parameters @{ Fields = "-Health" }).Id
 }
 function Get-ClusterConnectivityReachabilityError
 {
@@ -188,6 +188,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER Member
 A string containing an ID, name, or network address for the member appliance.
 
+.PARAMETER WithHealth
+Include the health information in the results.
+
 .INPUTS
 None.
 
@@ -217,7 +220,9 @@ function Get-SafeguardClusterMember
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [string]$Member
+        [string]$Member,
+        [Parameter(Mandatory=$false)]
+        [switch]$WithHealth
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -226,12 +231,16 @@ function Get-SafeguardClusterMember
     if ($Member)
     {
         Write-Verbose "Getting specific appliance '$AccessToken' '$Appliance' '$Insecure' '$Member'"
-        Resolve-MemberAppliance -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Member
+        Resolve-MemberAppliance -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Member -WithHealth:$WithHealth
     }
     else
     {
-        (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members" `
-            -RetryUrl "ClusterMembers").Health
+        if ($WithHealth)
+        {
+            $local:GetHealth = ",Health"
+        }
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members" `
+            -RetryUrl "ClusterMembers" fields = "Id,IsLeader,Name,Ipv4Address,Ipv6Address,SslCertificateThumbprint,EnrolledSince$($local:GetHealth)"
     }
 }
 
@@ -254,6 +263,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER Member
 A string containing an ID, name, or network address for the member appliance.
+
+.PARAMETER Category
+A string containing the type of health information to expand in the results.
 
 .INPUTS
 None.
@@ -278,7 +290,11 @@ function Get-SafeguardClusterHealth
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [string]$Member
+        [string]$Member,
+        [ValidateSet("AuditLog", "ClusterCommunication", "ClusterConnectivity", "AccessWorkflow", "PolicyData", `
+                     "ResourceUsage", "SessionModule", "NodeConnectivity", IgnoreCase=$true)]
+        [Parameter(Mandatory=$false,Position=1)]
+        [string]$Category
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -286,13 +302,27 @@ function Get-SafeguardClusterHealth
 
     if ($Member)
     {
-        Write-Verbose "Getting specific appliance '$AccessToken' '$Appliance' '$Insecure' '$Member'"
-        (Resolve-MemberAppliance -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Member -WithHealth).Health
+        $local:Health = (Resolve-MemberAppliance -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Member -WithHealth).Health
     }
     else
     {
-        (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members" `
+        $local:Health = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members" `
             -RetryUrl "ClusterMembers").Health
+    }
+    if ($Category)
+    {
+        if ($Category -ieq "NodeConnectivity")
+        {
+            $local:Health | Select-Object -ExpandProperty "ClusterConnectivity" | Select-Object -ExpandProperty $Category
+        }
+        else
+        {
+            $local:Health | Select-Object -ExpandProperty $Category
+        }
+    }
+    else
+    {
+        $local:Health
     }
 }
 
