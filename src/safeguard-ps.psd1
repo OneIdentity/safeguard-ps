@@ -145,17 +145,18 @@ FunctionsToExport = @(
     'Get-SafeguardArchiveServer','New-SafeguardArchiveServer','Test-SafeguardArchiveServer',
     'Remove-SafeguardArchiveServer','Edit-SafeguardArchiveServer',
     # requests.psm1
-    'Get-SafeguardAccessRequest','Find-SafeguardAccessRequest','New-SafeguardAccessRequest','Edit-SafeguardAccessRequest'
+    'Get-SafeguardAccessRequest','Find-SafeguardAccessRequest','New-SafeguardAccessRequest','Edit-SafeguardAccessRequest',
     'Get-SafeguardActionableRequest','Get-SafeguardRequestableAccount','Find-SafeguardRequestableAccount',
     'Get-SafeguardMyRequest','Get-SafeguardMyApproval','Get-SafeguardMyReview',
-    'Get-SafeguardAccessRequestPassword','Get-SafeguardAccessRequestRdpFile',
+    'Get-SafeguardAccessRequestPassword','Get-SafeguardAccessRequestRdpFile','Get-SafeguardAccessRequestSshUrl',
+    'Start-SafeguardAccessRequestSession',
     # users.psm1
     'Get-SafeguardIdentityProvider','New-SafeguardStarling2faAuthentication',
     'Get-SafeguardUser','Find-SafeguardUser','New-SafeguardUser','Remove-SafeguardUser','Set-SafeguardUserPassword',
     'Edit-SafeguardUser','Enable-SafeguardUser','Disable-SafeguardUser','Rename-SafeguardUser',
     # assets.psm1
     'Get-SafeguardAsset','Find-SafeguardAsset','New-SafeguardAsset','Test-SafeguardAsset',
-    'Remove-SafeguardAsset','Edit-SafeguardAsset', 'Sync-SafeguardDirectoryAsset'
+    'Remove-SafeguardAsset','Edit-SafeguardAsset', 'Sync-SafeguardDirectoryAsset',
     'Get-SafeguardAssetAccount','Find-SafeguardAssetAccount','New-SafeguardAssetAccount','Edit-SafeguardAssetAccount',
     'Set-SafeguardAssetAccountPassword','New-SafeguardAssetAccountRandomPassword',
     'Test-SafeguardAssetAccountPassword','Invoke-SafeguardAssetAccountPasswordChange',

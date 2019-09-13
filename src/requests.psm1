@@ -1006,7 +1006,7 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardAccessRequestPassword 123
+Get-SafeguardAccessRequestPassword 8518-1-18B1694CF1C0-0026
 #>
 function Get-SafeguardAccessRequestPassword
 {
@@ -1031,7 +1031,7 @@ New-Alias -Name Get-SafeguardAccessRequestCheckoutPassword -Value Get-SafeguardA
 
 <#
 .SYNOPSIS
-Checkouts out password for an access request via the Web API.
+Generate an RDP file for an access request via the Web API.
 
 .DESCRIPTION
 POST to the AccessRequests endpoint.  This script allows you to InitializeSession
@@ -1059,7 +1059,7 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardAccessRequestPassword 123
+Get-SafeguardAccessRequestRdpFile 8518-1-18B1694CF1C0-0026
 #>
 function Get-SafeguardAccessRequestRdpFile
 {
@@ -1121,5 +1121,135 @@ public class RdpPasswordEncrypter {
     $local:FakePassword = $local:Encrypter.GetEncryptedPassword("sg")
 
     Write-Output "password 51:b:$($local:FakePassword)" | Out-File -Append -Encoding ASCII -FilePath $OutFile
-    Write-Host "RDP file saved to '$OutFile'"
+    # return outfile name
+    (Resolve-Path $OutFile).Path
+}
+
+<#
+.SYNOPSIS
+Generate an SSH URL for an access request via the Web API.
+
+.DESCRIPTION
+POST to the AccessRequests endpoint.  This script allows you to InitializeSession
+on an approved access request and generate an SSH URL that works with OpenSSH client.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER RequestId
+A string containing the ID of the access request.
+
+.PARAMETER 
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardAccessRequestSshUrl 8518-1-18B1694CF1C0-0026
+#>
+function Get-SafeguardAccessRequestSshUrl
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]$RequestId
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:SessionData = (Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId InitializeSession)
+    if (-not $local:SessionData.SshConnectionString)
+    {
+        throw "Initialized session did not return SSH connection information"
+    }
+
+    $local:SessionData.ConnectionUri
+}
+
+<#
+.SYNOPSIS
+Launch an SSH or RDP session for an access request via the Web API.
+
+.DESCRIPTION
+This cmdlet launches an SSH or RDP session from an approved access request.
+It requires the OpenSSH client for SSH sessions.  It is installed be default
+on the latest versions of Windows 10.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER RequestId
+A string containing the ID of the access request.
+
+.PARAMETER 
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Start-SafeguardAccessRequestSession 8518-1-18B1694CF1C0-0026
+#>
+function Start-SafeguardAccessRequestSession
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]$RequestId
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:AccessRequest = (Get-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId)
+    switch ($local:AccessRequest.AccessRequestType)
+    {
+        "Ssh" {
+            & ssh (Get-SafeguardAccessRequestSshUrl $RequestId)
+            break
+        }
+        "RemoteDesktop" {
+            $local:OutFile = "$(Join-Path $env:TEMP "$($local:AccessRequest.Id).rdp")"
+            & open (Get-SafeguardAccessRequestRdpFile $RequestId -OutFile $local:OutFile)
+            break
+        }
+        "Password" {
+            throw "You cannot launch a session for a password request"
+            break
+        }
+        default {
+            throw "Unrecognized access request type '$($local:AccessRequest.AccessRequestType)', don't know how to launch it"
+            break
+        }
+    }
 }

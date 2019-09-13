@@ -388,6 +388,9 @@ update this list.
 - Get-SafeguardRequestableAccount (Get-SafeguardMyRequestable)
 - Find-SafeguardRequestableAccount (Find-SafeguardMyRequestable)
 - Get-SafeguardAccessRequestPassword (Get-SafeguardAccessRequestCheckoutPassword)
+- Get-SafeguardAccessRequestRdpFile
+- Get-SafeguardAccessRequestSshUrl
+- Start-SafeguardAccessRequestSession
 
 ### Users
 
