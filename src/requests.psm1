@@ -507,15 +507,6 @@ function Edit-SafeguardAccessRequest
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($AllFields)
-    {
-        $local:RequestFields = $null
-    }
-    else
-    {
-        $local:RequestFields = $script:SgAccessRequestFields
-    }
-
     # Allow case insensitive actions to translate to appropriate case sensitive URL path
     switch ($Action)
     {
@@ -529,6 +520,15 @@ function Edit-SafeguardAccessRequest
         "checkoutpassword" { $Action = "CheckOutPassword"; break }
         "initializesession" { $Action = "InitializeSession"; break }
         "acknowledge" { $Action = "Acknowledge"; break }
+    }
+
+    if ($AllFields -or $Action -eq "CheckOutPassword" -or $Action -eq "InitializeSession")
+    {
+        $local:RequestFields = $null
+    }
+    else
+    {
+        $local:RequestFields = $script:SgAccessRequestFields
     }
 
     if ($Comment)
@@ -981,11 +981,11 @@ New-Alias -Name Find-SafeguardMyRequestable -Value Find-SafeguardRequestableAcco
 
 <#
 .SYNOPSIS
-Checkouts out password for an access request via the Web API.
+Checks out the password for an access request via the Web API.
 
 .DESCRIPTION
 POST to the AccessRequests endpoint.  This script allows you to CheckoutPassword
-on an approved pull request.
+on an approved access request.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -1025,6 +1025,101 @@ function Get-SafeguardAccessRequestPassword
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AccessRequests/$RequestId/CheckoutPassword"
+    Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId CheckOutPassword
 }
 New-Alias -Name Get-SafeguardAccessRequestCheckoutPassword -Value Get-SafeguardAccessRequestPassword
+
+<#
+.SYNOPSIS
+Checkouts out password for an access request via the Web API.
+
+.DESCRIPTION
+POST to the AccessRequests endpoint.  This script allows you to InitializeSession
+on an approved access request and save the resulting RDP file with the token
+and the fake 'sg' password embedded to avoid prompts.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER RequestId
+A string containing the ID of the access request.
+
+.PARAMETER 
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardAccessRequestPassword 123
+#>
+function Get-SafeguardAccessRequestRdpFile
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]$RequestId,
+        [Parameter(Mandatory=$false)]
+        [string]$OutFile
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:SessionData = (Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId InitializeSession)
+    if (-not $local:SessionData.RdpConnectionFile)
+    {
+        throw "Initialized session did not return RDP file data"
+    }
+
+    if (-not $OutFile)
+    {
+        $OutFile = "$RequestId.rdp"
+    }
+
+    $local:SessionData.RdpConnectionFile | Out-File -Encoding ASCII -FilePath $OutFile
+
+    if (-not ([System.Management.Automation.PSTypeName]"RdpPasswordEncrypter").Type)
+    {
+        Add-Type -TypeDefinition @"
+using System;
+using System.Text;
+using System.Security.Cryptography;
+public class RdpPasswordEncrypter {
+    public string GetEncryptedPassword(string password)
+    {
+        if (password == null) return null;
+        try
+        {
+            byte[] byteArray = Encoding.UTF8.GetBytes("sg");
+            var cypherData = ProtectedData.Protect(byteArray, null, DataProtectionScope.CurrentUser);
+            StringBuilder hex = new StringBuilder(cypherData.Length * 2);
+            foreach (byte b in cypherData) { hex.AppendFormat("{0:x2}", b); }
+            return hex.ToString();
+        }
+        catch (Exception) { return null; }
+    }
+}
+"@ -ReferencedAssemblies System.Security
+    }
+
+    $local:Encrypter = New-Object RdpPasswordEncrypter
+    $local:FakePassword = $local:Encrypter.GetEncryptedPassword("sg")
+
+    Write-Output "password 51:b:$($local:FakePassword)" | Out-File -Append -Encoding ASCII -FilePath $OutFile
+    Write-Host "RDP file saved to '$OutFile'"
+}

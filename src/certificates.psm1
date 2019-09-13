@@ -835,12 +835,6 @@ function Get-SafeguardSslCertificateForAppliance
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:Parameters = $null
-    if ($Fields)
-    {
-        $local:Parameters = @{ fields = ($Fields -join ",")}
-    }
-
     if (-not $ApplianceId)
     {
         $ApplianceId = (Invoke-SafeguardMethod -Anonymous -Appliance $Appliance -Insecure:$Insecure Notification GET Status).ApplianceId
@@ -1026,7 +1020,7 @@ function New-SafeguardCertificateSigningRequest
     $local:Csr = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "ServerCertificateSignatureRequests" -Body $local:Body)
     $local:Csr
     $local:Csr.Base64RequestData | Out-File -Encoding ASCII -FilePath $OutFile -NoNewline
-    Write-Host "CSR saved to $OutFile"
+    Write-Host "CSR saved to '$OutFile'"
 }
 New-Alias -Name New-SafeguardCsr -Value New-SafeguardCertificateSigningRequest
 
