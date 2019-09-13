@@ -141,6 +141,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER Thumbprint
 A string containing the thumbprint of the certificate.
 
+.PARAMETER Fields
+An array of the certificate property names to return.
+
 .INPUTS
 None.
 
@@ -164,19 +167,29 @@ function Get-SafeguardTrustedCertificate
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [string]$Thumbprint
+        [string]$Thumbprint,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
     if ($PSBoundParameters.ContainsKey("Thumbprint"))
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "TrustedCertificates/$Thumbprint"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            GET "TrustedCertificates/$Thumbprint" -Parameters $local:Parameters
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET TrustedCertificates
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            GET TrustedCertificates  -Parameters $local:Parameters
     }
 }
 
