@@ -406,6 +406,9 @@ function New-SafeguardAccessRequest
         {
             $AccountToUse = (Read-Host "AccountToUse")
         }
+    }
+    if ($AccountToUse)
+    {
         $local:AccountId = (Resolve-SafeguardRequestableAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
     }
     else 
