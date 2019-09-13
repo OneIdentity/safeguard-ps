@@ -132,6 +132,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER RequestId
 A string containing the ID of the access request.
 
+.PARAMETER Fields
+An array of the access request property names to return.
+
 .INPUTS
 None.
 
@@ -155,19 +158,29 @@ function Get-SafeguardAccessRequest
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false, Position=0)]
-        [string]$RequestId
+        [string]$RequestId,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
     if ($PSBoundParameters.ContainsKey("RequestId"))
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AccessRequests/$RequestId"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            GET "AccessRequests/$RequestId" -Parameters $local:Parameters
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AccessRequests"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            GET "AccessRequests" -Parameters $local:Parameters
     }
 }
 
@@ -459,6 +472,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER RequestRole
 A string containing the request role: Admin, Approver, Requester, Reviewer
 
+.PARAMETER Fields
+An array of the access request property names to return.
+
 .INPUTS
 None.
 
@@ -483,11 +499,19 @@ function Get-SafeguardActionableRequest
         [switch]$Insecure,
         [Parameter(Mandatory=$false, Position=0)]
         [ValidateSet("Admin", "Approver", "Requester", "Reviewer",IgnoreCase=$true)]
-        [string]$RequestRole
+        [string]$RequestRole,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
 
     # Allow case insensitive actions to translate to appropriate case sensitive URL path
     switch ($Action)
@@ -500,7 +524,8 @@ function Get-SafeguardActionableRequest
 
     if ($RequestRole)
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/ActionableRequests/$RequestRole"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            GET "Me/ActionableRequests/$RequestRole" -Parameters $local:Parameters
     }
     else
     {
@@ -550,8 +575,21 @@ function Get-SafeguardRequestableAccount
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/RequestableAssets") | ForEach-Object {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/RequestableAssets/$($_.Id)/Accounts"
+    (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            GET "Me/RequestableAssets" -Parameters @{ fields = "Id,Name,NetworkAddress"}) | ForEach-Object {
+        $local:Asset = $_
+        (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                Core GET "Me/RequestableAssets/$($local:Asset.Id)/Accounts" -Parameters @{ fields = "Id,DomainName,Name,AccountRequestTypes" }) | ForEach-Object {
+            New-Object PSObject -Property ([ordered]@{
+                AssetId = $local:Asset.Id;
+                AssetName = $local:Asset.Name;
+                NetworkAddress = $local:Asset.NetworkAddress;
+                AccountId = $_.Id;
+                AccountDomainName = $_.DomainName;
+                AccountName = $_.Name;
+                AccountRequestTypes = $_.AccountRequestTypes;
+            })
+        }
     }
 }
 
