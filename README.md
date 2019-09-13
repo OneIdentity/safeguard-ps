@@ -391,6 +391,7 @@ update this list.
 - Get-SafeguardAccessRequestRdpFile
 - Get-SafeguardAccessRequestSshUrl
 - Start-SafeguardAccessRequestSession
+- Copy-SafeguardAccessRequestPassword
 
 ### Users
 

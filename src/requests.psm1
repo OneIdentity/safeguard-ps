@@ -1003,7 +1003,7 @@ A string containing the ID of the access request.
 None.
 
 .OUTPUTS
-JSON response from Safeguard Web API.
+A string containing the password.
 
 .EXAMPLE
 Get-SafeguardAccessRequestPassword 8518-1-18B1694CF1C0-0026
@@ -1028,6 +1028,55 @@ function Get-SafeguardAccessRequestPassword
     Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId CheckOutPassword
 }
 New-Alias -Name Get-SafeguardAccessRequestCheckoutPassword -Value Get-SafeguardAccessRequestPassword
+
+<#
+.SYNOPSIS
+Checks out the password for an access request via the Web API and copies it to the clipboard.
+
+.DESCRIPTION
+POST to the AccessRequests endpoint.  This script allows you to CheckoutPassword
+on an approved access request.  Then puts the value on the clipboard without displaying it.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER RequestId
+A string containing the ID of the access request.
+
+.INPUTS
+None.
+
+.OUTPUTS
+None.
+
+.EXAMPLE
+Copy-SafeguardAccessRequestPassword 8518-1-18B1694CF1C0-0026
+#>
+function Copy-SafeguardAccessRequestPassword
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]$RequestId
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Set-Clipboard -Value (Get-SafeguardAccessRequestPassword -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId)
+}
 
 <#
 .SYNOPSIS
@@ -1056,7 +1105,7 @@ A string containing the ID of the access request.
 None.
 
 .OUTPUTS
-JSON response from Safeguard Web API.
+Path to the RDP file.
 
 .EXAMPLE
 Get-SafeguardAccessRequestRdpFile 8518-1-18B1694CF1C0-0026
@@ -1151,7 +1200,7 @@ A string containing the ID of the access request.
 None.
 
 .OUTPUTS
-JSON response from Safeguard Web API.
+A string containing the SSH URL.
 
 .EXAMPLE
 Get-SafeguardAccessRequestSshUrl 8518-1-18B1694CF1C0-0026
@@ -1209,7 +1258,7 @@ A string containing the ID of the access request.
 None.
 
 .OUTPUTS
-JSON response from Safeguard Web API.
+None.
 
 .EXAMPLE
 Start-SafeguardAccessRequestSession 8518-1-18B1694CF1C0-0026
