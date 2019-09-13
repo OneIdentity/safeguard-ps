@@ -382,8 +382,11 @@ update this list.
 - New-SafeguardAccessRequest
 - Edit-SafeguardAccessRequest
 - Get-SafeguardActionableRequest
-- Get-SafeguardRequestableAccount
-- Find-SafeguardRequestableAccount
+- Get-SafeguardMyRequest
+- Get-SafeguardMyApproval
+- Get-SafeguardMyReview
+- Get-SafeguardRequestableAccount (Get-SafeguardMyRequestable)
+- Find-SafeguardRequestableAccount (Find-SafeguardMyRequestable)
 - Get-SafeguardAccessRequestPassword (Get-SafeguardAccessRequestCheckoutPassword)
 
 ### Users
@@ -401,6 +404,7 @@ update this list.
 - Rename-SafeguardUser
 
 ### Asset Partitions
+
 - Get-SafeguardAssetPartition
 - New-SafeguardAssetPartition
 - Remove-SafeguardAssetPartition

@@ -545,10 +545,13 @@ function Edit-SafeguardAccessRequest
 
 <#
 .SYNOPSIS
-Get all requestable Safeguard accounts for this user via the Web API.
+Get all access requests that this user can take action on via the Web API.
 
 .DESCRIPTION
-Call the Me endpoint to see all actionable requests.
+Call the Me endpoint to see all actionable requests.  This will return access
+requests for which this user is the requester, an approver, or a reviewer.  If
+this user is a policy admininstrator all access requests will also be returned
+in the admin context.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -644,6 +647,161 @@ function Get-SafeguardActionableRequest
     }
 }
 
+<#
+.SYNOPSIS
+Get all access requests that this user has requested via the Web API.
+
+.DESCRIPTION
+Call the Me endpoint to see all actionable requests.  This will return access
+requests for which this user is the requester.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AllFields
+Return all properties that can be displayed.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardMyRequest -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardMyRequest
+#>
+function Get-SafeguardMyRequest
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [switch]$AllFields
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Get-SafeguardActionableRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Requester -AllFields:$AllFields
+}
+
+<#
+.SYNOPSIS
+Get all access requests that this user can approve via the Web API.
+
+.DESCRIPTION
+Call the Me endpoint to see all actionable requests.  This will return access
+requests for which this user is an approver.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AllFields
+Return all properties that can be displayed.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardMyApproval -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardMyApproval
+#>
+function Get-SafeguardMyApproval
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [switch]$AllFields
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Get-SafeguardActionableRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Approver -AllFields:$AllFields
+}
+
+<#
+.SYNOPSIS
+Get all access requests that this user can review via the Web API.
+
+.DESCRIPTION
+Call the Me endpoint to see all actionable requests.  This will return access
+requests for which this user is a reviewer.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AllFields
+Return all properties that can be displayed.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardMyReview -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardMyReview
+#>
+function Get-SafeguardMyReview
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [switch]$AllFields
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Get-SafeguardActionableRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Reviewer -AllFields:$AllFields
+}
 
 <#
 .SYNOPSIS
@@ -703,6 +861,7 @@ function Get-SafeguardRequestableAccount
         }
     }
 }
+New-Alias -Name Get-SafeguardMyRequestable -Value Get-SafeguardRequestableAccount
 
 <#
 .SYNOPSIS
@@ -818,6 +977,7 @@ function Find-SafeguardRequestableAccount
         }
     }
 }
+New-Alias -Name Find-SafeguardMyRequestable -Value Find-SafeguardRequestableAccount
 
 <#
 .SYNOPSIS

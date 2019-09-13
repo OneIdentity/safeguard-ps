@@ -147,6 +147,7 @@ FunctionsToExport = @(
     # requests.psm1
     'Get-SafeguardAccessRequest','Find-SafeguardAccessRequest','New-SafeguardAccessRequest','Edit-SafeguardAccessRequest'
     'Get-SafeguardActionableRequest','Get-SafeguardRequestableAccount','Find-SafeguardRequestableAccount',
+    'Get-SafeguardMyRequest','Get-SafeguardMyApproval','Get-SafeguardMyReview',
     'Get-SafeguardAccessRequestPassword',
     # users.psm1
     'Get-SafeguardIdentityProvider','New-SafeguardStarling2faAuthentication',
@@ -239,7 +240,8 @@ AliasesToExport = @(
     # certificates.psm1
     'Get-SafeguardCsr','New-SafeguardCsr','Remove-SafeguardCsr',
     # requests.psm1
-    'Get-SafeguardAccessRequestCheckoutPassword'
+    'Get-SafeguardAccessRequestCheckoutPassword',
+    'Get-SafeguardMyRequestable','Find-SafeguardMyRequestable'
 )
 
 # DSC resources to export from this module
