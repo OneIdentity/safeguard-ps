@@ -211,6 +211,9 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER Fields
+An array of the certificate property names to return.
+
 .INPUTS
 None.
 
@@ -232,13 +235,22 @@ function Get-SafeguardAuditLogSigningCertificate
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AuditLog/Retention/SigningCertificate"
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        GET "AuditLog/Retention/SigningCertificate" -Parameters $local:Parameters
 }
 
 <#
@@ -558,6 +570,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER Thumbprint
 A string containing the thumbprint of the certificate.
 
+.PARAMETER Fields
+An array of the certificate property names to return.
+
 .INPUTS
 None.
 
@@ -581,19 +596,29 @@ function Get-SafeguardSslCertificate
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [string]$Thumbprint
+        [string]$Thumbprint,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
     if ($PSBoundParameters.ContainsKey("Thumbprint"))
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "SslCertificates/$Thumbprint"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            GET "SslCertificates/$Thumbprint" -Parameters $local:Parameters
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET SslCertificates
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            GET SslCertificates -Parameters $local:Parameters
     }
 }
 
@@ -774,7 +799,10 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER ApplianceId
-A string containing the ID of the appliance to assign the SSL certificate to.
+A string containing the ID of the appliance he SSL certificate is assigned to.
+
+.PARAMETER Fields
+An array of the certificate property names to return.
 
 .INPUTS
 None.
@@ -799,24 +827,32 @@ function Get-SafeguardSslCertificateForAppliance
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=1)]
-        [string]$ApplianceId
+        [string]$ApplianceId,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
 
     if (-not $ApplianceId)
     {
         $ApplianceId = (Invoke-SafeguardMethod -Anonymous -Appliance $Appliance -Insecure:$Insecure Notification GET Status).ApplianceId
     }
 
-    $local:Certificates = (Get-SafeguardSslCertificate -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
+    $local:Certificates = (Get-SafeguardSslCertificate -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Fields Thumbprint)
     $local:Certificates | ForEach-Object {
         if (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "SslCertificates/$($_.Thumbprint)/Appliances" | Where-Object {
             $_.Id -eq $ApplianceId
         })
         {
-            $_
+            Get-SafeguardSslCertificate -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Thumbprint $_.Thumbprint -Fields $Fields
         }
     }
 }
