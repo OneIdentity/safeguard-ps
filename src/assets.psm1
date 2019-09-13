@@ -117,25 +117,6 @@ function Resolve-SafeguardAssetAccountId
     }
 }
 
-function Get-SafeguardDirectoryAssetDomains
-{
-    [CmdletBinding()]
-    Param(
-        [Parameter(Mandatory=$false)]
-        [string]$Appliance,
-        [Parameter(Mandatory=$false)]
-        [object]$AccessToken,
-        [Parameter(Mandatory=$false)]
-        [switch]$Insecure,
-        [Parameter(Mandatory=$true,Position=0)]
-        [int]$DirectoryAssetId
-    )
-
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Assets/$DirectoryAssetId).DirectoryAssetProperties.Domains
-}
 <#
 .SYNOPSIS
 Discover SSH host key by connecting to asset managed by Safeguard via the Web API.
