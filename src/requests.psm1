@@ -1,4 +1,5 @@
 # Helpers
+$script:SgAccessRequestFields = "Id","AccessRequestType","State","TicketNumber","IsEmergency","AssetId","AssetName","AssetNetworkAddress","AccountId","AccountDomainName","AccountName"
 function Resolve-SafeguardRequestableAssetId
 {
     [CmdletBinding()]
@@ -108,7 +109,52 @@ function Resolve-SafeguardRequestableAccountId
     {
         $Account
     }
+}
+function New-RequestableAccountObject
+{
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Asset,
+        [Parameter(Mandatory=$true,Position=1)]
+        [object]$Account,
+        [Parameter(Mandatory=$true)]
+        [switch]$AllFields
+    )
 
+    if ($AllFields)
+    {
+        New-Object PSObject -Property ([ordered]@{
+            AssetId = $Asset.Id;
+            AssetName = $Asset.Name;
+            NetworkAddress = $Asset.NetworkAddress;
+            AssetDescription = $Asset.Description;
+            PlatformId = $Asset.PlatformId;
+            PlatformType = $Asset.PlatformType;
+            PlatformDisplayName = $Asset.PlatformDisplayName;
+            SshHostKey = $Asset.SshHostKey;
+            SshHostKeyFingerprint = $Asset.SshHostKeyFingerprint;
+            SessionAccessProperties = $Asset.SessionAccessProperties;
+            AccountId = $Account.Id;
+            AccountNetBiosName = $Account.NetBiosName;
+            AccountDomainName = $Account.DomainName;
+            AccountName = $Account.Name;
+            AccountDescription = $Account.Description;
+            SuspendAccountWhenCheckedIn = $Account.SuspendAccountWhenCheckedIn;
+            AccountRequestTypes = $Account.AccountRequestTypes;
+        })
+    }
+    else
+    {
+        New-Object PSObject -Property ([ordered]@{
+            AssetId = $Asset.Id;
+            AssetName = $Asset.Name;
+            NetworkAddress = $Asset.NetworkAddress;
+            AccountId = $Account.Id;
+            AccountDomainName = $Account.DomainName;
+            AccountName = $Account.Name;
+            AccountRequestTypes = $Account.AccountRequestTypes;
+        })
+    }
 }
 
 <#
@@ -132,8 +178,8 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER RequestId
 A string containing the ID of the access request.
 
-.PARAMETER Fields
-An array of the access request property names to return.
+.PARAMETER AllFields
+Return all properties that can be displayed.
 
 .INPUTS
 None.
@@ -160,16 +206,16 @@ function Get-SafeguardAccessRequest
         [Parameter(Mandatory=$false, Position=0)]
         [string]$RequestId,
         [Parameter(Mandatory=$false)]
-        [string[]]$Fields
+        [switch]$AllFields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:Parameters = $null
-    if ($Fields)
+    if (-not $AllFields)
     {
-        $local:Parameters = @{ fields = ($Fields -join ",")}
+        $local:Parameters = @{ fields = ($script:SgAccessRequestFields -join ",") }
     }
 
     if ($PSBoundParameters.ContainsKey("RequestId"))
@@ -207,6 +253,9 @@ A string containing the ID of the access request.
 .PARAMETER QueryFilter
 A string to pass to the -filter query parameter in the Safeguard Web API.
 
+.PARAMETER AllFields
+Return all properties that can be displayed.
+
 .INPUTS
 None.
 
@@ -217,7 +266,7 @@ JSON response from Safeguard Web API.
 Find-SafeguardAccessRequest 123
 
 .EXAMPLE
-Find-SafeguardAccessRequest -SearchString testString
+Find-SafeguardAccessRequest -SearchString testString -AllFields
 
 .EXAMPLE
 Find-SafeguardAccessRequest -QueryFilter "(AssetName eq 'Linux') and (AccountName eq 'root')"
@@ -235,7 +284,9 @@ function Find-SafeguardAccessRequest
         [Parameter(Mandatory=$true, Position=0, ParameterSetName="Search")]
         [string]$SearchString,
         [Parameter(Mandatory=$true,Position=0,ParameterSetName="Query")]
-        [string]$QueryFilter
+        [string]$QueryFilter,
+        [Parameter(Mandatory=$false)]
+        [switch]$AllFields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -243,14 +294,19 @@ function Find-SafeguardAccessRequest
 
     if ($PSCmdlet.ParameterSetName -eq "Search")
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AccessRequests" `
-            -Parameters @{ q = $SearchString }
+        $local:Parameters = @{ q = $SearchString }
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AccessRequests" `
-            -Parameters @{ filter = $QueryFilter }
+        $local:Parameters = @{ filter = $QueryFilter }
     }
+    if (-not $AllFields)
+    {
+        $local:Parameters["fields"] = ($script:SgAccessRequestFields -join ",")
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        GET "AccessRequests" -Parameters $local:Parameters
 }
 
 <#
@@ -278,6 +334,9 @@ An integer containing the ID of the account to request or a string containing th
 
 .PARAMETER AccessRequestType
 A string containing the access request type: Password, Ssh, RemoteDesktop.
+
+.PARAMETER AllFields
+Return all properties that can be displayed.
 
 .INPUTS
 None.
@@ -312,11 +371,22 @@ function New-SafeguardAccessRequest
         [Parameter(Mandatory=$false)]
         [string]$ReasonComment,
         [Parameter(Mandatory=$false)]
-        [string]$TicketNumber
+        [string]$TicketNumber,
+        [Parameter(Mandatory=$false)]
+        [switch]$AllFields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($AllFields)
+    {
+        $local:RequestFields = $null
+    }
+    else
+    {
+        $local:RequestFields = $script:SgAccessRequestFields
+    }
 
     if ($AccessRequestType -ieq "RDP")
     {
@@ -363,7 +433,8 @@ function New-SafeguardAccessRequest
     if ($ReasonComment) { $local:Body["ReasonComment"] = $ReasonComment }
     if ($TicketNumber) { $local:Body["TicketNumber"] = $TicketNumber }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AccessRequests" -Body $local:Body
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+         POST "AccessRequests" -Body $local:Body | Select-Object -Property $local:RequestFields
 }
 
 <#
@@ -394,6 +465,9 @@ A string containing the action to perform.
 .PARAMETER Comment
 An optional string to comment on the action being performed.
 
+.PARAMETER AllFields
+Return all properties that can be displayed.
+
 .INPUTS
 None.
 
@@ -422,11 +496,22 @@ function Edit-SafeguardAccessRequest
         [ValidateSet("Approve", "Deny", "Review", "Cancel", "Close", "CheckIn", "CheckOutPassword", "CheckOut", "InitializeSession", "Acknowledge", IgnoreCase=$true)]
         [string]$Action,
         [Parameter(Mandatory=$false)]
-        [string]$Comment
+        [string]$Comment,
+        [Parameter(Mandatory=$false)]
+        [switch]$AllFields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($AllFields)
+    {
+        $local:RequestFields = $null
+    }
+    else
+    {
+        $local:RequestFields = $script:SgAccessRequestFields
+    }
 
     # Allow case insensitive actions to translate to appropriate case sensitive URL path
     switch ($Action)
@@ -445,11 +530,13 @@ function Edit-SafeguardAccessRequest
 
     if ($Comment)
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AccessRequests/$RequestId/$Action" -Body "$Comment"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            POST "AccessRequests/$RequestId/$Action" -Body "$Comment" | Select-Object -Property $local:RequestFields
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AccessRequests/$RequestId/$Action"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            POST "AccessRequests/$RequestId/$Action" | Select-Object -Property $local:RequestFields
     }
 }
 
@@ -472,8 +559,8 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER RequestRole
 A string containing the request role: Admin, Approver, Requester, Reviewer
 
-.PARAMETER Fields
-An array of the access request property names to return.
+.PARAMETER AllFields
+Return all properties that can be displayed.
 
 .INPUTS
 None.
@@ -501,25 +588,46 @@ function Get-SafeguardActionableRequest
         [ValidateSet("Admin", "Approver", "Requester", "Reviewer",IgnoreCase=$true)]
         [string]$RequestRole,
         [Parameter(Mandatory=$false)]
-        [string[]]$Fields
+        [switch]$AllFields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:Parameters = $null
-    if ($Fields)
+    if (-not $AllFields)
     {
-        $local:Parameters = @{ fields = ($Fields -join ",")}
+        $local:Parameters = @{ fields = ($script:SgAccessRequestFields -join ",") }
     }
 
     # Allow case insensitive actions to translate to appropriate case sensitive URL path
-    switch ($Action)
+    switch ($RequestRole)
     {
-        "admin" { $Action = "Admin"; break }
-        "approver" { $Action = "Approver"; break }
-        "requester" { $Action = "Requester"; break }
-        "reviewer" { $Action = "Reviewer"; break }
+        "requester" { $RequestRole = "Requester"; break }
+        "admin" {
+            $RequestRole = "Admin";
+            if ($local:Parameters)
+            {
+                $local:Parameters["fields"] = "$($local:Parameters.fields),WasCheckedOut"
+            }
+            break
+        }
+        "approver" {
+            $RequestRole = "Approver";
+            if ($local:Parameters)
+            {
+                $local:Parameters["fields"] += ",ApprovedByMe,CurrentApprovalCount,RequiredApprovalCount"
+            }
+            break
+        }
+        "reviewer" {
+            $RequestRole = "Reviewer";
+            if ($local:Parameters)
+            {
+                $local:Parameters["fields"] += ",RequireReviewerComment,CurrentReviewerCount,RequiredReviewerCount"
+            }
+            break
+        }
     }
 
     if ($RequestRole)
@@ -551,6 +659,9 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER AllFields
+Return all properties that can be displayed.
+
 .INPUTS
 None.
 
@@ -559,6 +670,9 @@ JSON response from Safeguard Web API.
 
 .EXAMPLE
 Get-SafeguardRequestableAccount -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardRequestableAccount -AllFields
 #>
 function Get-SafeguardRequestableAccount
 {
@@ -569,26 +683,20 @@ function Get-SafeguardRequestableAccount
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [switch]$AllFields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-            GET "Me/RequestableAssets" -Parameters @{ fields = "Id,Name,NetworkAddress"}) | ForEach-Object {
+            GET "Me/RequestableAssets") | ForEach-Object {
         $local:Asset = $_
         (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                Core GET "Me/RequestableAssets/$($local:Asset.Id)/Accounts" -Parameters @{ fields = "Id,DomainName,Name,AccountRequestTypes" }) | ForEach-Object {
-            New-Object PSObject -Property ([ordered]@{
-                AssetId = $local:Asset.Id;
-                AssetName = $local:Asset.Name;
-                NetworkAddress = $local:Asset.NetworkAddress;
-                AccountId = $_.Id;
-                AccountDomainName = $_.DomainName;
-                AccountName = $_.Name;
-                AccountRequestTypes = $_.AccountRequestTypes;
-            })
+                Core GET "Me/RequestableAssets/$($local:Asset.Id)/Accounts") | ForEach-Object {
+            New-RequestableAccountObject $local:Asset $_ -AllFields:$AllFields
         }
     }
 }
@@ -618,6 +726,9 @@ A string to pass to the -filter query parameter for Assets in the Safeguard Web 
 .PARAMETER AccountQueryFilter
 A string to pass to the -filter query parameter for Accounts in the Safeguard Web API.
 
+.PARAMETER AllFields
+Return all properties that can be displayed.
+
 .INPUTS
 None.
 
@@ -645,7 +756,9 @@ function Find-SafeguardRequestableAccount
         [Parameter(Mandatory=$false,ParameterSetName="Query")]
         [string]$AssetQueryFilter,
         [Parameter(Mandatory=$false,ParameterSetName="Query")]
-        [string]$AccountQueryFilter
+        [string]$AccountQueryFilter,
+        [Parameter(Mandatory=$false)]
+        [switch]$AllFields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -653,9 +766,13 @@ function Find-SafeguardRequestableAccount
 
     if ($PSCmdlet.ParameterSetName -eq "Search")
     {
-        (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/RequestableAssets") | ForEach-Object {
-            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/RequestableAssets/$($_.Id)/Accounts" `
-                -Parameters @{ q = $SearchString }
+        (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                GET "Me/RequestableAssets") | ForEach-Object {
+            $local:Asset = $_
+            (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                    GET "Me/RequestableAssets/$($local:Asset.Id)/Accounts" -Parameters @{ q = $SearchString }) | ForEach-Object {
+                New-RequestableAccountObject $local:Asset $_ -AllFields:$AllFields
+            }
         }
     }
     else
@@ -664,25 +781,36 @@ function Find-SafeguardRequestableAccount
         {
             if ($AccountQueryFilter)
             {
-                (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/RequestableAssets" `
-                   -Parameters @{ filter = $AssetQueryFilter }) | ForEach-Object {
-                        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/RequestableAssets/$($_.Id)/Accounts" `
-                            -Parameters @{ filter = $AccountQueryFilter }
+                (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                        GET "Me/RequestableAssets" -Parameters @{ filter = $AssetQueryFilter }) | ForEach-Object {
+                    $local:Asset = $_
+                    (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                            GET "Me/RequestableAssets/$($local:Asset.Id)/Accounts" -Parameters @{ filter = $AccountQueryFilter }) | ForEach-Object {
+                        New-RequestableAccountObject $local:Asset $_ -AllFields:$AllFields
+                    }
                 }
             }
             else
             {
-                (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/RequestableAssets" `
-                   -Parameters @{ filter = $AssetQueryFilter }) | ForEach-Object {
-                        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/RequestableAssets/$($_.Id)/Accounts" 
+                (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                        GET "Me/RequestableAssets" -Parameters @{ filter = $AssetQueryFilter }) | ForEach-Object {
+                    $local:Asset = $_
+                    (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                            GET "Me/RequestableAssets/$($local:Asset.Id)/Accounts" ) | ForEach-Object {
+                        New-RequestableAccountObject $local:Asset $_ -AllFields:$AllFields
+                    }
                 }
             }
         }
         else
         {
-            (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/RequestableAssets") | ForEach-Object {
-                Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/RequestableAssets/$($_.Id)/Accounts" `
-                    -Parameters @{ filter = $AccountQueryFilter }
+            (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                    GET "Me/RequestableAssets") | ForEach-Object {
+                $local:Asset = $_
+                (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                        GET "Me/RequestableAssets/$($local:Asset.Id)/Accounts" -Parameters @{ filter = $AccountQueryFilter }) | ForEach-Object {
+                    New-RequestableAccountObject $local:Asset $_ -AllFields:$AllFields
+                }
             }
         }
     }
@@ -728,14 +856,12 @@ function Get-SafeguardAccessRequestPassword
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$true, Position=0)]
-        [string]$RequestId,
-        [Parameter(Mandatory=$false)]
-        [string]$Comment
+        [string]$RequestId
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AccessRequests/$RequestId/CheckoutPassword" -Body "$Comment"
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AccessRequests/$RequestId/CheckoutPassword"
 }
 New-Alias -Name Get-SafeguardAccessRequestCheckoutPassword -Value Get-SafeguardAccessRequestPassword
