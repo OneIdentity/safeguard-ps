@@ -1342,8 +1342,6 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER RequestId
 A string containing the ID of the access request.
 
-.PARAMETER 
-
 .INPUTS
 None.
 
@@ -1351,7 +1349,7 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Start-SafeguardAccessRequestSession 8518-1-18B1694CF1C0-0026
+Close-SafeguardAccessRequest 8518-1-18B1694CF1C0-0026
 #>
 function Close-SafeguardAccessRequest
 {
@@ -1401,3 +1399,100 @@ function Close-SafeguardAccessRequest
         throw "You didn't request '$RequestId' and you are not a policy admin"
     }
 }
+
+<#
+.SYNOPSIS
+Approve an access request via the Web API.
+
+.DESCRIPTION
+This cmdlet approves an access request.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER RequestId
+A string containing the ID of the access request.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Approve-SafeguardAccessRequest 8518-1-18B1694CF1C0-0026
+#>
+function Approve-SafeguardAccessRequest
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]$RequestId
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Approve
+}
+
+<#
+.SYNOPSIS
+Deny an access request via the Web API.
+
+.DESCRIPTION
+This cmdlet denies or revokes an access request.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER RequestId
+A string containing the ID of the access request.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Deny-SafeguardAccessRequest 8518-1-18B1694CF1C0-0026
+#>
+function Deny-SafeguardAccessRequest
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]$RequestId
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Deny
+}
+New-Alias -Name Revoke-SafeguardAccessRequest -Value Deny-SafeguardAccessRequest

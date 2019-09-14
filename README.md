@@ -393,6 +393,8 @@ update this list.
 - Start-SafeguardAccessRequestSession
 - Copy-SafeguardAccessRequestPassword
 - Close-SafeguardAccessRequest
+- Approve-SafeguardAccessRequest
+- Deny-SafeguardAccessRequest (Revoke-SafeguardAccessRequest)
 
 ### Users
 
