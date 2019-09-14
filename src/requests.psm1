@@ -133,7 +133,8 @@ function New-RequestableAccountObject
             PlatformDisplayName = $Asset.PlatformDisplayName;
             SshHostKey = $Asset.SshHostKey;
             SshHostKeyFingerprint = $Asset.SshHostKeyFingerprint;
-            SessionAccessProperties = $Asset.SessionAccessProperties;
+            SshSessionPort = $Asset.SessionAccessProperties.SshSessionPort;
+            RdpSessionPort = $Asset.SessionAccessProperties.RemoteDesktopSessionPort;
             AccountId = $Account.Id;
             AccountNetBiosName = $Account.NetBiosName;
             AccountDomainName = $Account.DomainName;
@@ -149,6 +150,7 @@ function New-RequestableAccountObject
             AssetId = $Asset.Id;
             AssetName = $Asset.Name;
             NetworkAddress = $Asset.NetworkAddress;
+            PlatformDisplayName = $Asset.PlatformDisplayName;
             AccountId = $Account.Id;
             AccountDomainName = $Account.DomainName;
             AccountName = $Account.Name;
