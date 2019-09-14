@@ -395,6 +395,8 @@ update this list.
 - Close-SafeguardAccessRequest
 - Approve-SafeguardAccessRequest
 - Deny-SafeguardAccessRequest (Revoke-SafeguardAccessRequest)
+- Get-SafeguardAccessRequestActionLog
+- Assert-SafeguardAccessRequest
 
 ### Users
 
