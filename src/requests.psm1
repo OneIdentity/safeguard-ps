@@ -1304,3 +1304,84 @@ function Start-SafeguardAccessRequestSession
         }
     }
 }
+
+<#
+.SYNOPSIS
+End an access request via the Web API.
+
+.DESCRIPTION
+This cmdlet ends an access request.  Depending on the state of the request
+it will cancel, check in, close, or acknowledge the access request so that
+it start transitioning toward the complete state.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER RequestId
+A string containing the ID of the access request.
+
+.PARAMETER 
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Start-SafeguardAccessRequestSession 8518-1-18B1694CF1C0-0026
+#>
+function Close-SafeguardAccessRequest
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]$RequestId
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:AccessRequest = (Get-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                $RequestId -AllFields)
+    $local:MyUser = (Get-SafeguardLoggedInUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Fields Id,AdminRoles)
+    if ($local:AccessRequest.RequesterId -eq $local:MyUser.Id -or $local:MyUser.AdminRoles -contains "PolicyAdmin")
+    {
+        switch ($local:AccessRequest.State)
+        {
+            { "New","PendingApproval","Approved","PendingTimeRequested","RequestAvailable","PendingAccountRestored","PendingPasswordReset" `
+                    -contains $_ } {
+                Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Cancel
+            }
+            { "PasswordCheckedOut","SessionInitialized" -contains $_ } {
+                Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId CheckIn
+            }
+            { "RequestCheckedIn","Terminated","PendingReview","PendingAccountSuspended" -contains $_ } {
+                Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Close
+            } 
+            { "Expired","PendingAcknowledgment" -contains $_ } {
+                Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Acknowledge
+            }
+            default {
+                # "Closed","Complete","Reclaimed"
+                Write-Verbose "Doing nothing for state '$($local:AccessRequest.State)'"
+            }
+        }
+    }
+    else
+    {
+        throw "You didn't request '$RequestId' and you are not a policy admin"
+    }
+}

@@ -392,6 +392,7 @@ update this list.
 - Get-SafeguardAccessRequestSshUrl
 - Start-SafeguardAccessRequestSession
 - Copy-SafeguardAccessRequestPassword
+- Close-SafeguardAccessRequest
 
 ### Users
 

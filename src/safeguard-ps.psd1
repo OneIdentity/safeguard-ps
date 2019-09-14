@@ -150,6 +150,7 @@ FunctionsToExport = @(
     'Get-SafeguardMyRequest','Get-SafeguardMyApproval','Get-SafeguardMyReview',
     'Get-SafeguardAccessRequestPassword','Get-SafeguardAccessRequestRdpFile','Get-SafeguardAccessRequestSshUrl',
     'Start-SafeguardAccessRequestSession','Copy-SafeguardAccessRequestPassword',
+    'Close-SafeguardAccessRequest',
     # users.psm1
     'Get-SafeguardIdentityProvider','New-SafeguardStarling2faAuthentication',
     'Get-SafeguardUser','Find-SafeguardUser','New-SafeguardUser','Remove-SafeguardUser','Set-SafeguardUserPassword',
