@@ -1077,7 +1077,23 @@ function Copy-SafeguardAccessRequestPassword
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Set-Clipboard -Value (Get-SafeguardAccessRequestPassword -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId)
+    $local:Password = (Get-SafeguardAccessRequestPassword -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId)
+    try
+    {
+        Set-Clipboard -Value $local:Password
+    }
+    catch
+    {
+        try
+        {
+            Set-ClipboardText $local:Password
+        }
+        catch
+        {
+            Write-Host -ForegroundColor Yellow "Try to use the ClipboardText module, run 'Install-Module -Name ClipboardText'"
+            throw $_
+        }
+    }
 }
 
 <#
