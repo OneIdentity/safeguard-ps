@@ -1342,6 +1342,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER RequestId
 A string containing the ID of the access request.
 
+.PARAMETER AllFields
+Return all properties that can be displayed.
+
 .INPUTS
 None.
 
@@ -1362,7 +1365,9 @@ function Close-SafeguardAccessRequest
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$true, Position=0)]
-        [string]$RequestId
+        [string]$RequestId,
+        [Parameter(Mandatory=$false)]
+        [switch]$AllFields
     )
 
     $ErrorActionPreference = "Stop"
@@ -1377,16 +1382,16 @@ function Close-SafeguardAccessRequest
         {
             { "New","PendingApproval","Approved","PendingTimeRequested","RequestAvailable","PendingAccountRestored","PendingPasswordReset" `
                     -contains $_ } {
-                Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Cancel
+                Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Cancel -AllFields:$AllFields
             }
             { "PasswordCheckedOut","SessionInitialized" -contains $_ } {
-                Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId CheckIn
+                Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId CheckIn -AllFields:$AllFields
             }
             { "RequestCheckedIn","Terminated","PendingReview","PendingAccountSuspended" -contains $_ } {
-                Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Close
+                Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Close -AllFields:$AllFields
             } 
             { "Expired","PendingAcknowledgment" -contains $_ } {
-                Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Acknowledge
+                Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Acknowledge -AllFields:$AllFields
             }
             default {
                 # "Closed","Complete","Reclaimed"
@@ -1419,6 +1424,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER RequestId
 A string containing the ID of the access request.
 
+.PARAMETER AllFields
+Return all properties that can be displayed.
+
 .INPUTS
 None.
 
@@ -1439,13 +1447,15 @@ function Approve-SafeguardAccessRequest
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$true, Position=0)]
-        [string]$RequestId
+        [string]$RequestId,
+        [Parameter(Mandatory=$false)]
+        [switch]$AllFields
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Approve
+    Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Approve -AllFields:$AllFields
 }
 
 <#
@@ -1467,6 +1477,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER RequestId
 A string containing the ID of the access request.
 
+.PARAMETER AllFields
+Return all properties that can be displayed.
+
 .INPUTS
 None.
 
@@ -1487,13 +1500,15 @@ function Deny-SafeguardAccessRequest
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$true, Position=0)]
-        [string]$RequestId
+        [string]$RequestId,
+        [Parameter(Mandatory=$false)]
+        [switch]$AllFields
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Deny
+    Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Deny -AllFields:$AllFields
 }
 New-Alias -Name Revoke-SafeguardAccessRequest -Value Deny-SafeguardAccessRequest
 
@@ -1566,6 +1581,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER RequestId
 A string containing the ID of the access request.
 
+.PARAMETER AllFields
+Return all properties that can be displayed.
+
 .INPUTS
 None.
 
@@ -1586,11 +1604,13 @@ function Assert-SafeguardAccessRequest
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$true, Position=0)]
-        [string]$RequestId
+        [string]$RequestId,
+        [Parameter(Mandatory=$false)]
+        [switch]$AllFields
     )
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Review
+    Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Review -AllFields:$AllFields
 }
