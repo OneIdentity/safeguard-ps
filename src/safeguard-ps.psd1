@@ -145,16 +145,20 @@ FunctionsToExport = @(
     'Get-SafeguardArchiveServer','New-SafeguardArchiveServer','Test-SafeguardArchiveServer',
     'Remove-SafeguardArchiveServer','Edit-SafeguardArchiveServer',
     # requests.psm1
-    'Get-SafeguardAccessRequest','Find-SafeguardAccessRequest','New-SafeguardAccessRequest','Edit-SafeguardAccessRequest'
+    'Get-SafeguardAccessRequest','Find-SafeguardAccessRequest','New-SafeguardAccessRequest','Edit-SafeguardAccessRequest',
     'Get-SafeguardActionableRequest','Get-SafeguardRequestableAccount','Find-SafeguardRequestableAccount',
-    'Get-SafeguardAccessRequestPassword',
+    'Get-SafeguardMyRequest','Get-SafeguardMyApproval','Get-SafeguardMyReview',
+    'Get-SafeguardAccessRequestPassword','Get-SafeguardAccessRequestRdpFile','Get-SafeguardAccessRequestSshUrl',
+    'Get-SafeguardAccessRequestRdpUrl','Start-SafeguardAccessRequestSession','Copy-SafeguardAccessRequestPassword',
+    'Close-SafeguardAccessRequest','Approve-SafeguardAccessRequest','Deny-SafeguardAccessRequest',
+    'Get-SafeguardAccessRequestActionLog','Assert-SafeguardAccessRequest',
     # users.psm1
     'Get-SafeguardIdentityProvider','New-SafeguardStarling2faAuthentication',
     'Get-SafeguardUser','Find-SafeguardUser','New-SafeguardUser','Remove-SafeguardUser','Set-SafeguardUserPassword',
     'Edit-SafeguardUser','Enable-SafeguardUser','Disable-SafeguardUser','Rename-SafeguardUser',
     # assets.psm1
     'Get-SafeguardAsset','Find-SafeguardAsset','New-SafeguardAsset','Test-SafeguardAsset',
-    'Remove-SafeguardAsset','Edit-SafeguardAsset', 'Sync-SafeguardDirectoryAsset'
+    'Remove-SafeguardAsset','Edit-SafeguardAsset', 'Sync-SafeguardDirectoryAsset',
     'Get-SafeguardAssetAccount','Find-SafeguardAssetAccount','New-SafeguardAssetAccount','Edit-SafeguardAssetAccount',
     'Set-SafeguardAssetAccountPassword','New-SafeguardAssetAccountRandomPassword',
     'Test-SafeguardAssetAccountPassword','Invoke-SafeguardAssetAccountPasswordChange',
@@ -165,6 +169,7 @@ FunctionsToExport = @(
     # directories.psm1
     'Get-SafeguardDirectoryIdentityProvider','New-SafeguardDirectoryIdentityProvider',
     'Remove-SafeguardDirectoryIdentityProvider','Edit-SafeguardDirectoryIdentityProvider',
+    'Get-SafeguardDirectoryIdentityProviderDomain',
     'Get-SafeguardDirectoryIdentityProviderSchemaMapping','Set-SafeguardDirectoryIdentityProviderSchemaMapping',
     'Get-SafeguardDirectory','New-SafeguardDirectory','Test-SafeguardDirectory',
     'Remove-SafeguardDirectory','Edit-SafeguardDirectory','Sync-SafeguardDirectory',
@@ -176,7 +181,9 @@ FunctionsToExport = @(
     'Get-SafeguardUserGroup','New-SafeguardUserGroup','Remove-SafeguardUserGroup',
     'Edit-SafeguardUserGroup',
     'Get-SafeguardAssetGroup','New-SafeguardAssetGroup','Remove-SafeguardAssetGroup',
+    'Edit-SafeguardAssetGroup',
     'Get-SafeguardAccountGroup','New-SafeguardAccountGroup','Remove-SafeguardAccountGroup',
+    'Edit-SafeguardAccountGroup',
     # policies.psm1
     'Get-SafeguardPolicyAsset','Find-SafeguardPolicyAsset','Get-SafeguardPolicyAccount','Find-SafeguardPolicyAccount',
     'Get-SafeguardAccessPolicy','Get-SafeguardAccessPolicyScopeItem','Get-SafeguardAccessPolicyAccessRequestProperty',
@@ -236,7 +243,9 @@ AliasesToExport = @(
     # certificates.psm1
     'Get-SafeguardCsr','New-SafeguardCsr','Remove-SafeguardCsr',
     # requests.psm1
-    'Get-SafeguardAccessRequestCheckoutPassword'
+    'Get-SafeguardAccessRequestCheckoutPassword',
+    'Get-SafeguardMyRequestable','Find-SafeguardMyRequestable',
+    'Revoke-SafeguardAccessRequest'
 )
 
 # DSC resources to export from this module

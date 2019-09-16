@@ -4,7 +4,7 @@ Upload trusted certificate to Safeguard via the Web API.
 
 .DESCRIPTION
 Upload a certificate to serve as a new trusted root certificate for
-Safeguard. You use this same method to upload an intermediate 
+Safeguard. You use this same method to upload an intermediate
 certificate that is part of the chain of trust.
 
 .PARAMETER Appliance
@@ -92,7 +92,7 @@ JSON response from Safeguard Web API.
 Uninstall-SafeguardTrustedCertificate -AccessToken $token -Appliance 10.5.32.54
 
 .EXAMPLE
-Uninstall-SafeguardTrustedCertificate -Thumbprint 3E1A99AE7ACFB163DEE3CCAC00A437D675937FCA 
+Uninstall-SafeguardTrustedCertificate -Thumbprint 3E1A99AE7ACFB163DEE3CCAC00A437D675937FCA
 #>
 function Uninstall-SafeguardTrustedCertificate
 {
@@ -141,6 +141,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER Thumbprint
 A string containing the thumbprint of the certificate.
 
+.PARAMETER Fields
+An array of the certificate property names to return.
+
 .INPUTS
 None.
 
@@ -164,19 +167,29 @@ function Get-SafeguardTrustedCertificate
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [string]$Thumbprint
+        [string]$Thumbprint,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
     if ($PSBoundParameters.ContainsKey("Thumbprint"))
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "TrustedCertificates/$Thumbprint"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            GET "TrustedCertificates/$Thumbprint" -Parameters $local:Parameters
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET TrustedCertificates
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            GET TrustedCertificates  -Parameters $local:Parameters
     }
 }
 
@@ -197,6 +210,9 @@ A string containing the bearer token to be used with Safeguard Web API.
 
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Fields
+An array of the certificate property names to return.
 
 .INPUTS
 None.
@@ -219,13 +235,22 @@ function Get-SafeguardAuditLogSigningCertificate
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AuditLog/Retention/SigningCertificate"
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        GET "AuditLog/Retention/SigningCertificate" -Parameters $local:Parameters
 }
 
 <#
@@ -312,7 +337,7 @@ function Install-SafeguardAuditLogSigningCertificate
     {
         $local:NewCertificate = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
             PUT "AuditLog/Retention/SigningCertificate" -Body @{
-                Base64CertificateData = "$($local:CertificateContents)" 
+                Base64CertificateData = "$($local:CertificateContents)"
             })
     }
 
@@ -454,7 +479,7 @@ function Install-SafeguardSslCertificate
     {
         $local:NewCertificate = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
             POST SslCertificates -Body @{
-                Base64CertificateData = "$($local:CertificateContents)" 
+                Base64CertificateData = "$($local:CertificateContents)"
             })
     }
 
@@ -496,7 +521,7 @@ JSON response from Safeguard Web API.
 Uninstall-SafeguardSslCertificate -AccessToken $token -Appliance 10.5.32.54
 
 .EXAMPLE
-Uninstall-SafeguardSslCertificate -Thumbprint 3E1A99AE7ACFB163DEE3CCAC00A437D675937FCA 
+Uninstall-SafeguardSslCertificate -Thumbprint 3E1A99AE7ACFB163DEE3CCAC00A437D675937FCA
 #>
 function Uninstall-SafeguardSslCertificate
 {
@@ -545,6 +570,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER Thumbprint
 A string containing the thumbprint of the certificate.
 
+.PARAMETER Fields
+An array of the certificate property names to return.
+
 .INPUTS
 None.
 
@@ -568,19 +596,29 @@ function Get-SafeguardSslCertificate
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [string]$Thumbprint
+        [string]$Thumbprint,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
     if ($PSBoundParameters.ContainsKey("Thumbprint"))
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "SslCertificates/$Thumbprint"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            GET "SslCertificates/$Thumbprint" -Parameters $local:Parameters
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET SslCertificates
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            GET SslCertificates -Parameters $local:Parameters
     }
 }
 
@@ -650,7 +688,7 @@ function Set-SafeguardSslCertificateForAppliance
     {
         $ApplianceId = (Invoke-SafeguardMethod -Anonymous -Appliance $Appliance -Insecure:$Insecure Notification GET Status).ApplianceId
     }
-    
+
 
     Write-Host "Setting $Thumbprint as current SSL Certificate for $ApplianceId..."
     $local:CurrentIds = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "SslCertificates/$Thumbprint/Appliances")
@@ -736,7 +774,7 @@ function Clear-SafeguardSslCertificateForAppliance
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "SslCertificates/$Thumbprint/Appliances" -JsonBody "[]"
     }
-    else 
+    else
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "SslCertificates/$Thumbprint/Appliances" -Body $local:NewIds
     }
@@ -761,7 +799,10 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER ApplianceId
-A string containing the ID of the appliance to assign the SSL certificate to.
+A string containing the ID of the appliance he SSL certificate is assigned to.
+
+.PARAMETER Fields
+An array of the certificate property names to return.
 
 .INPUTS
 None.
@@ -786,7 +827,9 @@ function Get-SafeguardSslCertificateForAppliance
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=1)]
-        [string]$ApplianceId
+        [string]$ApplianceId,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -797,13 +840,13 @@ function Get-SafeguardSslCertificateForAppliance
         $ApplianceId = (Invoke-SafeguardMethod -Anonymous -Appliance $Appliance -Insecure:$Insecure Notification GET Status).ApplianceId
     }
 
-    $local:Certificates = (Get-SafeguardSslCertificate -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
+    $local:Certificates = (Get-SafeguardSslCertificate -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Fields Thumbprint)
     $local:Certificates | ForEach-Object {
         if (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "SslCertificates/$($_.Thumbprint)/Appliances" | Where-Object {
             $_.Id -eq $ApplianceId
         })
         {
-            $_
+            Get-SafeguardSslCertificate -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Thumbprint $_.Thumbprint -Fields $Fields
         }
     }
 }
@@ -970,14 +1013,14 @@ function New-SafeguardCertificateSigningRequest
                 throw "$_ is not an IP address"
             }
         }
-        $local:Body.IpAddresses = $IpAddresses 
+        $local:Body.IpAddresses = $IpAddresses
     }
     if ($PSBoundParameters.ContainsKey("DnsNames")) { $local:Body.DnsNames = $DnsNames }
 
     $local:Csr = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "ServerCertificateSignatureRequests" -Body $local:Body)
     $local:Csr
     $local:Csr.Base64RequestData | Out-File -Encoding ASCII -FilePath $OutFile -NoNewline
-    Write-Host "CSR saved to $OutFile"
+    Write-Host "CSR saved to '$OutFile'"
 }
 New-Alias -Name New-SafeguardCsr -Value New-SafeguardCertificateSigningRequest
 
@@ -1066,7 +1109,7 @@ None.  Just host messages describing what has been created.
 New-SafeguardTestCertificates -SubjectBaseDn "OU=petrsnd,O=OneIdentityInc,C=US"
 
 .EXAMPLE
-New-SafeguardTestCertificates 
+New-SafeguardTestCertificates
 #>
 function New-SafeguardTestCertificatePki
 {

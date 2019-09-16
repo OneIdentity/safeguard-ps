@@ -64,7 +64,7 @@ function Install-SafeguardLicense
         $local:LicenseBase64 = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($local:LicenseContents))
         Write-Host "Uploading license file..."
         $local:StagedLicense = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Licenses -Body @{
-                Base64Data = "$($local:LicenseBase64)" 
+                Base64Data = "$($local:LicenseBase64)"
             })
 
         if ($StageOnly)

@@ -1,9 +1,10 @@
 # BUG#777399 -- After patching to 2.2, tasks fail on assets with service accounts using SSH keys
 # Support Reference: 4304990
+[CmdletBinding()]
 Param(
 )
 
-$ErrorActionPreference = "Stop"
+if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
 
 if (-not $SafeguardSession)
 {

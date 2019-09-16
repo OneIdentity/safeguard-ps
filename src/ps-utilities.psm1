@@ -19,7 +19,7 @@ function Get-Confirmation
     $Yes = New-Object System.Management.Automation.Host.ChoiceDescription "&Yes", $YesDescription
     $No = New-Object System.Management.Automation.Host.ChoiceDescription "&No", $NoDescription
     $Options = [System.Management.Automation.Host.ChoiceDescription[]]($Yes, $No)
-    $Result = $host.ui.PromptForChoice($Title, $Message, $Options, 0) 
+    $Result = $host.ui.PromptForChoice($Title, $Message, $Options, 0)
     switch ($result)
     {
         0 {$true}
@@ -101,7 +101,7 @@ function Get-CertificateFileContents
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    try 
+    try
     {
         $local:CertificateFullPath = (Resolve-Path $CertificateFile).ToString()
         if ((Get-Item $local:CertificateFullPath).Length -gt 100kb)
@@ -141,7 +141,7 @@ function Get-Tool
     {
         Write-Host "Searching $($local:SearchPath) for $Tool"
         $local:ToolPath = (Get-ChildItem -Recurse -EA SilentlyContinue $local:SearchPath | Where-Object { $_.Name -eq $Tool })
-        if ($local:ToolPath.Length -gt 0) 
+        if ($local:ToolPath.Length -gt 0)
         {
             $local:ToolPath[-1].Fullname
             return

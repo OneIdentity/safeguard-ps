@@ -409,7 +409,7 @@ function Invoke-Internal
         {
             {$_ -in "get","delete"} {
                 Invoke-WithoutBody $Appliance $Service $Method $Version $RelativeUrl $Headers `
-                    -Parameters $Parameters -InFile $InFile -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout 
+                    -Parameters $Parameters -InFile $InFile -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout
                 break
             }
             {$_ -in "put","post"} {
@@ -663,7 +663,7 @@ function Connect-Safeguard
                     {
                         Write-Host "($($local:IdentityProviders -join ", "))"
                     }
-                    else 
+                    else
                     {
                         Write-Warning "Unable to detect identity providers -- report this as an issue"
                     }
@@ -683,7 +683,7 @@ function Connect-Safeguard
                     $IdentityProvider = $_.Id
                 }
             }
-    
+
             if ($IdentityProvider -ieq "certificate")
             {
                 if (-not $Thumbprint -and -not $CertificateFile)
@@ -702,7 +702,7 @@ function Connect-Safeguard
                             $Username = (Read-Host "Username")
                         }
                         if (-not $Password)
-                        { 
+                        {
                             $Password = (Read-Host "Password" -AsSecureString)
                         }
                         $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
@@ -719,7 +719,7 @@ function Connect-Safeguard
                     }
                 }
             }
-        
+
             if ($Username)
             {
                 try
@@ -1366,7 +1366,7 @@ function Get-SafeguardAccessTokenStatus
             Disable-SslVerification
             if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
-        $local:Response = (Invoke-WebRequest -Method GET -Headers @{ 
+        $local:Response = (Invoke-WebRequest -Method GET -Headers @{
                 "Authorization" = "Bearer $AccessToken"
             } -Uri "https://$Appliance/service/core/v3/Me")
         $local:TimeRemaining = (New-TimeSpan -Minutes $local:Response.Headers["X-TokenLifetimeRemaining"])
@@ -1472,6 +1472,9 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER Fields
+An array of the user property names to return.
+
 .INPUTS
 None.
 
@@ -1482,7 +1485,7 @@ JSON response from Safeguard Web API.
 Get-SafeguardLoggedInUser -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
-Get-SafeguardLoggedInUser
+Get-SafeguardLoggedInUser -Fields Id
 #>
 function Get-SafeguardLoggedInUser
 {
@@ -1493,13 +1496,21 @@ function Get-SafeguardLoggedInUser
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Me
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Me -Parameters $local:Parameters
 }
 
 <#

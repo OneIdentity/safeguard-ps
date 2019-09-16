@@ -1,3 +1,4 @@
+[CmdletBinding()]
 Param(
     [Parameter(Mandatory=$true)]
     [string]$EntitlementName,
@@ -5,7 +6,7 @@ Param(
     [string]$ApproverUserName
 )
 
-$ErrorActionPreference = "Stop"
+if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
 
 if (-not $SafeguardSession)
 {

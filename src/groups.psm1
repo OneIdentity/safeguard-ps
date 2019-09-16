@@ -29,10 +29,15 @@ function Resolve-SafeguardGroupId
 
     $local:RelativeUrl = "$($GroupType)Groups"
 
+    if ($Group.Id -as [int])
+    {
+        $Group = $Group.Id
+    }
+
     if (-not ($Group -as [int]))
     {
         $local:Groups = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
-                                                -Parameters @{ filter = "Name ieq '$Group'" } -RetryVersion 2 -RetryUrl "$local:RelativeUrl") 
+                                                -Parameters @{ filter = "Name ieq '$Group'" } -RetryVersion 2 -RetryUrl "$local:RelativeUrl")
         if (-not $local:Groups)
         {
             throw "Unable to find $($GroupType.ToLower()) group matching '$Group'"
@@ -80,11 +85,13 @@ function Get-SafeguardGroup
     if ($PSBoundParameters.ContainsKey("GroupToGet") -and $GroupToGet)
     {
         $local:GroupId = Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $GroupType $GroupToGet
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$local:RelativeUrl/$($local:GroupId)" -RetryVersion 2 -RetryUrl "$local:RelativeUrl/$($local:GroupId)"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$local:RelativeUrl/$($local:GroupId)" `
+            -RetryVersion 2 -RetryUrl "$local:RelativeUrl/$($local:GroupId)"
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl -RetryVersion 2 -RetryUrl "$local:RelativeUrl"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
+            -RetryVersion 2 -RetryUrl "$local:RelativeUrl"
     }
 }
 function New-SafeguardGroup
@@ -121,7 +128,8 @@ function New-SafeguardGroup
     $local:Body = @{ Name = $Name }
     if ($PSBoundParameters.ContainsKey("Description")) { $local:Body.Description = $Description }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST $local:RelativeUrl -Body $local:Body -RetryVersion 2 -RetryUrl "$local:RelativeUrl"
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST $local:RelativeUrl `
+        -Body $local:Body -RetryVersion 2 -RetryUrl "$local:RelativeUrl"
 }
 function Remove-SafeguardGroup
 {
@@ -153,7 +161,8 @@ function Remove-SafeguardGroup
     $local:RelativeUrl = "$($GroupType)Groups"
     $local:GroupId = (Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $GroupType $GroupToDelete)
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "$($local:RelativeUrl)/$($local:GroupId)" -Body $local:Body -RetryVersion 2 -RetryUrl "$($local:RelativeUrl)/$($local:GroupId)"
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "$($local:RelativeUrl)/$($local:GroupId)" `
+        -Body $local:Body -RetryVersion 2 -RetryUrl "$($local:RelativeUrl)/$($local:GroupId)"
 }
 function Edit-SafeguardGroup
 {
@@ -180,17 +189,24 @@ function Edit-SafeguardGroup
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     # Allow case insensitive group types to translate to appropriate case sensitive URL path
+    $local:UrlPart = "Members"
     switch ($GroupType)
     {
-        "user" { $GroupType = "User"; break }
-        "asset" { $GroupType = "Asset"; break }
-        "Account" { $GroupType = "Account"; break }
+        "user" { $GroupType = "User"; $local:UrlPart = "Members"; break }
+        "asset" { $GroupType = "Asset"; $local:UrlPart = "Assets"; break }
+        "Account" { $GroupType = "Account"; $local:UrlPart = "Accounts"; break }
     }
 
     $local:RelativeUrl = "$($GroupType)Groups"
     $local:GroupId = (Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $GroupType $GroupToEdit)
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "$($local:RelativeUrl)/$($local:GroupId)/Members/$Operation" -Body $ObjectToOperate -RetryVersion 2 -RetryUrl "$($local:RelativeUrl)/$($local:GroupId)/Members/$Operation"
+    # Modify the group using add or remove endpoint
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST `
+        "$($local:RelativeUrl)/$($local:GroupId)/$($local:UrlPart)/$Operation" -Body $ObjectToOperate `
+        -RetryVersion 2 -RetryUrl "$($local:RelativeUrl)/$($local:GroupId)/$($local:UrlPart)/$Operation" | Out-Null
+
+    # Get the result by fetching the group
+    Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -GroupType $GroupType -GroupToGet $local:GroupId
 }
 
 <#
@@ -266,7 +282,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER Name
-A string containing the name for the new group.  For groups based on a directory, this must 
+A string containing the name for the new group.  For groups based on a directory, this must
 match the sAMAccountName for Active Directory or the unique naming attribute of the group
 for LDAP.
 
@@ -414,7 +430,7 @@ function Remove-SafeguardUserGroup
 Edits a user group to add or remove an existing user in Safeguard via the Web API.
 
 .DESCRIPTION
-When a user group is edited the changes also propagates to any entitlements where it may have been used
+When a user group is edited the changes also propagates to any entitlements where it may have been used.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -426,14 +442,14 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER GroupToEdit
-Name of the group to edit
+Name of the user group to edit
 
 .PARAMETER Operation
 String of type of operation to be perfomed on the user group. 'Add' to add users to the user group
-'Remove' to removed users from the user group
+'Remove' to removed users from the user group.
 
 .PARAMETER UserList
-An array of usernames of the users to be added or removed in the users group
+An array of user IDs or names of the users to be added or removed in the user group.
 
 .INPUTS
 None.
@@ -468,15 +484,15 @@ function Edit-SafeguardUserGroup
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-    
-    [object[]]$Users = $null
-    ForEach($user in $UserList)
+
+    [object[]]$local:Users = $null
+    foreach ($local:User in $UserList)
     {
-        $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $User)
+        $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User -Fields Id,Name)
         $local:Users += $($local:ResolvedUser)
     }
 
-    Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure User $GroupToEdit $Operation $Users
+    Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure User $GroupToEdit $Operation $local:Users
 }
 
 <#
@@ -645,6 +661,76 @@ function Remove-SafeguardAssetGroup
 
 <#
 .SYNOPSIS
+Edits an asset group to add or remove an existing assets in Safeguard via the Web API.
+
+.DESCRIPTION
+When an asset group is edited the changes also propagates to any entitlements where it may have been used.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER GroupToEdit
+Name of the asset group to edit.
+
+.PARAMETER Operation
+String of type of operation to be perfomed on the asset group. 'Add' to add assets to the asset group
+'Remove' to removed assets from the asset group.
+
+.PARAMETER AssetList
+An array of names or IDs of the assets to be added or removed in the asset group.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Edit-SafeguardAssetGroup testassetgroup add testasset1,testasset2
+
+.EXAMPLE
+Edit-SafeguardAssetGroup testassetgroup remove testasset1
+#>
+function Edit-SafeguardAssetGroup
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [object]$GroupToEdit,
+        [Parameter(Mandatory=$true, Position=1)]
+        [ValidateSet("Add", "Remove", IgnoreCase=$true)]
+        [string]$Operation,
+        [Parameter(Mandatory=$true, Position=2)]
+        [object[]]$AssetList
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    [object[]]$local:Assets = $null
+    foreach ($local:Asset in $AssetList)
+    {
+        $local:ResolvedAsset = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetToGet $local:Asset -Fields Id,Name)
+        $local:Assets += $($local:ResolvedAsset)
+    }
+
+    Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $GroupToEdit $Operation $local:Assets
+}
+
+<#
+.SYNOPSIS
 Get account groups as defined by policy administrators that can added to access policy scopes
 via the Web API.
 
@@ -804,4 +890,81 @@ function Remove-SafeguardAccountGroup
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Remove-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToDelete
+}
+
+<#
+.SYNOPSIS
+Edits an account group to add or remove an existing accounts in Safeguard via the Web API.
+
+.DESCRIPTION
+When an account group is edited the changes also propagates to any entitlements where it may have been used.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER GroupToEdit
+Name of the account group to edit.
+
+.PARAMETER Operation
+String of type of operation to be perfomed on the account group. 'Add' to add accounts to the account group
+'Remove' to removed accounts from the account group.
+
+.PARAMETER AccountList
+An array of ID or name pairs of the format '<asset>\<account>' to be added or removed in the account group.
+For example: 23\55,asset1\account1,asset1\342
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Edit-SafeguardAccountGroup testaccountgroup add testaccount1,testaccount2
+
+.EXAMPLE
+Edit-SafeguardAccountGroup testaccountgroup remove testaccount1
+#>
+function Edit-SafeguardAccountGroup
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [object]$GroupToEdit,
+        [Parameter(Mandatory=$true, Position=1)]
+        [ValidateSet("Add", "Remove", IgnoreCase=$true)]
+        [string]$Operation,
+        [Parameter(Mandatory=$true, Position=2)]
+        [object[]]$AccountList
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    [object[]]$local:Accounts = $null
+    foreach ($local:AccountPair in $AccountList)
+    {
+        $local:Pair = ($local:AccountPair -split "\\")
+        if ($local:Pair.Length -ne 2)
+        {
+            throw "Unable to parse account '$($local:AccountPair)' into asset and account"
+        }
+        $local:ResolvedAccount = (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+            -AssetToGet $local:Pair[0] -AccountToGet $local:Pair[1] -Fields AssetId,Id,AssetName,Name)
+        $local:Accounts += $($local:ResolvedAccount)
+    }
+
+    Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToEdit $Operation $local:Accounts
 }

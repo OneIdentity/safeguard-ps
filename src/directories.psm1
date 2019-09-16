@@ -16,6 +16,11 @@ function Resolve-SafeguardDirectoryIdentityProviderId
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    if ($Directory.Id -as [int])
+    {
+        $Directory = $Directory.Id
+    }
+
     if (-not ($Directory -as [int]))
     {
         try
@@ -66,6 +71,11 @@ function Resolve-SafeguardDirectoryId
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($Directory.Id -as [int])
+    {
+        $Directory = $Directory.Id
+    }
 
     if (-not ($Directory -as [int]))
     {
@@ -124,6 +134,11 @@ function Resolve-SafeguardDirectoryAccountId
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($Account.Id -as [int])
+    {
+        $Account = $Account.Id
+    }
 
     if (-not ($Account -as [int]))
     {
@@ -222,6 +237,60 @@ function Get-SafeguardDirectoryIdentityProvider
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
             -Parameters @{ Filter = "(TypeReferenceName eq 'ActiveDirectory') or (TypeReferenceName eq 'Ldap')" }
     }
+}
+
+<#
+.SYNOPSIS
+Get domains of a directory identity provider used by Safeguard via the Web API.
+
+.DESCRIPTION
+Safeguard directory users can be added from Safeguard directory identity providers to
+enable domain users to log into Safeguard.  This cmdlet will report on which domains
+are included within that directory identity provider.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER DirectoryToGet
+An integer containing the ID of the directory to get or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardDirectoryIdentityProviderDomain -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardDirectoryIdentityProviderDomain x.domain.corp
+#>
+function Get-SafeguardDirectoryIdentityProviderDomain
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$DirectoryToGet
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    (Get-SafeguardDirectoryIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+        $DirectoryToGet).DirectoryProperties.Domains
 }
 
 <#
@@ -717,7 +786,7 @@ function Set-SafeguardDirectoryIdentityProviderSchemaMapping
                 -Body $local:IdpObject).DirectoryProperties.SchemaProperties.GroupProperties | Format-List
         }
     }
-    
+
 }
 
 
@@ -743,6 +812,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER DirectoryToGet
 An integer containing the ID of the directory to get or a string containing the name.
 
+.PARAMETER Fields
+An array of the directory property names to return.
+
 .INPUTS
 None.
 
@@ -766,38 +838,54 @@ function Get-SafeguardDirectory
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [object]$DirectoryToGet
+        [object]$DirectoryToGet,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    try 
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
+    try
     {
         if ($PSBoundParameters.ContainsKey("DirectoryToGet"))
         {
             $local:DirectoryId = Resolve-SafeguardDirectoryId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToGet
-            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Directories/$($local:DirectoryId)" -Version 2
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET `
+                "Directories/$($local:DirectoryId)" -Version 2 -Parameters $local:Parameters
         }
         else
         {
-            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Directories -Version 2
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET `
+                Directories -Version 2 -Parameters $local:Parameters
         }
     }
-    catch 
+    catch
     {
         if ($_.Exception.HttpStatusCode -eq 404 -or $_.Exception.HttpStatusCode -eq 405)
         {
             if ($PSBoundParameters.ContainsKey("DirectoryToGet"))
             {
-                Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToGet
+                Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToGet -Parameters $local:Parameters
             }
             else
             {
                 $local:LdapPlatformId = (Find-SafeguardPlatform "OpenLDAP" -Appliance $Appliance -AccessToken $AccessToken)[0].Id
                 $local:AdPlatformId = (Find-SafeguardPlatform "Active Directory" -Appliance $Appliance -AccessToken $AccessToken)[0].Id
 
-                (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure) | Where-Object {($_.PlatformId -eq $local:LdapPlatformId) -or ($_.PlatformId -eq $local:AdPlatformId)}
+                if ($Fields)
+                {
+                    $Fields += "PlatformId"
+                }
+                (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Fields $Fields) | Where-Object {
+                    ($_.PlatformId -eq $local:LdapPlatformId) -or ($_.PlatformId -eq $local:AdPlatformId)
+                }
             }
         }
         else
@@ -1037,17 +1125,17 @@ function Test-SafeguardDirectory
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    try 
+    try
     {
         $local:DirectoryId = Resolve-SafeguardDirectoryId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToTest
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
             POST "Directories/$($local:DirectoryId)/TestConnection" -LongRunningTask -Version 2
     }
-    catch 
+    catch
     {
         if ($_.Exception.HttpStatusCode -eq 404 -or $_.Exception.HttpStatusCode -eq 405)
         {
-            Test-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetToTest $DirectoryToTest        
+            Test-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetToTest $DirectoryToTest
         }
         else
         {
@@ -1105,12 +1193,12 @@ function Remove-SafeguardDirectory
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    try 
+    try
     {
         $local:DirectoryId = Resolve-SafeguardDirectoryId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToDelete
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Directories/$($local:DirectoryId)" -Version 2
     }
-    catch 
+    catch
     {
         if ($_.Exception.HttpStatusCode -eq 404 -or $_.Exception.HttpStatusCode -eq 405)
         {
@@ -1273,11 +1361,11 @@ function Edit-SafeguardDirectory
         if ($PSBoundParameters.ContainsKey("NetworkAddress")) { $DirectoryObject.NetworkAddress = $NetworkAddress }
     }
 
-    try 
+    try
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Directories/$($DirectoryObject.Id)" -Body $DirectoryObject -Version 2
     }
-    catch 
+    catch
     {
         if ($_.Exception.HttpStatusCode -eq 404 -or $_.Exception.HttpStatusCode -eq 405)
         {
@@ -1340,13 +1428,13 @@ function Sync-SafeguardDirectory
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    try 
+    try
     {
         $local:Directory = Get-SafeguardDirectory -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToSync
         Write-Host "Triggering sync for directory: $($local:Directory.Name)"
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Directories/$($local:Directory.Id)/Synchronize" -Version 2
     }
-    catch 
+    catch
     {
         Write-Host "Exception while triggering sync for directory: $($local:Directory.Name). Retrying..."
         if ($_.Exception.HttpStatusCode -eq 404 -or $_.Exception.HttpStatusCode -eq 405)
@@ -1384,6 +1472,9 @@ An integer containing the ID of the directory to get accounts from or a string c
 .PARAMETER AccountToGet
 An integer containing the ID of the account to get or a string containing the name.
 
+.PARAMETER Fields
+An array of the account property names to return.
+
 .INPUTS
 None.
 
@@ -1409,13 +1500,21 @@ function Get-SafeguardDirectoryAccount
         [Parameter(Mandatory=$false,Position=0)]
         [object]$DirectoryToGet,
         [Parameter(Mandatory=$false,Position=1)]
-        [object]$AccountToGet
+        [object]$AccountToGet,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    try 
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
+    try
     {
         if ($PSBoundParameters.ContainsKey("DirectoryToGet"))
         {
@@ -1423,11 +1522,13 @@ function Get-SafeguardDirectoryAccount
             if ($PSBoundParameters.ContainsKey("AccountToGet"))
             {
                 $local:AccountId = (Resolve-SafeguardDirectoryAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -DirectoryId $local:DirectoryId $AccountToGet)
-                Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "DirectoryAccounts/$($local:AccountId)" -Version 2
+                Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                    GET "DirectoryAccounts/$($local:AccountId)" -Version 2 -Parameters $local:Parameters
             }
             else
             {
-                Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Directories/$($local:DirectoryId)/Accounts" -Version 2
+                Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                    GET "Directories/$($local:DirectoryId)/Accounts" -Version 2 -Parameters $local:Parameters
             }
         }
         else
@@ -1435,18 +1536,27 @@ function Get-SafeguardDirectoryAccount
             if ($PSBoundParameters.ContainsKey("AccountToGet"))
             {
                 $local:AccountId = (Resolve-SafeguardDirectoryAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToGet)
-                Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "DirectoryAccounts/$($local:AccountId)" -Version 2
+                Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                    GET "DirectoryAccounts/$($local:AccountId)" -Version 2 -Parameters $local:Parameters
             }
             else
             {
                 $local:LdapPlatformId = (Find-SafeguardPlatform "OpenLDAP" -Appliance $Appliance -AccessToken $AccessToken)[0].Id
                 $local:AdPlatformId = (Find-SafeguardPlatform "Active Directory" -Appliance $Appliance -AccessToken $AccessToken)[0].Id
 
-                (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "DirectoryAccounts" -Version 2) | Where-Object {($_.PlatformId -eq $local:LdapPlatformId) -or ($_.PlatformId -eq $local:AdPlatformId)}
+                if ($Fields)
+                {
+                    $Fields += "PlatformId"
+                    $local:Parameters = @{ fields = ($Fields -join ",")}
+                }
+                (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                    GET "DirectoryAccounts" -Version 2 -Parameters $local:Parameters) | Where-Object {
+                        ($_.PlatformId -eq $local:LdapPlatformId) -or ($_.PlatformId -eq $local:AdPlatformId)
+                    }
             }
         }
     }
-    catch 
+    catch
     {
         if ($_.Exception.HttpStatusCode -eq 404 -or $_.Exception.HttpStatusCode -eq 405)
         {
@@ -1454,25 +1564,34 @@ function Get-SafeguardDirectoryAccount
             {
                 if ($PSBoundParameters.ContainsKey("AccountToGet"))
                 {
-                    Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetToGet $DirectoryToGet -AccountToGet $AccountToGet
+                    Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                        -AssetToGet $DirectoryToGet -AccountToGet $AccountToGet -Fields $Fields
                 }
                 else
                 {
-                    Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetToGet $DirectoryToGet
+                    Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                        -AssetToGet $DirectoryToGet -Fields $Fields
                 }
             }
             else
             {
                 if ($PSBoundParameters.ContainsKey("AccountToGet"))
                 {
-                    Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AccountToGet $AccountToGet
+                    Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                        -AccountToGet $AccountToGet -Fields $Fields
                 }
                 else
                 {
                     $local:LdapPlatformId = (Find-SafeguardPlatform "OpenLDAP" -Appliance $Appliance -AccessToken $AccessToken)[0].Id
                     $local:AdPlatformId = (Find-SafeguardPlatform "Active Directory" -Appliance $Appliance -AccessToken $AccessToken)[0].Id
 
-                    (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure) | Where-Object {($_.PlatformId -eq $local:LdapPlatformId) -or ($_.PlatformId -eq $local:AdPlatformId)}
+                    if ($Fields)
+                    {
+                        $Fields += "PlatformId"
+                    }
+                    (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Fields $Fields) | Where-Object {
+                        ($_.PlatformId -eq $local:LdapPlatformId) -or ($_.PlatformId -eq $local:AdPlatformId)
+                    }
                 }
             }
         }
@@ -1540,7 +1659,7 @@ function Find-SafeguardDirectoryAccount
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    try 
+    try
     {
         if ($PSCmdlet.ParameterSetName -eq "Search")
         {
@@ -1553,7 +1672,7 @@ function Find-SafeguardDirectoryAccount
                 -Parameters @{ filter = $QueryFilter } -Version 2) | Where-Object {($_.PlatformId -eq $local:LdapPlatformId) -or ($_.PlatformId -eq $local:AdPlatformId)}
         }
     }
-    catch 
+    catch
     {
         if ($_.Exception.HttpStatusCode -eq 404 -or $_.Exception.HttpStatusCode -eq 405)
         {
@@ -1579,7 +1698,7 @@ Create a new account on a directory managed by Safeguard via the Web API.
 
 .DESCRIPTION
 Create a representation of an account on a managed directory.  Accounts passwords can
-be managed, and Safeguard can be configured to check and change those passwords.  
+be managed, and Safeguard can be configured to check and change those passwords.
 Policy can be created to allow access to passwords and sessions based on those passwords.
 
 .PARAMETER Appliance
@@ -1640,7 +1759,7 @@ function New-SafeguardDirectoryAccount
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    try 
+    try
     {
         $local:Directory = (Get-SafeguardDirectory -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ParentDirectory)
 
@@ -1650,7 +1769,7 @@ function New-SafeguardDirectoryAccount
                 "DirectoryId" = $local:Directory.Id;
             }
         }
-    
+
         if ($PSBoundParameters.ContainsKey("DomainName"))
         {
             $local:Body.DirectoryProperties.DomainName = $DomainName
@@ -1676,10 +1795,10 @@ function New-SafeguardDirectoryAccount
                 $DomainName = $local:Directory.Domains[0].DomainName
             }
         }
-    
+
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "DirectoryAccounts" -Body $local:Body -Version 2
     }
-    catch 
+    catch
     {
         if ($_.Exception.HttpStatusCode -eq 404 -or $_.Exception.HttpStatusCode -eq 405)
         {
@@ -1747,11 +1866,11 @@ function Edit-SafeguardDirectoryAccount
     {
         throw "AccountObject must not be null"
     }
-    try 
+    try
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "DirectoryAccounts/$($AccountObject.Id)" -Body $AccountObject -Version 2
     }
-    catch 
+    catch
     {
         if ($_.Exception.HttpStatusCode -eq 404 -or $_.Exception.HttpStatusCode -eq 405)
         {
@@ -1830,7 +1949,7 @@ function Set-SafeguardDirectoryAccountPassword
         $NewPassword = (Read-Host -AsSecureString "NewPassword")
     }
 
-    try 
+    try
     {
         if ($PSBoundParameters.ContainsKey("DirectoryToSet"))
         {
@@ -1846,7 +1965,7 @@ function Set-SafeguardDirectoryAccountPassword
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "DirectoryAccounts/$($local:AccountId)/Password" `
             -Body $local:PasswordPlainText -Version 2
     }
-    catch 
+    catch
     {
         if ($_.Exception.HttpStatusCode -eq 404 -or $_.Exception.HttpStatusCode -eq 405)
         {
@@ -1921,7 +2040,7 @@ function New-SafeguardDirectoryAccountRandomPassword
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    try 
+    try
     {
         if ($PSBoundParameters.ContainsKey("DirectoryToUse"))
         {
@@ -1934,7 +2053,7 @@ function New-SafeguardDirectoryAccountRandomPassword
         }
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "DirectoryAccounts/$($local:AccountId)/GeneratePassword" -Version 2
     }
-    catch 
+    catch
     {
         if ($_.Exception.HttpStatusCode -eq 404 -or $_.Exception.HttpStatusCode -eq 405)
         {
@@ -2008,7 +2127,7 @@ function Test-SafeguardDirectoryAccountPassword
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    try 
+    try
     {
         if ($PSBoundParameters.ContainsKey("DirectoryToUse"))
         {
@@ -2021,7 +2140,7 @@ function Test-SafeguardDirectoryAccountPassword
         }
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "DirectoryAccounts/$($local:AccountId)/CheckPassword" -LongRunningTask -Version 2
     }
-    catch 
+    catch
     {
         if ($_.Exception.HttpStatusCode -eq 404 -or $_.Exception.HttpStatusCode -eq 405)
         {
@@ -2095,7 +2214,7 @@ function Invoke-SafeguardDirectoryAccountPasswordChange
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    try 
+    try
     {
         if ($PSBoundParameters.ContainsKey("DirectoryToUse"))
         {
@@ -2108,7 +2227,7 @@ function Invoke-SafeguardDirectoryAccountPasswordChange
         }
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "DirectoryAccounts/$($local:AccountId)/ChangePassword" -LongRunningTask -Version 2
     }
-    catch 
+    catch
     {
         if ($_.Exception.HttpStatusCode -eq 404 -or $_.Exception.HttpStatusCode -eq 405)
         {
@@ -2182,7 +2301,7 @@ function Remove-SafeguardDirectoryAccount
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    try 
+    try
     {
         if ($PSBoundParameters.ContainsKey("DirectoryToUse"))
         {
@@ -2195,7 +2314,7 @@ function Remove-SafeguardDirectoryAccount
         }
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "DirectoryAccounts/$($local:AccountId)" -Version 2
     }
-    catch 
+    catch
     {
         if ($_.Exception.HttpStatusCode -eq 404 -or $_.Exception.HttpStatusCode -eq 405)
         {

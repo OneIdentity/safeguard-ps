@@ -59,7 +59,7 @@ function Resolve-MemberApplianceId
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    (Resolve-MemberAppliance -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Member).Id
+    (Resolve-MemberAppliance -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Member -Parameters @{ Fields = "-Health" }).Id
 }
 function Get-ClusterConnectivityReachabilityError
 {
@@ -188,6 +188,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER Member
 A string containing an ID, name, or network address for the member appliance.
 
+.PARAMETER WithHealth
+Include the health information in the results.
+
 .INPUTS
 None.
 
@@ -217,7 +220,9 @@ function Get-SafeguardClusterMember
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [string]$Member
+        [string]$Member,
+        [Parameter(Mandatory=$false)]
+        [switch]$WithHealth
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -226,12 +231,16 @@ function Get-SafeguardClusterMember
     if ($Member)
     {
         Write-Verbose "Getting specific appliance '$AccessToken' '$Appliance' '$Insecure' '$Member'"
-        Resolve-MemberAppliance -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Member
+        Resolve-MemberAppliance -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Member -WithHealth:$WithHealth
     }
     else
     {
-        (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members" `
-            -RetryUrl "ClusterMembers").Health
+        if ($WithHealth)
+        {
+            $local:GetHealth = ",Health"
+        }
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members" `
+            -RetryUrl "ClusterMembers" fields = "Id,IsLeader,Name,Ipv4Address,Ipv6Address,SslCertificateThumbprint,EnrolledSince$($local:GetHealth)"
     }
 }
 
@@ -240,7 +249,7 @@ function Get-SafeguardClusterMember
 Get health of cluster members from Safeguard via the Web API.
 
 .DESCRIPTION
-Retrieve the information based on most recent health check for all Safeguard appliances 
+Retrieve the information based on most recent health check for all Safeguard appliances
 in this cluster via the Web API.
 
 .PARAMETER Appliance
@@ -254,6 +263,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER Member
 A string containing an ID, name, or network address for the member appliance.
+
+.PARAMETER Category
+A string containing the type of health information to expand in the results.
 
 .INPUTS
 None.
@@ -278,7 +290,11 @@ function Get-SafeguardClusterHealth
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [string]$Member
+        [string]$Member,
+        [ValidateSet("AuditLog", "ClusterCommunication", "ClusterConnectivity", "AccessWorkflow", "PolicyData", `
+                     "ResourceUsage", "SessionModule", "NodeConnectivity", IgnoreCase=$true)]
+        [Parameter(Mandatory=$false,Position=1)]
+        [string]$Category
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -286,13 +302,27 @@ function Get-SafeguardClusterHealth
 
     if ($Member)
     {
-        Write-Verbose "Getting specific appliance '$AccessToken' '$Appliance' '$Insecure' '$Member'"
-        (Resolve-MemberAppliance -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Member -WithHealth).Health
+        $local:Health = (Resolve-MemberAppliance -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Member -WithHealth).Health
     }
     else
     {
-        (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members" `
+        $local:Health = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members" `
             -RetryUrl "ClusterMembers").Health
+    }
+    if ($Category)
+    {
+        if ($Category -ieq "NodeConnectivity")
+        {
+            $local:Health | Select-Object -ExpandProperty "ClusterConnectivity" | Select-Object -ExpandProperty $Category | Format-List
+        }
+        else
+        {
+            $local:Health | Select-Object -ExpandProperty $Category | Format-List
+        }
+    }
+    else
+    {
+        $local:Health | Format-List
     }
 }
 
@@ -740,7 +770,7 @@ function Get-SafeguardClusterOperationStatus
 Attempt to force the completion of a currently running Safeguard cluster operation via the Safeguard Web API.
 
 .DESCRIPTION
-This cmdlet can be used to force a cluster operation to complete that is not being acknowledged by all 
+This cmdlet can be used to force a cluster operation to complete that is not being acknowledged by all
 appliances in the cluster.  This is not always possible with the current connection.  You may need to
 connect to a different appliance in the cluster to perform this operation depending on which appliance is
 having trouble.

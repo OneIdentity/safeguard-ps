@@ -1,5 +1,5 @@
 # This script assumes that the bootstrap admin account has the default password
-
+[CmdletBinding()]
 Param(
     [Parameter(Mandatory=$true)]
     [string]$Appliance,
@@ -9,7 +9,7 @@ Param(
     [string]$SessionsLicenseFile
 )
 
-$ErrorActionPreference = "Stop"
+if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
 
 $local:Password = (ConvertTo-SecureString -AsPlainText "Admin123" -Force)
 $local:AccessToken = (Connect-Safeguard -Appliance $Appliance -IdentityProvider Local -Username Admin -Password $local:Password -Insecure -NoSessionVariable)

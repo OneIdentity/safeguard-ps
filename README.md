@@ -382,9 +382,22 @@ update this list.
 - New-SafeguardAccessRequest
 - Edit-SafeguardAccessRequest
 - Get-SafeguardActionableRequest
-- Get-SafeguardRequestableAccount
-- Find-SafeguardRequestableAccount
+- Get-SafeguardMyRequest
+- Get-SafeguardMyApproval
+- Get-SafeguardMyReview
+- Get-SafeguardRequestableAccount (Get-SafeguardMyRequestable)
+- Find-SafeguardRequestableAccount (Find-SafeguardMyRequestable)
 - Get-SafeguardAccessRequestPassword (Get-SafeguardAccessRequestCheckoutPassword)
+- Get-SafeguardAccessRequestRdpFile
+- Get-SafeguardAccessRequestRdpUrl
+- Get-SafeguardAccessRequestSshUrl
+- Start-SafeguardAccessRequestSession
+- Copy-SafeguardAccessRequestPassword
+- Close-SafeguardAccessRequest
+- Approve-SafeguardAccessRequest
+- Deny-SafeguardAccessRequest (Revoke-SafeguardAccessRequest)
+- Get-SafeguardAccessRequestActionLog
+- Assert-SafeguardAccessRequest
 
 ### Users
 
@@ -401,6 +414,7 @@ update this list.
 - Rename-SafeguardUser
 
 ### Asset Partitions
+
 - Get-SafeguardAssetPartition
 - New-SafeguardAssetPartition
 - Remove-SafeguardAssetPartition
@@ -435,6 +449,7 @@ update this list.
 - New-SafeguardDirectoryIdentityProvider
 - Remove-SafeguardDirectoryIdentityProvider
 - Edit-SafeguardDirectoryIdentityProvider
+- Get-SafeguardDirectoryIdentityProviderDomain
 - Get-SafeguardDirectoryIdentityProviderSchemaMapping
 - Set-SafeguardDirectoryIdentityProviderSchemaMapping
 - Get-SafeguardDirectory
@@ -466,9 +481,11 @@ update this list.
 - Get-SafeguardAssetGroup
 - New-SafeguardAssetGroup
 - Remove-SafeguardAssetGroup
+- Edit-SafeguardAssetGroup
 - Get-SafeguardAccountGroup
 - New-SafeguardAccountGroup
 - Remove-SafeguardAccountGroup
+- Edit-SafeguardAccountGroup
 
 ### Policy Assets and Policy Accounts (for use in entitlements & access policies)
 

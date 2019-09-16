@@ -422,10 +422,10 @@ function Get-IdentitiesFile
         [Parameter(Mandatory=$false)]
         [switch]$ExcludeSafeguardIdentities
 	)
-	
+
 	$local:adIdentitiesFile = Join-Path $OutputDirectory $DomainName-identities.csv
 	$local:sgIdentitiesFile = Join-Path $OutputDirectory $Identifier-identities.csv
-	
+
 	if (-not $ExcludeSafeguardIdentities)
 	{
 		# Get both and merge into a single file with the desired file name
@@ -996,7 +996,7 @@ Update an existing group comma-separated values (CSV) for access certification
 that was extracted from Safeguard to add group owner information.
 
 .DESCRIPTION
-This utility takes a group CSV file and calls the Active Directory PowerShell module 
+This utility takes a group CSV file and calls the Active Directory PowerShell module
 to look up groups to see if the managedBy attribute is set and then adds the owner
 to the CSV based on the user specified in that attribute.
 

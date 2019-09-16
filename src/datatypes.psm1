@@ -16,6 +16,11 @@ function Resolve-SafeguardPlatform
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    if ($Platform.Id -as [int])
+    {
+        $Platform = $Platform.Id
+    }
+
     while (-not $($Platform -as [int]))
     {
         Write-Host "Searching for platforms with '$Platform'"
@@ -100,7 +105,7 @@ function Resolve-SafeguardServiceAccountCredentialType
 Get the identity provider types defined in Safeguard via the Web API.
 
 .DESCRIPTION
-Get the identity provider types defined in Safeguard that can be used 
+Get the identity provider types defined in Safeguard that can be used
 for creating users and assigning authentication methods.
 
 .PARAMETER Appliance

@@ -55,7 +55,7 @@ function Invoke-SafeguardA2aMethodWithCertificate
     $Service = $Service.ToLower()
 
     $local:BodyInternal = $null
-    if ($Body) 
+    if ($Body)
     {
         $local:BodyInternal = (ConvertTo-Json -InputObject $Body)
         Write-Verbose "---Request Body---"
@@ -201,7 +201,7 @@ function Get-SafeguardA2aRetrievableAccount
     if (-not $Thumbprint)
     {
         if (-not $Password)
-        { 
+        {
             $Password = (Read-Host "Password" -AsSecureString)
         }
         $local:Registrations = (Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance `

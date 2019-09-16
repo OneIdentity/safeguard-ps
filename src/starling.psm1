@@ -126,7 +126,7 @@ function Get-SafeguardStarlingSubscription
 
 <#
 .SYNOPSIS
-Create a new One Identity Starling subscription using the Safeguard 
+Create a new One Identity Starling subscription using the Safeguard
 Web API.
 
 .DESCRIPTION
@@ -204,7 +204,7 @@ function New-SafeguardStarlingSubscription
 
 <#
 .SYNOPSIS
-Remove a One Identity Starling subscription using the Safeguard 
+Remove a One Identity Starling subscription using the Safeguard
 Web API.
 
 .DESCRIPTION
@@ -282,7 +282,7 @@ Get a join URL for subscribing this Safeguard instance to One Identity Starling.
 .DESCRIPTION
 This cmdlet will return a join URL which must be accessed via an interactive
 browser session.  The result of authenticating with the information in the join
-URL will be a new Starling subscription on the Starling side; however, you need to call 
+URL will be a new Starling subscription on the Starling side; however, you need to call
 New-SafeguardStarlingSubscription to configure the subscription information in
 Safeguard as well.  Or, you may call Invoke-SafeguardStarlingJoin which will do all
 of these steps for you, including opening the browser.
