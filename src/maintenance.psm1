@@ -161,7 +161,7 @@ function Get-SafeguardApplianceState
 Get the version of a Safeguard appliance via the Web API.
 
 .DESCRIPTION
-Get the version information from a Safeguard appliance which will 
+Get the version information from a Safeguard appliance which will
 be returned as an object containing major.minor.revision.build
 portions separated into different properties.
 
@@ -1146,7 +1146,7 @@ function Install-SafeguardPatch
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-    
+
     if ($SafeguardSession)
     {
         $Insecure = $SafeguardSession["Insecure"]

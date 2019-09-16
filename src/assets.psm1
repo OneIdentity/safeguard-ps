@@ -379,7 +379,7 @@ NetworkAddress is an IP address rather than a DNS name.
 A string containing a description for this asset.
 
 .PARAMETER AssetPartition
-An integer containing an ID  or a string containing the name of the asset partition 
+An integer containing an ID  or a string containing the name of the asset partition
 where this asset should be created.
 
 .PARAMETER AssetPartitionId
@@ -513,7 +513,7 @@ function New-SafeguardAsset
         {
             $DisplayName = $ServiceAccountDomainName
         }
-        else 
+        else
         {
             if (-not (Test-IpAddress $NetworkAddress))
             {
@@ -870,7 +870,7 @@ function Edit-SafeguardAsset
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-    
+
     Write-Host "ErrorActionPreference is :"
     Write-Host $ErrorActionPreference
 
@@ -985,7 +985,7 @@ function Sync-SafeguardDirectoryAsset
     Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
     $local:AssetPartitionId = (Resolve-SafeguardAssetPartitionId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetPartition)
     $local:DirectoryAsset = Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryAssetToSync
-    
+
     if(-not $local:DirectoryAsset.IsDirectory)
     {
         throw "Asset '$($local:DirectoryAsset.Name)' is not a directory asset"
@@ -1162,7 +1162,7 @@ Create a new account on an asset managed by Safeguard via the Web API.
 
 .DESCRIPTION
 Create a representation of an account on a managed asset.  Accounts passwords can
-be managed, and Safeguard can be configured to check and change those passwords.  
+be managed, and Safeguard can be configured to check and change those passwords.
 Policy can be created to allow access to passwords and sessions based on those passwords.
 
 .PARAMETER Appliance

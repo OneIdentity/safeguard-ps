@@ -4,7 +4,7 @@ Upload trusted certificate to Safeguard via the Web API.
 
 .DESCRIPTION
 Upload a certificate to serve as a new trusted root certificate for
-Safeguard. You use this same method to upload an intermediate 
+Safeguard. You use this same method to upload an intermediate
 certificate that is part of the chain of trust.
 
 .PARAMETER Appliance
@@ -92,7 +92,7 @@ JSON response from Safeguard Web API.
 Uninstall-SafeguardTrustedCertificate -AccessToken $token -Appliance 10.5.32.54
 
 .EXAMPLE
-Uninstall-SafeguardTrustedCertificate -Thumbprint 3E1A99AE7ACFB163DEE3CCAC00A437D675937FCA 
+Uninstall-SafeguardTrustedCertificate -Thumbprint 3E1A99AE7ACFB163DEE3CCAC00A437D675937FCA
 #>
 function Uninstall-SafeguardTrustedCertificate
 {
@@ -337,7 +337,7 @@ function Install-SafeguardAuditLogSigningCertificate
     {
         $local:NewCertificate = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
             PUT "AuditLog/Retention/SigningCertificate" -Body @{
-                Base64CertificateData = "$($local:CertificateContents)" 
+                Base64CertificateData = "$($local:CertificateContents)"
             })
     }
 
@@ -479,7 +479,7 @@ function Install-SafeguardSslCertificate
     {
         $local:NewCertificate = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
             POST SslCertificates -Body @{
-                Base64CertificateData = "$($local:CertificateContents)" 
+                Base64CertificateData = "$($local:CertificateContents)"
             })
     }
 
@@ -521,7 +521,7 @@ JSON response from Safeguard Web API.
 Uninstall-SafeguardSslCertificate -AccessToken $token -Appliance 10.5.32.54
 
 .EXAMPLE
-Uninstall-SafeguardSslCertificate -Thumbprint 3E1A99AE7ACFB163DEE3CCAC00A437D675937FCA 
+Uninstall-SafeguardSslCertificate -Thumbprint 3E1A99AE7ACFB163DEE3CCAC00A437D675937FCA
 #>
 function Uninstall-SafeguardSslCertificate
 {
@@ -688,7 +688,7 @@ function Set-SafeguardSslCertificateForAppliance
     {
         $ApplianceId = (Invoke-SafeguardMethod -Anonymous -Appliance $Appliance -Insecure:$Insecure Notification GET Status).ApplianceId
     }
-    
+
 
     Write-Host "Setting $Thumbprint as current SSL Certificate for $ApplianceId..."
     $local:CurrentIds = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "SslCertificates/$Thumbprint/Appliances")
@@ -774,7 +774,7 @@ function Clear-SafeguardSslCertificateForAppliance
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "SslCertificates/$Thumbprint/Appliances" -JsonBody "[]"
     }
-    else 
+    else
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "SslCertificates/$Thumbprint/Appliances" -Body $local:NewIds
     }
@@ -1013,7 +1013,7 @@ function New-SafeguardCertificateSigningRequest
                 throw "$_ is not an IP address"
             }
         }
-        $local:Body.IpAddresses = $IpAddresses 
+        $local:Body.IpAddresses = $IpAddresses
     }
     if ($PSBoundParameters.ContainsKey("DnsNames")) { $local:Body.DnsNames = $DnsNames }
 
@@ -1109,7 +1109,7 @@ None.  Just host messages describing what has been created.
 New-SafeguardTestCertificates -SubjectBaseDn "OU=petrsnd,O=OneIdentityInc,C=US"
 
 .EXAMPLE
-New-SafeguardTestCertificates 
+New-SafeguardTestCertificates
 #>
 function New-SafeguardTestCertificatePki
 {

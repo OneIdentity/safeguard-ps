@@ -413,9 +413,9 @@ function New-SafeguardAccessRequest
     {
         $local:AccountId = (Resolve-SafeguardRequestableAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
     }
-    else 
+    else
     {
-        if ($PSBoundParameters.ContainsKey("AccountToUse")) 
+        if ($PSBoundParameters.ContainsKey("AccountToUse"))
         {
             # Try to resolve AccountId, but do not fail on error
             try {
@@ -870,7 +870,7 @@ New-Alias -Name Get-SafeguardMyRequestable -Value Get-SafeguardRequestableAccoun
 Find requestable accounts in Safeguard for this user via the Web API.
 
 .DESCRIPTION
-Search for a requestable account 
+Search for a requestable account
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -1117,7 +1117,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER RequestId
 A string containing the ID of the access request.
 
-.PARAMETER 
+.PARAMETER
 
 .INPUTS
 None.
@@ -1214,7 +1214,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER RequestId
 A string containing the ID of the access request.
 
-.PARAMETER 
+.PARAMETER
 
 .INPUTS
 None.
@@ -1272,7 +1272,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER RequestId
 A string containing the ID of the access request.
 
-.PARAMETER 
+.PARAMETER
 
 .INPUTS
 None.
@@ -1330,7 +1330,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER RequestId
 A string containing the ID of the access request.
 
-.PARAMETER 
+.PARAMETER
 
 .INPUTS
 None.
@@ -1450,7 +1450,7 @@ function Close-SafeguardAccessRequest
             }
             { "RequestCheckedIn","Terminated","PendingReview","PendingAccountSuspended" -contains $_ } {
                 Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Close -AllFields:$AllFields
-            } 
+            }
             { "Expired","PendingAcknowledgment" -contains $_ } {
                 Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Acknowledge -AllFields:$AllFields
             }

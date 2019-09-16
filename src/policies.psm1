@@ -572,7 +572,7 @@ function Get-SafeguardAccessPolicy
 Get scope items of an access policy in Safeguard via the Web API.
 
 .DESCRIPTION
-Scope items is a set of accounts, assets, account groups and asset groups that are explicitely assigned to an access policy 
+Scope items is a set of accounts, assets, account groups and asset groups that are explicitely assigned to an access policy
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.

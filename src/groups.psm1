@@ -37,7 +37,7 @@ function Resolve-SafeguardGroupId
     if (-not ($Group -as [int]))
     {
         $local:Groups = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
-                                                -Parameters @{ filter = "Name ieq '$Group'" } -RetryVersion 2 -RetryUrl "$local:RelativeUrl") 
+                                                -Parameters @{ filter = "Name ieq '$Group'" } -RetryVersion 2 -RetryUrl "$local:RelativeUrl")
         if (-not $local:Groups)
         {
             throw "Unable to find $($GroupType.ToLower()) group matching '$Group'"
@@ -282,7 +282,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER Name
-A string containing the name for the new group.  For groups based on a directory, this must 
+A string containing the name for the new group.  For groups based on a directory, this must
 match the sAMAccountName for Active Directory or the unique naming attribute of the group
 for LDAP.
 
@@ -484,7 +484,7 @@ function Edit-SafeguardUserGroup
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-    
+
     [object[]]$local:Users = $null
     foreach ($local:User in $UserList)
     {
@@ -718,7 +718,7 @@ function Edit-SafeguardAssetGroup
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-    
+
     [object[]]$local:Assets = $null
     foreach ($local:Asset in $AssetList)
     {
@@ -952,7 +952,7 @@ function Edit-SafeguardAccountGroup
 
     $ErrorActionPreference = "Stop"
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-    
+
     [object[]]$local:Accounts = $null
     foreach ($local:AccountPair in $AccountList)
     {

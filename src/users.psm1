@@ -236,8 +236,8 @@ function New-SafeguardStarling2faAuthentication
 
     $local:ProviderObject = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
         Core POST IdentityProviders -Body @{
-            Name = $ProviderName; 
-            TypeReferenceName = "StarlingTwoFactor" 
+            Name = $ProviderName;
+            TypeReferenceName = "StarlingTwoFactor"
         })
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
         Core PUT "IdentityProviders/$($local:ProviderObject.Id)/ApiKey" -Body $ApiKey
@@ -439,7 +439,7 @@ A string containing a mobile phone number for the user.
 An array of strings containing the permissions (admin roles) to assign to the user.  You may also specify
 'All' to grant all permissions. Other permissions are: 'GlobalAdmin', 'DirectoryAdmin', 'Auditor',
 'AssetAdmin', 'ApplianceAdmin', 'PolicyAdmin', 'UserAdmin', 'HelpdeskAdmin', 'OperationsAdmin'.
-'DirectoryAdmin' has been deprecated. 'All' does not grant 'DirectoryAdmin' permission. 
+'DirectoryAdmin' has been deprecated. 'All' does not grant 'DirectoryAdmin' permission.
 Add 'DirectoryAdmin' permission individually for older Safeguard appliance.
 
 .PARAMETER Password
@@ -739,7 +739,7 @@ function Set-SafeguardUserPassword
     }
     $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit)
     if (-not $PSBoundParameters.ContainsKey("Password") -or $null -eq $Password)
-    { 
+    {
         $Password = (Read-Host "Password" -AsSecureString)
     }
 
@@ -791,7 +791,7 @@ A string containing a mobile phone number for the user.
 .PARAMETER AdminRoles
 An array of strings containing the permissions (admin roles) to assign to the user.  You may also specify
 'All' to grant all permissions. Other permissions are: 'GlobalAdmin', 'DirectoryAdmin','Auditor',
-'AssetAdmin', 'ApplianceAdmin', 'PolicyAdmin', 'UserAdmin', 'HelpdeskAdmin', 'OperationsAdmin'. 
+'AssetAdmin', 'ApplianceAdmin', 'PolicyAdmin', 'UserAdmin', 'HelpdeskAdmin', 'OperationsAdmin'.
 'DirectoryAdmin' has been deprecated. 'All' does not grant 'DirectoryAdmin' permission.
 Add 'DirectoryAdmin' permission individually for older Safeguard appliance.
 
@@ -860,7 +860,7 @@ function Edit-SafeguardUser
         }
         $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit)
     }
-    
+
     if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
     {
         $UserObject = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:UserId)
@@ -1072,7 +1072,7 @@ function Rename-SafeguardUser
     }
     $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit)
     if (-not $PSBoundParameters.ContainsKey("NewUserName") -or -not $NewUserName)
-    { 
+    {
         $NewUserName = (Read-Host "NewUserName")
     }
 

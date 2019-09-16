@@ -26,7 +26,7 @@ function Resolve-SubscriptionEvent
     {
         if (-not $EventNames.Contains($IndividualEvent))
         {
-            $InvalidEvents += $IndividualEvent 
+            $InvalidEvents += $IndividualEvent
         }
         $local:SubscriptionEvent = @{
             Name = $IndividualEvent
@@ -142,8 +142,8 @@ function Get-SafeguardEventName
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false, Position=0)]
-        [ValidateSet('Asset', 'AssetAccount', 'Directory', 'DirectoryAccount', 'IdentityProvider', 'User', 'UserGroup', 'AssetPartition', 'PartitionProfileAccountDiscoverySchedule', 
-        'PartitionAccountPasswordRule', 'PartitionProfileChangeSchedule', 'PartitionProfileCheckSchedule', 'PartitionProfile','AccessPolicy', 'AccountGroup', 'AssetGroup', 
+        [ValidateSet('Asset', 'AssetAccount', 'Directory', 'DirectoryAccount', 'IdentityProvider', 'User', 'UserGroup', 'AssetPartition', 'PartitionProfileAccountDiscoverySchedule',
+        'PartitionAccountPasswordRule', 'PartitionProfileChangeSchedule', 'PartitionProfileCheckSchedule', 'PartitionProfile','AccessPolicy', 'AccountGroup', 'AssetGroup',
         'Role', 'ReasonCode', 'DirectoryAccountDiscoveryJob', 'DirectoryAccountPasswordRule', 'DirectoryProfileChangeSchedule', 'DirectoryProfileCheckSchedule', 'DirectoryProfile',
         'ArchiveServer', 'TicketSystem', 'PartitionTag', 'PartitionTaggingRule', 'DirectoryTag', 'DirectoryTaggingRule', 'DynamicGroupingRule', IgnoreCase=$true)]
         [object]$TypeofEvent
@@ -176,8 +176,8 @@ Get event subscription in Safeguard via the Web API.
 
 .DESCRIPTION
 Event subscription is a subscription to receive notifications when an event occurs.
-Event subscription can be created for all type of users but can only be created by 
-an administrative user. One event subscriber can subscribe to multiple events. 
+Event subscription can be created for all type of users but can only be created by
+an administrative user. One event subscriber can subscribe to multiple events.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -219,7 +219,7 @@ function Get-SafeguardEventSubscription
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-    
+
     if ($PSBoundParameters.ContainsKey("SubscriptionId"))
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "EventSubscribers/$SubscriptionId"
@@ -309,8 +309,8 @@ Create a new event subscription in Safeguard via the Web API.
 
 .DESCRIPTION
 Event subscription is a subscription to receive notifications when an event occurs.
-Event subscription can be created for all type of users but can only be created by 
-an administrative user. One event subscriber can subscribe to multiple events. 
+Event subscription can be created for all type of users but can only be created by
+an administrative user. One event subscriber can subscribe to multiple events.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -423,21 +423,21 @@ function New-SafeguardEventSubscription
         [Parameter(ParameterSetName='SyslogEvent')][switch]$IsSyslogEvent,
         [Parameter(ParameterSetName='SyslogEvent', Mandatory=$true)][string]$SyslogNetworkAddress,
         [Parameter(ParameterSetName='SyslogEvent', Mandatory=$false)][Int]$SyslogPort,
-        [ValidateSet('Kernel', 'User', 'Mail', 'Daemons', 'Authorization', 'Syslog', 'Printer', 'News', 'Uucp', 'Clock', 'Authorization2', 'Ftp', 
+        [ValidateSet('Kernel', 'User', 'Mail', 'Daemons', 'Authorization', 'Syslog', 'Printer', 'News', 'Uucp', 'Clock', 'Authorization2', 'Ftp',
         'Ntp', 'Audit','Alert', 'Clock2', 'Local0', 'Local1', 'Local2', 'Local3', 'Local4', 'Local5', 'Local6', 'Local7', IgnoreCase=$true)]
         [Parameter(ParameterSetName='SyslogEvent', Mandatory=$false)][object]$SyslogFacility
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-    
+
     #Resolve events to be subscribed
     [object[]]$SubscriptionEvents = Resolve-SubscriptionEvent -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -TypeOfEvent $ObjectTypeToSubscribe -EventsToValidate $SubscriptionEvent
-    
+
     #Resolve the object to be subscribed
     switch ($ObjectTypeToSubscribe)
     {
-        "Asset"{ $ObjectIdToSubscribe = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetToGet $ObjectIdToSubscribe).Id; break } 
+        "Asset"{ $ObjectIdToSubscribe = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetToGet $ObjectIdToSubscribe).Id; break }
         "AssetAccount"{ $ObjectIdToSubscribe = (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AccountToGet $ObjectIdToSubscribe).Id;  break }
         "DirectoryAccount"{ $ObjectIdToSubscribe = (Get-SafeguardDirectoryAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AccountToGet $ObjectIdToSubscribe).Id; break }
     }
@@ -451,10 +451,10 @@ function New-SafeguardEventSubscription
     }
 
     #Common parameters
-    if ($PSBoundParameters.ContainsKey("UserToSubscribe")) 
+    if ($PSBoundParameters.ContainsKey("UserToSubscribe"))
     {
         $local:User = Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $UserToSubscribe
-        $local:Body.UserId = $($local:User).Id  
+        $local:Body.UserId = $($local:User).Id
     }
     if ($PSBoundParameters.ContainsKey("Description")) {$local:Body.Description = $Description}
     if ($PSBoundParameters.ContainsKey("EmailAddress")) {$local:Body.EmailAddress = $EmailAddress}
@@ -474,7 +474,7 @@ function New-SafeguardEventSubscription
         NetworkAddress = $null
     }
     if ($PSBoundParameters.ContainsKey("SyslogNetworkAddress")) {$local:SyslogProperties.NetworkAddress = $SyslogNetworkAddress}
-    if ($PSBoundParameters.ContainsKey("SyslogPort")) {$local:SyslogProperties.Port = $SyslogPort}  
+    if ($PSBoundParameters.ContainsKey("SyslogPort")) {$local:SyslogProperties.Port = $SyslogPort}
     if ($PSBoundParameters.ContainsKey("SyslogFacility")) {$local:SyslogProperties.Facility = $SyslogFacility}
     $local:Body.SyslogProperties = $local:SyslogProperties
 
@@ -505,8 +505,8 @@ Update an existing event subscription in Safeguard via the Web API.
 
 .DESCRIPTION
 Event subscription is a subscription to receive notifications when an event occurs.
-Event subscription can be created for all type of users but can only be created by 
-an administrative user. One event subscriber can subscribe to multiple events. 
+Event subscription can be created for all type of users but can only be created by
+an administrative user. One event subscriber can subscribe to multiple events.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -614,7 +614,7 @@ function Edit-SafeguardEventSubscription
         [string]$Description,
         [Parameter(Mandatory=$false)]
         [switch]$IsSignalrEvent,
-        
+
         [Parameter(ParameterSetName='Object', Mandatory=$false)]
         [object]$SubscriptionObject,
 
@@ -630,7 +630,7 @@ function Edit-SafeguardEventSubscription
         [Parameter(ParameterSetName='SyslogEvent')][switch]$IsSyslogEvent,
         [Parameter(ParameterSetName='SyslogEvent', Mandatory=$true)][string]$SyslogNetworkAddress,
         [Parameter(ParameterSetName='SyslogEvent', Mandatory=$false)][Int]$SyslogPort,
-        [ValidateSet('Kernel', 'User', 'Mail', 'Daemons', 'Authorization', 'Syslog', 'Printer', 'News', 'Uucp', 'Clock', 'Authorization2', 'Ftp', 
+        [ValidateSet('Kernel', 'User', 'Mail', 'Daemons', 'Authorization', 'Syslog', 'Printer', 'News', 'Uucp', 'Clock', 'Authorization2', 'Ftp',
         'Ntp', 'Audit','Alert', 'Clock2', 'Local0', 'Local1', 'Local2', 'Local3', 'Local4', 'Local5', 'Local6', 'Local7', IgnoreCase=$true)]
         [Parameter(ParameterSetName='SyslogEvent', Mandatory=$false)][object]$SyslogFacility
     )
@@ -643,22 +643,22 @@ function Edit-SafeguardEventSubscription
         #Resolve events contained in the SubscriptionObject
         ForEach($IndividualEvent in $SubscriptionObject.Subscriptions)
         {
-            [string[]]$local:Events += $IndividualEvent.Name          
+            [string[]]$local:Events += $IndividualEvent.Name
         }
         [object[]]$SubscriptionEvents = Resolve-SubscriptionEvent -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -TypeOfEvent $SubscriptionObject.ObjectType -EventsToValidate $Events
         $SubscriptionObject.Subscriptions = $SubscriptionEvents
-        
+
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "EventSubscribers/$($SubscriptionObject.Id)" -Body $SubscriptionObject
         return
     }
-    
+
     if(-not $PSBoundParameters.ContainsKey("SubscriptionId"))
     {
         $SubscriptionId = (Read-Host "SubscriptionId")
     }
-    
+
     $local:Body = Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "EventSubscribers/$SubscriptionId"
-    
+
     if($PSBoundParameters.ContainsKey("ObjectTypeToSubscribe")) {$local:Body.ObjectType = $ObjectTypeToSubscribe}
 
     #Resolve events to be subscribed
@@ -670,7 +670,7 @@ function Edit-SafeguardEventSubscription
     {
         ForEach($IndividualEvent in $local:Body.Subscriptions)
         {
-            [string[]]$local:Events += $IndividualEvent.Name          
+            [string[]]$local:Events += $IndividualEvent.Name
         }
         [object[]]$SubscriptionEvents = Resolve-SubscriptionEvent -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -TypeOfEvent $local:Body.ObjectType -EventsToValidate $Events
     }
@@ -681,7 +681,7 @@ function Edit-SafeguardEventSubscription
     {
         switch ($local:Body.ObjectType)
         {
-            "Asset"{ $ObjectIdToSubscribe = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetToGet $ObjectIdToSubscribe).Id; break } 
+            "Asset"{ $ObjectIdToSubscribe = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetToGet $ObjectIdToSubscribe).Id; break }
             "AssetAccount"{ $ObjectIdToSubscribe = (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AccountToGet $ObjectIdToSubscribe).Id;  break }
             "DirectoryAccount"{ $ObjectIdToSubscribe = (Get-SafeguardDirectoryAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AccountToGet $ObjectIdToSubscribe).Id; break }
         }
@@ -690,10 +690,10 @@ function Edit-SafeguardEventSubscription
     if ($PSBoundParameters.ContainsKey("IsSignalrEvent")) {$local:Body.Type = "SignalR"}
 
     #Common parameters
-    if ($PSBoundParameters.ContainsKey("UserToSubscribe")) 
+    if ($PSBoundParameters.ContainsKey("UserToSubscribe"))
     {
         $local:User = Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $UserToSubscribe
-        $local:Body.UserId = $($local:User).Id  
+        $local:Body.UserId = $($local:User).Id
     }
     if ($PSBoundParameters.ContainsKey("Description")) {$local:Body.Description = $Description}
     if ($PSBoundParameters.ContainsKey("EmailAddress")) {$local:Body.EmailAddress = $EmailAddress}
@@ -713,7 +713,7 @@ function Edit-SafeguardEventSubscription
         NetworkAddress = $null
     }
     if ($PSBoundParameters.ContainsKey("SyslogNetworkAddress")) {$local:SyslogProperties.NetworkAddress = $SyslogNetworkAddress}
-    if ($PSBoundParameters.ContainsKey("SyslogPort")) {$local:SyslogProperties.Port = $SyslogPort}  
+    if ($PSBoundParameters.ContainsKey("SyslogPort")) {$local:SyslogProperties.Port = $SyslogPort}
     if ($PSBoundParameters.ContainsKey("SyslogFacility")) {$local:SyslogProperties.Facility = $SyslogFacility}
     $local:Body.SyslogProperties = $local:SyslogProperties
 
@@ -751,8 +751,8 @@ Remove an event subscription in Safeguard via the Web API.
 
 .DESCRIPTION
 Event subscription is a subscription to receive notifications when an event occurs.
-Event subscription can be created for all type of users but can only be created by 
-an administrative user. One event subscriber can subscribe to multiple events. 
+Event subscription can be created for all type of users but can only be created by
+an administrative user. One event subscriber can subscribe to multiple events.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -791,7 +791,7 @@ function Remove-SafeguardEventSubscription
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-    
+
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "EventSubscribers/$SubscriptionId"
 
 }

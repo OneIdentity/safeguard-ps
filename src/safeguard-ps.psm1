@@ -409,7 +409,7 @@ function Invoke-Internal
         {
             {$_ -in "get","delete"} {
                 Invoke-WithoutBody $Appliance $Service $Method $Version $RelativeUrl $Headers `
-                    -Parameters $Parameters -InFile $InFile -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout 
+                    -Parameters $Parameters -InFile $InFile -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout
                 break
             }
             {$_ -in "put","post"} {
@@ -663,7 +663,7 @@ function Connect-Safeguard
                     {
                         Write-Host "($($local:IdentityProviders -join ", "))"
                     }
-                    else 
+                    else
                     {
                         Write-Warning "Unable to detect identity providers -- report this as an issue"
                     }
@@ -683,7 +683,7 @@ function Connect-Safeguard
                     $IdentityProvider = $_.Id
                 }
             }
-    
+
             if ($IdentityProvider -ieq "certificate")
             {
                 if (-not $Thumbprint -and -not $CertificateFile)
@@ -702,7 +702,7 @@ function Connect-Safeguard
                             $Username = (Read-Host "Username")
                         }
                         if (-not $Password)
-                        { 
+                        {
                             $Password = (Read-Host "Password" -AsSecureString)
                         }
                         $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
@@ -719,7 +719,7 @@ function Connect-Safeguard
                     }
                 }
             }
-        
+
             if ($Username)
             {
                 try
@@ -1366,7 +1366,7 @@ function Get-SafeguardAccessTokenStatus
             Disable-SslVerification
             if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
-        $local:Response = (Invoke-WebRequest -Method GET -Headers @{ 
+        $local:Response = (Invoke-WebRequest -Method GET -Headers @{
                 "Authorization" = "Bearer $AccessToken"
             } -Uri "https://$Appliance/service/core/v3/Me")
         $local:TimeRemaining = (New-TimeSpan -Minutes $local:Response.Headers["X-TokenLifetimeRemaining"])

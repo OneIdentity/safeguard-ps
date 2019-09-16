@@ -249,7 +249,7 @@ function Get-SafeguardClusterMember
 Get health of cluster members from Safeguard via the Web API.
 
 .DESCRIPTION
-Retrieve the information based on most recent health check for all Safeguard appliances 
+Retrieve the information based on most recent health check for all Safeguard appliances
 in this cluster via the Web API.
 
 .PARAMETER Appliance
@@ -770,7 +770,7 @@ function Get-SafeguardClusterOperationStatus
 Attempt to force the completion of a currently running Safeguard cluster operation via the Safeguard Web API.
 
 .DESCRIPTION
-This cmdlet can be used to force a cluster operation to complete that is not being acknowledged by all 
+This cmdlet can be used to force a cluster operation to complete that is not being acknowledged by all
 appliances in the cluster.  This is not always possible with the current connection.  You may need to
 connect to a different appliance in the cluster to perform this operation depending on which appliance is
 having trouble.

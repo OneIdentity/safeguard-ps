@@ -182,7 +182,7 @@ function New-SafeguardAssetPartition
         Name = $Name
     }
     if ($PSBoundParameters.ContainsKey("Description")) { $local:Body.Description = $Description }
-    if ($PSBoundParameters.ContainsKey("Owners")) 
+    if ($PSBoundParameters.ContainsKey("Owners"))
     {
         Import-Module -Name "$PSScriptRoot\users.psm1" -Scope Local
         $local:Body.Owners = @()
@@ -263,7 +263,7 @@ function Remove-SafeguardAssetPartition
     if ($PSBoundParameters.ContainsKey("FailoverPartition"))
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "AssetPartitions/$($local:PartitionId)" `
-            -Parameters @{ 
+            -Parameters @{
                 failoverPartitionId = (Resolve-SafeguardAssetPartitionId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $FailoverPartition)
             }
     }
@@ -364,7 +364,7 @@ function Edit-SafeguardAssetPartition
 
         if ($PSBoundParameters.ContainsKey("Name")) { $AssetPartitionObject.Name = $Name }
         if ($PSBoundParameters.ContainsKey("Description")) { $AssetPartitionObject.Description = $Description }
-        if ($PSBoundParameters.ContainsKey("Owners")) 
+        if ($PSBoundParameters.ContainsKey("Owners"))
         {
             Import-Module -Name "$PSScriptRoot\users.psm1" -Scope Local
             $AssetPartitionObject.Owners = @()

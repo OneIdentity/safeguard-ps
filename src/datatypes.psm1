@@ -105,7 +105,7 @@ function Resolve-SafeguardServiceAccountCredentialType
 Get the identity provider types defined in Safeguard via the Web API.
 
 .DESCRIPTION
-Get the identity provider types defined in Safeguard that can be used 
+Get the identity provider types defined in Safeguard that can be used
 for creating users and assigning authentication methods.
 
 .PARAMETER Appliance
