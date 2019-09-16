@@ -1309,6 +1309,7 @@ function Start-SafeguardAccessRequestSession
         }
         "RemoteDesktop" {
             $local:OutFile = "$(Join-Path $([System.IO.Path]::GetTempPath()) "$($local:AccessRequest.Id).rdp")"
+            Write-Verbose "RDP file location: $($local:OutFile)"
             & (Get-SafeguardAccessRequestRdpFile $RequestId -OutFile $local:OutFile)
             break
         }
