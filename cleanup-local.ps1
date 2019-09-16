@@ -1,8 +1,9 @@
+[CmdletBinding()]
 Param(
     [string]$TargetDir
 )
 
-$ErrorActionPreference = "Stop"
+if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
 
 if (-not $TargetDir)
 {
