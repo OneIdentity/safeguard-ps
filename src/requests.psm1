@@ -695,7 +695,7 @@ function Get-SafeguardMyRequest
         [switch]$AllFields
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Get-SafeguardActionableRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Requester -AllFields:$AllFields
@@ -747,7 +747,7 @@ function Get-SafeguardMyApproval
         [switch]$AllFields
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Get-SafeguardActionableRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Approver -AllFields:$AllFields
@@ -799,7 +799,7 @@ function Get-SafeguardMyReview
         [switch]$AllFields
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Get-SafeguardActionableRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Reviewer -AllFields:$AllFields
@@ -1074,7 +1074,7 @@ function Copy-SafeguardAccessRequestPassword
         [string]$RequestId
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:Password = (Get-SafeguardAccessRequestPassword -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId)
@@ -1144,7 +1144,7 @@ function Get-SafeguardAccessRequestRdpFile
         [string]$OutFile
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:SessionData = (Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId InitializeSession)
@@ -1239,7 +1239,7 @@ function Get-SafeguardAccessRequestSshUrl
         [string]$RequestId
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:SessionData = (Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId InitializeSession)
@@ -1297,7 +1297,7 @@ function Get-SafeguardAccessRequestRdpUrl
         [string]$RequestId
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:SessionData = (Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId InitializeSession)
@@ -1355,7 +1355,7 @@ function Start-SafeguardAccessRequestSession
         [string]$RequestId
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:AccessRequest = (Get-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId)
@@ -1431,7 +1431,7 @@ function Close-SafeguardAccessRequest
         [switch]$AllFields
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:AccessRequest = (Get-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
@@ -1513,7 +1513,7 @@ function Approve-SafeguardAccessRequest
         [switch]$AllFields
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Approve -AllFields:$AllFields
@@ -1566,7 +1566,7 @@ function Deny-SafeguardAccessRequest
         [switch]$AllFields
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Deny -AllFields:$AllFields
@@ -1616,7 +1616,7 @@ function Get-SafeguardAccessRequestActionLog
         [string]$RequestId
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     (Get-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId -AllFields).WorkflowActions
@@ -1670,7 +1670,7 @@ function Assert-SafeguardAccessRequest
         [switch]$AllFields
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Review -AllFields:$AllFields

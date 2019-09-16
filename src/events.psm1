@@ -15,7 +15,7 @@ function Resolve-SubscriptionEvent
         [string[]]$EventsToValidate
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     [string[]]$InvalidEvents = $null

@@ -716,7 +716,7 @@ function Edit-SafeguardAssetGroup
         [object[]]$AssetList
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     [object[]]$local:Assets = $null
@@ -950,7 +950,7 @@ function Edit-SafeguardAccountGroup
         [object[]]$AccountList
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     [object[]]$local:Accounts = $null

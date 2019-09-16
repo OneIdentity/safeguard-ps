@@ -286,7 +286,7 @@ function Get-SafeguardDirectoryIdentityProviderDomain
         [object]$DirectoryToGet
     )
 
-    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     (Get-SafeguardDirectoryIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
