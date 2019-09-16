@@ -1160,9 +1160,12 @@ function Get-SafeguardAccessRequestRdpFile
 
     $local:SessionData.RdpConnectionFile | Out-File -Encoding ASCII -FilePath $OutFile
 
-    if (-not ([System.Management.Automation.PSTypeName]"RdpPasswordEncrypter").Type)
+    # add the fake password 'sg' on Windows
+    if ($PSVersionTable.Platform -ne "Unix")
     {
-        Add-Type -TypeDefinition @"
+        if (-not ([System.Management.Automation.PSTypeName]"RdpPasswordEncrypter").Type)
+        {
+            Add-Type -TypeDefinition @"
 using System;
 using System.Text;
 using System.Security.Cryptography;
@@ -1182,12 +1185,11 @@ public class RdpPasswordEncrypter {
     }
 }
 "@ -ReferencedAssemblies System.Security
+        }
+        $local:Encrypter = New-Object RdpPasswordEncrypter
+        $local:FakePassword = $local:Encrypter.GetEncryptedPassword("sg")
+        Write-Output "password 51:b:$($local:FakePassword)" | Out-File -Append -Encoding ASCII -FilePath $OutFile
     }
-
-    $local:Encrypter = New-Object RdpPasswordEncrypter
-    $local:FakePassword = $local:Encrypter.GetEncryptedPassword("sg")
-
-    Write-Output "password 51:b:$($local:FakePassword)" | Out-File -Append -Encoding ASCII -FilePath $OutFile
     # return outfile name
     (Resolve-Path $OutFile).Path
 }
@@ -1306,8 +1308,8 @@ function Start-SafeguardAccessRequestSession
             break
         }
         "RemoteDesktop" {
-            $local:OutFile = "$(Join-Path $env:TEMP "$($local:AccessRequest.Id).rdp")"
-            & open (Get-SafeguardAccessRequestRdpFile $RequestId -OutFile $local:OutFile)
+            $local:OutFile = "$(Join-Path $([System.IO.Path]::GetTempPath()) "$($local:AccessRequest.Id).rdp")"
+            & (Get-SafeguardAccessRequestRdpFile $RequestId -OutFile $local:OutFile)
             break
         }
         "Password" {
