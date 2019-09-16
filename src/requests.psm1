@@ -1253,6 +1253,64 @@ function Get-SafeguardAccessRequestSshUrl
 
 <#
 .SYNOPSIS
+Generate an RDP URL for an access request via the Web API.
+
+.DESCRIPTION
+POST to the AccessRequests endpoint.  This script allows you to InitializeSession
+on an approved access request and generate an RDP URL that can be used with an
+RDP client.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER RequestId
+A string containing the ID of the access request.
+
+.PARAMETER 
+
+.INPUTS
+None.
+
+.OUTPUTS
+A string containing the RDP URL.
+
+.EXAMPLE
+Get-SafeguardAccessRequestRdpUrl 8518-1-18B1694CF1C0-0026
+#>
+function Get-SafeguardAccessRequestRdpUrl
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]$RequestId
+    )
+
+    $ErrorActionPreference = "Stop"
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:SessionData = (Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId InitializeSession)
+    if (-not $local:SessionData.RdpConnectionString)
+    {
+        throw "Initialized session did not return RDP connection information"
+    }
+
+    $local:SessionData.ConnectionUri
+}
+
+<#
+.SYNOPSIS
 Launch an SSH or RDP session for an access request via the Web API.
 
 .DESCRIPTION
