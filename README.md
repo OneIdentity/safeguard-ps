@@ -9,12 +9,12 @@ One Identity Safeguard Powershell module and scripting resources.
 
 ## Installation
 
-This Powershell module is published to the 
+This Powershell module is published to the
 [PowerShell Gallery](https://www.powershellgallery.com/packages/safeguard-ps)
 to make t as easy as possible to install using the built-in `Import-Module` cmdlet.
 It can also be updated using the `Update-Module` to get the latest functionality.
 
-By default Powershell modules are installed for all users, and you need to be 
+By default Powershell modules are installed for all users, and you need to be
 running Powershell as an Administrator to install for all users.
 
 ```Powershell
@@ -35,7 +35,7 @@ If you don't have an Administrator prompt open, the following one-liners are hel
 > Start-Process powershell.exe -ArgumentList "Update-Module safeguard-ps -Verbose; pause" -Verb RunAs -Wait
 ```
 
-Or, you can install them just for you using the `-Scope` parameter which will 
+Or, you can install them just for you using the `-Scope` parameter which will
 never require Administrator permission:
 
 ```Powershell
@@ -48,7 +48,7 @@ never require Administrator permission:
 
 ## Upgrading
 
-If you want to upgrade from the 
+If you want to upgrade from the
 [PowerShell Gallery](https://www.powershellgallery.com/packages/safeguard-ps)
 you should use:
 
@@ -345,6 +345,7 @@ update this list.
 - Unlock-SafeguardCluster
 - Get-SafeguardClusterSummary
 - Get-SafeguardClusterPlatformTaskLoadStatus
+- Get-SafeguardClusterPlatformTaskQueueStatus
 
 ### Diagnostics
 
