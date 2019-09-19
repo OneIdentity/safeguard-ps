@@ -344,6 +344,7 @@ update this list.
 - Get-SafeguardClusterOperationStatus
 - Unlock-SafeguardCluster
 - Get-SafeguardClusterSummary
+- Get-SafeguardClusterPlatformTaskLoadStatus
 
 ### Diagnostics
 
