@@ -309,7 +309,7 @@ function Wait-ForClusterOperation
         Write-Progress -Activity "Waiting for cluster operation to finish" -Status "Cluster Operation: $($local:Status)" -PercentComplete (($local:TimeElapsed / $Timeout) * 100)
         try
         {
-            $local:Status = (Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET ClusterStatus).Operation
+            $local:Status = (Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET Cluster/Status -RetryUrl "ClusterStatus").Operation
         }
         catch {}
         Start-Sleep 2
@@ -352,7 +352,7 @@ function Wait-ForPatchDistribution
             Write-Progress -Activity "Waiting for patch distribution" -Status "Cluster Operation: $($local:Status)" -PercentComplete (($local:TimeElapsed / $Timeout) * 100)
             try
             {
-                $local:Members = (Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET ClusterStatus/PatchDistribution).Members
+                $local:Members = (Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET Cluster/Status/PatchDistribution -RetryUrl "ClusterStatus/PatchDistribution").Members
                 $local:StagingStatuses = ($local:Members.StagingStatus | Sort-Object)
                 $local:Status = $local:StagingStatuses -join ","
             }

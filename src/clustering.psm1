@@ -816,7 +816,7 @@ function Unlock-SafeguardCluster
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:OpStatus = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET ClusterStatus)
+    $local:OpStatus = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Cluster/Status -RetryUrl "ClusterStatus")
     if ($local:OpStatus.Operation -eq "None")
     {
         Write-Host "No cluster operation is currently running."
