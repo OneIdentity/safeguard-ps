@@ -8,7 +8,7 @@ problems.
 - **certificate-user-demo.ps1**
 
   This script demonstrates how to configure certificates in Safeguard so that you can authenticate
-  to the API using a certificate user.
+  to the API using a certificate user.  Then the scripts cleans everything up.
 
 - **new-test-entitlement.ps1**
 
