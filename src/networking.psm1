@@ -121,7 +121,7 @@ Set-SafeguardNetworkInterface X0 -Ipv4Address "10.1.1.162" -Ipv4NetMask "255.255
 #>
 function Set-SafeguardNetworkInterface
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Attributes")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
