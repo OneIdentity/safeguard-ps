@@ -7,43 +7,33 @@
 
 One Identity Safeguard Powershell module and scripting resources.
 
+-----------
+
+<p align="center">
+<i>Check out our <a href="samples">samples</a> to get started scripting to Safeguard!</i>
+</p>
+
+-----------
+
 ## Installation
 
 This Powershell module is published to the
 [PowerShell Gallery](https://www.powershellgallery.com/packages/safeguard-ps)
-to make t as easy as possible to install using the built-in `Import-Module` cmdlet.
+to make it as easy as possible to install using the built-in `Import-Module` cmdlet.
 It can also be updated using the `Update-Module` to get the latest functionality.
 
 By default Powershell modules are installed for all users, and you need to be
 running Powershell as an Administrator to install for all users.
 
 ```Powershell
-> Install-Module safeguard-ps -Verbose
-```
-
-```Powershell
-> Update-Module safeguard-ps -Verbose
-```
-
-If you don't have an Administrator prompt open, the following one-liners are helpful:
-
-```Powershell
-> Start-Process powershell.exe -ArgumentList "Install-Module safeguard-ps -Verbose; pause" -Verb RunAs -Wait
-```
-
-```Powershell
-> Start-Process powershell.exe -ArgumentList "Update-Module safeguard-ps -Verbose; pause" -Verb RunAs -Wait
+> Install-Module safeguard-ps
 ```
 
 Or, you can install them just for you using the `-Scope` parameter which will
 never require Administrator permission:
 
 ```Powershell
-> Install-Module safeguard-ps -Scope CurrentUser -Verbose
-```
-
-```Powershell
-> Update-Module safeguard-ps -Scope CurrentUser -Verbose
+> Install-Module safeguard-ps -Scope CurrentUser
 ```
 
 ## Upgrading
@@ -56,12 +46,35 @@ you should use:
 > Update-Module safeguard-ps
 ```
 
-as specified above.
+Or, for a specific user:
+
+
+```Powershell
+> Update-Module safeguard-ps -Scope CurrentUser
+```
 
 If you run into errors while upgrading make sure that you upgrade for all users
 if the module was originally installed for all users.  If the module was originally
 installed for just the current user, be sure to use the `-Scope` parameter to again
 specify `CurrentUser` when running the `Update-Module` cmdlet.
+
+## Prerelease Versions
+
+To install a pre-release version of safeguard-ps you need to use the latest version
+of PowerShellGet if you aren't already. Windows comes with one installed, but you
+want the newest and it requires the `-Force` parameter to get it.
+
+If you don't have PowerShellGet, run:
+
+```Powershell
+> Install-Module PowerShellGet -Force
+```
+
+Then, you can install a pre-release version of safeguard-ps by running:
+
+```Powershell
+> Install-Module -Name safeguard-ps -AllowPrerelease
+```
 
 ## Getting Started
 
