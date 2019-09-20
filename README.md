@@ -7,6 +7,14 @@
 
 One Identity Safeguard Powershell module and scripting resources.
 
+-----------
+
+<p align="center">
+<i>Check out our <a href="samples">samples</a> to get started scripting to Safeguard!</i>
+</p>
+
+-----------
+
 ## Installation
 
 This Powershell module is published to the
