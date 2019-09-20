@@ -240,7 +240,7 @@ function Get-SafeguardClusterMember
             $local:GetHealth = ",Health"
         }
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members" `
-            -RetryUrl "ClusterMembers" fields = "Id,IsLeader,Name,Ipv4Address,Ipv6Address,SslCertificateThumbprint,EnrolledSince$($local:GetHealth)"
+            -RetryUrl "ClusterMembers" -Parameters @{ fields = "Id,IsLeader,Name,Ipv4Address,Ipv6Address,SslCertificateThumbprint,EnrolledSince$($local:GetHealth)" }
     }
 }
 
