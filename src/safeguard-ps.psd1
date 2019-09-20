@@ -276,13 +276,29 @@ PrivateData = @{
         IconUri = 'https://raw.githubusercontent.com/OneIdentity/safeguard-ps/master/SafeguardLogo.ico'
 
         # Pre-release tag
-        Prerelease = '-pre'
+        # Prerelease = '-pre'
 
         # ReleaseNotes of this module
         ReleaseNotes = @"
 safeguard-ps 2.9 Release Notes:
 
-- bug fixes
+- Fixes for a variety of bugs and GitHub issues
+- Improvements for development experience on macOs and Linux
+- New functionality:
+  - Better ping functionality in network diagnostics
+  - New cmdlets for platform task load and queue status
+  - New cmdlets to add / remove entitlement membership
+  - New cmdlets to add / remove members from user groups, asset groups, account groups
+  - Added a new -Fields parameter to many Get-* cmdlets to optionally request only specific fields
+  - Made improvements to cluster and health cmdlets
+  - Added new cmdlets for a much better access request workflow experience:
+    - Get-SafeguardMyRequest, Get-SafeguardMyRequestable to create access requests
+    - Close-SafeguardAccessRequest for a better check-in / cancel / close experience
+    - Start-SafeguardAccessRequestSession for launching a session using an access request from the command line
+    - Additional cmdlets for supporting sessions
+    - Copy-SafeguardAccessRequestPassword for copying a password to the clipboard from the command line
+    - Get-SafeguardMyApproval, Approve-SafeguardAccessRequest, and Deny-SafeguardAccessRequest for approvers
+    - Get-SafeguardMyReview, Get-SafeguardAccessRequestActionLog, and Assert-SafeguardAccessRequest for reviewers
 "@
 
     } # End of PSData hashtable
