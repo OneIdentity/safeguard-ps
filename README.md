@@ -54,7 +54,9 @@ specify `CurrentUser` when running the `Update-Module` cmdlet.
 
 To install a pre-release version of safeguard-ps you need to use the latest version
 of PowerShellGet if you aren't already. Windows comes with one installed, but you
-want the newest.  To install PowerShellGet:
+want the newest and it requires the `-Force` parameter to get it.
+
+If you don't have PowerShellGet, run:
 
 ```Powershell
 > Install-Module PowerShellGet -Force
