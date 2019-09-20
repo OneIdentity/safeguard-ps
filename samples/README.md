@@ -2,9 +2,18 @@
 Sample scripts based on safeguard-ps.  These scripts are meant to give ideas about how safeguard-ps
 may be used for automation or to solve problems.
 
+safeguard-ps includes many custom cmdlets for exercising commonly scripted functionality. These
+cmdlets are often the best choice, but `Invoke-SafeguardMethod` can be used to call part of
+the Safeguard API whether or not there is a specific cmdlet that uses that endpoint. In fact,
+nearly every cmdlet in the safeguard-ps module is implemented using `Invoke-SafeguardMethod`.
+
 ## Sample Scripts
 
 - **certificate-user-demo.ps1**
+
+  A certificate is the best option for authenticating an non-human process. It can be a little
+  tricky to set up a certificate user. This script demonstrates how to do it. The same sort of
+  certificate user can be used with the Safeguard A2A API.
 
   This script demonstrates how to configure certificates in Safeguard so that you can authenticate
   to the API using a certificate user.  It uses data from the `data/CERTS` directory.  These
@@ -17,6 +26,8 @@ may be used for automation or to solve problems.
   This script creates an approver group, requester group, and an entitlement with the given name.
   The entitlement will have a Password, an SSH, and an RDP access policy in it.  The Password
   access policy will be auto-approved.  You just need to fill out the scopes and group memberships.
+
+  This script is a good sample for showing how to use the `Invoke-SafeguardMethod` cmdlet directly.
 
 - **fix-service-account-ssh-keys.ps1**
 
