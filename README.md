@@ -306,6 +306,7 @@ update this list.
 - Get-SafeguardVersion
 - Get-SafeguardApplianceVerification
 - Get-SafeguardTime
+- Set-SafeguardTime
 - Get-SafeguardApplianceUptime
 - Get-SafeguardHealth
 - Get-SafeguardApplianceName
