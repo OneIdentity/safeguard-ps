@@ -80,6 +80,7 @@ function Resolve-SafeguardServiceAccountCredentialType
         @{ Name = "LocalHostPassword"; Description = "Existing asset account from asset where application is hosted" },
         @{ Name = "AccessKey"; Description = "User name and API access key (for AWS, etc.)" },
         @{ Name = "AccountPassword"; Description = "Use target account password (for web accounts--Twitter,Facebook,etc.)" }
+        @{ Name = "Custom"; Description = "Use custom credential from custom script"}
     )
     do
     {
