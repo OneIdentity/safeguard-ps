@@ -502,7 +502,7 @@ function New-SafeguardAsset
     $local:PlatformId = (Resolve-SafeguardPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Platform)
     $local:PlatformObject = (Get-SafeguardPlatform $local:PlatformId)
 
-    if (-not $PSCmdlet.ParameterSetName -eq "Ad" -and -not $local:PlatformObject.PlatformType.StartsWith("Other"))
+    if ($PSCmdlet.ParameterSetName -ne "Ad" -and -not $local:PlatformObject.PlatformType.StartsWith("Other"))
     {
         if (-not $PSBoundParameters.ContainsKey("NetworkAddress"))
         {
