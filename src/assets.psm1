@@ -468,7 +468,7 @@ function New-SafeguardAsset
         [Parameter(Mandatory=$false)]
         [switch]$AcceptSshHostKey = $false,
         [Parameter(Mandatory=$false)]
-        [ValidateSet("None","Password","SshKey","DirectoryPassword","LocalHostPassword","AccessKey","AccountPassword",IgnoreCase=$true)]
+        [ValidateSet("None","Password","SshKey","DirectoryPassword","LocalHostPassword","AccessKey","AccountPassword","Custom",IgnoreCase=$true)]
         [string]$ServiceAccountCredentialType,
         [Parameter(Mandatory=$true,ParameterSetName="Ldap",Position=0)]
         [string]$ServiceAccountDistinguishedName,
@@ -482,7 +482,7 @@ function New-SafeguardAsset
         [Parameter(Mandatory=$false,ParameterSetName="Asset",Position=1)]
         [Parameter(Mandatory=$true,ParameterSetName="Ad",Position=1)]
         [string]$ServiceAccountName,
-        [Parameter(Mandatory=$true,ParameterSetName="Asset", Position=0)]
+        [Parameter(Mandatory=$false,ParameterSetName="Asset", Position=0)]
         [Parameter(Mandatory=$true,ParameterSetName="Ldap")]
         [string]$NetworkAddress,
         [Parameter(Mandatory=$false,ParameterSetName="Asset")]
@@ -499,7 +499,10 @@ function New-SafeguardAsset
     Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
     Import-Module -Name "$PSScriptRoot\datatypes.psm1" -Scope Local
 
-    if (-not $PSCmdlet.ParameterSetName -eq "Ad")
+    $local:PlatformId = (Resolve-SafeguardPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Platform)
+    $local:PlatformObject = (Get-SafeguardPlatform $local:PlatformId)
+
+    if ($PSCmdlet.ParameterSetName -ne "Ad" -and -not $local:PlatformObject.PlatformType.StartsWith("Other"))
     {
         if (-not $PSBoundParameters.ContainsKey("NetworkAddress"))
         {
@@ -515,22 +518,31 @@ function New-SafeguardAsset
         }
         else
         {
-            if (-not (Test-IpAddress $NetworkAddress))
+            if ([string]::IsNullOrEmpty($NetworkAddress) -or (Test-IpAddress $NetworkAddress))
             {
-                $DisplayName = $NetworkAddress
+                $DisplayName = (Read-Host "DisplayName")
             }
             else
             {
-                $DisplayName = (Read-Host "DisplayName")
+                $DisplayName = $NetworkAddress
             }
         }
     }
 
-    $local:PlatformId = Resolve-SafeguardPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Platform
-
     if (-not $PSBoundParameters.ContainsKey("ServiceAccountCredentialType"))
     {
-        $ServiceAccountCredentialType = (Resolve-SafeguardServiceAccountCredentialType)
+        if ($local:PlatformObject.PlatformType -eq "Other")
+        {
+            $ServiceAccountCredentialType = "None"
+        }
+        elseif ($local:PlatformObject.PlatformType -eq "OtherManaged")
+        {
+            $ServiceAccountCredentialType = "Custom"
+        }
+        else
+        {
+            $ServiceAccountCredentialType = (Resolve-SafeguardServiceAccountCredentialType)
+        }
     }
 
     $local:ConnectionProperties = @{
@@ -540,7 +552,7 @@ function New-SafeguardAsset
     if ($PSBoundParameters.ContainsKey("Port")) { $local:ConnectionProperties.Port = $Port }
     if ($PSBoundParameters.ContainsKey("ServiceAccountDomainName")) { $local:ConnectionProperties.ServiceAccountDomainName = $ServiceAccountDomainName }
 
-    if ($ServiceAccountCredentialType -ne "None")
+    if ($ServiceAccountCredentialType -ne "None" -and $ServiceAccountCredentialType -ne "Custom")
     {
         switch ($ServiceAccountCredentialType.ToLower())
         {

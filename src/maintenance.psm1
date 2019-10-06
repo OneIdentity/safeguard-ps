@@ -336,6 +336,83 @@ function Get-SafeguardTime
 
 <#
 .SYNOPSIS
+Set the time on a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Set the current time on a Safeguard appliance.  If you don't specify a time, then
+the current time on your client computer will be used.  When you specify a time,
+you can do it in local time and this cmdlet will convert it to UTC before calling
+the Safeguard API.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER SystemTime
+The time in UTC to set to the appliance, when omitted the current time of your
+client machine is used.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Set-SafeguardTime
+
+.EXAMPLE
+Set-SafeguardTime -SystemTime "2019-09-24T21:10:06.1911657Z"
+#>
+function Set-SafeguardTime
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [DateTime]$SystemTime
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not $PSBoundParameters.ContainsKey("SystemTime"))
+    {
+        $local:SystemTimeString = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+    }
+    else
+    {
+        $local:SystemTimeString = $SystemTime.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+    }
+
+    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+    Write-Host -ForegroundColor Magenta "Setting the UTC time of the Safeguard appliance to: $($local:SystemTimeString)"
+    Write-Host -ForegroundColor Yellow "WARNING: Setting the wrong time can break a Safeguard appliance."
+    $local:Confirmed = (Get-Confirmation "Set Safeguard Time" "Are you sure you want to set the time on this Safeguard appliance?" `
+                                         "Set the time." "Cancels this operation.")
+
+    if ($local:Confirmed)
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance PUT SystemTime -Body @{
+            CurrentTime = $local:SystemTimeString
+        }
+
+        Write-Host -ForegroundColor Yellow "Depending on the time change, you may need to log in again."
+    }
+}
+
+<#
+.SYNOPSIS
 Get the current uptime on a Safeguard appliance via the Web API.
 
 .DESCRIPTION
