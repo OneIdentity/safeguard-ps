@@ -94,8 +94,11 @@ function Show-RstsWindow
             public string AuthorizationCode { get; set; }
             public bool Show(string primaryProviderId = "", string secondaryProviderId = "", string username = "") {
                 try {
-                    string url = string.Format("https://{0}/RSTS/Login?response_type=token&client_id={1}&redirect_uri={2}&primaryproviderid={3}&secondaryproviderid={4}&login_hint={5}",
-                            _appliance, ClientId, RedirectUri, HttpUtility.UrlEncode(primaryProviderId), HttpUtility.UrlEncode(secondaryProviderId), HttpUtility.UrlEncode(username));
+                    string url = string.Format("https://{0}/RSTS/Login?response_type=token&client_id={1}&redirect_uri={2}",
+                            _appliance, ClientId, RedirectUri);
+                    if (!string.IsNullOrEmpty(primaryProviderId))   url += string.Format("&primaryProviderId={0}",   HttpUtility.UrlEncode(primaryProviderId));
+                    if (!string.IsNullOrEmpty(secondaryProviderId)) url += string.Format("&secondaryProviderid={0}", HttpUtility.UrlEncode(secondaryProviderId));
+                    if (!string.IsNullOrEmpty(username))            url += string.Format("&login_hint={0}", HttpUtility.UrlEncode(username));
                     
                     _browser.Stop();
                     _browser.Navigate(url);
