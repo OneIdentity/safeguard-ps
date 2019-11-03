@@ -1263,6 +1263,123 @@ function Install-SafeguardPatch
             }
         }
 
+        if (-not ([System.Management.Automation.PSTypeName]"UploadFileStream").Type)
+        {
+            Write-Verbose "Adding the PSType for uploading a file stream"
+            Add-Type -TypeDefinition  @"
+            using System;
+            using System.IO;
+            using System.Net;
+            public static class UploadFileStream
+            {
+                private static readonly byte[] UploadBuffer = new byte[80 * 1024];
+        
+                public static string Upload(string pathAndFilename, string appliance, string authorizationToken, string version)
+                {
+                    WebRequest   request        = null;
+                    WebResponse  response       = null;
+                    StreamReader responseStream = null;
+                    FileStream   fileStream     = null;
+
+                    try
+                    {
+                        request = WebRequest.Create(string.Format("https://{0}/service/appliance/v{1}/Patch", appliance, version));
+                        request.Method  = "POST";
+                        request.Timeout = System.Threading.Timeout.Infinite;
+                        ((HttpWebRequest)request).Accept = "application/json";
+                        ((HttpWebRequest)request).AllowWriteStreamBuffering = false;
+
+                        fileStream = new FileStream(pathAndFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+
+                        long bytesLeft        = fileStream.Length;
+                        request.ContentLength = fileStream.Length;
+
+                        request.Headers.Add("Authorization", "Bearer " + authorizationToken);
+
+                        using (Stream sw = request.GetRequestStream())
+                        {
+                            Console.Write("Uploading... ");
+
+                            int consoleTop  = Console.CursorTop;
+                            int consoleLeft = Console.CursorLeft;
+
+                            System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+                            while (bytesLeft > 0)
+                            {
+                                int bytesRead = fileStream.Read(UploadBuffer, 0, UploadBuffer.Length);
+
+                                sw.Write(UploadBuffer, 0, bytesRead);
+
+                                bytesLeft -= bytesRead;
+
+                                if (stopwatch.ElapsedMilliseconds > 1000)
+                                {
+                                    int percentDone = (int)((fileStream.Length - bytesLeft) / (double)fileStream.Length * 100);
+
+                                    Console.SetCursorPosition(consoleLeft, consoleTop);
+
+                                    Console.Write(percentDone + "%");
+
+                                    stopwatch.Restart();
+                                }
+                            }
+
+                            Console.SetCursorPosition(consoleLeft, consoleTop);
+                            Console.WriteLine("100%");
+                            Console.WriteLine("Server is processing data...");
+                        }
+
+                        response = request.GetResponse();
+                        responseStream = new StreamReader(response.GetResponseStream());
+
+                        return responseStream.ReadToEnd();
+                    }
+                    catch (Exception ex)
+                    {
+                        string log = ex.ToString();
+
+                        if (ex is WebException)
+                        {
+                            WebException wex = ex as WebException;
+                            HttpWebResponse httpResponse = wex.Response as HttpWebResponse;
+
+                            if (httpResponse != null)
+                            {
+                                StreamReader sr = new StreamReader(httpResponse.GetResponseStream());
+
+                                log = sr.ReadToEnd() + "\r\n" + log;
+
+                                sr.Close();
+                            }
+                        }
+
+                        return log;
+                    }
+                    finally
+                    {
+                        if (responseStream != null)
+                        {
+                            responseStream.Close();
+                        }
+                        if (fileStream != null)
+                        {
+                            fileStream.Dispose();
+                        }
+                        if (response != null)
+                        {
+                            response.Close();
+                        }
+                        else
+                        {
+                            request.Abort();
+                        }
+                    }
+                }
+            }
+"@
+        }
+        
         try
         {
             Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
@@ -1272,32 +1389,13 @@ function Install-SafeguardPatch
                 Disable-SslVerification
                 if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
             }
-            # Use the WebClient class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
-            Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
-            Add-ExWebClientExType
-
-            $WebClient = (New-Object Ex.WebClientEx -ArgumentList @($Timeout))
-            $WebClient.Headers.Add("Accept", "application/json")
-            $WebClient.Headers.Add("Content-type", "application/octet-stream")
-            $WebClient.Headers.Add("Authorization", "Bearer $AccessToken")
-            Write-Host "Uploading patch to Safeguard ($Appliance). This operation may take several minutes..."
-
-            $Bytes = [System.IO.File]::ReadAllBytes($Patch);
-            $ResponseBytes = $WebClient.UploadData("https://$Appliance/service/appliance/v$Version/Patch", "POST", $Bytes) | Out-Null
-            if ($ResponseBytes)
-            {
-                [System.Text.Encoding]::UTF8.GetString($ResponseBytes)
-            }
+            
+            [UploadFileStream]::Upload($Patch, $Appliance, $AccessToken, $Version)
         }
         catch [System.Net.WebException]
         {
             Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
             Out-SafeguardExceptionIfPossible $_.Exception
-        }
-        catch
-        {
-            Write-Error $_
-            throw "Failed to POST patch to Safeguard"
         }
         finally
         {
