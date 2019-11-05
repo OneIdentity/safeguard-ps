@@ -137,7 +137,7 @@ exactly the cmdlet you are looking for.
 For example:
 
 ```Powershell
-> Get-SafeguardCmdlet Get Account Dir
+> Get-SafeguardCommand Get Account Dir
 
 CommandType     Name                                               Version    Source
 -----------     ----                                               -------    ------
