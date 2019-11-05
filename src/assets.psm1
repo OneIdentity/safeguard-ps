@@ -491,7 +491,9 @@ function New-SafeguardAsset
         [Parameter(Mandatory=$false,ParameterSetName="Asset",Position=2)]
         [Parameter(Mandatory=$false,ParameterSetName="Ad",Position=2)]
         [Parameter(Mandatory=$false,ParameterSetName="Ldap",Position=1)]
-        [SecureString]$ServiceAccountPassword
+        [SecureString]$ServiceAccountPassword,
+        [Parameter(Mandatory=$false,ParameterSetName="Asset")]
+        [string]$PrivilegeElevationCommand
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -591,6 +593,9 @@ function New-SafeguardAsset
             }
         }
     }
+
+    if ($PSBoundParameters.ContainsKey("PrivilegeElevationCommand"))
+        { $local:ConnectionProperties.PrivilegeElevationCommand = $PrivilegeElevationCommand }
 
     #Ldap Connection properties
     if ($PSCmdlet.ParameterSetName -eq "Ldap")
