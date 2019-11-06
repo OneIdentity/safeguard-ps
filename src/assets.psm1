@@ -426,6 +426,9 @@ Do not use SSL encryption for LDAP directory.
 .PARAMETER DoNotVerifyServerSslCertificate
 Do not verify Server SSL certificate of LDAP directory.
 
+.PARAMETER PrivilegeElevationCommand
+A string containing the privilege elevation command, ex. sudo.
+
 .INPUTS
 None.
 
