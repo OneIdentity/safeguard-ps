@@ -282,7 +282,12 @@ PrivateData = @{
         ReleaseNotes = @"
 safeguard-ps 2.10 Release Notes:
 
-- bug fixes
+- Add support for privilege delegation command when creating assets
+- Fixed issue with 2FA using -Gui parameter
+- Support login hint for -Gui parameter
+- Reduced memory usage of Install-SafeguardPatch
+- Allow setting appliance time
+- Updated demo scripts
 "@
 
     } # End of PSData hashtable
