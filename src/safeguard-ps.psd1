@@ -276,13 +276,18 @@ PrivateData = @{
         IconUri = 'https://raw.githubusercontent.com/OneIdentity/safeguard-ps/master/SafeguardLogo.ico'
 
         # Pre-release tag
-        Prerelease = '-pre'
+        #Prerelease = '-pre'
 
         # ReleaseNotes of this module
         ReleaseNotes = @"
 safeguard-ps 2.10 Release Notes:
 
-- bug fixes
+- Add support for privilege delegation command when creating assets
+- Fixed issue with 2FA using -Gui parameter
+- Support login hint for -Gui parameter
+- Reduced memory usage of Install-SafeguardPatch
+- Allow setting appliance time
+- Updated demo scripts
 "@
 
     } # End of PSData hashtable
