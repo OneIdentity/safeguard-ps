@@ -77,6 +77,7 @@ NestedModules = @(
     'maintenance.psm1',
     'diagnostics.psm1',
     'sessionmodule.psm1',
+    'sessionjoin.psm1',
     'archives.psm1',
     'requests.psm1',
     'users.psm1',
@@ -141,6 +142,8 @@ FunctionsToExport = @(
     'Get-SafeguardSessionCertificate','Install-SafeguardSessionCertificate','Reset-SafeguardSessionCertificate',
     'Get-SafeguardSessionSshAlgorithms','Set-SafeguardSessionSshAlgorithms',
     'Add-SafeguardSessionSshAlgorithm','Remove-SafeguardSessionSshAlgorithm',
+    # sessionjoin.psm1
+    'Get-SafeguardSessionCluster','Set-SafeguardSessionCluster','Join-SafeguardSessionCluster',
     # archives.psm1
     'Get-SafeguardArchiveServer','New-SafeguardArchiveServer','Test-SafeguardArchiveServer',
     'Remove-SafeguardArchiveServer','Edit-SafeguardArchiveServer',
