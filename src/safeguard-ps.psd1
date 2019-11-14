@@ -143,7 +143,7 @@ FunctionsToExport = @(
     'Get-SafeguardSessionSshAlgorithms','Set-SafeguardSessionSshAlgorithms',
     'Add-SafeguardSessionSshAlgorithm','Remove-SafeguardSessionSshAlgorithm',
     # sessionjoin.psm1
-    'Get-SafeguardSessionCluster','Set-SafeguardSessionCluster','Join-SafeguardSessionCluster',
+    'Get-SafeguardSessionCluster','Set-SafeguardSessionCluster','Join-SafeguardSessionCluster','Split-SafeguardSessionCluster',
     # archives.psm1
     'Get-SafeguardArchiveServer','New-SafeguardArchiveServer','Test-SafeguardArchiveServer',
     'Remove-SafeguardArchiveServer','Edit-SafeguardArchiveServer',

@@ -10,7 +10,7 @@ function Get-SafeguardSessionCluster
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [string]$SessionMaster,
+        [object]$SessionMaster,
         [Parameter(Mandatory=$false)]
         [switch]$AllFields
     )
@@ -19,6 +19,8 @@ function Get-SafeguardSessionCluster
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:Parameters = @{}
+    $local:RelUri = "Cluster/SessionModules"
+
     if (-not $AllFields)
     {
         $local:Parameters["fields"] = ($script:SgSpsClusterFields -join ",")
@@ -26,9 +28,22 @@ function Get-SafeguardSessionCluster
 
     if ($SessionMaster)
     {
-        $local:Parameters["filter"] = "(SpsHostName eq '$SessionMaster') or (SpsNetworkAddress eq '$SessionMaster')"
+        if ($SessionMaster.Id -as [int])
+        {
+            $SessionMaster = $SessionMaster.Id
+        }
+
+        if (-not ($SessionMaster -as [int]))
+        {
+            $local:Parameters["filter"] = "(SpsHostName eq '$SessionMaster') or (SpsNetworkAddress eq '$SessionMaster')"
+        }
+        else
+        {
+            $local:RelUri = "Cluster/SessionModules/$SessionMaster"
+        }
     }
-    Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET "Cluster/SessionModules" `
+
+    Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET $local:RelUri `
         -Parameters $local:Parameters
 }
 
@@ -42,7 +57,7 @@ function Set-SafeguardSessionCluster
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
-        [string]$SessionMaster,
+        [object]$SessionMaster,
         [Parameter(Mandatory=$false)]
         [string]$Description,
         [Parameter(Mandatory=$false)]
@@ -89,11 +104,7 @@ function Join-SafeguardSessionCluster
         [Parameter(ParameterSetName="Username",Mandatory=$true,Position=1)]
         [string]$SessionUsername,
         [Parameter(ParameterSetName="Username",Position=3)]
-        [SecureString]$SessionPassword,
-        [Parameter(Mandatory=$false)]
-        [switch]$NoWait,
-        [Parameter(Mandatory=$false)]
-        [int]$Timeout = 1800
+        [SecureString]$SessionPassword
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -181,4 +192,25 @@ function Join-SafeguardSessionCluster
             if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
     }
+}
+
+function Split-SafeguardSessionCluster
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$SessionMaster
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+
+    # TODO:
 }
