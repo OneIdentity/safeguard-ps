@@ -16,6 +16,11 @@ function Resolve-SafeguardPlatform
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    if ($Platform.Id -as [int])
+    {
+        $Platform = $Platform.Id
+    }
+
     while (-not $($Platform -as [int]))
     {
         Write-Host "Searching for platforms with '$Platform'"
@@ -75,6 +80,7 @@ function Resolve-SafeguardServiceAccountCredentialType
         @{ Name = "LocalHostPassword"; Description = "Existing asset account from asset where application is hosted" },
         @{ Name = "AccessKey"; Description = "User name and API access key (for AWS, etc.)" },
         @{ Name = "AccountPassword"; Description = "Use target account password (for web accounts--Twitter,Facebook,etc.)" }
+        @{ Name = "Custom"; Description = "Use custom credential from custom script"}
     )
     do
     {
@@ -100,7 +106,7 @@ function Resolve-SafeguardServiceAccountCredentialType
 Get the identity provider types defined in Safeguard via the Web API.
 
 .DESCRIPTION
-Get the identity provider types defined in Safeguard that can be used 
+Get the identity provider types defined in Safeguard that can be used
 for creating users and assigning authentication methods.
 
 .PARAMETER Appliance
@@ -174,6 +180,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER Platform
 A string with the platform name or an integer containing the platform ID.
 
+.PARAMETER Fields
+An array of the platform property names to return.
+
 .INPUTS
 None.
 
@@ -197,20 +206,30 @@ function Get-SafeguardPlatform
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [object]$Platform
+        [object]$Platform,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
     if ($PSBoundParameters.ContainsKey("Platform"))
     {
         $local:PlatformId = (Resolve-SafeguardPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Platform)
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Platforms/$($local:PlatformId)"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            GET "Platforms/$($local:PlatformId)" -Parameters $local:Parameters
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            GET Platforms -Parameters $local:Parameters
     }
 }
 

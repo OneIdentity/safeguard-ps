@@ -643,7 +643,7 @@ Set-SafeguardSessionSshAlgorithms ServerSide Cipher 3des-cbc,arcfour,aes128-ctr,
 #>
 function Set-SafeguardSessionSshAlgorithms
 {
-    [CmdletBinding()] 
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,

@@ -16,6 +16,11 @@ function Resolve-SafeguardEntitlementId
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    if ($Entitlement.Id -as [int])
+    {
+        $Entitlement = $Entitlement.Id
+    }
+
     if (-not ($Entitlement -as [int]))
     {
         try
@@ -65,6 +70,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER EntitlementToGet
 An integer containing the ID or a string containing the name of the entitlement to get.
 
+.PARAMETER Fields
+An array of the entitlement property names to return.
+
 .INPUTS
 None.
 
@@ -91,20 +99,30 @@ function Get-SafeguardEntitlement
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [object]$EntitlementToGet
+        [object]$EntitlementToGet,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
     if ($PSBoundParameters.ContainsKey("EntitlementToGet"))
     {
         $local:EntitlementId = Resolve-SafeguardEntitlementId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $EntitlementToGet
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Roles/$($local:EntitlementId)"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            GET "Roles/$($local:EntitlementId)" -Parameters $local:Parameters
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Roles
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            GET Roles -Parameters $local:Parameters
     }
 }
 
@@ -113,8 +131,9 @@ function Get-SafeguardEntitlement
 Create a new Entitlement in Safeguard via the Web API.
 
 .DESCRIPTION
-Create a new Entitlement in Safeguard. Access policies can be attached 
-to Entitlements. Users and groups can be  
+Create a new Entitlement in Safeguard. Access policies can be attached
+to Entitlements. Users and groups can be created using separate cmdlets
+and added as members via this cmdlet.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -128,8 +147,11 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER Name
 The name of the entitlement.
 
-.PARAMETER $MemberUsers
-Array of Id or name of the users to be added to the entitlement
+.PARAMETER MemberUsers
+Array of IDs or names of the users to be added to the entitlement.
+
+.PARAMETER MemberGroups
+Array of IDs or names of the users to be added to the entitlement.
 
 .INPUTS
 None.
@@ -153,25 +175,40 @@ function New-SafeguardEntitlement
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Name,
         [Parameter(Mandatory=$false,Position=1)]
-        [object[]]$MemberUsers
+        [object[]]$MemberUsers,
+        [Parameter(Mandatory=$false,Position=2)]
+        [object[]]$MemberGroups
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     [object[]]$Members = $null
-    ForEach($user in $MemberUsers)
+    foreach ($local:User in $MemberUsers)
     {
-        $local:ResolvedUserId = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $User).Id
+        $local:ResolvedUserId = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User).Id
         $local:Member = @{
-            Id = $ResolvedUserId
+            Id = $local:ResolvedUserId;
+            PrincipalKind = "User"
         }
         $local:Members += $($local:Member)
     }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-        Core POST Roles -Body @{ Name = $Name; Members = $local:Members}
+    foreach ($local:Group in $MemberGroups)
+    {
+        $local:ResolvedGroupId = (Get-SafeguardUserGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -GroupToGet $local:Group).Id
+        $local:Member = @{
+            Id = $local:ResolvedGroupId;
+            PrincipalKind = "Group"
+        }
+        $local:Members += $($local:Member)
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Roles `
+        -Body @{ Name = $Name; Members = $local:Members}
 }
+
+
 
 <#
 .SYNOPSIS

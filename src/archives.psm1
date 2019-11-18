@@ -205,7 +205,7 @@ function New-SafeguardArchiveServer
     {
         $ServiceAccountCredentialType = (Resolve-SafeguardServiceAccountCredentialType)
     }
-    
+
 
     if (-not $PSBoundParameters.ContainsKey("ServiceAccountPassword"))
     {

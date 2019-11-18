@@ -197,7 +197,7 @@ ClientBin/
 *.dbmdl
 *.dbproj.schemaview
 *.jfm
-*.pfx
+# *.pfx -- we want to check in certain certs for test
 *.publishsettings
 orleans.codegen.cs
 

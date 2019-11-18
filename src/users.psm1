@@ -16,6 +16,11 @@ function Resolve-SafeguardUserObject
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    if ($User.Id -as [int])
+    {
+        $User = $User.Id
+    }
+
     if (-not ($User -as [int]))
     {
         try
@@ -61,6 +66,11 @@ function Resolve-SafeguardUserId
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($User.Id -as [int])
+    {
+        $User = $User.Id
+    }
 
     if (-not ($User -as [int]))
     {
@@ -226,8 +236,8 @@ function New-SafeguardStarling2faAuthentication
 
     $local:ProviderObject = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
         Core POST IdentityProviders -Body @{
-            Name = $ProviderName; 
-            TypeReferenceName = "StarlingTwoFactor" 
+            Name = $ProviderName;
+            TypeReferenceName = "StarlingTwoFactor"
         })
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
         Core PUT "IdentityProviders/$($local:ProviderObject.Id)/ApiKey" -Body $ApiKey
@@ -255,6 +265,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER UserToGet
 An integer containing an ID  or a string containing the name of the user to return.
 
+.PARAMETER Fields
+An array of the user property names to return.
+
 .INPUTS
 None.
 
@@ -265,7 +278,7 @@ JSON response from Safeguard Web API.
 Get-SafeguardUser -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
-Get-SafeguardUser petrsnd
+Get-SafeguardUser petrsnd -Fields IdentityProviderId,Id,UserName
 
 .EXAMPLE
 Get-SafeguardUser 123
@@ -281,20 +294,30 @@ function Get-SafeguardUser
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [object]$UserToGet
+        [object]$UserToGet,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
     if ($PSBoundParameters.ContainsKey("UserToGet"))
     {
         $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToGet)
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Users/$local:UserId" -RetryVersion 2 -RetryUrl "Users/$local:UserId"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Users/$local:UserId" `
+            -RetryVersion 2 -RetryUrl "Users/$local:UserId" -Parameters $local:Parameters
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users -RetryVersion 2 -RetryUrl "Users"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
+            -RetryVersion 2 -RetryUrl "Users" -Parameters $local:Parameters
     }
 }
 
@@ -416,7 +439,7 @@ A string containing a mobile phone number for the user.
 An array of strings containing the permissions (admin roles) to assign to the user.  You may also specify
 'All' to grant all permissions. Other permissions are: 'GlobalAdmin', 'DirectoryAdmin', 'Auditor',
 'AssetAdmin', 'ApplianceAdmin', 'PolicyAdmin', 'UserAdmin', 'HelpdeskAdmin', 'OperationsAdmin'.
-'DirectoryAdmin' has been deprecated. 'All' does not grant 'DirectoryAdmin' permission. 
+'DirectoryAdmin' has been deprecated. 'All' does not grant 'DirectoryAdmin' permission.
 Add 'DirectoryAdmin' permission individually for older Safeguard appliance.
 
 .PARAMETER Password
@@ -716,7 +739,7 @@ function Set-SafeguardUserPassword
     }
     $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit)
     if (-not $PSBoundParameters.ContainsKey("Password") -or $null -eq $Password)
-    { 
+    {
         $Password = (Read-Host "Password" -AsSecureString)
     }
 
@@ -768,7 +791,7 @@ A string containing a mobile phone number for the user.
 .PARAMETER AdminRoles
 An array of strings containing the permissions (admin roles) to assign to the user.  You may also specify
 'All' to grant all permissions. Other permissions are: 'GlobalAdmin', 'DirectoryAdmin','Auditor',
-'AssetAdmin', 'ApplianceAdmin', 'PolicyAdmin', 'UserAdmin', 'HelpdeskAdmin', 'OperationsAdmin'. 
+'AssetAdmin', 'ApplianceAdmin', 'PolicyAdmin', 'UserAdmin', 'HelpdeskAdmin', 'OperationsAdmin'.
 'DirectoryAdmin' has been deprecated. 'All' does not grant 'DirectoryAdmin' permission.
 Add 'DirectoryAdmin' permission individually for older Safeguard appliance.
 
@@ -837,7 +860,7 @@ function Edit-SafeguardUser
         }
         $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit)
     }
-    
+
     if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
     {
         $UserObject = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:UserId)
@@ -1049,7 +1072,7 @@ function Rename-SafeguardUser
     }
     $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit)
     if (-not $PSBoundParameters.ContainsKey("NewUserName") -or -not $NewUserName)
-    { 
+    {
         $NewUserName = (Read-Host "NewUserName")
     }
 

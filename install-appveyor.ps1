@@ -1,4 +1,8 @@
-$ErrorActionPreference = "Stop"
+[CmdletBinding()]
+Param(
+)
+
+if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
 
 $TargetDir = (($env:PSModulePath -split ';') | Where-Object { $_.StartsWith($env:UserProfile) })[0]
 if (-not $TargetDir)

@@ -16,6 +16,11 @@ function Resolve-SafeguardA2aId
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    if ($A2a.Id -as [int])
+    {
+        $A2a = $User.Id
+    }
+
     if (-not ($A2a -as [int]))
     {
         try
@@ -72,7 +77,12 @@ function Resolve-SafeguardA2aAccountId
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if (-not ($A2a -as [int]))
+    if ($Account.Id -as [int])
+    {
+        $Account = $Account.Id
+    }
+
+    if (-not ($Account -as [int]))
     {
         $local:Filter = "AccountName ieq '$Account'"
         if ($PSBoundParameters.ContainsKey("System") -and $System)
@@ -487,7 +497,7 @@ function Edit-SafeguardA2a
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    
+
     if (-not $A2aObject)
     {
         throw "A2aObject must not be null"
@@ -503,7 +513,7 @@ Get configuration of credential retrieval for an account from an A2A registratio
 via the Web API.
 
 .DESCRIPTION
-Get all or one of the accounts configured for credential retrieval in an A2A registrations that have 
+Get all or one of the accounts configured for credential retrieval in an A2A registrations that have
 been added to Safeguard.  Accounts for credential retrieval are given API keys and may be configured
 with IP address restrictions.
 
@@ -599,7 +609,7 @@ via the Web API.
 
 .DESCRIPTION
 Add an account credential retrieval to an A2A registration that has been added to Safeguard.
-Accounts for credential retrieval are given API keys and may be configured with IP address 
+Accounts for credential retrieval are given API keys and may be configured with IP address
 restrictions.
 
 .PARAMETER Appliance
@@ -705,7 +715,7 @@ function Add-SafeguardA2aCredentialRetrieval
 
     if ($IpRestrictions)
     {
-        $local:Body.IpRestrictions = $IpRestrictions 
+        $local:Body.IpRestrictions = $IpRestrictions
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
@@ -719,7 +729,7 @@ via the Web API.
 
 .DESCRIPTION
 Remove an account credential retrieval from an A2A registration that has been added to Safeguard.
-Accounts for credential retrieval are given API keys and may be configured with IP address 
+Accounts for credential retrieval are given API keys and may be configured with IP address
 restrictions.
 
 .PARAMETER Appliance

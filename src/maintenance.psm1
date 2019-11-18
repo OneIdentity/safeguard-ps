@@ -161,7 +161,7 @@ function Get-SafeguardApplianceState
 Get the version of a Safeguard appliance via the Web API.
 
 .DESCRIPTION
-Get the version information from a Safeguard appliance which will 
+Get the version information from a Safeguard appliance which will
 be returned as an object containing major.minor.revision.build
 portions separated into different properties.
 
@@ -332,6 +332,83 @@ function Get-SafeguardTime
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Invoke-SafeguardMethod -Anonymous -Appliance $Appliance -Insecure:$Insecure Appliance GET SystemTime
+}
+
+<#
+.SYNOPSIS
+Set the time on a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Set the current time on a Safeguard appliance.  If you don't specify a time, then
+the current time on your client computer will be used.  When you specify a time,
+you can do it in local time and this cmdlet will convert it to UTC before calling
+the Safeguard API.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER SystemTime
+The time in UTC to set to the appliance, when omitted the current time of your
+client machine is used.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Set-SafeguardTime
+
+.EXAMPLE
+Set-SafeguardTime -SystemTime "2019-09-24T21:10:06.1911657Z"
+#>
+function Set-SafeguardTime
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [DateTime]$SystemTime
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not $PSBoundParameters.ContainsKey("SystemTime"))
+    {
+        $local:SystemTimeString = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+    }
+    else
+    {
+        $local:SystemTimeString = $SystemTime.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+    }
+
+    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+    Write-Host -ForegroundColor Magenta "Setting the UTC time of the Safeguard appliance to: $($local:SystemTimeString)"
+    Write-Host -ForegroundColor Yellow "WARNING: Setting the wrong time can break a Safeguard appliance."
+    $local:Confirmed = (Get-Confirmation "Set Safeguard Time" "Are you sure you want to set the time on this Safeguard appliance?" `
+                                         "Set the time." "Cancels this operation.")
+
+    if ($local:Confirmed)
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance PUT SystemTime -Body @{
+            CurrentTime = $local:SystemTimeString
+        }
+
+        Write-Host -ForegroundColor Yellow "Depending on the time change, you may need to log in again."
+    }
 }
 
 <#
@@ -1146,7 +1223,7 @@ function Install-SafeguardPatch
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-    
+
     if ($SafeguardSession)
     {
         $Insecure = $SafeguardSession["Insecure"]
@@ -1186,6 +1263,123 @@ function Install-SafeguardPatch
             }
         }
 
+        if (-not ([System.Management.Automation.PSTypeName]"UploadFileStream").Type)
+        {
+            Write-Verbose "Adding the PSType for uploading a file stream"
+            Add-Type -TypeDefinition  @"
+            using System;
+            using System.IO;
+            using System.Net;
+            public static class UploadFileStream
+            {
+                private static readonly byte[] UploadBuffer = new byte[80 * 1024];
+        
+                public static string Upload(string pathAndFilename, string appliance, string authorizationToken, string version)
+                {
+                    WebRequest   request        = null;
+                    WebResponse  response       = null;
+                    StreamReader responseStream = null;
+                    FileStream   fileStream     = null;
+
+                    try
+                    {
+                        request = WebRequest.Create(string.Format("https://{0}/service/appliance/v{1}/Patch", appliance, version));
+                        request.Method  = "POST";
+                        request.Timeout = System.Threading.Timeout.Infinite;
+                        ((HttpWebRequest)request).Accept = "application/json";
+                        ((HttpWebRequest)request).AllowWriteStreamBuffering = false;
+
+                        fileStream = new FileStream(pathAndFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+
+                        long bytesLeft        = fileStream.Length;
+                        request.ContentLength = fileStream.Length;
+
+                        request.Headers.Add("Authorization", "Bearer " + authorizationToken);
+
+                        using (Stream sw = request.GetRequestStream())
+                        {
+                            Console.Write("Uploading... ");
+
+                            int consoleTop  = Console.CursorTop;
+                            int consoleLeft = Console.CursorLeft;
+
+                            System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+                            while (bytesLeft > 0)
+                            {
+                                int bytesRead = fileStream.Read(UploadBuffer, 0, UploadBuffer.Length);
+
+                                sw.Write(UploadBuffer, 0, bytesRead);
+
+                                bytesLeft -= bytesRead;
+
+                                if (stopwatch.ElapsedMilliseconds > 1000)
+                                {
+                                    int percentDone = (int)((fileStream.Length - bytesLeft) / (double)fileStream.Length * 100);
+
+                                    Console.SetCursorPosition(consoleLeft, consoleTop);
+
+                                    Console.Write(percentDone + "%");
+
+                                    stopwatch.Restart();
+                                }
+                            }
+
+                            Console.SetCursorPosition(consoleLeft, consoleTop);
+                            Console.WriteLine("100%");
+                            Console.WriteLine("Server is processing data...");
+                        }
+
+                        response = request.GetResponse();
+                        responseStream = new StreamReader(response.GetResponseStream());
+
+                        return responseStream.ReadToEnd();
+                    }
+                    catch (Exception ex)
+                    {
+                        string log = ex.ToString();
+
+                        if (ex is WebException)
+                        {
+                            WebException wex = ex as WebException;
+                            HttpWebResponse httpResponse = wex.Response as HttpWebResponse;
+
+                            if (httpResponse != null)
+                            {
+                                StreamReader sr = new StreamReader(httpResponse.GetResponseStream());
+
+                                log = sr.ReadToEnd() + "\r\n" + log;
+
+                                sr.Close();
+                            }
+                        }
+
+                        return log;
+                    }
+                    finally
+                    {
+                        if (responseStream != null)
+                        {
+                            responseStream.Close();
+                        }
+                        if (fileStream != null)
+                        {
+                            fileStream.Dispose();
+                        }
+                        if (response != null)
+                        {
+                            response.Close();
+                        }
+                        else
+                        {
+                            request.Abort();
+                        }
+                    }
+                }
+            }
+"@
+        }
+        
         try
         {
             Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
@@ -1195,32 +1389,13 @@ function Install-SafeguardPatch
                 Disable-SslVerification
                 if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
             }
-            # Use the WebClient class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
-            Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
-            Add-ExWebClientExType
-
-            $WebClient = (New-Object Ex.WebClientEx -ArgumentList @($Timeout))
-            $WebClient.Headers.Add("Accept", "application/json")
-            $WebClient.Headers.Add("Content-type", "application/octet-stream")
-            $WebClient.Headers.Add("Authorization", "Bearer $AccessToken")
-            Write-Host "Uploading patch to Safeguard ($Appliance). This operation may take several minutes..."
-
-            $Bytes = [System.IO.File]::ReadAllBytes($Patch);
-            $ResponseBytes = $WebClient.UploadData("https://$Appliance/service/appliance/v$Version/Patch", "POST", $Bytes) | Out-Null
-            if ($ResponseBytes)
-            {
-                [System.Text.Encoding]::UTF8.GetString($ResponseBytes)
-            }
+            
+            [UploadFileStream]::Upload($Patch, $Appliance, $AccessToken, $Version)
         }
         catch [System.Net.WebException]
         {
             Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
             Out-SafeguardExceptionIfPossible $_.Exception
-        }
-        catch
-        {
-            Write-Error $_
-            throw "Failed to POST patch to Safeguard"
         }
         finally
         {

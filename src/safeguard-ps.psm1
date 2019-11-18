@@ -54,7 +54,9 @@ function Show-RstsWindow
         [Parameter(Mandatory=$false,Position=1)]
         [string]$PrimaryProviderId = "",
         [Parameter(Mandatory=$false,Position=2)]
-        [string]$SecondaryProviderId = ""
+        [string]$SecondaryProviderId = "",
+        [Parameter(Mandatory=$false,Position=3)]
+        [string]$Username = ""
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -82,21 +84,22 @@ function Show-RstsWindow
                 _form.Controls.Add(_browser);
                 _browser.DocumentTitleChanged += (sender, args) => {
                     var b = (WebBrowser)sender;
-                    if (Regex.IsMatch(b.DocumentTitle, "error=[^&]*|code=[^&]*")) {
-                        AuthorizationCode = b.DocumentTitle.Substring(5);
+                    if (Regex.IsMatch(b.DocumentTitle, "error=[^&]*|access_token=[^&]*")) {
+                        var matchStart = b.DocumentTitle.StartsWith("error=") ? "error=".Length : "access_token=".Length;
+                        AuthorizationCode = b.DocumentTitle.Substring(matchStart);
                         _form.DialogResult = DialogResult.OK;
                         _form.Hide(); }
                 };
             }
             public string AuthorizationCode { get; set; }
-            public bool Show(string primaryProviderId = "", string secondaryProviderId = "") {
+            public bool Show(string primaryProviderId = "", string secondaryProviderId = "", string username = "") {
                 try {
-                    string url;
-                    if (!string.IsNullOrEmpty(primaryProviderId) && !string.IsNullOrEmpty(secondaryProviderId))
-                        url = string.Format("https://{0}/RSTS/Login?response_type=code&client_id={1}&redirect_uri={2}&primaryproviderid={3}&secondaryproviderid={4}",
-                            _appliance, ClientId, RedirectUri, HttpUtility.UrlEncode(primaryProviderId), HttpUtility.UrlEncode(secondaryProviderId));
-                    else
-                        url = string.Format("https://{0}/RSTS/Login?response_type=code&client_id={1}&redirect_uri={2}", _appliance, ClientId, RedirectUri);
+                    string url = string.Format("https://{0}/RSTS/Login?response_type=token&client_id={1}&redirect_uri={2}",
+                            _appliance, ClientId, RedirectUri);
+                    if (!string.IsNullOrEmpty(primaryProviderId))   url += string.Format("&primaryProviderId={0}",   HttpUtility.UrlEncode(primaryProviderId));
+                    if (!string.IsNullOrEmpty(secondaryProviderId)) url += string.Format("&secondaryProviderid={0}", HttpUtility.UrlEncode(secondaryProviderId));
+                    if (!string.IsNullOrEmpty(username))            url += string.Format("&login_hint={0}", HttpUtility.UrlEncode(username));
+                    
                     _browser.Stop();
                     _browser.Navigate(url);
                     if (_form.ShowDialog() == DialogResult.OK) { return true; }
@@ -115,7 +118,7 @@ function Show-RstsWindow
     {
         $local:Browser = New-Object -TypeName RstsWindow -ArgumentList $Appliance
     }
-    if (!$local:Browser.Show($PrimaryProviderId, $SecondaryProviderId))
+    if (!$local:Browser.Show($PrimaryProviderId, $SecondaryProviderId, $Username))
     {
         throw "Unable to correctly manipulate browser"
     }
@@ -131,7 +134,9 @@ function Get-RstsTokenFromGui
         [Parameter(Mandatory=$false,Position=1)]
         [string]$PrimaryProviderId = "",
         [Parameter(Mandatory=$false,Position=2)]
-        [string]$SecondaryProviderId = ""
+        [string]$SecondaryProviderId = "",
+        [Parameter(Mandatory=$false,Position=3)]
+        [string]$Username = ""
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -142,24 +147,16 @@ function Get-RstsTokenFromGui
         throw "This -Gui parameter is not supported in PowerShell Core"
     }
 
-    Show-RstsWindow $Appliance $PrimaryProviderId $SecondaryProviderId
+    Show-RstsWindow $Appliance $PrimaryProviderId $SecondaryProviderId $Username
     $local:Code = $global:AuthorizationCode
     Remove-Variable -Name AuthorizationCode -Scope Global -Force -ErrorAction "SilentlyContinue"
     if (-not $local:Code)
     {
-        throw "Unable to obtain authorization code"
+        throw "Unable to obtain access_token"
     }
-    Invoke-RestMethod -Method POST -Headers @{
-        "Accept" = "application/json";
-        "Content-type" = "application/json"
-    } -Uri "https://$Appliance/RSTS/oauth2/token" -Body @"
-{
-"grant_type": "authorization_code",
-"client_id": "$($script:ClientId)",
-"redirect_uri": "$($script:RedirectUri)",
-"code": "$($local:Code)"
-}
-"@
+    
+    # Return as a hashtable object because other parts of the code later on will expect it.
+    @{access_token=$local:Code}
 }
 function New-SafeguardUrl
 {
@@ -409,7 +406,7 @@ function Invoke-Internal
         {
             {$_ -in "get","delete"} {
                 Invoke-WithoutBody $Appliance $Service $Method $Version $RelativeUrl $Headers `
-                    -Parameters $Parameters -InFile $InFile -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout 
+                    -Parameters $Parameters -InFile $InFile -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout
                 break
             }
             {$_ -in "put","post"} {
@@ -582,7 +579,7 @@ function Connect-Safeguard
 
         if ($Gui)
         {
-            $local:RstsResponse = (Get-RstsTokenFromGui $Appliance)
+            $local:RstsResponse = (Get-RstsTokenFromGui $Appliance $IdentityProvider "" $Username)
         }
         else
         {
@@ -663,7 +660,7 @@ function Connect-Safeguard
                     {
                         Write-Host "($($local:IdentityProviders -join ", "))"
                     }
-                    else 
+                    else
                     {
                         Write-Warning "Unable to detect identity providers -- report this as an issue"
                     }
@@ -683,7 +680,7 @@ function Connect-Safeguard
                     $IdentityProvider = $_.Id
                 }
             }
-    
+
             if ($IdentityProvider -ieq "certificate")
             {
                 if (-not $Thumbprint -and -not $CertificateFile)
@@ -702,7 +699,7 @@ function Connect-Safeguard
                             $Username = (Read-Host "Username")
                         }
                         if (-not $Password)
-                        { 
+                        {
                             $Password = (Read-Host "Password" -AsSecureString)
                         }
                         $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
@@ -719,7 +716,7 @@ function Connect-Safeguard
                     }
                 }
             }
-        
+
             if ($Username)
             {
                 try
@@ -1366,7 +1363,7 @@ function Get-SafeguardAccessTokenStatus
             Disable-SslVerification
             if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
-        $local:Response = (Invoke-WebRequest -Method GET -Headers @{ 
+        $local:Response = (Invoke-WebRequest -Method GET -Headers @{
                 "Authorization" = "Bearer $AccessToken"
             } -Uri "https://$Appliance/service/core/v3/Me")
         $local:TimeRemaining = (New-TimeSpan -Minutes $local:Response.Headers["X-TokenLifetimeRemaining"])
@@ -1472,6 +1469,9 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER Fields
+An array of the user property names to return.
+
 .INPUTS
 None.
 
@@ -1482,7 +1482,7 @@ JSON response from Safeguard Web API.
 Get-SafeguardLoggedInUser -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
-Get-SafeguardLoggedInUser
+Get-SafeguardLoggedInUser -Fields Id
 #>
 function Get-SafeguardLoggedInUser
 {
@@ -1493,13 +1493,21 @@ function Get-SafeguardLoggedInUser
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Me
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Me -Parameters $local:Parameters
 }
 
 <#

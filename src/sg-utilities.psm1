@@ -7,7 +7,7 @@ function Out-SafeguardExceptionIfPossible
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ThrownException
     )
-    
+
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
@@ -69,7 +69,7 @@ namespace Ex
         }
         elseif ($ThrownException.Response | Get-Member Content -MemberType Properties)
         { # different properties and methods on net core
-            try 
+            try
             {
                 $local:ResponseBody = $ThrownException.Response.Content.ReadAsStringAsync().Result
             }
@@ -271,7 +271,7 @@ function Wait-ForSessionModuleState
                 $local:StateFound = $true
             }
         }
-        catch 
+        catch
         {
             $local:StatusString = "Unreachable, Unreachable"
         }
@@ -309,7 +309,7 @@ function Wait-ForClusterOperation
         Write-Progress -Activity "Waiting for cluster operation to finish" -Status "Cluster Operation: $($local:Status)" -PercentComplete (($local:TimeElapsed / $Timeout) * 100)
         try
         {
-            $local:Status = (Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET ClusterStatus).Operation
+            $local:Status = (Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET Cluster/Status -RetryUrl "ClusterStatus").Operation
         }
         catch {}
         Start-Sleep 2
@@ -352,7 +352,7 @@ function Wait-ForPatchDistribution
             Write-Progress -Activity "Waiting for patch distribution" -Status "Cluster Operation: $($local:Status)" -PercentComplete (($local:TimeElapsed / $Timeout) * 100)
             try
             {
-                $local:Members = (Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET ClusterStatus/PatchDistribution).Members
+                $local:Members = (Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET Cluster/Status/PatchDistribution -RetryUrl "ClusterStatus/PatchDistribution").Members
                 $local:StagingStatuses = ($local:Members.StagingStatus | Sort-Object)
                 $local:Status = $local:StagingStatuses -join ","
             }
@@ -394,7 +394,7 @@ function Resolve-SafeguardSystemId
     catch
     {
         Write-Verbose "Unable to resolve to asset ID, trying directories"
-        try 
+        try
         {
             Import-Module -Name "$PSScriptRoot\directories.psm1" -Scope Local
             Resolve-SafeguardDirectoryId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $System
@@ -432,7 +432,7 @@ function Resolve-SafeguardAccountIdWithoutSystemId
     catch
     {
         Write-Verbose "Unable to resolve to asset account ID, trying directories"
-        try 
+        try
         {
             Import-Module -Name "$PSScriptRoot\directories.psm1" -Scope Local
             Resolve-SafeguardDirectoryAccountId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $Account
@@ -472,7 +472,7 @@ function Resolve-SafeguardAccountIdWithSystemId
     catch
     {
         Write-Verbose "Unable to resolve to asset account ID, trying directories"
-        try 
+        try
         {
             Import-Module -Name "$PSScriptRoot\directories.psm1" -Scope Local
             Resolve-SafeguardDirectoryAccountId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -DirectoryId $SystemId $Account
@@ -501,6 +501,11 @@ function Resolve-ReasonCodeId
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($ReasonCode.Id -as [int])
+    {
+        $ReasonCode = $ReasonCode.Id
+    }
 
     if (-not ($ReasonCode -as [int]))
     {
