@@ -34,11 +34,11 @@ else
 {
     # GET notification/v3/Status
     echo "GET status" 
-    Get-SafeguardStatus -Appliance $Appliance
+    $status = Get-SafeguardStatus -Appliance $Appliance
 
     # GET appliance/v3/Version
     echo "GET version"
-    Get-SafeguardVersion -Appliance $Appliance
+    $ver = Get-SafeguardVersion -Appliance $Appliance
 
     # -- Login --
     echo "login"
