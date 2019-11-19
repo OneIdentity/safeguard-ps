@@ -77,6 +77,7 @@ NestedModules = @(
     'maintenance.psm1',
     'diagnostics.psm1',
     'sessionmodule.psm1',
+    'sessionjoin.psm1',
     'archives.psm1',
     'requests.psm1',
     'users.psm1',
@@ -135,12 +136,17 @@ FunctionsToExport = @(
     'Get-SafeguardTls12OnlyStatus',
     # diagnostics.psm1
     'Invoke-SafeguardPing','Invoke-SafeguardSessionsPing','Invoke-SafeguardTelnet','Invoke-SafeguardSessionsTelnet',
+    'Get-SafeguardDiagnosticPackage','Set-SafeguardDiagnosticPackage','Clear-SafeguardDiagnosticPackage',
+    'Invoke-SafeguardDiagnosticPackage','Get-SafeguardDiagnosticPackageLog',
     # sessionmodule.psm1
     'Get-SafeguardSessionContainerStatus','Get-SafeguardSessionModuleStatus','Get-SafeguardSessionModuleVersion',
     'Reset-SafeguardSessionModule','Repair-SafeguardSessionModule',
     'Get-SafeguardSessionCertificate','Install-SafeguardSessionCertificate','Reset-SafeguardSessionCertificate',
     'Get-SafeguardSessionSshAlgorithms','Set-SafeguardSessionSshAlgorithms',
     'Add-SafeguardSessionSshAlgorithm','Remove-SafeguardSessionSshAlgorithm',
+    # sessionjoin.psm1
+    'Get-SafeguardSessionCluster','Set-SafeguardSessionCluster','Join-SafeguardSessionCluster','Split-SafeguardSessionCluster',
+    'Get-SafeguardSessionSplitCluster','Remove-SafeguardSessionSplitCluster',
     # archives.psm1
     'Get-SafeguardArchiveServer','New-SafeguardArchiveServer','Test-SafeguardArchiveServer',
     'Remove-SafeguardArchiveServer','Edit-SafeguardArchiveServer',

@@ -209,10 +209,10 @@ None.
 String output from ping command.
 
 .EXAMPLE
-Invoke-SafeguardSessionsPing 10.5.33.100
+Invoke-SafeguardSessionsTelnet 10.5.33.100
 
 .EXAMPLE
-Invoke-SafeguardSessionsPing -AccessToken $token -Appliance 10.5.32.54 -Insecure 10.5.33.100
+Invoke-SafeguardSessionsTelnet -AccessToken $token -Appliance 10.5.32.54 -Insecure 10.5.33.100
 #>
 function Invoke-SafeguardSessionsTelnet
 {
