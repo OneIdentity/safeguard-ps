@@ -1124,9 +1124,9 @@ function Get-SafeguardClusterVpnIpv6Address
     Get-SafeguardClusterMember -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure | ForEach-Object {
         $local:Vpn = Get-VpnIpv6Address $_.Id
         New-Object PSObject -Property ([ordered]@{
+            ApplianceName = $_.Name;
             ApplianceId = $_.Id;
             IsPrimary = $_.IsLeader;
-            ApplianceName = $_.Name;
             Ipv4Address = $_.Ipv4Address;
             Ipv6Address = $_.Ipv6Address;
             VpnIpv6Address = $local:Vpn
