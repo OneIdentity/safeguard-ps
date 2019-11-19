@@ -136,6 +136,8 @@ FunctionsToExport = @(
     'Get-SafeguardTls12OnlyStatus',
     # diagnostics.psm1
     'Invoke-SafeguardPing','Invoke-SafeguardSessionsPing','Invoke-SafeguardTelnet','Invoke-SafeguardSessionsTelnet',
+    'Get-SafeguardDiagnosticPackage','Set-SafeguardDiagnosticPackage','Clear-SafeguardDiagnosticPackage',
+    'Invoke-SafeguardDiagnosticPackage','Get-SafeguardDiagnosticPackageLog',
     # sessionmodule.psm1
     'Get-SafeguardSessionContainerStatus','Get-SafeguardSessionModuleStatus','Get-SafeguardSessionModuleVersion',
     'Reset-SafeguardSessionModule','Repair-SafeguardSessionModule',
@@ -144,6 +146,7 @@ FunctionsToExport = @(
     'Add-SafeguardSessionSshAlgorithm','Remove-SafeguardSessionSshAlgorithm',
     # sessionjoin.psm1
     'Get-SafeguardSessionCluster','Set-SafeguardSessionCluster','Join-SafeguardSessionCluster','Split-SafeguardSessionCluster',
+    'Get-SafeguardSessionSplitCluster','Remove-SafeguardSessionSplitCluster',
     # archives.psm1
     'Get-SafeguardArchiveServer','New-SafeguardArchiveServer','Test-SafeguardArchiveServer',
     'Remove-SafeguardArchiveServer','Edit-SafeguardArchiveServer',
