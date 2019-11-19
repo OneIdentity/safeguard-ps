@@ -2,6 +2,7 @@ $script:SgSpsClusterFields = "Id","NodeId","Description","SpsNetworkAddress","Sp
 # Helpers
 function Get-SafeguardSessionClusterInternal
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -48,10 +49,90 @@ function Get-SafeguardSessionClusterInternal
     if ($Split)
     {
         $local:Parameters["includeDisconnected"] = $true
+        (Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET $local:RelUri `
+            -Parameters $local:Parameters) | Where-Object { $null -eq $_.CertificateUserThumbprint }
+    }
+    else
+    {
+        Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET $local:RelUri `
+            -Parameters $local:Parameters
+    }
+}
+function Connect-Sps
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$SessionMaster,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$SessionUsername,
+        [Parameter(Mandatory=$true,Position=2)]
+        [SecureString]$SessionPassword,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
+    Edit-SslVersionSupport
+    if ($Insecure)
+    {
+        Disable-SslVerification
+        if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
     }
 
-    Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET $local:RelUri `
-        -Parameters $local:Parameters | Where-Object { ($Split -and $null -eq $_.CertificateUserThumbprint) -or (-not $Split -and $null -ne $_.CertificateUserThumbprint) }
+    $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($SessionPassword))
+
+    $local:BasicAuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $SessionUsername, $local:PasswordPlainText)))
+    Remove-Variable -Scope local PasswordPlainText
+
+    Invoke-RestMethod -Uri "https://$SessionMaster/api/authentication" -SessionVariable HttpSession `
+        -Headers @{ Authorization = ("Basic {0}" -f $local:BasicAuthInfo) } | Out-Null
+    Remove-Variable -Scope local BasicAuthInfo
+
+    $HttpSession
+}
+function Get-NicRefForIp
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true)]
+        [string]$SessionMaster,
+        [Parameter(Mandatory=$true)]
+        [object]$HttpSession
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not (Test-IpAddress $SessionMaster))
+    {
+        $local:ListenAddress = [System.Net.Dns]::GetHostAddresses($SessionMaster)[0].IpAddressToString
+    }
+    else
+    {
+        $local:ListenAddress = $SessionMaster
+    }
+
+    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+    :OUTER foreach ($Name in "nic1","nic2","nic3") {
+        $local:Nic = (Invoke-RestMethod -WebSession $HttpSession -Uri "https://$SessionMaster/api/configuration/network/nics/$Name" `
+                          -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } -Method Get).body
+        $local:Nic.interfaces."@order" | ForEach-Object {
+            $local:NicId = $_
+            ($local:Nic.interfaces."$($local:NicId)".addresses."@order") | ForEach-Object {
+                $local:AddressId = $_
+                if ($local:Nic.interfaces."$($local:NicId)".addresses."$($local:AddressId)".StartsWith($local:ListenAddress))
+                {
+                    #"api/configuration/network/nics/$Name#interfaces/$($local:NicId)/addresses/$($local:AddressId)"
+                    "$Name.interfaces.$($local:NicId).addresses.$($local:AddressId)"
+                    break OUTER
+                }
+            }
+        }
+    }
 }
 
 <#
@@ -91,6 +172,7 @@ Get-SafeguardSessionCluster sps1.example.com -AllFields
 #>
 function Get-SafeguardSessionCluster
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -155,6 +237,7 @@ Set-SafeguardSessionCluster sps1.example.com -Description "Secure Env" -AllField
 #>
 function Set-SafeguardSessionCluster
 {
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -271,12 +354,11 @@ function Join-SafeguardSessionCluster
             {
                 $SessionPassword = (Read-Host "SessionPassword" -AsSecureString)
             }
-            $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($SessionPassword))
             break
         }
         "PSCredential" {
             $SessionUsername = $SessionCredential.UserName
-            $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($SessionCredential.Password))
+            $SessionPassword = $SessionCredential.Password
             break
         }
     }
@@ -317,19 +399,113 @@ function Join-SafeguardSessionCluster
             if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
 
-        $local:BasicAuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $SessionUsername, $local:PasswordPlainText)))
-        Remove-Variable -Scope local PasswordPlainText
+        $HttpSession = (Connect-Sps $SessionMaster $SessionUsername $SessionPassword -Insecure:$Insecure)
 
-        Invoke-RestMethod -Uri "https://$SessionMaster/api/authentication" -SessionVariable HttpSession `
-            -Headers @{ Authorization = ("Basic {0}" -f $local:BasicAuthInfo) } | Out-Null
-        Remove-Variable -Scope local BasicAuthInfo
+        Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+        # Make sure clustering is turned on
+        $local:Clustering = (Invoke-RestMethod -WebSession $HttpSession -Uri "https://$SessionMaster/api/configuration/local_services/cluster" `
+            -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } -Method Get)
+        if (-not $local:Clustering -or -not $local:Clustering.body.enabled)
+        {
+            $local:Confirmed = (Get-Confirmation "Session Appliance Clustering NOT Enabled" "Do you want to enable clustering on this session appliance?" `
+                                    "Enable clustering." "Cancels this operation.")
+            if ($local:Confirmed)
+            {
+                $local:NicRef = (Get-NicRefForIp -SessionMaster $SessionMaster -HttpSession $HttpSession)
 
+                Write-Host "Sending enable clustering command..."
+                Write-Host "ListenAddress = $($local:NicRef)"
+                try
+                {
+                    Invoke-RestMethod -WebSession $HttpSession -Method Post -Uri "https://$SessionMaster/api/transaction" `
+                        -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } | Out-Null
+
+                    Invoke-RestMethod -WebSession $HttpSession -Method Put -Uri "https://$SessionMaster/api/configuration/local_services/cluster" `
+                        -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } -Body (ConvertTo-Json -InputObject @{
+                            enabled = $true;
+                            listen_address = $local:NicRef
+                        }) | Out-Null
+
+                    Invoke-RestMethod -WebSession $HttpSession -Method Put -Uri "https://$SessionMaster/api/transaction" `
+                        -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } -Body (ConvertTo-Json -InputObject @{
+                            status = "commit"
+                        }) | Out-Null
+
+                    Start-Sleep -Seconds 10
+                }
+                catch
+                {
+                    try
+                    {
+                        Invoke-RestMethod -WebSession $HttpSession -Method Delete -Uri "https://$SessionMaster/api/transaction" | Out-Null
+                    }
+                    catch {}
+                }
+                # reconnect
+                $HttpSession = (Connect-Sps $SessionMaster $SessionUsername $SessionPassword -Insecure:$Insecure)
+            }
+            else
+            {
+                Write-Host -ForegroundColor Yellow "Operation canceled."
+                return
+            }
+        }
+
+        # Make sure this node is a session master
+        try
+        {
+            Invoke-RestMethod -WebSession $HttpSession -Method Get -Uri "https://$SessionMaster/api/cluster/status" | Out-Null
+        }
+        catch
+        {
+            $local:Confirmed = (Get-Confirmation "Session Appliance Is NOT Promoted" "Do you want to promote this session appliance to session master?" `
+                                    "Promote." "Cancels this operation.")
+            if ($local:Confirmed)
+            {
+                Write-Host "Sending promote command..."
+                try
+                {
+                    Invoke-RestMethod -WebSession $HttpSession -Method Post -Uri "https://$SessionMaster/api/transaction" `
+                        -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } | Out-Null
+
+                    Invoke-RestMethod -WebSession $HttpSession -Method Post -Uri "https://$SessionMaster/api/cluster/promote" `
+                        -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } | Out-Null
+
+                    Invoke-RestMethod -WebSession $HttpSession -Method Put -Uri "https://$SessionMaster/api/transaction" `
+                        -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } -Body (ConvertTo-Json -InputObject @{
+                            status = "commit"
+                        }) | Out-Null
+
+                    Start-Sleep -Seconds 10
+                }
+                catch
+                {
+                    try
+                    {
+                        Invoke-RestMethod -WebSession $HttpSession -Method Delete -Uri "https://$SessionMaster/api/transaction" | Out-Null
+                    }
+                    catch {}
+                }
+                # reconnect
+                $HttpSession = (Connect-Sps $SessionMaster $SessionUsername $SessionPassword -Insecure:$Insecure)
+            }
+            else
+            {
+                Write-Host -ForegroundColor Yellow "Operation canceled."
+                return
+            }
+        }
+
+        # Run the spp join command
+        Write-Host "Sending join command..."
         Invoke-RestMethod -WebSession $HttpSession -Method Post -Uri "https://$SessionMaster/api/cluster/spp" `
             -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } -Body (ConvertTo-Json -InputObject @{
                 spp = $Appliance;
                 spp_api_token = $AccessToken;
                 spp_cert_chain = $local:SppCertData
             }) | Out-Null
+
+        Start-Sleep -Seconds 30
 
         Get-SafeguardSessionCluster -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $SessionMaster
     }
