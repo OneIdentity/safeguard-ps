@@ -202,7 +202,7 @@ FunctionsToExport = @(
     'Get-SafeguardClusterMember','Get-SafeguardClusterHealth','Get-SafeguardClusterOperationStatus',
     'Add-SafeguardClusterMember','Remove-SafeguardClusterMember','Get-SafeguardClusterPrimary','Set-SafeguardClusterPrimary',
     'Enable-SafeguardClusterPrimary','Unlock-SafeguardCluster','Get-SafeguardClusterSummary',
-    'Get-SafeguardClusterPlatformTaskLoadStatus','Get-SafeguardClusterPlatformTaskQueueStatus',
+    'Get-SafeguardClusterPlatformTaskLoadStatus','Get-SafeguardClusterPlatformTaskQueueStatus','Get-SafeguardClusterVpnIpv6Address',
     # a2a.psm1
     'Get-SafeguardA2aServiceStatus','Enable-SafeguardA2aService','Disable-SafeguardA2aService',
     'Get-SafeguardA2a','New-SafeguardA2a','Remove-SafeguardA2a','Edit-SafeguardA2a',

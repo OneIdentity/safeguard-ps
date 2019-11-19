@@ -1078,3 +1078,58 @@ function Get-SafeguardClusterPlatformTaskQueueStatus
     (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
         GET "Cluster/Status/PlatformTaskLoadStatus") | Select-Object -Property * -ExcludeProperty "ApplianceLoadData"
 }
+
+<#
+.SYNOPSIS
+Get cluster members with VPN IPv6 address from Safeguard via the Web API.
+
+.DESCRIPTION
+Retrieve the list of Safeguard appliances in this cluster from the Web API
+and calculate the VPN IPv6 address.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardClusterVpnIpv6Address
+#>
+function Get-SafeguardClusterVpnIpv6Address
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+    Get-SafeguardClusterMember -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure | ForEach-Object {
+        $local:Vpn = Get-VpnIpv6Address $_.Id
+        New-Object PSObject -Property ([ordered]@{
+            ApplianceId = $_.Id;
+            IsPrimary = $_.IsLeader;
+            ApplianceName = $_.Name;
+            Ipv4Address = $_.Ipv4Address;
+            Ipv6Address = $_.Ipv6Address;
+            VpnIpv6Address = $local:Vpn
+        })
+    }
+}
