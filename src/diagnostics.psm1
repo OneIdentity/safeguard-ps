@@ -297,7 +297,53 @@ function Get-SafeguardDiagnosticPackage
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET DiagnosticPackage
+    (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET DiagnosticPackage).ManifestData
+}
+
+<#
+.SYNOPSIS
+Get the status of staged safeguard diagnostic package if any exists
+
+.DESCRIPTION
+If no package is currently staged, returns null.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+None.
+
+.EXAMPLE
+Get-SafeguardDiagnosticPackageStatus
+
+.EXAMPLE
+Get-SafeguardDiagnosticPackageStatus -AccessToken $token -Appliance 10.5.32.54 -Insecure
+#>
+function Get-SafeguardDiagnosticPackageStatus
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET DiagnosticPackage).StatusData
 }
 
 <#
@@ -413,7 +459,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
-.PARAMETER OutputPath
+.PARAMETER OutFile
 A string containing the path where the downloaded log file will be saved on the local appliance.
 
 .INPUTS
@@ -430,7 +476,7 @@ Get-SafeguardDiagnosticPackageLog -AccessToken $token -Appliance 10.5.32.54 -Ins
 #>
 function Get-SafeguardDiagnosticPackageLog
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="File")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -438,14 +484,20 @@ function Get-SafeguardDiagnosticPackageLog
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true,Position=0)]
-        [string]$OutputPath
+        [Parameter(ParameterSetName="File",Mandatory=$true,Position=0)]
+        [string]$OutFile,
+        [Parameter(ParameterSetName="StdOut",Mandatory=$false)]
+        [switch]$StdOut
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET DiagnosticPackage/Log -OutFile $OutputPath
+    if ($StdOut)
+    {
+        $OutFile = $null
+    }
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET DiagnosticPackage/Log -OutFile $OutFile
 }
 
 <#
