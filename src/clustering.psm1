@@ -1134,6 +1134,47 @@ function Get-SafeguardClusterVpnIpv6Address
     }
 }
 
+<#
+.SYNOPSIS
+Test VPN throughput using the Safeguard Web API.
+
+.DESCRIPTION
+This cmdlet will test VPN throughput from one appliance to another in
+the cluster.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER TargetMember
+A string containing an identifier or name of the target appliance.
+
+.PARAMETER Megabytes
+An integer of the number of megabytes to send in the test.
+
+.PARAMETER Raw
+Show raw API output rather than returning an object.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Invoke-SafeguardMemberThroughput -TargetMember 10.5.5.5
+
+.EXAMPLE
+Invoke-SafeguardMemberThroughput -TargetMember SG-AC1F6B18BAB6
+
+.EXAMPLE
+Invoke-SafeguardMemberThroughput -TargetMember AC1F6B18BAB6 -Raw -Megabytes 1024
+#>
 function Invoke-SafeguardMemberThroughput
 {
     [CmdletBinding()]
@@ -1157,7 +1198,7 @@ function Invoke-SafeguardMemberThroughput
 
     $local:Target = (Get-SafeguardClusterMember -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Member $TargetMember)
     $local:Output = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST `
-                        "NetworkDiagnostics/Throughput" -Body @{
+                        "NetworkDiagnostics/Throughput" -Timeout 1800 -Body @{
                             TargetApplianceId = $local:Target.Id;
                             MbToTransfer = $Megabytes
                         })
@@ -1180,7 +1221,38 @@ function Invoke-SafeguardMemberThroughput
         })
     }
 }
+<#
+.SYNOPSIS
+Test VPN throughput for the entire cluster using the Safeguard Web API.
 
+.DESCRIPTION
+This cmdlet will test VPN throughput from all appliances to every other 
+appliance in the cluster.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Megabytes
+An integer of the number of megabytes to send in the test.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Invoke-SafeguardClusterThroughput
+
+.EXAMPLE
+Invoke-SafeguardMemberThroughput -Megabytes 10
+#>
 function Invoke-SafeguardClusterThroughput
 {
     [CmdletBinding()]
@@ -1222,8 +1294,11 @@ function Invoke-SafeguardClusterThroughput
         }
         $local:Members | ForEach-Object {
             $local:Target = $_
-            Invoke-SafeguardMemberThroughput -Appliance $local:SourceAppliance -AccessToken $AccessToken -Insecure:$Insecure `
-                -TargetMember $local:Target.Id -Megabytes $Megabytes
+            if ($local:Source.Id -ne $local:Target.Id)
+            {
+                Invoke-SafeguardMemberThroughput -Appliance $local:SourceAppliance -AccessToken $AccessToken -Insecure:$Insecure `
+                    -TargetMember $local:Target.Id -Megabytes $Megabytes
+            }
         }
     }
 }
