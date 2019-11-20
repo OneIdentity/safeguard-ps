@@ -21,6 +21,12 @@ A string containing the network address of the host to try to ping.
 .PARAMETER Count
 An integer of the number of echo requests to send.
 
+.PARAMETER Size
+An integer containing the size of the packet to send.
+
+.PARAMETER NoFrag
+Whether or not to allow packet fragmentation.
+
 .INPUTS
 None.
 
@@ -46,7 +52,11 @@ function Invoke-SafeguardPing
         [Parameter(Mandatory=$true,Position=0)]
         [string]$NetworkAddress,
         [Parameter(Mandatory=$false)]
-        [int]$Count = 4
+        [int]$Count = 4,
+        [Parameter(Mandatory=$false)]
+        [int]$Size = 0,
+        [Parameter(Mandatory=$false)]
+        [switch]$NoFrag
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -58,11 +68,16 @@ function Invoke-SafeguardPing
         $local:Timeout = ($Count * 3)
     }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST NetworkDiagnostics/Ping `
-        -Timeout $local:Timeout -Body @{
-            NetworkAddress = "$NetworkAddress";
-            NumberEchoRequests = $Count
+    $local:Body = @{
+        NetworkAddress = "$NetworkAddress";
+        NumberEchoRequests = $Count
     }
+
+    if ($Size -gt 0) { $local:Body["BufferSize"] = $Size }
+    if ($NoFrag) { $local:Body["DontFragmentFlag"] = $true }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST NetworkDiagnostics/Ping `
+        -Timeout $local:Timeout -Body $local:Body
 }
 
 <#

@@ -556,3 +556,32 @@ function Get-EntireAuditLogStartDateAsString
 
     Format-DateTimeAsString ((Get-Date -Month 1 -Day 1 -Year 2017 -Hour 0 -Minute 0 -Second 0).ToUniversalTime())
 }
+# Helper function to determine the IPv6 address of the VPN adapter
+function Get-VpnIpv6Address
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$ApplianceId
+    )
+
+    if ($ApplianceId.Length -eq 12)
+    {
+        # Hardware
+        $local:Bytes = ($ApplianceId -replace '^0x', '' -split "(?<=\G\w{2})(?=\w{2})" | ForEach-Object { [Convert]::ToByte( $_, 16 ) })
+        $local:Bytes[0] = $local:Bytes[0] -bor 0x02
+        $local:Bytes += $local:Bytes[4]
+        $local:Bytes += $local:Bytes[5]
+        $local:Bytes[5] = $local:Bytes[3]
+        $local:Bytes[4] = 0xfe
+        $local:Bytes[3] = 0xff
+    }
+    else
+    {
+        # VM
+        $local:Bytes = ($ApplianceId.Substring(0,16) -replace '^0x', '' -split "(?<=\G\w{2})(?=\w{2})" | ForEach-Object { [Convert]::ToByte( $_, 16 ) })
+        $local:Bytes[0] = $local:Bytes[0] -band 0xfd
+    }
+
+    ("fd70:616e:6761:6561:" + [System.BitConverter]::ToString($local:Bytes).Replace("-","").Insert(12,":").Insert(8,":").Insert(4,":")).ToLower()
+}

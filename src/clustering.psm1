@@ -1078,3 +1078,227 @@ function Get-SafeguardClusterPlatformTaskQueueStatus
     (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
         GET "Cluster/Status/PlatformTaskLoadStatus") | Select-Object -Property * -ExcludeProperty "ApplianceLoadData"
 }
+
+<#
+.SYNOPSIS
+Get cluster members with VPN IPv6 address from Safeguard via the Web API.
+
+.DESCRIPTION
+Retrieve the list of Safeguard appliances in this cluster from the Web API
+and calculate the VPN IPv6 address.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardClusterVpnIpv6Address
+#>
+function Get-SafeguardClusterVpnIpv6Address
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+    (Get-SafeguardClusterMember -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure) | ForEach-Object {
+        $local:Vpn = Get-VpnIpv6Address $_.Id
+        New-Object PSObject -Property ([ordered]@{
+            ApplianceName = $_.Name;
+            ApplianceId = $_.Id;
+            IsPrimary = $_.IsLeader;
+            Ipv4Address = $_.Ipv4Address;
+            Ipv6Address = $_.Ipv6Address;
+            VpnIpv6Address = $local:Vpn
+        })
+    }
+}
+
+<#
+.SYNOPSIS
+Test VPN throughput using the Safeguard Web API.
+
+.DESCRIPTION
+This cmdlet will test VPN throughput from one appliance to another in
+the cluster.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER TargetMember
+A string containing an identifier or name of the target appliance.
+
+.PARAMETER Megabytes
+An integer of the number of megabytes to send in the test.
+
+.PARAMETER Raw
+Show raw API output rather than returning an object.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Invoke-SafeguardMemberThroughput -TargetMember 10.5.5.5
+
+.EXAMPLE
+Invoke-SafeguardMemberThroughput -TargetMember SG-AC1F6B18BAB6
+
+.EXAMPLE
+Invoke-SafeguardMemberThroughput -TargetMember AC1F6B18BAB6 -Raw -Megabytes 1024
+#>
+function Invoke-SafeguardMemberThroughput
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$TargetMember,
+        [Parameter(Mandatory=$false)]
+        [int]$Megabytes = 100,
+        [Parameter(Mandatory=$false)]
+        [switch]$Raw
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Target = (Get-SafeguardClusterMember -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Member $TargetMember)
+    $local:Output = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST `
+                        "NetworkDiagnostics/Throughput" -Timeout 1800 -Body @{
+                            TargetApplianceId = $local:Target.Id;
+                            MbToTransfer = $Megabytes
+                        })
+    $local:Found = $local:Output -match ".*Throughput: (\d+.\d+)"
+    if (-not $local:Found -or $Raw)
+    {
+        $local:Output
+    }
+    else
+    {
+        $local:Source = (Get-SafeguardStatus -Appliance $Appliance -Insecure:$Insecure)
+        $local:MBytesPerSec = [decimal]$matches[1]
+        New-Object PSObject -Property ([ordered]@{
+            SourceApplianceName = $local:Source.ApplianceName;
+            SourceApplianceId = $local:Source.ApplianceId;
+            TargetApplianceName = $local:Target.Name;
+            TargetApplianceId = $local:Target.Id;
+            MegabytesPerSecond = $local:MBytesPerSec;
+            MegabitsPerSecond = ($local:MBytesPerSec * 8)
+        })
+    }
+}
+<#
+.SYNOPSIS
+Test VPN throughput for the entire cluster using the Safeguard Web API.
+
+.DESCRIPTION
+This cmdlet will test VPN throughput from all appliances to every other 
+appliance in the cluster.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Megabytes
+An integer of the number of megabytes to send in the test.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Invoke-SafeguardClusterThroughput
+
+.EXAMPLE
+Invoke-SafeguardMemberThroughput -Megabytes 10
+#>
+function Invoke-SafeguardClusterThroughput
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [int]$Megabytes = 100
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Members = (Get-SafeguardClusterMember -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
+
+    if (-not $AccessToken -and $SafeguardSession)
+    {
+        $AccessToken = $SafeguardSession["AccessToken"]
+    }
+    if (-not $Appliance -and $SafeguardSession)
+    {
+        # if using session variable also inherit trust status
+        $Insecure = $SafeguardSession["Insecure"]
+    }
+
+    $local:Members | ForEach-Object {
+        $local:Source = $_
+        if ($local:Source.Ipv4Address)
+        {
+            $local:SourceAppliance = $local:Source.Ipv4Address
+        }
+        else
+        {
+            $local:SourceAppliance = $local:Source.Ipv6Address
+        }
+        $local:Members | ForEach-Object {
+            $local:Target = $_
+            if ($local:Source.Id -ne $local:Target.Id)
+            {
+                Invoke-SafeguardMemberThroughput -Appliance $local:SourceAppliance -AccessToken $AccessToken -Insecure:$Insecure `
+                    -TargetMember $local:Target.Id -Megabytes $Megabytes
+            }
+        }
+    }
+}
