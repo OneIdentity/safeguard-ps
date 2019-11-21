@@ -139,6 +139,7 @@ FunctionsToExport = @(
     'Get-SafeguardDiagnosticPackage','Set-SafeguardDiagnosticPackage','Clear-SafeguardDiagnosticPackage',
     'Invoke-SafeguardDiagnosticPackage','Get-SafeguardDiagnosticPackageStatus','Get-SafeguardDiagnosticPackageLog',
     'Invoke-SafeguardMemberThroughput','Invoke-SafeguardClusterThroughput',
+    'Invoke-SafeguardMemberPing','Invoke-SafeguardClusterPing',
     # sessionmodule.psm1
     'Get-SafeguardSessionContainerStatus','Get-SafeguardSessionModuleStatus','Get-SafeguardSessionModuleVersion',
     'Reset-SafeguardSessionModule','Repair-SafeguardSessionModule',
