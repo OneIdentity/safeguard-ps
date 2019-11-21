@@ -1230,6 +1230,7 @@ function Invoke-SafeguardMemberThroughput
         })
     }
 }
+
 <#
 .SYNOPSIS
 Test VPN throughput for the entire cluster using the Safeguard Web API.
@@ -1260,7 +1261,7 @@ JSON response from Safeguard Web API.
 Invoke-SafeguardClusterThroughput
 
 .EXAMPLE
-Invoke-SafeguardMemberThroughput -Megabytes 10
+Invoke-SafeguardClusterThroughput -Megabytes 10
 #>
 function Invoke-SafeguardClusterThroughput
 {
@@ -1312,6 +1313,53 @@ function Invoke-SafeguardClusterThroughput
     }
 }
 
+<#
+.SYNOPSIS
+Test ping latency using the Safeguard Web API.
+
+.DESCRIPTION
+This cmdlet will test ping latency from one appliance to another in
+the cluster.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER TargetMember
+A string containing an identifier or name of the target appliance.
+
+.PARAMETER Count
+An integer of the number of echo requests to send.
+
+.PARAMETER Size
+An integer containing the size of the packet to send.
+
+.PARAMETER NoFrag
+Whether or not to allow packet fragmentation.
+
+.PARAMETER Raw
+Show raw API output rather than returning an object.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Invoke-SafeguardMemberPing -TargetMember 10.5.5.5
+
+.EXAMPLE
+Invoke-SafeguardMemberPing -TargetMember SG-AC1F6B18BAB6
+
+.EXAMPLE
+Invoke-SafeguardMemberPing AC1F6B18BAB6 -Size 1200 -NoFrag -Count 1
+#>
 function Invoke-SafeguardMemberPing
 {
     [CmdletBinding()]
@@ -1329,7 +1377,9 @@ function Invoke-SafeguardMemberPing
         [Parameter(Mandatory=$false)]
         [int]$Size = 0,
         [Parameter(Mandatory=$false)]
-        [switch]$NoFrag
+        [switch]$NoFrag,
+        [Parameter(Mandatory=$false)]
+        [switch]$Raw
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -1372,6 +1422,32 @@ function Invoke-SafeguardMemberPing
     }
 }
 
+<#
+.SYNOPSIS
+Test ping latency for the entire cluster using the Safeguard Web API.
+
+.DESCRIPTION
+This cmdlet will test ping latency from all appliances to every other 
+appliance in the cluster.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Invoke-SafeguardClusterPing
+#>
 function Invoke-SafeguardClusterPing
 {
     [CmdletBinding()]
