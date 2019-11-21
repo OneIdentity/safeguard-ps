@@ -1096,6 +1096,9 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER Member
+A string containing an ID, name, or network address for the member appliance.
+
 .INPUTS
 None.
 
@@ -1114,14 +1117,16 @@ function Get-SafeguardClusterVpnIpv6Address
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [string]$Member
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-    (Get-SafeguardClusterMember -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure) | ForEach-Object {
+    (Get-SafeguardClusterMember -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Member $Member) | ForEach-Object {
         $local:Vpn = Get-VpnIpv6Address $_.Id
         New-Object PSObject -Property ([ordered]@{
             ApplianceName = $_.Name;
@@ -1197,6 +1202,10 @@ function Invoke-SafeguardMemberThroughput
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:Target = (Get-SafeguardClusterMember -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Member $TargetMember)
+    if (-not $local:Target)
+    {
+        throw "Cluster member '$TargetMember' not found"
+    }
     $local:Output = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST `
                         "NetworkDiagnostics/Throughput" -Timeout 1800 -Body @{
                             TargetApplianceId = $local:Target.Id;
@@ -1298,6 +1307,114 @@ function Invoke-SafeguardClusterThroughput
             {
                 Invoke-SafeguardMemberThroughput -Appliance $local:SourceAppliance -AccessToken $AccessToken -Insecure:$Insecure `
                     -TargetMember $local:Target.Id -Megabytes $Megabytes
+            }
+        }
+    }
+}
+
+function Invoke-SafeguardMemberPing
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$TargetMember,
+        [Parameter(Mandatory=$false)]
+        [int]$Count = 4,
+        [Parameter(Mandatory=$false)]
+        [int]$Size = 0,
+        [Parameter(Mandatory=$false)]
+        [switch]$NoFrag
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Target = (Get-SafeguardClusterVpnIpv6Address -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Member $TargetMember)
+
+    $local:Timeout = 300
+    if (($Count * 3) -gt $local:Timeout)
+    {
+        $local:Timeout = ($Count * 3)
+    }
+
+    $local:Body = @{
+        NetworkAddress = $local:Target.VpnIpv6Address;
+        NumberEchoRequests = $Count
+    }
+
+    if ($Size -gt 0) { $local:Body["BufferSize"] = $Size }
+    if ($NoFrag) { $local:Body["DontFragmentFlag"] = $true }
+
+    $local:Output = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST NetworkDiagnostics/Ping `
+                        -Timeout $local:Timeout -Body $local:Body)
+    $local:Found = $local:Output -match ".*Average = ([\d.]+)ms"
+    if (-not $local:Found -or $Raw)
+    {
+        $local:Output
+    }
+    else
+    {
+        $local:Source = (Get-SafeguardStatus -Appliance $Appliance -Insecure:$Insecure)
+        $local:Milliseconds = [decimal]$matches[1]
+        New-Object PSObject -Property ([ordered]@{
+            SourceApplianceName = $local:Source.ApplianceName;
+            SourceApplianceId = $local:Source.ApplianceId;
+            TargetApplianceName = $local:Target.ApplianceName;
+            TargetApplianceId = $local:Target.ApplianceId;
+            Milliseconds = $local:Milliseconds
+        })
+    }
+}
+
+function Invoke-SafeguardClusterPing
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Members = (Get-SafeguardClusterMember -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
+
+    if (-not $AccessToken -and $SafeguardSession)
+    {
+        $AccessToken = $SafeguardSession["AccessToken"]
+    }
+    if (-not $Appliance -and $SafeguardSession)
+    {
+        # if using session variable also inherit trust status
+        $Insecure = $SafeguardSession["Insecure"]
+    }
+
+    $local:Members | ForEach-Object {
+        $local:Source = $_
+        if ($local:Source.Ipv4Address)
+        {
+            $local:SourceAppliance = $local:Source.Ipv4Address
+        }
+        else
+        {
+            $local:SourceAppliance = $local:Source.Ipv6Address
+        }
+        $local:Members | ForEach-Object {
+            $local:Target = $_
+            if ($local:Source.Id -ne $local:Target.Id)
+            {
+                Invoke-SafeguardMemberPing -Appliance $local:SourceAppliance -AccessToken $AccessToken -Insecure:$Insecure `
+                    -TargetMember $local:Target.Id
             }
         }
     }
