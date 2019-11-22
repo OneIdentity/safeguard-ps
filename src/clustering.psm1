@@ -1211,7 +1211,7 @@ function Invoke-SafeguardMemberThroughput
                             TargetApplianceId = $local:Target.Id;
                             MbToTransfer = $Megabytes
                         })
-    $local:Found = $local:Output -match ".*Throughput: (\d+.\d+)"
+    $local:Found = $local:Output -match ".*Throughput: ([\d.]+)"
     if (-not $local:Found -or $Raw)
     {
         $local:Output
