@@ -13,14 +13,16 @@ Param(
     [Parameter(Mandatory=$false)]
     [string]$AssetPartitionName,
     [Parameter(Mandatory=$true, Position=0)]
-    [int]$Quantity
+    [int]$Quantity,
+    [Parameter(Mandatory=$false)]
+    [switch]$NoAccounts
 )
 
-function Add-TenThousand
+function Add-OneThousand
 {
-    if ($script:Remaining -ge 10000)
+    if ($script:Remaining -ge 1000)
     {
-        $local:Chunk = 10000
+        $local:Chunk = 1000
     }
     else
     {
@@ -44,7 +46,21 @@ function Add-TenThousand
         }
         $script:Index++
     }
-    Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $script:Token -Insecure:$Insecure core POST Assets/BatchCreate -Body $local:Body -Timeout 3600 | Out-Null
+    $local:NewAssetIds = (Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $script:Token -Insecure:$Insecure core POST Assets/BatchCreate -Body $local:Body -Timeout 3600).Response.Id
+    if (-not $NoAccounts)
+    {
+        Write-Host -ForegroundColor Green ("[{0:MM/dd/yy} {0:HH:mm:ss}]" -f (Get-Date)) -NoNewline
+        Write-Host -ForegroundColor Yellow "-- Adding $local:Chunk accounts to those assets" | Out-Host
+        $local:Body = @()
+        foreach ($local:NewAssetId in $local:NewAssetIds)
+        {
+            $local:Body += @{
+                AssetId = $local:NewAssetId;
+                Name = "root"
+            }
+        }
+        Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $script:Token -Insecure:$Insecure core POST AssetAccounts/BatchCreate -Body $local:Body -Timeout 3600 | Out-Null
+    }
     $script:Remaining -= $local:Chunk
 }
 
@@ -71,5 +87,5 @@ else
 Write-Host -ForegroundColor Magenta "Generating $Quantity Assets of type 'Other Managed' with random prefix '$script:Prefix-'"
 while ($script:Remaining -gt 0)
 {
-    Add-TenThousand
+    Add-OneThousand
 }
