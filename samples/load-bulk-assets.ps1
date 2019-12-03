@@ -46,6 +46,8 @@ function Add-OneThousand
         }
         $script:Index++
     }
+    Write-Host -ForegroundColor Green ("[{0:MM/dd/yy} {0:HH:mm:ss}]" -f (Get-Date)) -NoNewline
+    Write-Host -ForegroundColor Yellow "-- Request prepared, sending" | Out-Host
     $local:NewAssetIds = (Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $script:Token -Insecure:$Insecure core POST Assets/BatchCreate -Body $local:Body -Timeout 3600).Response.Id
     if (-not $NoAccounts)
     {
@@ -59,6 +61,8 @@ function Add-OneThousand
                 Name = "root"
             }
         }
+        Write-Host -ForegroundColor Green ("[{0:MM/dd/yy} {0:HH:mm:ss}]" -f (Get-Date)) -NoNewline
+        Write-Host -ForegroundColor Yellow "-- Request prepared, sending" | Out-Host
         Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $script:Token -Insecure:$Insecure core POST AssetAccounts/BatchCreate -Body $local:Body -Timeout 3600 | Out-Null
     }
     $script:Remaining -= $local:Chunk
