@@ -313,7 +313,7 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Edit-SafeguardAssetPartition -AccessToken $token -Appliance 10.5.32.54 -Insecure -AssetObject $obj
+Edit-SafeguardAssetPartition -AccessToken $token -Appliance 10.5.32.54 -Insecure -AssetPartitionObject $obj
 
 .EXAMPLE
 Edit-SafeguardAssetPartition "Unix Servers" -Description "Servers for the Unix team" -Owners "Admin3","Admin4"
