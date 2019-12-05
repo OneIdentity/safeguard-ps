@@ -275,10 +275,12 @@ function Remove-SafeguardAssetPartition
 
 <#
 .SYNOPSIS
-Edit existing asset in Safeguard via the Web API.
+Edit existing asset partition in Safeguard via the Web API.
 
 .DESCRIPTION
-Edit an existing asset in Safeguard that can be used to manage accounts.
+Asset partitions are an administrative container for Safeguard assets. Asset
+partitions may be given owners who can manage only the assets within that
+asset partition. This cmdlet edits an existing asset partition.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -301,7 +303,7 @@ A string containing a description for this asset.
 .PARAMETER Owners
 A list strings containing the names of the owners for the new asset partition.
 
-.PARAMETER AssetObject
+.PARAMETER AssetPartitionObject
 An object containing the existing asset partition with desired properties set.
 
 .INPUTS
@@ -311,13 +313,10 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Edit-SafeguardAsset -AccessToken $token -Appliance 10.5.32.54 -Insecure -AssetObject $obj
+Edit-SafeguardAssetPartition -AccessToken $token -Appliance 10.5.32.54 -Insecure -AssetPartitionObject $obj
 
 .EXAMPLE
-Edit-SafeguardAsset winserver.domain.corp 31 archie
-
-.EXAMPLE
-Edit-SafeguardAsset -AssetToEdit "fooLdapAsset" -UseSslEncryption $True
+Edit-SafeguardAssetPartition "Unix Servers" -Description "Servers for the Unix team" -Owners "Admin3","Admin4"
 #>
 function Edit-SafeguardAssetPartition
 {
