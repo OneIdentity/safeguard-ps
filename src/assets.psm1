@@ -505,7 +505,7 @@ function New-SafeguardAsset
     Import-Module -Name "$PSScriptRoot\datatypes.psm1" -Scope Local
 
     $local:PlatformId = (Resolve-SafeguardPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Platform)
-    $local:PlatformObject = (Get-SafeguardPlatform $local:PlatformId)
+    $local:PlatformObject = (Get-SafeguardPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:PlatformId)
 
     if ($PSCmdlet.ParameterSetName -ne "Ad" -and -not $local:PlatformObject.PlatformType.StartsWith("Other"))
     {
