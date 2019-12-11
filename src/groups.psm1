@@ -326,7 +326,7 @@ function New-SafeguardUserGroup
         [Parameter(ParameterSetName="Local",Mandatory=$false,Position=1)]
         [string]$Description,
         [Parameter(ParameterSetName="Directory",Mandatory=$true,Position=1)]
-        [object]$DirectoryIdentityProviderId,
+        [object]$Directory,
         [Parameter(ParameterSetName="Directory",Mandatory=$false,Position=2)]
         [string]$DomainName
     )
@@ -342,7 +342,11 @@ function New-SafeguardUserGroup
     }
     else
     {
-        $local:DirectoryIdentityProvider = (Get-SafeguardIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Directory)
+        $local:DirectoryIdentityProvider = (Get-SafeguardDirectoryIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Directory)
+        if (-not $local:DirectoryIdentityProvider)
+        {
+            throw "Unable to find directory identity provider for '$Directory'"
+        }
 
         if (-not $PSBoundParameters.ContainsKey("DomainName"))
         {
@@ -354,19 +358,30 @@ function New-SafeguardUserGroup
 
             if (-not ($local:Domains -is [array]))
             {
-                $DomainName = $local:Domains.DomainName
+                $local:DomainName = $local:Domains.DomainName
             }
             else
             {
-                Write-Host "Domains in Directory ($Directory):"
-                Write-Host "["
-                $local:Domains | ForEach-Object -Begin { $index = 0 } -Process {  Write-Host ("    {0,3} - {1}" -f $index,$_.DomainName); $index++ }
-                Write-Host "]"
-                $local:DomainNameIndex = (Read-Host "Select a DomainName by number")
-                $DomainName = $local:Domains[$local:DomainNameIndex].DomainName
+                if ($local:Domains.Count -eq 1)
+                {
+                    $local:DomainName = $local:Domains[0].DomainName
+                }
+                elseif ($local:Domains | Where-Object { $_.DomainName -ieq $Directory })
+                {
+                    $local:DomainName = ($local:Domains | Where-Object { $_.DomainName -ieq $Directory }).DomainName
+                }
+                else
+                {
+                    Write-Host "Domains in Directory ($Directory):"
+                    Write-Host "["
+                    $local:Domains | ForEach-Object -Begin { $index = 0 } -Process {  Write-Host ("    {0,3} - {1}" -f $index,$_.DomainName); $index++ }
+                    Write-Host "]"
+                    $local:DomainNameIndex = (Read-Host "Select a DomainName by number")
+                    $local:DomainName = $local:Domains[$local:DomainNameIndex].DomainName
+                }
             }
         }
-        $local:Body.DirectoryProperties = @{ DirectoryId = $local:DirectoryIdentityProvider.Id; DomainName = $DomainName }
+        $local:Body.DirectoryProperties = @{ DirectoryId = $local:DirectoryIdentityProvider.Id; DomainName = $local:DomainName }
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST UserGroups -Body $local:Body -RetryVersion 2 -RetryUrl "UserGroups"
