@@ -90,6 +90,11 @@ function Install-SafeguardDesktopClient
         try
         {
             $WebClient.DownloadFile("https://$Appliance/en-US/Safeguard.msi", $TempFile)
+            if ((Get-Item $TempFile).Length -lt 1MB)
+            {
+                Remove-Item -Force $TempFile -EA SilentlyContinue
+                throw "Wrong URL"
+            }
         }
         catch
         {
