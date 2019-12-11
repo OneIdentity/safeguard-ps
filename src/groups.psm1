@@ -926,10 +926,10 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Edit-SafeguardAccountGroup testaccountgroup add testaccount1,testaccount2
+Edit-SafeguardAccountGroup testaccountgroup add testasset1.domain.corp\testaccount1, testasset2.domain.corp\testaccount2
 
 .EXAMPLE
-Edit-SafeguardAccountGroup testaccountgroup remove testaccount1
+Edit-SafeguardAccountGroup testaccountgroup remove testasset1.domain.corp\testaccount1
 #>
 function Edit-SafeguardAccountGroup
 {
@@ -959,7 +959,7 @@ function Edit-SafeguardAccountGroup
         $local:Pair = ($local:AccountPair -split "\\")
         if ($local:Pair.Length -ne 2)
         {
-            throw "Unable to parse account '$($local:AccountPair)' into asset and account"
+            throw "Unable to parse '$($local:AccountPair)' using expected format of 'asset\account'."
         }
         $local:ResolvedAccount = (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
             -AssetToGet $local:Pair[0] -AccountToGet $local:Pair[1] -Fields AssetId,Id,AssetName,Name)
