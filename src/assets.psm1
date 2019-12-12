@@ -168,7 +168,7 @@ function Invoke-SafeguardAssetSshHostKeyDiscovery
         [Parameter(Mandatory=$true,Position=0)]
         [object]$Asset,
         [Parameter(Mandatory=$false)]
-        [object]$AcceptSshHostKey
+        [switch]$AcceptSshHostKey
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -562,9 +562,9 @@ function New-SafeguardAsset
         switch ($ServiceAccountCredentialType.ToLower())
         {
             {$_ -in "password","accountpassword","accesskey"} {
-                if (-not $PSBoundParameters.ContainsKey("ServiceAccountName"))
+                if (-not $PSBoundParameters.ContainsKey("ServiceAccountName") -or -not $ServiceAccountName)
                 {
-                    if (-not $PSCmdlet.ParameterSetName -eq "Ldap")
+                    if ($PSCmdlet.ParameterSetName -ne "Ldap")
                     {
                         $ServiceAccountName = (Read-Host "ServiceAccountName")
                     }
