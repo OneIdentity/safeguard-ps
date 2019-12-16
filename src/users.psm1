@@ -523,7 +523,11 @@ function New-SafeguardUser
         $local:ProviderResolved = (Get-SafeguardIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Provider)[0].Id
         if (-not $local:ProviderResolved)
         {
-            throw "Unable to find identity provider that matches '$Provider'"
+            $local:ProviderResolved = (Get-SafeguardDirectoryIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Provider)[0].Id
+            if (-not $local:ProviderResolved)
+            {
+                throw "Unable to find identity provider that matches '$Provider'"
+            }
         }
     }
     else
@@ -603,38 +607,10 @@ function New-SafeguardUser
     }
     else
     {
-        $local:DirectoryIdentityProvider = (Get-SafeguardDirectoryIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Provider)
-        if (-not $PSBoundParameters.ContainsKey("DomainName") -and $local:DirectoryIdentityProvider)
+        if (-not $PSBoundParameters.ContainsKey("DomainName"))
         {
-            $local:Domains = $local:DirectoryIdentityProvider.DirectoryProperties.Domains
-            if ($null -eq $local:Domains) # backwards compat
-            {
-                $local:Domains = $local:DirectoryIdentityProvider.Domains
-            }
-            if (-not ($local:Domains -is [array]))
-            {
-                $DomainName = $local:Domains.DomainName
-            }
-            else
-            {
-                if ($local:Domains.Count -eq 1)
-                {
-                    $DomainName = $local:Domains[0].DomainName
-                }
-                elseif ($local:Domains | Where-Object { $_.DomainName -ieq $Provider })
-                {
-                    $DomainName = ($local:Domains | Where-Object { $_.DomainName -ieq $Provider }).DomainName
-                }
-                else
-                {
-                    Write-Host "Domains in Directory ($Provider):"
-                    Write-Host "["
-                    $local:Domains | ForEach-Object -Begin { $index = 0 } -Process {  Write-Host ("    {0,3} - {1}" -f $index,$_.DomainName); $index++ }
-                    Write-Host "]"
-                    $local:DomainNameIndex = (Read-Host "Select a DomainName by number")
-                    $DomainName = $local:Domains[$local:DomainNameIndex].DomainName
-                }
-            }
+            Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+            $DomainName = (Resolve-DomainNameFromIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Provider)
         }
         if (-not $DomainName)
         {
