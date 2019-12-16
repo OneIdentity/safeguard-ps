@@ -350,36 +350,8 @@ function New-SafeguardUserGroup
 
         if (-not $PSBoundParameters.ContainsKey("DomainName"))
         {
-            $local:Domains = $local:DirectoryIdentityProvider.DirectoryProperties.Domains
-            if($null -eq $local:Domains)
-            {
-                $local:Domains = $local:DirectoryIdentityProvider.Domains
-            }
-
-            if (-not ($local:Domains -is [array]))
-            {
-                $local:DomainName = $local:Domains.DomainName
-            }
-            else
-            {
-                if ($local:Domains.Count -eq 1)
-                {
-                    $local:DomainName = $local:Domains[0].DomainName
-                }
-                elseif ($local:Domains | Where-Object { $_.DomainName -ieq $Directory })
-                {
-                    $local:DomainName = ($local:Domains | Where-Object { $_.DomainName -ieq $Directory }).DomainName
-                }
-                else
-                {
-                    Write-Host "Domains in Directory ($Directory):"
-                    Write-Host "["
-                    $local:Domains | ForEach-Object -Begin { $index = 0 } -Process {  Write-Host ("    {0,3} - {1}" -f $index,$_.DomainName); $index++ }
-                    Write-Host "]"
-                    $local:DomainNameIndex = (Read-Host "Select a DomainName by number")
-                    $local:DomainName = $local:Domains[$local:DomainNameIndex].DomainName
-                }
-            }
+            Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+            $DomainName = (Resolve-DomainNameFromIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Directory)
         }
         $local:Body.DirectoryProperties = @{ DirectoryId = $local:DirectoryIdentityProvider.Id; DomainName = $local:DomainName }
     }
