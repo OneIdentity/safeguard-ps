@@ -523,12 +523,19 @@ function New-SafeguardUser
         $local:ProviderResolved = (Get-SafeguardIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Provider)[0].Id
         if (-not $local:ProviderResolved)
         {
-            throw "Unable to find identity provider that matches '$Provider'"
+            $local:ProviderResolved = (Get-SafeguardDirectoryIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Provider)[0].Id
+            if (-not $local:ProviderResolved)
+            {
+                throw "Unable to find identity provider that matches '$Provider'"
+            }
         }
-        $Provider = $local:ProviderResolved
+    }
+    else
+    {
+        $local:ProviderResolved = $Provider
     }
 
-    if ($Provider -eq $local:CertificateProviderId -and -not ($PSBoundParameters.ContainsKey("Thumbprint")))
+    if ($local:ProviderResolved -eq $local:CertificateProviderId -and -not ($PSBoundParameters.ContainsKey("Thumbprint")))
     {
         $Thumbprint = (Read-Host "Thumbprint")
     }
@@ -546,7 +553,7 @@ function New-SafeguardUser
         }
     }
 
-    if ($Provider -eq $local:LocalProviderId -and $PSBoundParameters.ContainsKey("Password"))
+    if ($local:ProviderResolved -eq $local:LocalProviderId -and $PSBoundParameters.ContainsKey("Password"))
     {
         # Check the password complexity before creating the user so you don't end up with a user without a password
         try
@@ -563,10 +570,10 @@ function New-SafeguardUser
         }
     }
 
-    if ($Provider -eq $local:LocalProviderId -or $Provider -eq $local:CertificateProviderId)
+    if ($local:ProviderResolved -eq $local:LocalProviderId -or $local:ProviderResolved -eq $local:CertificateProviderId)
     {
         $local:Body = @{
-            PrimaryAuthenticationProviderId = $Provider;
+            PrimaryAuthenticationProviderId = $local:ProviderResolved;
             UserName = $NewUserName;
             AdminRoles = $AdminRoles
         }
@@ -576,12 +583,12 @@ function New-SafeguardUser
         if ($PSBoundParameters.ContainsKey("EmailAddress")) { $local:Body.EmailAddress = $EmailAddress }
         if ($PSBoundParameters.ContainsKey("WorkPhone")) { $local:Body.WorkPhone = $WorkPhone }
         if ($PSBoundParameters.ContainsKey("MobilePhone")) { $local:Body.MobilePhone = $MobilePhone }
-        if ($Provider -eq $local:CertificateProviderId)
+        if ($local:ProviderResolved -eq $local:CertificateProviderId)
         {
             $local:Body.PrimaryAuthenticationIdentity = $Thumbprint
         }
         $local:NewUser = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Users -Body $local:Body -RetryVersion 2 -RetryUrl "Users")
-        if ($Provider -eq $local:LocalProviderId)
+        if ($local:ProviderResolved -eq $local:LocalProviderId)
         {
             Write-Host "Setting password for new user..."
             if ($PSBoundParameters.ContainsKey("Password"))
@@ -602,11 +609,16 @@ function New-SafeguardUser
     {
         if (-not $PSBoundParameters.ContainsKey("DomainName"))
         {
+            Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+            $DomainName = (Resolve-DomainNameFromIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Provider)
+        }
+        if (-not $DomainName)
+        {
             $DomainName = (Read-Host "DomainName")
         }
         # For directory accounts, lots of attributes are mapped from the directory
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Users -Body @{
-            PrimaryAuthenticationProviderId = $Provider;
+            PrimaryAuthenticationProviderId = $local:ProviderResolved;
             UserName = $NewUserName;
             AdminRoles = $AdminRoles;
             DirectoryProperties = @{ DomainName = $DomainName }

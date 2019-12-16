@@ -536,6 +536,60 @@ function Resolve-ReasonCodeId
         $ReasonCode
     }
 }
+
+function Resolve-DomainNameFromIdentityProvider
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true)]
+        [object]$IdentityProvider
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:DirectoryIdentityProvider = (Get-SafeguardDirectoryIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $IdentityProvider)
+    if ($local:DirectoryIdentityProvider)
+    {
+        $local:Domains = $local:DirectoryIdentityProvider.DirectoryProperties.Domains
+        if ($null -eq $local:Domains) # backwards compat
+        {
+            $local:Domains = $local:DirectoryIdentityProvider.Domains
+        }
+        if (-not ($local:Domains -is [array]))
+        {
+            $local:DomainName = $local:Domains.DomainName
+        }
+        else
+        {
+            if ($local:Domains.Count -eq 1)
+            {
+                $local:DomainName = $local:Domains[0].DomainName
+            }
+            elseif ($local:Domains | Where-Object { $_.DomainName -ieq $IdentityProvider })
+            {
+                $local:DomainName = ($local:Domains | Where-Object { $_.DomainName -ieq $IdentityProvider }).DomainName
+            }
+            else
+            {
+                Write-Host "Domains in Directory ($IdentityProvider):"
+                Write-Host "["
+                $local:Domains | ForEach-Object -Begin { $index = 0 } -Process {  Write-Host ("    {0,3} - {1}" -f $index,$_.DomainName); $index++ }
+                Write-Host "]"
+                $local:DomainNameIndex = (Read-Host "Select a DomainName by number")
+                $local:DomainName = $local:Domains[$local:DomainNameIndex].DomainName
+            }
+        }
+        $local:DomainName
+    }
+}
+
 # Helper function for formatting dates (useful for passing to audit log query parameters)
 function Format-DateTimeAsString
 {
