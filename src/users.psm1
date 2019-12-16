@@ -525,10 +525,13 @@ function New-SafeguardUser
         {
             throw "Unable to find identity provider that matches '$Provider'"
         }
-        $Provider = $local:ProviderResolved
+    }
+    else
+    {
+        $local:ProviderResolved = $Provider
     }
 
-    if ($Provider -eq $local:CertificateProviderId -and -not ($PSBoundParameters.ContainsKey("Thumbprint")))
+    if ($local:ProviderResolved -eq $local:CertificateProviderId -and -not ($PSBoundParameters.ContainsKey("Thumbprint")))
     {
         $Thumbprint = (Read-Host "Thumbprint")
     }
@@ -546,7 +549,7 @@ function New-SafeguardUser
         }
     }
 
-    if ($Provider -eq $local:LocalProviderId -and $PSBoundParameters.ContainsKey("Password"))
+    if ($local:ProviderResolved -eq $local:LocalProviderId -and $PSBoundParameters.ContainsKey("Password"))
     {
         # Check the password complexity before creating the user so you don't end up with a user without a password
         try
@@ -563,10 +566,10 @@ function New-SafeguardUser
         }
     }
 
-    if ($Provider -eq $local:LocalProviderId -or $Provider -eq $local:CertificateProviderId)
+    if ($local:ProviderResolved -eq $local:LocalProviderId -or $local:ProviderResolved -eq $local:CertificateProviderId)
     {
         $local:Body = @{
-            PrimaryAuthenticationProviderId = $Provider;
+            PrimaryAuthenticationProviderId = $local:ProviderResolved;
             UserName = $NewUserName;
             AdminRoles = $AdminRoles
         }
@@ -576,12 +579,12 @@ function New-SafeguardUser
         if ($PSBoundParameters.ContainsKey("EmailAddress")) { $local:Body.EmailAddress = $EmailAddress }
         if ($PSBoundParameters.ContainsKey("WorkPhone")) { $local:Body.WorkPhone = $WorkPhone }
         if ($PSBoundParameters.ContainsKey("MobilePhone")) { $local:Body.MobilePhone = $MobilePhone }
-        if ($Provider -eq $local:CertificateProviderId)
+        if ($local:ProviderResolved -eq $local:CertificateProviderId)
         {
             $local:Body.PrimaryAuthenticationIdentity = $Thumbprint
         }
         $local:NewUser = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Users -Body $local:Body -RetryVersion 2 -RetryUrl "Users")
-        if ($Provider -eq $local:LocalProviderId)
+        if ($local:ProviderResolved -eq $local:LocalProviderId)
         {
             Write-Host "Setting password for new user..."
             if ($PSBoundParameters.ContainsKey("Password"))
@@ -600,13 +603,46 @@ function New-SafeguardUser
     }
     else
     {
-        if (-not $PSBoundParameters.ContainsKey("DomainName"))
+        $local:DirectoryIdentityProvider = (Get-SafeguardDirectoryIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Provider)
+        if (-not $PSBoundParameters.ContainsKey("DomainName") -and $local:DirectoryIdentityProvider)
+        {
+            $local:Domains = $local:DirectoryIdentityProvider.DirectoryProperties.Domains
+            if ($null -eq $local:Domains) # backwards compat
+            {
+                $local:Domains = $local:DirectoryIdentityProvider.Domains
+            }
+            if (-not ($local:Domains -is [array]))
+            {
+                $DomainName = $local:Domains.DomainName
+            }
+            else
+            {
+                if ($local:Domains.Count -eq 1)
+                {
+                    $DomainName = $local:Domains[0].DomainName
+                }
+                elseif ($local:Domains | Where-Object { $_.DomainName -ieq $Provider })
+                {
+                    $DomainName = ($local:Domains | Where-Object { $_.DomainName -ieq $Provider }).DomainName
+                }
+                else
+                {
+                    Write-Host "Domains in Directory ($Provider):"
+                    Write-Host "["
+                    $local:Domains | ForEach-Object -Begin { $index = 0 } -Process {  Write-Host ("    {0,3} - {1}" -f $index,$_.DomainName); $index++ }
+                    Write-Host "]"
+                    $local:DomainNameIndex = (Read-Host "Select a DomainName by number")
+                    $DomainName = $local:Domains[$local:DomainNameIndex].DomainName
+                }
+            }
+        }
+        if (-not $DomainName)
         {
             $DomainName = (Read-Host "DomainName")
         }
         # For directory accounts, lots of attributes are mapped from the directory
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Users -Body @{
-            PrimaryAuthenticationProviderId = $Provider;
+            PrimaryAuthenticationProviderId = $local:ProviderResolved;
             UserName = $NewUserName;
             AdminRoles = $AdminRoles;
             DirectoryProperties = @{ DomainName = $DomainName }
