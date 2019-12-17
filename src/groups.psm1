@@ -822,7 +822,7 @@ function Get-SafeguardAssetGroupMember
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:GroupId = (Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $GroupToGet)
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core GET "AssetGroups/$($local:GroupId)/Members"
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core GET "AssetGroups/$($local:GroupId)/Assets"
 }
 
 <#
@@ -1223,7 +1223,7 @@ function Get-SafeguardAccountGroupMember
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:GroupId = (Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToGet)
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core GET "AccountGroups/$($local:GroupId)/Members"
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core GET "AccountGroups/$($local:GroupId)/Accounts"
 }
 
 <#
