@@ -298,6 +298,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER GroupToGet
 An integer containing the ID of the user group to get or a string containing the name.
 
+.PARAMETER Fields
+An array of the user property names to return.
+
 .INPUTS
 None.
 
@@ -321,14 +324,22 @@ function Get-SafeguardUserGroupMember
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
-        [object]$GroupToGet
+        [object]$GroupToGet,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
     $local:GroupId = (Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure User $GroupToGet)
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core GET "UserGroups/$($local:GroupId)/Members"
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core GET "UserGroups/$($local:GroupId)/Members" -Parameters $local:Parameters
 }
 
 <#
@@ -810,6 +821,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER GroupToGet
 An integer containing the ID of the asset group to get or a string containing the name.
 
+.PARAMETER Fields
+An array of the user property names to return.
+
 .INPUTS
 None.
 
@@ -833,14 +847,22 @@ function Get-SafeguardAssetGroupMember
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
-        [object]$GroupToGet
+        [object]$GroupToGet,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
     $local:GroupId = (Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $GroupToGet)
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core GET "AssetGroups/$($local:GroupId)/Assets"
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core GET "AssetGroups/$($local:GroupId)/Assets" -Parameters $local:Parameters
 }
 
 <#
@@ -1216,6 +1238,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER GroupToGet
 An integer containing the ID of the account group to get or a string containing the name.
 
+.PARAMETER Fields
+An array of the user property names to return.
+
 .INPUTS
 None.
 
@@ -1239,14 +1264,22 @@ function Get-SafeguardAccountGroupMember
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
-        [object]$GroupToGet
+        [object]$GroupToGet,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
     $local:GroupId = (Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToGet)
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core GET "AccountGroups/$($local:GroupId)/Accounts"
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core GET "AccountGroups/$($local:GroupId)/Accounts" -Parameters $local:Parameters
 }
 
 <#
