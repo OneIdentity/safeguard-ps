@@ -67,7 +67,9 @@ function Get-SafeguardGroup
         [ValidateSet("User", "Asset", "Account", IgnoreCase=$true)]
         [string]$GroupType,
         [Parameter(Mandatory=$false,Position=1)]
-        [object]$GroupToGet
+        [object]$GroupToGet,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -82,16 +84,22 @@ function Get-SafeguardGroup
     }
     $local:RelativeUrl = "$($GroupType)Groups"
 
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
     if ($PSBoundParameters.ContainsKey("GroupToGet") -and $GroupToGet)
     {
         $local:GroupId = Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $GroupType $GroupToGet
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$local:RelativeUrl/$($local:GroupId)" `
-            -RetryVersion 2 -RetryUrl "$local:RelativeUrl/$($local:GroupId)"
+            -RetryVersion 2 -RetryUrl "$local:RelativeUrl/$($local:GroupId)" -Parameters $local:Parameters
     }
     else
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
-            -RetryVersion 2 -RetryUrl "$local:RelativeUrl"
+            -RetryVersion 2 -RetryUrl "$local:RelativeUrl" -Parameters $local:Parameters
     }
 }
 function New-SafeguardGroup
@@ -231,6 +239,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER GroupToGet
 An integer containing the ID of the user group to get or a string containing the name.
 
+.PARAMETER Fields
+An array of the user group property names to return.
+
 .INPUTS
 None.
 
@@ -254,13 +265,81 @@ function Get-SafeguardUserGroup
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [object]$GroupToGet
+        [object]$GroupToGet,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure User $GroupToGet
+    Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure User $GroupToGet -Fields $Fields
+}
+
+<#
+.SYNOPSIS
+Get user group members as defined by policy administrators that can added to entitlement membership
+via the Web API.
+
+.DESCRIPTION
+User groups are collections of users that can be added to an entitlement with access policies
+granting access to privileged passwords and privileged sessions.  This cmdlet returns user
+group members that have been defined by policy administrators
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER GroupToGet
+An integer containing the ID of the user group to get or a string containing the name.
+
+.PARAMETER Fields
+An array of the user property names to return.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardUserGroupMember -AccessToken $token -Appliance 10.5.32.54 -Insecure "Group1"
+
+.EXAMPLE
+Get-SafeguardUserGroupMember "Web Server Admins"
+#>
+function Get-SafeguardUserGroupMember
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$GroupToGet,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
+    $local:GroupId = (Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure User $GroupToGet)
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core GET "UserGroups/$($local:GroupId)/Members" -Parameters $local:Parameters
 }
 
 <#
@@ -289,12 +368,19 @@ for LDAP.
 .PARAMETER Description
 A string containing the description for a new group specific to Safeguard.
 
-.PARAMETER DirectoryIdentityProviderId
+.PARAMETER Directory
 An integer containing the ID of the directory identity provider Id to get or a string containing the name.
 
 .PARAMETER DomainName
 A string containing the name of the domain within the directory where necessary.  A directory
 a single domain does not require this parameter.
+
+.PARAMETER AdminRoles
+An array of strings containing the permissions (admin roles) to assign to the members of this directory
+group.  You may also specify 'All' to grant all permissions. Other permissions are: 'GlobalAdmin',
+'DirectoryAdmin', 'Auditor', 'AssetAdmin', 'ApplianceAdmin', 'PolicyAdmin', 'UserAdmin', 'HelpdeskAdmin',
+'OperationsAdmin'. 'DirectoryAdmin' has been deprecated. 'All' does not grant 'DirectoryAdmin' permission.
+Add 'DirectoryAdmin' permission individually for older Safeguard appliance.
 
 .INPUTS
 None.
@@ -309,7 +395,7 @@ New-SafeguardUserGroup -AccessToken $token -Appliance 10.5.32.54 -Insecure
 New-SafeguardUserGroup "Web Server Admins" -Directory "singledomain.corp"
 
 .EXAMPLE
-New-SafeguardUserGroup "Web Server Admins" -Directory "demo.corp" -Domain "us.demo.corp"
+New-SafeguardUserGroup "Web Server Admins" -Directory "demo.corp" -Domain "us.demo.corp" -AdminRoles UserAdmin,PolicyAdmin
 #>
 function New-SafeguardUserGroup
 {
@@ -328,7 +414,10 @@ function New-SafeguardUserGroup
         [Parameter(ParameterSetName="Directory",Mandatory=$true,Position=1)]
         [object]$Directory,
         [Parameter(ParameterSetName="Directory",Mandatory=$false,Position=2)]
-        [string]$DomainName
+        [string]$DomainName,
+        [Parameter(ParameterSetName="Directory",Mandatory=$false)]
+        [ValidateSet('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin','All',IgnoreCase=$true)]
+        [string[]]$AdminRoles
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -354,6 +443,23 @@ function New-SafeguardUserGroup
             $DomainName = (Resolve-DomainNameFromIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Directory)
         }
         $local:Body.DirectoryProperties = @{ DirectoryId = $local:DirectoryIdentityProvider.Id; DomainName = $local:DomainName }
+
+        if ($AdminRoles)
+        {
+            if ($AdminRoles -contains "All")
+            {
+                Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+                if (Test-SafeguardMinVersionInternal -Appliance $Appliance -Insecure:$Insecure -MinVersion "2.7")
+                {
+                    $AdminRoles = @('GlobalAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
+                }
+                else
+                {
+                    $AdminRoles = @('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
+                }
+            }
+            $local:Body.DirectoryGroupSyncProperties = @{ AdminRoles = $AdminRoles }
+        }
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST UserGroups -Body $local:Body -RetryVersion 2 -RetryUrl "UserGroups"
@@ -429,7 +535,17 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER GroupToEdit
-Name of the user group to edit
+Name of the user group to edit.
+
+.PARAMETER Description
+A string containing the new description for the user group.
+
+.PARAMETER AdminRoles
+An array of strings containing the permissions (admin roles) to assign to the members of this directory
+group.  You may also specify 'All' to grant all permissions. Other permissions are: 'GlobalAdmin',
+'DirectoryAdmin', 'Auditor', 'AssetAdmin', 'ApplianceAdmin', 'PolicyAdmin', 'UserAdmin', 'HelpdeskAdmin',
+'OperationsAdmin'. 'DirectoryAdmin' has been deprecated. 'All' does not grant 'DirectoryAdmin' permission.
+Add 'DirectoryAdmin' permission individually for older Safeguard appliance.
 
 .PARAMETER Operation
 String of type of operation to be perfomed on the user group. 'Add' to add users to the user group
@@ -452,7 +568,7 @@ Edit-SafeguardUserGroup testusergroup remove testuser1
 #>
 function Edit-SafeguardUserGroup
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Operation")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -462,24 +578,166 @@ function Edit-SafeguardUserGroup
         [switch]$Insecure,
         [Parameter(Mandatory=$true, Position=0)]
         [object]$GroupToEdit,
-        [Parameter(Mandatory=$true, Position=1)]
+        [Parameter(Mandatory=$false, ParameterSetName="Attributes")]
+        [string]$Description,
+        [Parameter(Mandatory=$false, ParameterSetName="Attributes")]
+        [ValidateSet('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin','All',IgnoreCase=$true)]
+        [string[]]$AdminRoles,
+        [Parameter(Mandatory=$true, ParameterSetName="Operation", Position=1)]
         [ValidateSet("Add", "Remove", IgnoreCase=$true)]
         [string]$Operation,
-        [Parameter(Mandatory=$true, Position=2)]
+        [Parameter(Mandatory=$true, ParameterSetName="Operation", Position=2)]
         [object[]]$UserList
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    [object[]]$local:Users = $null
-    foreach ($local:User in $UserList)
+    if ($PsCmdlet.ParameterSetName -eq "Attributes")
     {
-        $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User -Fields Id,UserName,PrimaryAuthenticationProviderId)
-        $local:Users += $($local:ResolvedUser)
+        $local:Group = (Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure User $GroupToEdit)
+        if ($Description) { $local:Group.Description = $Description }
+        if ($AdminRoles)
+        {
+            if ($AdminRoles -contains "All")
+            {
+                Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+                if (Test-SafeguardMinVersionInternal -Appliance $Appliance -Insecure:$Insecure -MinVersion "2.7")
+                {
+                    $AdminRoles = @('GlobalAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
+                }
+                else
+                {
+                    $AdminRoles = @('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
+                }
+            }
+            $local:Group.DirectoryGroupSyncProperties.AdminRoles = $AdminRoles
+        }
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core PUT "UserGroups/$($local:Group.Id)" -Body $local:Group
     }
+    else
+    {
+        [object[]]$local:Users = $null
+        foreach ($local:User in $UserList)
+        {
+            $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User -Fields Id,UserName,PrimaryAuthenticationProviderId)
+            $local:Users += $($local:ResolvedUser)
+        }
 
-    Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure User $GroupToEdit $Operation $local:Users
+        Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure User $GroupToEdit $Operation $local:Users
+    }
+}
+
+<#
+.SYNOPSIS
+Add one or more users to a user group in Safeguard via the Web API.
+
+.DESCRIPTION
+When user group membership changes, it affects any entitlements where it may have been used.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Group
+Name of the user group to add users to.
+
+.PARAMETER UserList
+An array of user IDs or names of the users to be added to the user group.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Add-SafeguardUserGroupMember testusergroup testuser1,testuser2
+
+.EXAMPLE
+Add-SafeguardUserGroupMember testusergroup testuser1
+#>
+function Add-SafeguardUserGroupMember
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [object]$Group,
+        [Parameter(Mandatory=$true, Position=1)]
+        [object[]]$UserList
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Edit-SafeguardUserGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Group Add $UserList
+}
+
+<#
+.SYNOPSIS
+Remove one or more users from a user group in Safeguard via the Web API.
+
+.DESCRIPTION
+When user group membership changes, it affects any entitlements where it may have been used.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Group
+Name of the user group to remove users from.
+
+.PARAMETER UserList
+An array of user IDs or names of the users to be removed from the user group.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardUserGroupMember testusergroup testuser1,testuser2
+
+.EXAMPLE
+Remove-SafeguardUserGroupMember testusergroup testuser1
+#>
+function Remove-SafeguardUserGroupMember
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [object]$Group,
+        [Parameter(Mandatory=$true, Position=1)]
+        [object[]]$UserList
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Edit-SafeguardUserGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Group Remove $UserList
 }
 
 <#
@@ -504,6 +762,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER GroupToGet
 An integer containing the ID of the asset group to get or a string containing the name.
 
+.PARAMETER Fields
+An array of the asset group property names to return.
+
 .INPUTS
 None.
 
@@ -527,13 +788,81 @@ function Get-SafeguardAssetGroup
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [object]$GroupToGet
+        [object]$GroupToGet,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $GroupToGet
+    Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $GroupToGet -Fields $Fields
+}
+
+<#
+.SYNOPSIS
+Get asset group members as defined by policy administrators that can added to
+access policy scopes via the Web API.
+
+.DESCRIPTION
+Asset groups are collections of assets that can be added to an access policy to target
+privileged session access that uses directory accounts or linked accounts.  This cmdlet returns
+asset group members that have been defined by policy administrators.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER GroupToGet
+An integer containing the ID of the asset group to get or a string containing the name.
+
+.PARAMETER Fields
+An array of the user property names to return.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardAssetGroupMember -AccessToken $token -Appliance 10.5.32.54 -Insecure "Group1"
+
+.EXAMPLE
+Get-SafeguardAssetGroupMember "Linux Servers"
+#>
+function Get-SafeguardAssetGroupMember
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$GroupToGet,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
+    $local:GroupId = (Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $GroupToGet)
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core GET "AssetGroups/$($local:GroupId)/Assets" -Parameters $local:Parameters
 }
 
 <#
@@ -718,6 +1047,118 @@ function Edit-SafeguardAssetGroup
 
 <#
 .SYNOPSIS
+Add one or more assets to an asset group in Safeguard via the Web API.
+
+.DESCRIPTION
+When asset group membership changes, it affects any entitlements where it may have been used.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Group
+Name of the asset group to add assets to.
+
+.PARAMETER AssetList
+An array of asset IDs or names of the assets to be added to the asset group.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Add-SafeguardAssetGroupMember testassetgroup testasset1,testasset2
+
+.EXAMPLE
+Add-SafeguardAssetGroupMember testassetgroup testasset1
+#>
+function Add-SafeguardAssetGroupMember
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [object]$Group,
+        [Parameter(Mandatory=$true, Position=1)]
+        [object[]]$AssetList
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Edit-SafeguardAssetGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Group Add $AssetList
+}
+
+<#
+.SYNOPSIS
+Remove one or more assets from an asset group in Safeguard via the Web API.
+
+.DESCRIPTION
+When asset group membership changes, it affects any entitlements where it may have been used.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Group
+Name of the asset group to remove assets from.
+
+.PARAMETER AssetList
+An array of asset IDs or names of the assets to be removed from the asset group.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardAssetGroupMember testassetgroup testasset1,testasset2
+
+.EXAMPLE
+Remove-SafeguardAssetGroupMember testassetgroup testasset1
+#>
+function Remove-SafeguardAssetGroupMember
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [object]$Group,
+        [Parameter(Mandatory=$true, Position=1)]
+        [object[]]$AssetList
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Edit-SafeguardAssetGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Group Remove $AssetList
+}
+
+<#
+.SYNOPSIS
 Get account groups as defined by policy administrators that can added to access policy scopes
 via the Web API.
 
@@ -737,6 +1178,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER GroupToGet
 An integer containing the ID of the account group to get or a string containing the name.
+
+.PARAMETER Fields
+An array of the account group property names to return.
 
 .INPUTS
 None.
@@ -761,13 +1205,81 @@ function Get-SafeguardAccountGroup
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [object]$GroupToGet
+        [object]$GroupToGet,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToGet
+    Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToGet -Fields $Fields
+}
+
+<#
+.SYNOPSIS
+Get members of an account group as defined by policy administrators that can added
+to access policy scopes via the Web API.
+
+.DESCRIPTION
+Account groups are collections of accounts that can be added to an access policy to target
+privileged password access or privileged session access.  This cmdlet returns account group
+members that have been defined by policy administrators.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER GroupToGet
+An integer containing the ID of the account group to get or a string containing the name.
+
+.PARAMETER Fields
+An array of the user property names to return.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardAccountGroupMember -AccessToken $token -Appliance 10.5.32.54 -Insecure "Group1"
+
+.EXAMPLE
+Get-SafeguardAccountGroupMember "Linux Root Accounts"
+#>
+function Get-SafeguardAccountGroupMember
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$GroupToGet,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
+    $local:GroupId = (Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToGet)
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core GET "AccountGroups/$($local:GroupId)/Accounts" -Parameters $local:Parameters
 }
 
 <#
@@ -913,7 +1425,7 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Edit-SafeguardAccountGroup testaccountgroup add testasset1.domain.corp\testaccount1, testasset2.domain.corp\testaccount2
+Edit-SafeguardAccountGroup testaccountgroup add testasset1.domain.corp\testaccount1,testasset2.domain.corp\testaccount2
 
 .EXAMPLE
 Edit-SafeguardAccountGroup testaccountgroup remove testasset1.domain.corp\testaccount1
@@ -954,4 +1466,116 @@ function Edit-SafeguardAccountGroup
     }
 
     Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToEdit $Operation $local:Accounts
+}
+
+<#
+.SYNOPSIS
+Add one or more accounts to an account group in Safeguard via the Web API.
+
+.DESCRIPTION
+When account group membership changes, it affects any entitlements where it may have been used.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Group
+Name of the account group to add accounts to.
+
+.PARAMETER AccountList
+An array of account IDs or names of the accounts to be added to the account group.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Add-SafeguardAccountGroupMember testaccountgroup testasset1.domain.corp\testaccount1,testasset2.domain.corp\testaccount2
+
+.EXAMPLE
+Add-SafeguardAccountGroupMember testaccountgroup testasset1.domain.corp\testaccount1
+#>
+function Add-SafeguardAccountGroupMember
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [object]$Group,
+        [Parameter(Mandatory=$true, Position=1)]
+        [object[]]$AccountList
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Edit-SafeguardAccountGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Group Add $AccountList
+}
+
+<#
+.SYNOPSIS
+Remove one or more accounts from an account group in Safeguard via the Web API.
+
+.DESCRIPTION
+When account group membership changes, it affects any entitlements where it may have been used.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Group
+Name of the account group to remove accounts from.
+
+.PARAMETER AccountList
+An array of account IDs or names of the accounts to be removed from the account group.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardAccountGroupMember testaccountgroup testasset1.domain.corp\testaccount1,testasset2.domain.corp\testaccount2
+
+.EXAMPLE
+Remove-SafeguardAccountGroupMember testaccountgroup testasset1.domain.corp\testaccount1
+#>
+function Remove-SafeguardAccountGroupMember
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [object]$Group,
+        [Parameter(Mandatory=$true, Position=1)]
+        [object[]]$AccountList
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Edit-SafeguardAccountGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Group Remove $AccountList
 }
