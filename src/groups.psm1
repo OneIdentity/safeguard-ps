@@ -431,6 +431,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER GroupToEdit
 Name of the user group to edit.
 
+.PARAMETER Description
+A string containing the new description for the user group.
+
 .PARAMETER Operation
 String of type of operation to be perfomed on the user group. 'Add' to add users to the user group
 'Remove' to removed users from the user group.
@@ -452,7 +455,7 @@ Edit-SafeguardUserGroup testusergroup remove testuser1
 #>
 function Edit-SafeguardUserGroup
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Operation")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -462,24 +465,35 @@ function Edit-SafeguardUserGroup
         [switch]$Insecure,
         [Parameter(Mandatory=$true, Position=0)]
         [object]$GroupToEdit,
-        [Parameter(Mandatory=$true, Position=1)]
+        [Parameter(Mandatory=$true, ParameterSetName="Description")]
+        [string]$Description,
+        [Parameter(Mandatory=$true, ParameterSetName="Operation", Position=1)]
         [ValidateSet("Add", "Remove", IgnoreCase=$true)]
         [string]$Operation,
-        [Parameter(Mandatory=$true, Position=2)]
+        [Parameter(Mandatory=$true, ParameterSetName="Operation", Position=2)]
         [object[]]$UserList
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    [object[]]$local:Users = $null
-    foreach ($local:User in $UserList)
+    if ($PsCmdlet.ParameterSetName -eq "Description")
     {
-        $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User -Fields Id,UserName,PrimaryAuthenticationProviderId)
-        $local:Users += $($local:ResolvedUser)
+        $local:Group = (Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure User $GroupToEdit)
+        $local:Group.Description = $Description
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core PUT "UserGroups/$($local:Group.Id)" -Body $local:Group
     }
+    else
+    {
+        [object[]]$local:Users = $null
+        foreach ($local:User in $UserList)
+        {
+            $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User -Fields Id,UserName,PrimaryAuthenticationProviderId)
+            $local:Users += $($local:ResolvedUser)
+        }
 
-    Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure User $GroupToEdit $Operation $local:Users
+        Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure User $GroupToEdit $Operation $local:Users
+    }
 }
 
 <#
