@@ -186,12 +186,12 @@ FunctionsToExport = @(
     'Test-SafeguardDirectoryAccountPassword','Invoke-SafeguardDirectoryAccountPasswordChange',
     'Edit-SafeguardDirectoryAccount','Remove-SafeguardDirectoryAccount','Get-SafeguardDirectoryMigrationData',
     # groups.psm1
-    'Get-SafeguardUserGroup','New-SafeguardUserGroup','Remove-SafeguardUserGroup',
-    'Edit-SafeguardUserGroup','Add-SafeguardUserGroupMember','Remove-SafeguardUserGroupMember',
-    'Get-SafeguardAssetGroup','New-SafeguardAssetGroup','Remove-SafeguardAssetGroup',
-    'Edit-SafeguardAssetGroup','Add-SafeguardAssetGroupMember','Remove-SafeguardAssetGroupMember',
-    'Get-SafeguardAccountGroup','New-SafeguardAccountGroup','Remove-SafeguardAccountGroup',
-    'Edit-SafeguardAccountGroup','Add-SafeguardAccountGroupMember','Remove-SafeguardAccountGroupMember',
+    'Get-SafeguardUserGroup','New-SafeguardUserGroup','Remove-SafeguardUserGroup','Edit-SafeguardUserGroup',
+    'Get-SafeguardUserGroupMember','Add-SafeguardUserGroupMember','Remove-SafeguardUserGroupMember',
+    'Get-SafeguardAssetGroup','New-SafeguardAssetGroup','Remove-SafeguardAssetGroup','Edit-SafeguardAssetGroup',
+    'Get-SafeguardAssetGroupMember','Add-SafeguardAssetGroupMember','Remove-SafeguardAssetGroupMember',
+    'Get-SafeguardAccountGroup','New-SafeguardAccountGroup','Remove-SafeguardAccountGroup','Edit-SafeguardAccountGroup',
+    'Get-SafeguardAccountGroupMember','Add-SafeguardAccountGroupMember','Remove-SafeguardAccountGroupMember',
     # policies.psm1
     'Get-SafeguardPolicyAsset','Find-SafeguardPolicyAsset','Get-SafeguardPolicyAccount','Find-SafeguardPolicyAccount',
     'Get-SafeguardAccessPolicy','Get-SafeguardAccessPolicyScopeItem','Get-SafeguardAccessPolicyAccessRequestProperty',
