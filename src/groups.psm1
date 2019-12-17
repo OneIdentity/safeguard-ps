@@ -289,12 +289,19 @@ for LDAP.
 .PARAMETER Description
 A string containing the description for a new group specific to Safeguard.
 
-.PARAMETER DirectoryIdentityProviderId
+.PARAMETER Directory
 An integer containing the ID of the directory identity provider Id to get or a string containing the name.
 
 .PARAMETER DomainName
 A string containing the name of the domain within the directory where necessary.  A directory
 a single domain does not require this parameter.
+
+.PARAMETER AdminRoles
+An array of strings containing the permissions (admin roles) to assign to the members of this directory
+group.  You may also specify 'All' to grant all permissions. Other permissions are: 'GlobalAdmin',
+'DirectoryAdmin', 'Auditor', 'AssetAdmin', 'ApplianceAdmin', 'PolicyAdmin', 'UserAdmin', 'HelpdeskAdmin',
+'OperationsAdmin'. 'DirectoryAdmin' has been deprecated. 'All' does not grant 'DirectoryAdmin' permission.
+Add 'DirectoryAdmin' permission individually for older Safeguard appliance.
 
 .INPUTS
 None.
@@ -309,7 +316,7 @@ New-SafeguardUserGroup -AccessToken $token -Appliance 10.5.32.54 -Insecure
 New-SafeguardUserGroup "Web Server Admins" -Directory "singledomain.corp"
 
 .EXAMPLE
-New-SafeguardUserGroup "Web Server Admins" -Directory "demo.corp" -Domain "us.demo.corp"
+New-SafeguardUserGroup "Web Server Admins" -Directory "demo.corp" -Domain "us.demo.corp" -AdminRoles UserAdmin,PolicyAdmin
 #>
 function New-SafeguardUserGroup
 {
@@ -328,7 +335,10 @@ function New-SafeguardUserGroup
         [Parameter(ParameterSetName="Directory",Mandatory=$true,Position=1)]
         [object]$Directory,
         [Parameter(ParameterSetName="Directory",Mandatory=$false,Position=2)]
-        [string]$DomainName
+        [string]$DomainName,
+        [Parameter(ParameterSetName="Directory",Mandatory=$false)]
+        [ValidateSet('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin','All',IgnoreCase=$true)]
+        [string[]]$AdminRoles
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -354,6 +364,23 @@ function New-SafeguardUserGroup
             $DomainName = (Resolve-DomainNameFromIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Directory)
         }
         $local:Body.DirectoryProperties = @{ DirectoryId = $local:DirectoryIdentityProvider.Id; DomainName = $local:DomainName }
+
+        if ($AdminRoles)
+        {
+            if ($AdminRoles -contains "All")
+            {
+                Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+                if (Test-SafeguardMinVersionInternal -Appliance $Appliance -Insecure:$Insecure -MinVersion "2.7")
+                {
+                    $AdminRoles = @('GlobalAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
+                }
+                else
+                {
+                    $AdminRoles = @('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
+                }
+            }
+            $local:Body.DirectoryGroupSyncProperties = @{ AdminRoles = $AdminRoles }
+        }
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST UserGroups -Body $local:Body -RetryVersion 2 -RetryUrl "UserGroups"
@@ -434,6 +461,13 @@ Name of the user group to edit.
 .PARAMETER Description
 A string containing the new description for the user group.
 
+.PARAMETER AdminRoles
+An array of strings containing the permissions (admin roles) to assign to the members of this directory
+group.  You may also specify 'All' to grant all permissions. Other permissions are: 'GlobalAdmin',
+'DirectoryAdmin', 'Auditor', 'AssetAdmin', 'ApplianceAdmin', 'PolicyAdmin', 'UserAdmin', 'HelpdeskAdmin',
+'OperationsAdmin'. 'DirectoryAdmin' has been deprecated. 'All' does not grant 'DirectoryAdmin' permission.
+Add 'DirectoryAdmin' permission individually for older Safeguard appliance.
+
 .PARAMETER Operation
 String of type of operation to be perfomed on the user group. 'Add' to add users to the user group
 'Remove' to removed users from the user group.
@@ -465,8 +499,11 @@ function Edit-SafeguardUserGroup
         [switch]$Insecure,
         [Parameter(Mandatory=$true, Position=0)]
         [object]$GroupToEdit,
-        [Parameter(Mandatory=$true, ParameterSetName="Description")]
+        [Parameter(Mandatory=$false, ParameterSetName="Attributes")]
         [string]$Description,
+        [Parameter(Mandatory=$false, ParameterSetName="Attributes")]
+        [ValidateSet('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin','All',IgnoreCase=$true)]
+        [string[]]$AdminRoles,
         [Parameter(Mandatory=$true, ParameterSetName="Operation", Position=1)]
         [ValidateSet("Add", "Remove", IgnoreCase=$true)]
         [string]$Operation,
@@ -477,10 +514,26 @@ function Edit-SafeguardUserGroup
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($PsCmdlet.ParameterSetName -eq "Description")
+    if ($PsCmdlet.ParameterSetName -eq "Attributes")
     {
         $local:Group = (Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure User $GroupToEdit)
-        $local:Group.Description = $Description
+        if ($Description) { $local:Group.Description = $Description }
+        if ($AdminRoles)
+        {
+            if ($AdminRoles -contains "All")
+            {
+                Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+                if (Test-SafeguardMinVersionInternal -Appliance $Appliance -Insecure:$Insecure -MinVersion "2.7")
+                {
+                    $AdminRoles = @('GlobalAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
+                }
+                else
+                {
+                    $AdminRoles = @('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
+                }
+            }
+            $local:Group.DirectoryGroupSyncProperties.AdminRoles = $AdminRoles
+        }
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core PUT "UserGroups/$($local:Group.Id)" -Body $local:Group
     }
     else
