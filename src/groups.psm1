@@ -67,7 +67,9 @@ function Get-SafeguardGroup
         [ValidateSet("User", "Asset", "Account", IgnoreCase=$true)]
         [string]$GroupType,
         [Parameter(Mandatory=$false,Position=1)]
-        [object]$GroupToGet
+        [object]$GroupToGet,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -82,16 +84,22 @@ function Get-SafeguardGroup
     }
     $local:RelativeUrl = "$($GroupType)Groups"
 
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
     if ($PSBoundParameters.ContainsKey("GroupToGet") -and $GroupToGet)
     {
         $local:GroupId = Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $GroupType $GroupToGet
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$local:RelativeUrl/$($local:GroupId)" `
-            -RetryVersion 2 -RetryUrl "$local:RelativeUrl/$($local:GroupId)"
+            -RetryVersion 2 -RetryUrl "$local:RelativeUrl/$($local:GroupId)" -Parameters $local:Parameters
     }
     else
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
-            -RetryVersion 2 -RetryUrl "$local:RelativeUrl"
+            -RetryVersion 2 -RetryUrl "$local:RelativeUrl" -Parameters $local:Parameters
     }
 }
 function New-SafeguardGroup
@@ -231,6 +239,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER GroupToGet
 An integer containing the ID of the user group to get or a string containing the name.
 
+.PARAMETER Fields
+An array of the user group property names to return.
+
 .INPUTS
 None.
 
@@ -254,13 +265,15 @@ function Get-SafeguardUserGroup
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [object]$GroupToGet
+        [object]$GroupToGet,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure User $GroupToGet
+    Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure User $GroupToGet -Fields $Fields
 }
 
 <#
@@ -738,6 +751,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER GroupToGet
 An integer containing the ID of the asset group to get or a string containing the name.
 
+.PARAMETER Fields
+An array of the asset group property names to return.
+
 .INPUTS
 None.
 
@@ -761,13 +777,15 @@ function Get-SafeguardAssetGroup
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [object]$GroupToGet
+        [object]$GroupToGet,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $GroupToGet
+    Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $GroupToGet -Fields $Fields
 }
 
 <#
@@ -1139,6 +1157,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER GroupToGet
 An integer containing the ID of the account group to get or a string containing the name.
 
+.PARAMETER Fields
+An array of the account group property names to return.
+
 .INPUTS
 None.
 
@@ -1162,13 +1183,15 @@ function Get-SafeguardAccountGroup
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [object]$GroupToGet
+        [object]$GroupToGet,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToGet
+    Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToGet -Fields $Fields
 }
 
 <#
