@@ -588,6 +588,17 @@ function New-SafeguardAsset
                         [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($ServiceAccountPassword))
                 }
             }
+            {$_ -eq "directorypassword"} {
+                if (-not $PSBoundParameters.ContainsKey("ServiceAccountDomainName")) { $ServiceAccountDomainName = (Read-Host "ServiceAccountDomainName") }
+                if (-not $PSBoundParameters.ContainsKey("ServiceAccountName")) { $ServiceAccountName = (Read-Host "ServiceAccountName") }
+                Import-Module -Name "$PSScriptRoot\directories.psm1" -Scope Local
+                $local:DirectoryAccount = (Get-SafeguardDirectoryAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ServiceAccountDomainName $ServiceAccountName)
+                if (-not $local:DirectoryAccount)
+                {
+                    throw "Unable to find directory account '$ServiceAccountDomainName\$ServiceAccountName'"
+                }
+                $local:ConnectionProperties.ServiceAccountId = $local:DirectoryAccount.Id
+            }
             "sshkey" {
                 throw "SSH Keys are not supported for asset creation yet"
             }
