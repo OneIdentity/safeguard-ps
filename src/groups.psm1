@@ -429,7 +429,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER GroupToEdit
-Name of the user group to edit
+Name of the user group to edit.
 
 .PARAMETER Operation
 String of type of operation to be perfomed on the user group. 'Add' to add users to the user group
@@ -480,6 +480,118 @@ function Edit-SafeguardUserGroup
     }
 
     Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure User $GroupToEdit $Operation $local:Users
+}
+
+<#
+.SYNOPSIS
+Add one or more users to a user group in Safeguard via the Web API.
+
+.DESCRIPTION
+When user group membership changes, it affects any entitlements where it may have been used.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Group
+Name of the user group to add users to.
+
+.PARAMETER UserList
+An array of user IDs or names of the users to be added to the user group.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Add-SafeguardUserGroupMember testusergroup testuser1,testuser2
+
+.EXAMPLE
+Add-SafeguardUserGroupMember testusergroup testuser1
+#>
+function Add-SafeguardUserGroupMember
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [object]$Group,
+        [Parameter(Mandatory=$true, Position=1)]
+        [object[]]$UserList
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Edit-SafeguardUserGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Group Add $UserList
+}
+
+<#
+.SYNOPSIS
+Remove one or more users from a user group in Safeguard via the Web API.
+
+.DESCRIPTION
+When user group membership changes, it affects any entitlements where it may have been used.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Group
+Name of the user group to remove users from.
+
+.PARAMETER UserList
+An array of user IDs or names of the users to be removed from the user group.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardUserGroupMember testusergroup testuser1,testuser2
+
+.EXAMPLE
+Remove-SafeguardUserGroupMember testusergroup testuser1
+#>
+function Remove-SafeguardUserGroupMember
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [object]$Group,
+        [Parameter(Mandatory=$true, Position=1)]
+        [object[]]$UserList
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Edit-SafeguardUserGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Group Remove $UserList
 }
 
 <#
@@ -718,6 +830,118 @@ function Edit-SafeguardAssetGroup
 
 <#
 .SYNOPSIS
+Add one or more assets to an asset group in Safeguard via the Web API.
+
+.DESCRIPTION
+When asset group membership changes, it affects any entitlements where it may have been used.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Group
+Name of the asset group to add assets to.
+
+.PARAMETER AssetList
+An array of asset IDs or names of the assets to be added to the asset group.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Add-SafeguardAssetGroupMember testassetgroup testasset1,testasset2
+
+.EXAMPLE
+Add-SafeguardAssetGroupMember testassetgroup testasset1
+#>
+function Add-SafeguardAssetGroupMember
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [object]$Group,
+        [Parameter(Mandatory=$true, Position=1)]
+        [object[]]$AssetList
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Edit-SafeguardAssetGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Group Add $AssetList
+}
+
+<#
+.SYNOPSIS
+Remove one or more assets from an asset group in Safeguard via the Web API.
+
+.DESCRIPTION
+When asset group membership changes, it affects any entitlements where it may have been used.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Group
+Name of the asset group to remove assets from.
+
+.PARAMETER AssetList
+An array of asset IDs or names of the assets to be removed from the asset group.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardAssetGroupMember testassetgroup testasset1,testasset2
+
+.EXAMPLE
+Remove-SafeguardAssetGroupMember testassetgroup testasset1
+#>
+function Remove-SafeguardAssetGroupMember
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [object]$Group,
+        [Parameter(Mandatory=$true, Position=1)]
+        [object[]]$AssetList
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Edit-SafeguardAssetGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Group Remove $AssetList
+}
+
+<#
+.SYNOPSIS
 Get account groups as defined by policy administrators that can added to access policy scopes
 via the Web API.
 
@@ -913,7 +1137,7 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Edit-SafeguardAccountGroup testaccountgroup add testasset1.domain.corp\testaccount1, testasset2.domain.corp\testaccount2
+Edit-SafeguardAccountGroup testaccountgroup add testasset1.domain.corp\testaccount1,testasset2.domain.corp\testaccount2
 
 .EXAMPLE
 Edit-SafeguardAccountGroup testaccountgroup remove testasset1.domain.corp\testaccount1
@@ -954,4 +1178,116 @@ function Edit-SafeguardAccountGroup
     }
 
     Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToEdit $Operation $local:Accounts
+}
+
+<#
+.SYNOPSIS
+Add one or more accounts to an account group in Safeguard via the Web API.
+
+.DESCRIPTION
+When account group membership changes, it affects any entitlements where it may have been used.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Group
+Name of the account group to add accounts to.
+
+.PARAMETER AccountList
+An array of account IDs or names of the accounts to be added to the account group.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Add-SafeguardAccountGroupMember testaccountgroup testasset1.domain.corp\testaccount1,testasset2.domain.corp\testaccount2
+
+.EXAMPLE
+Add-SafeguardAccountGroupMember testaccountgroup testasset1.domain.corp\testaccount1
+#>
+function Add-SafeguardAccountGroupMember
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [object]$Group,
+        [Parameter(Mandatory=$true, Position=1)]
+        [object[]]$AccountList
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Edit-SafeguardAccountGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Group Add $AccountList
+}
+
+<#
+.SYNOPSIS
+Remove one or more accounts from an account group in Safeguard via the Web API.
+
+.DESCRIPTION
+When account group membership changes, it affects any entitlements where it may have been used.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Group
+Name of the account group to remove accounts from.
+
+.PARAMETER AccountList
+An array of account IDs or names of the accounts to be removed from the account group.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardAccountGroupMember testaccountgroup testasset1.domain.corp\testaccount1,testasset2.domain.corp\testaccount2
+
+.EXAMPLE
+Remove-SafeguardAccountGroupMember testaccountgroup testasset1.domain.corp\testaccount1
+#>
+function Remove-SafeguardAccountGroupMember
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [object]$Group,
+        [Parameter(Mandatory=$true, Position=1)]
+        [object[]]$AccountList
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Edit-SafeguardAccountGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Group Remove $AccountList
 }
