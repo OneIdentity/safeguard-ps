@@ -838,6 +838,9 @@ Do not use SSL encryption for LDAP directory.
 .PARAMETER DoNotVerifyServerSslCertificate
 Do not verify Server SSL certificate of LDAP directory.
 
+.PARAMETER PrivilegeElevationCommand
+A string containing the privilege elevation command, ex. sudo.
+
 .PARAMETER AssetObject
 An object containing the existing asset with desired properties set.
 
@@ -895,15 +898,14 @@ function Edit-SafeguardAsset
         [boolean]$UseSslEncryption,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [boolean]$VerifyServerSslCertificate,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$PrivilegeElevationCommand,
         [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
         [object]$AssetObject
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    Write-Host "ErrorActionPreference is :"
-    Write-Host $ErrorActionPreference
 
     Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
 
@@ -931,6 +933,7 @@ function Edit-SafeguardAsset
         if ($PSBoundParameters.ContainsKey("ServiceAccountCredentialType")) { $AssetObject.ConnectionProperties.ServiceAccountCredentialType = $ServiceAccountCredentialType }
         if ($PSBoundParameters.ContainsKey("ServiceAccountDomainName")) { $AssetObject.ConnectionProperties.ServiceAccountDomainName = $ServiceAccountDomainName }
         if ($PSBoundParameters.ContainsKey("ServiceAccountName")) { $AssetObject.ConnectionProperties.ServiceAccountName = $ServiceAccountName }
+        if ($PSBoundParameters.ContainsKey("PrivilegeElevationCommand")) { $AssetObject.ConnectionProperties.PrivilegeElevationCommand = $PrivilegeElevationCommand }
 
         #Ldap Connection properties
         if ($PSBoundParameters.ContainsKey("ServiceAccountDistinguishedName")) { $AssetObject.ConnectionProperties.ServiceAccountDistinguishedName = $ServiceAccountDistinguishedName }
