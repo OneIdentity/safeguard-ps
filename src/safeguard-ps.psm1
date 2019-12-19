@@ -99,7 +99,7 @@ function Show-RstsWindow
                     if (!string.IsNullOrEmpty(primaryProviderId))   url += string.Format("&primaryProviderId={0}",   HttpUtility.UrlEncode(primaryProviderId));
                     if (!string.IsNullOrEmpty(secondaryProviderId)) url += string.Format("&secondaryProviderid={0}", HttpUtility.UrlEncode(secondaryProviderId));
                     if (!string.IsNullOrEmpty(username))            url += string.Format("&login_hint={0}", HttpUtility.UrlEncode(username));
-                    
+
                     _browser.Stop();
                     _browser.Navigate(url);
                     if (_form.ShowDialog() == DialogResult.OK) { return true; }
@@ -154,7 +154,7 @@ function Get-RstsTokenFromGui
     {
         throw "Unable to obtain access_token"
     }
-    
+
     # Return as a hashtable object because other parts of the code later on will expect it.
     @{access_token=$local:Code}
 }
@@ -223,7 +223,7 @@ function Wait-LongRunningTask
         if ($local:TaskStatus.PercentComplete -eq 100)
         {
             Write-Progress -Activity "Waiting for long-running task" -Status "Step: $($local:TaskStatus.Message)" -PercentComplete $local:TaskStatus.PercentComplete
-            $local:TaskResult = $local:TaskStatus.Message
+            $local:TaskResult = $local:TaskStatus.Message + "`n " + ($local:TaskResponse.Log | ForEach-Object { "{0,-26} {1,-12} {2}`n" -f $_.Timestamp,$_.Status,$_.Message })
         }
         else
         {
