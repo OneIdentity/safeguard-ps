@@ -322,6 +322,18 @@ function Get-PermissionText
             }
             break
         }
+        "telnet" {
+            if ($PolEnt.Account)
+            {
+                $local:Permission = (Get-AccountPermissionText "Telnet" $PolEnt.System.Name $PolEnt.Account.SystemName $PolEnt.Account.Name`
+                                     -AccountDomainName $PolEnt.Account.DomainName)
+            }
+            else
+            {
+                $local:Permission = (Get-NoAccountPermissionText "Telnet" $PolEnt.Policy.AccessRequestProperties.SessionAccessAccountType)
+            }
+            break
+        }
         default {
             $local:Permission = $null
             Write-Warning "Unrecognized access request type '$($PolEnt.Policy.AccessRequestProperties.AccessRequestType)'"
@@ -366,6 +378,18 @@ function Get-PermissionTextV3
             else
             {
                 $local:Permission = (Get-NoAccountPermissionText "SSH" $PolEnt.AccountRequestType)
+            }
+            break
+        }
+        "telnet" {
+            if ($PolEnt.Account)
+            {
+                $local:Permission = (Get-AccountPermissionText "Telnet" $PolEnt.AssetName $PolEnt.AccountAssetName $PolEnt.AccountName`
+                                     -AccountDomainName $PolEnt.AccountDomainName)
+            }
+            else
+            {
+                $local:Permission = (Get-NoAccountPermissionText "Telnet" $PolEnt.AccountRequestType)
             }
             break
         }
