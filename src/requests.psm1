@@ -1375,6 +1375,9 @@ function Start-SafeguardAccessRequestSession
             throw "You cannot launch a session for a password request"
             break
         }
+        "Telnet" {
+            throw "You must start telnet sessions manually, safeguard-ps cannot launch your client"
+        }
         default {
             throw "Unrecognized access request type '$($local:AccessRequest.AccessRequestType)', don't know how to launch it"
             break
