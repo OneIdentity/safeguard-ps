@@ -364,7 +364,7 @@ function New-SafeguardAccessRequest
         [Parameter(Mandatory=$false, Position=1)]
         [object]$AccountToUse,
         [Parameter(Mandatory=$true, Position=2)]
-        [ValidateSet("Password", "SSH", "RemoteDesktop", "RDP", IgnoreCase=$true)]
+        [ValidateSet("Password", "SSH", "RemoteDesktop", "RDP", "Telnet", IgnoreCase=$true)]
         [string]$AccessRequestType,
         [Parameter(Mandatory=$false)]
         [switch]$Emergency = $false,
@@ -1374,6 +1374,9 @@ function Start-SafeguardAccessRequestSession
         "Password" {
             throw "You cannot launch a session for a password request"
             break
+        }
+        "Telnet" {
+            throw "You must start telnet sessions manually, safeguard-ps cannot launch your client"
         }
         default {
             throw "Unrecognized access request type '$($local:AccessRequest.AccessRequestType)', don't know how to launch it"
