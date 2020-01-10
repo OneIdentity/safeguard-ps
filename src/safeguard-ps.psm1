@@ -232,7 +232,7 @@ function Wait-LongRunningTask
             {
                 $local:Percent = $local:TaskStatus.PercentComplete
             }
-            Write-Progress -Activity "Waiting for long-running task" -Status "Step: $($local:TaskStatus.Message)" -PercentComplete $local:Percent
+            Write-Progress -Activity"Waiting for long-running task" -Status "Step: $($local:TaskStatus.Message)" -PercentComplete $local:Percent
             if ((((Get-Date) - $local:StartTime).TotalSeconds) -gt $Timeout)
             {
                 throw "Timed out waiting for long-running task, timeout was $Timeout seconds"
@@ -242,7 +242,8 @@ function Wait-LongRunningTask
     } until ($local:TaskResult)
     if ($local:TaskStatus.State -ieq "Failure")
     {
-        throw $local:TaskResult
+        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+        throw (New-LongRunningTaskException $local:TaskResult $local:TaskResponse)
     }
     $local:TaskResult
 }
