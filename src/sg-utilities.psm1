@@ -122,6 +122,68 @@ namespace Ex
     }
     throw $local:ExceptionToThrow
 }
+function New-LongRunningTaskException
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$TaskResult,
+        [Parameter(Mandatory=$true,Position=1)]
+        [object]$TaskResponse
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not ([System.Management.Automation.PSTypeName]"Ex.SafeguardLongRunningTaskException").Type)
+    {
+        Add-Type -TypeDefinition @"
+using System;
+using System.Collections.Generic;
+using System.Runtime.Serialization;
+using System.Management.Automation;
+
+namespace Ex
+{
+    public class SafeguardTaskLog
+    {
+        public SafeguardTaskLog(PSObject log)
+        {
+            Timestamp =  log.Properties["Timestamp"].Value.ToString();
+            Status = log.Properties["Status"].Value.ToString();
+            Message = log.Properties["Message"].Value.ToString();
+        }
+        public string Timestamp { get; set; }
+        public string Status { get; set; }
+        public string Message { get; set; }
+        public override string ToString()
+        {
+            return Timestamp.ToString() + " Status=" + Status + " Message=" + Message;
+        }
+    }
+    public class SafeguardLongRunningTaskException : System.Exception
+    {
+        public SafeguardLongRunningTaskException()
+            : base("Unknown SafeguardMethodException") {}
+        public SafeguardLongRunningTaskException(string message, PSObject[] log)
+            : base(message)
+        {
+            var list = new List<SafeguardTaskLog>();
+            foreach (var entry in log)
+                list.Add(new SafeguardTaskLog(entry));
+            TaskLog = list.ToArray();
+        }
+        protected SafeguardLongRunningTaskException
+            (SerializationInfo info, StreamingContext context)
+            : base(info, context) {}
+        public SafeguardTaskLog[] TaskLog { get; set; }
+    }
+}
+"@
+    }
+
+    (New-Object Ex.SafeguardLongRunningTaskException -ArgumentList @($TaskResult, $TaskResponse.Log))
+}
 function Test-SafeguardMinVersionInternal
 {
     [CmdletBinding()]
