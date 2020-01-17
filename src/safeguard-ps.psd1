@@ -284,13 +284,23 @@ PrivateData = @{
         IconUri = 'https://raw.githubusercontent.com/OneIdentity/safeguard-ps/master/SafeguardLogo.ico'
 
         # Pre-release tag
-        Prerelease = '-pre'
+        # Prerelease = '-pre'
 
         # ReleaseNotes of this module
         ReleaseNotes = @"
 safeguard-ps 2.11 Release Notes:
 
-- bug fixes
+- Added bulk import script sample
+- Better error details for long-running task failures
+- Support for telnet policy in access request broker and access cert
+- Support for elevation command in edit asset cmdlet
+- Improvements to user, asset, account group cmdlets
+- Support to add an asset with a directory service account
+- Improvements for supporting directory users
+- Fixed desktop client install
+- Support for network throughput and diagnostics
+- Support for SPS join via cmdlets
+- Various bugs
 "@
 
     } # End of PSData hashtable
