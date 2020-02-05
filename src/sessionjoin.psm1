@@ -805,7 +805,15 @@ function Enable-SafeguardSessionClusterAuditStream
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    
+    $local:Enabled = (Get-SafeguardSessionClusterAuditStream -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure).Enabled
+    if ($local:Enabled)
+    {
+        Write-Host "Session Audit Stream is already enabled."
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AuditLog/StreamService" -Body @{ Enabled = $true }
+    }
 }
 
 function Disable-SafeguardSessionClusterAuditStream
@@ -823,7 +831,15 @@ function Disable-SafeguardSessionClusterAuditStream
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    
+    $local:Enabled = (Get-SafeguardSessionClusterAuditStream -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure).Enabled
+    if (-not $local:Enabled)
+    {
+        Write-Host "Session Audit Stream is already disabled."
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AuditLog/StreamService" -Body @{ Enabled = $false }
+    }
 }
 
 function Get-SafeguardSessionClusterAuditStream
