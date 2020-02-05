@@ -882,6 +882,84 @@ function Disable-SafeguardSessionClusterAccessRequestBroker
     }
 }
 
+<#
+.SYNOPSIS
+Get current status of the Session Audit Stream setting in Safeguard via the Web API.
+
+.DESCRIPTION
+The Session Audit Stream is used to allow SPS to retrieve SPP audit information.  When enabled, this
+setting allows SPS to make SPP audit information avaiable in the SPS audit portal.
+This cmdlet reports the current status of the setting: true or false.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON from the Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardSessionClusterAuditStream -Appliance 10.5.32.54 -AccessToken $token -Insecure
+
+.EXAMPLE
+Get-SafeguardSessionClusterAuditStream
+#>
+function Get-SafeguardSessionClusterAuditStream
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AuditLog/StreamService"
+}
+
+<#
+.SYNOPSIS
+Enable the Session Audit Stream setting in Safeguard via the Web API.
+
+.DESCRIPTION
+The Session Audit Stream is used to allow SPS to retrieve SPP audit information.  When enabled, this
+setting allows SPS to make SPP audit information avaiable in the SPS audit portal.
+This cmdlet enables the setting.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON from the Safeguard Web API.
+
+.EXAMPLE
+Enable-SafeguardSessionClusterAuditStream -Appliance 10.5.32.54 -AccessToken $token -Insecure
+
+.EXAMPLE
+Enable-SafeguardSessionClusterAuditStream
+#>
 function Enable-SafeguardSessionClusterAuditStream
 {
     [CmdletBinding()]
@@ -908,6 +986,36 @@ function Enable-SafeguardSessionClusterAuditStream
     }
 }
 
+<#
+.SYNOPSIS
+Disable the Session Audit Stream setting in Safeguard via the Web API.
+
+.DESCRIPTION
+The Session Audit Stream is used to allow SPS to retrieve SPP audit information.  When enabled, this
+setting allows SPS to make SPP audit information avaiable in the SPS audit portal.
+This cmdlet disables the setting.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON from the Safeguard Web API.
+
+.EXAMPLE
+Disable-SafeguardSessionClusterAuditStream -Appliance 10.5.32.54 -AccessToken $token -Insecure
+
+.EXAMPLE
+Disable-SafeguardSessionClusterAuditStream
+#>
 function Disable-SafeguardSessionClusterAuditStream
 {
     [CmdletBinding()]
@@ -932,22 +1040,4 @@ function Disable-SafeguardSessionClusterAuditStream
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AuditLog/StreamService" -Body @{ Enabled = $false }
     }
-}
-
-function Get-SafeguardSessionClusterAuditStream
-{
-    [CmdletBinding()]
-    Param(
-        [Parameter(Mandatory=$false)]
-        [string]$Appliance,
-        [Parameter(Mandatory=$false)]
-        [object]$AccessToken,
-        [Parameter(Mandatory=$false)]
-        [switch]$Insecure
-    )
-
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AuditLog/StreamService"
 }
