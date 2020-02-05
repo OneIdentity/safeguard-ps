@@ -509,6 +509,14 @@ function Join-SafeguardSessionCluster
 
         Get-SafeguardSessionCluster -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $SessionMaster
     }
+    catch
+    {
+        if (($_.ErrorDetails.Message | ConvertFrom-Json).error.details.response.Code -eq 60657)
+        {
+            throw "This SPS cluster is already joined, check the output of Get-SafeguardSessionCluster."
+        }
+        throw
+    }
     finally
     {
         Remove-Variable HttpSession -ErrorAction SilentlyContinue
