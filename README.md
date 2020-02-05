@@ -343,7 +343,7 @@ update this list.
 - Disable-SafeguardBmcConfiguration
 - Set-SafeguardBmcAdminPassword
 - Get-SafeguardTls12OnlyStatus
-- Enable-SafeguardTls12Only
+- SafeguardTls12Only
 - Disable-SafeguardTls12Only
 
 ### Clustering
@@ -382,6 +382,21 @@ update this list.
 - Set-SafeguardSessionSshAlgorithms
 - Add-SafeguardSessionSshAlgorithm
 - Remove-SafeguardSessionSshAlgorithm
+
+### Session Cluster Join
+
+- Get-SafeguardSessionCluster
+- Set-SafeguardSessionCluster
+- Join-SafeguardSessionCluster
+- Split-SafeguardSessionCluster
+- Get-SafeguardSessionSplitCluster
+- Remove-SafeguardSessionSplitCluster
+- Enable-SafeguardSessionClusterAccessRequestBroker
+- Disable-SafeguardSessionClusterAccessRequestBroker
+- Get-SafeguardSessionClusterAccessRequestBroker
+- Enable-SafeguardSessionClusterAuditStream
+- Disable-SafeguardSessionClusterAuditStream
+- Get-SafeguardSessionClusterAuditStream
 
 ### Archive Servers
 

@@ -700,3 +700,146 @@ function Remove-SafeguardSessionSplitCluster
     Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core `
         DELETE "Cluster/SessionModules/$($local:SessionCluster.Id)" | Out-Null
 }
+
+function Get-SafeguardSessionClusterAccessRequestBroker
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/SessionModules/AccessRequestBroker"
+}
+
+
+function Enable-SafeguardSessionClusterAccessRequestBroker
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Enabled = (Get-SafeguardSessionClusterAccessRequestBroker -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure).Enabled
+    if ($local:Enabled)
+    {
+        Write-Host "Session Access Request Broker is already enabled."
+    }
+    else
+    {
+        Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+        $local:Confirmed = (Get-Confirmation "Enable Session Access Request Broker" `
+                                ("You are about to enable SPS to create access requests, monitor workflow, and retrieve credentials on behalf of users to connect sessions.`n" + `
+                                 "Access requests created and used by SPS will still be governed by SPP entitlements.`n" + `
+                                 "Do you want to enable the Session Access Request Broker?") `
+                                "Enable SPS to request access and retrieve credentials on behalf of users." "Cancel this operation.")
+        if ($local:Confirmed)
+        {
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Cluster/SessionModules/AccessRequestBroker" -Body @{ Enabled = $true }
+        }
+    }
+}
+
+function Disable-SafeguardSessionClusterAccessRequestBroker
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Enabled = (Get-SafeguardSessionClusterAccessRequestBroker -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure).Enabled
+    if (-not $local:Enabled)
+    {
+        Write-Host "Session Access Request Broker is already disabled."
+    }
+    else
+    {
+        Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+        $local:Confirmed = (Get-Confirmation "Enable Session Access Request Broker" `
+                                ("You are about to disable SPS from being able to retrieve credentials on behalf of users to connect sessions.`n" + `
+                                 "This will prevent SPS initiated sessions from connecting.`n" + `
+                                 "Do you want to disable the Session Access Request Broker?") `
+                                "Disable to prevent SPS from retrieving credentials on behalf of users." "Cancel this operation.")
+        if ($local:Confirmed)
+        {
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Cluster/SessionModules/AccessRequestBroker" -Body @{ Enabled = $false }
+        }
+    }
+}
+
+function Enable-SafeguardSessionClusterAuditStream
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    
+}
+
+function Disable-SafeguardSessionClusterAuditStream
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    
+}
+
+function Get-SafeguardSessionClusterAuditStream
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AuditLog/StreamService"
+}
