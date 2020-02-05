@@ -701,6 +701,37 @@ function Remove-SafeguardSessionSplitCluster
         DELETE "Cluster/SessionModules/$($local:SessionCluster.Id)" | Out-Null
 }
 
+<#
+.SYNOPSIS
+Get current status of the Session Access Request Broker setting in Safeguard via the Web API.
+
+.DESCRIPTION
+The Session Access Request Broker is used to facilitate SPS initiated sessions.  When enabled, this
+setting allows SPS to request access on behalf of a user trying to connect a session through SPS.
+Access requests created and used by SPS will still be governed by SPP entitlements.
+This cmdlet reports the current status of the setting: true or false.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON from the Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardSessionClusterAccessRequestBroker -Appliance 10.5.32.54 -AccessToken $token -Insecure
+
+.EXAMPLE
+Get-SafeguardSessionClusterAccessRequestBroker
+#>
 function Get-SafeguardSessionClusterAccessRequestBroker
 {
     [CmdletBinding()]
@@ -719,7 +750,37 @@ function Get-SafeguardSessionClusterAccessRequestBroker
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/SessionModules/AccessRequestBroker"
 }
 
+<#
+.SYNOPSIS
+Enable the Session Access Request Broker setting in Safeguard via the Web API.
 
+.DESCRIPTION
+The Session Access Request Broker is used to facilitate SPS initiated sessions.  When enabled, this
+setting allows SPS to request access on behalf of a user trying to connect a session through SPS.
+Access requests created and used by SPS will still be governed by SPP entitlements.
+This cmdlet enables the setting.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON from the Safeguard Web API.
+
+.EXAMPLE
+Enable-SafeguardSessionClusterAccessRequestBroker -Appliance 10.5.32.54 -AccessToken $token -Insecure
+
+.EXAMPLE
+Enable-SafeguardSessionClusterAccessRequestBroker
+#>
 function Enable-SafeguardSessionClusterAccessRequestBroker
 {
     [CmdletBinding()]
@@ -755,6 +816,37 @@ function Enable-SafeguardSessionClusterAccessRequestBroker
     }
 }
 
+<#
+.SYNOPSIS
+Disable the Session Access Request Broker setting in Safeguard via the Web API.
+
+.DESCRIPTION
+The Session Access Request Broker is used to facilitate SPS initiated sessions.  When enabled, this
+setting allows SPS to request access on behalf of a user trying to connect a session through SPS.
+Access requests created and used by SPS will still be governed by SPP entitlements.
+This cmdlet disables the setting.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON from the Safeguard Web API.
+
+.EXAMPLE
+Disable-SafeguardSessionClusterAccessRequestBroker -Appliance 10.5.32.54 -AccessToken $token -Insecure
+
+.EXAMPLE
+Disable-SafeguardSessionClusterAccessRequestBroker
+#>
 function Disable-SafeguardSessionClusterAccessRequestBroker
 {
     [CmdletBinding()]
