@@ -700,3 +700,344 @@ function Remove-SafeguardSessionSplitCluster
     Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core `
         DELETE "Cluster/SessionModules/$($local:SessionCluster.Id)" | Out-Null
 }
+
+<#
+.SYNOPSIS
+Get current status of the Session Access Request Broker setting in Safeguard via the Web API.
+
+.DESCRIPTION
+The Session Access Request Broker is used to facilitate SPS initiated sessions.  When enabled, this
+setting allows SPS to request access on behalf of a user trying to connect a session through SPS.
+Access requests created and used by SPS will still be governed by SPP entitlements.
+This cmdlet reports the current status of the setting: true or false.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON from the Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardSessionClusterAccessRequestBroker -Appliance 10.5.32.54 -AccessToken $token -Insecure
+
+.EXAMPLE
+Get-SafeguardSessionClusterAccessRequestBroker
+#>
+function Get-SafeguardSessionClusterAccessRequestBroker
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/SessionModules/AccessRequestBroker"
+}
+
+<#
+.SYNOPSIS
+Enable the Session Access Request Broker setting in Safeguard via the Web API.
+
+.DESCRIPTION
+The Session Access Request Broker is used to facilitate SPS initiated sessions.  When enabled, this
+setting allows SPS to request access on behalf of a user trying to connect a session through SPS.
+Access requests created and used by SPS will still be governed by SPP entitlements.
+This cmdlet enables the setting.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON from the Safeguard Web API.
+
+.EXAMPLE
+Enable-SafeguardSessionClusterAccessRequestBroker -Appliance 10.5.32.54 -AccessToken $token -Insecure
+
+.EXAMPLE
+Enable-SafeguardSessionClusterAccessRequestBroker
+#>
+function Enable-SafeguardSessionClusterAccessRequestBroker
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Enabled = (Get-SafeguardSessionClusterAccessRequestBroker -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure).Enabled
+    if ($local:Enabled)
+    {
+        Write-Host "Session Access Request Broker is already enabled."
+    }
+    else
+    {
+        Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+        $local:Confirmed = (Get-Confirmation "Enable Session Access Request Broker" `
+                                ("You are about to enable SPS to create access requests, monitor workflow, and retrieve credentials on behalf of users to connect sessions.`n" + `
+                                 "Access requests created and used by SPS will still be governed by SPP entitlements.`n" + `
+                                 "Do you want to enable the Session Access Request Broker?") `
+                                "Enable SPS to request access and retrieve credentials on behalf of users." "Cancel this operation.")
+        if ($local:Confirmed)
+        {
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Cluster/SessionModules/AccessRequestBroker" -Body @{ Enabled = $true }
+        }
+    }
+}
+
+<#
+.SYNOPSIS
+Disable the Session Access Request Broker setting in Safeguard via the Web API.
+
+.DESCRIPTION
+The Session Access Request Broker is used to facilitate SPS initiated sessions.  When enabled, this
+setting allows SPS to request access on behalf of a user trying to connect a session through SPS.
+Access requests created and used by SPS will still be governed by SPP entitlements.
+This cmdlet disables the setting.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON from the Safeguard Web API.
+
+.EXAMPLE
+Disable-SafeguardSessionClusterAccessRequestBroker -Appliance 10.5.32.54 -AccessToken $token -Insecure
+
+.EXAMPLE
+Disable-SafeguardSessionClusterAccessRequestBroker
+#>
+function Disable-SafeguardSessionClusterAccessRequestBroker
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Enabled = (Get-SafeguardSessionClusterAccessRequestBroker -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure).Enabled
+    if (-not $local:Enabled)
+    {
+        Write-Host "Session Access Request Broker is already disabled."
+    }
+    else
+    {
+        Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+        $local:Confirmed = (Get-Confirmation "Enable Session Access Request Broker" `
+                                ("You are about to disable SPS from being able to retrieve credentials on behalf of users to connect sessions.`n" + `
+                                 "This will prevent SPS initiated sessions from connecting.`n" + `
+                                 "Do you want to disable the Session Access Request Broker?") `
+                                "Disable to prevent SPS from retrieving credentials on behalf of users." "Cancel this operation.")
+        if ($local:Confirmed)
+        {
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Cluster/SessionModules/AccessRequestBroker" -Body @{ Enabled = $false }
+        }
+    }
+}
+
+<#
+.SYNOPSIS
+Get current status of the Session Audit Stream setting in Safeguard via the Web API.
+
+.DESCRIPTION
+The Session Audit Stream is used to allow SPS to retrieve SPP audit information.  When enabled, this
+setting allows SPS to make SPP audit information avaiable in the SPS audit portal.
+This cmdlet reports the current status of the setting: true or false.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON from the Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardSessionClusterAuditStream -Appliance 10.5.32.54 -AccessToken $token -Insecure
+
+.EXAMPLE
+Get-SafeguardSessionClusterAuditStream
+#>
+function Get-SafeguardSessionClusterAuditStream
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AuditLog/StreamService"
+}
+
+<#
+.SYNOPSIS
+Enable the Session Audit Stream setting in Safeguard via the Web API.
+
+.DESCRIPTION
+The Session Audit Stream is used to allow SPS to retrieve SPP audit information.  When enabled, this
+setting allows SPS to make SPP audit information avaiable in the SPS audit portal.
+This cmdlet enables the setting.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON from the Safeguard Web API.
+
+.EXAMPLE
+Enable-SafeguardSessionClusterAuditStream -Appliance 10.5.32.54 -AccessToken $token -Insecure
+
+.EXAMPLE
+Enable-SafeguardSessionClusterAuditStream
+#>
+function Enable-SafeguardSessionClusterAuditStream
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Enabled = (Get-SafeguardSessionClusterAuditStream -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure).Enabled
+    if ($local:Enabled)
+    {
+        Write-Host "Session Audit Stream is already enabled."
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AuditLog/StreamService" -Body @{ Enabled = $true }
+    }
+}
+
+<#
+.SYNOPSIS
+Disable the Session Audit Stream setting in Safeguard via the Web API.
+
+.DESCRIPTION
+The Session Audit Stream is used to allow SPS to retrieve SPP audit information.  When enabled, this
+setting allows SPS to make SPP audit information avaiable in the SPS audit portal.
+This cmdlet disables the setting.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON from the Safeguard Web API.
+
+.EXAMPLE
+Disable-SafeguardSessionClusterAuditStream -Appliance 10.5.32.54 -AccessToken $token -Insecure
+
+.EXAMPLE
+Disable-SafeguardSessionClusterAuditStream
+#>
+function Disable-SafeguardSessionClusterAuditStream
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Enabled = (Get-SafeguardSessionClusterAuditStream -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure).Enabled
+    if (-not $local:Enabled)
+    {
+        Write-Host "Session Audit Stream is already disabled."
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AuditLog/StreamService" -Body @{ Enabled = $false }
+    }
+}

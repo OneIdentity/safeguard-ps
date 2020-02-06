@@ -149,6 +149,9 @@ FunctionsToExport = @(
     # sessionjoin.psm1
     'Get-SafeguardSessionCluster','Set-SafeguardSessionCluster','Join-SafeguardSessionCluster','Split-SafeguardSessionCluster',
     'Get-SafeguardSessionSplitCluster','Remove-SafeguardSessionSplitCluster',
+    'Enable-SafeguardSessionClusterAccessRequestBroker','Disable-SafeguardSessionClusterAccessRequestBroker',
+    'Get-SafeguardSessionClusterAccessRequestBroker','Enable-SafeguardSessionClusterAuditStream',
+    'Disable-SafeguardSessionClusterAuditStream','Get-SafeguardSessionClusterAuditStream',
     # archives.psm1
     'Get-SafeguardArchiveServer','New-SafeguardArchiveServer','Test-SafeguardArchiveServer',
     'Remove-SafeguardArchiveServer','Edit-SafeguardArchiveServer',
