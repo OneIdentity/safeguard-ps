@@ -140,12 +140,12 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Wait-SafeguardApplianceOnline
+Wait-SafeguardApplianceStateOnline
 
 .EXAMPLE
-Wait-SafeguardApplianceOnline -Appliance 10.5.32.54 -Insecure
+Wait-SafeguardApplianceStateOnline -Appliance 10.5.32.54 -Insecure
 #>
-function Wait-SafeguardApplianceOnline
+function Wait-SafeguardApplianceStateOnline
 {
     [CmdletBinding()]
     Param(
@@ -161,7 +161,8 @@ function Wait-SafeguardApplianceOnline
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-    Wait-ForSafeguardStatus -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout -DesiredStatus $local:CurrentState
+    Wait-ForSafeguardOnlineStatus -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout
+    Get-SafeguardApplianceAvailability -Appliance $Appliance -Insecure:$Insecure
 }
 
 
@@ -1323,7 +1324,7 @@ function Install-SafeguardPatch
             public static class UploadFileStream
             {
                 private static readonly byte[] UploadBuffer = new byte[80 * 1024];
-        
+
                 public static string Upload(string pathAndFilename, string appliance, string authorizationToken, string version)
                 {
                     WebRequest   request        = null;
@@ -1429,7 +1430,7 @@ function Install-SafeguardPatch
             }
 "@
         }
-        
+
         try
         {
             Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
@@ -1439,7 +1440,7 @@ function Install-SafeguardPatch
                 Disable-SslVerification
                 if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
             }
-            
+
             [UploadFileStream]::Upload($Patch, $Appliance, $AccessToken, $Version)
         }
         catch [System.Net.WebException]

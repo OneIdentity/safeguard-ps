@@ -124,7 +124,7 @@ FunctionsToExport = @(
     # desktopclient.psm1
     'Install-SafeguardDesktopClient',
     # maintenance.psm1
-    'Get-SafeguardStatus','Get-SafeguardApplianceAvailability','Get-SafeguardApplianceState','Wait-SafeguardApplianceOnline',
+    'Get-SafeguardStatus','Get-SafeguardApplianceAvailability','Get-SafeguardApplianceState','Wait-SafeguardApplianceStateOnline',
     'Get-SafeguardVersion','Test-SafeguardVersion','Get-SafeguardApplianceVerification','Get-SafeguardTime','Set-SafeguardTime',
     'Get-SafeguardApplianceUptime','Get-SafeguardHealth','Get-SafeguardApplianceName','Set-SafeguardApplianceName',
     'Invoke-SafeguardApplianceShutdown','Invoke-SafeguardApplianceReboot','Invoke-SafeguardApplianceFactoryReset',
