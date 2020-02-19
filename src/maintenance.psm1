@@ -114,6 +114,56 @@ function Get-SafeguardApplianceAvailability
     Invoke-SafeguardMethod -Anonymous -Appliance $Appliance -Insecure:$Insecure Notification GET "Status/Availability"
 }
 
+<#
+.SYNOPSIS
+Wait for the Safeguard appliance to be Online via the Web API.
+
+.DESCRIPTION
+Get the current availability of Safeguard appliance and wait for it to report
+Online.  Once the appliance is online, the output will also give the availability
+of individual services from this appliance such as password or session requests,
+password check/change management, policy/configuration changes, etc.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.PARAMETER Timeout
+Number of seconds to wait before timing out (Default: 30 minutes)
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Wait-SafeguardApplianceOnline
+
+.EXAMPLE
+Wait-SafeguardApplianceOnline -Appliance 10.5.32.54 -Insecure
+#>
+function Wait-SafeguardApplianceOnline
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [int]$Timeout = 1800
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+    Wait-ForSafeguardStatus -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout -DesiredStatus $local:CurrentState
+}
+
 
 <#
 .SYNOPSIS
