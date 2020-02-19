@@ -316,6 +316,7 @@ update this list.
 - Get-SafeguardStatus
 - Get-SafeguardApplianceAvailability
 - Get-SafeguardApplianceState
+- Wait-SafeguardApplianceStateOnline
 - Get-SafeguardVersion
 - Get-SafeguardApplianceVerification
 - Get-SafeguardTime
