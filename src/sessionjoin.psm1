@@ -305,6 +305,12 @@ A string containing the login name for the session master.
 .PARAMETER SessionPassword
 A secure string containing the password for the session master.
 
+.PARAMETER AutoEnableClustering
+Automatically enable clustering on SPS without prompting.
+
+.PARAMETER AutoPromoteToMaster
+Automatically promote SPS to cluster master without prompting.
+
 .INPUTS
 None.
 
@@ -337,7 +343,11 @@ function Join-SafeguardSessionCluster
         [Parameter(ParameterSetName="Username",Mandatory=$true,Position=1)]
         [string]$SessionUsername,
         [Parameter(ParameterSetName="Username",Position=2)]
-        [SecureString]$SessionPassword
+        [SecureString]$SessionPassword,
+        [Parameter(Mandatory=$false)]
+        [switch]$AutoEnableClustering = $false,
+        [Parameter(Mandatory=$false)]
+        [switch]$AutoPromoteToMaster = $false
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -407,8 +417,16 @@ function Join-SafeguardSessionCluster
             -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } -Method Get)
         if (-not $local:Clustering -or -not $local:Clustering.body.enabled)
         {
-            $local:Confirmed = (Get-Confirmation "Session Appliance Clustering NOT Enabled" "Do you want to enable clustering on this session appliance?" `
+            if ($AutoEnableClustering)
+            {
+                $local:Confirmed = $true
+                Write-Host "Session Appliance Clustering NOT Enabled. AutoEnableCluster is set to TRUE."
+            }
+            else
+            {
+                $local:Confirmed = (Get-Confirmation "Session Appliance Clustering NOT Enabled" "Do you want to enable clustering on this session appliance?" `
                                     "Enable clustering." "Cancels this operation.")
+            }
             if ($local:Confirmed)
             {
                 $local:NicRef = (Get-NicRefForIp -SessionMaster $SessionMaster -HttpSession $HttpSession)
@@ -458,8 +476,16 @@ function Join-SafeguardSessionCluster
         }
         catch
         {
-            $local:Confirmed = (Get-Confirmation "Session Appliance Is NOT Promoted" "Do you want to promote this session appliance to session master?" `
+            if ($AutoPromoteToMaster)
+            {
+                $local:Confirmed = $true
+                Write-Host "Session Appliance Is NOT Promoted. AutoPromoteToMaster is set to TRUE."
+            }
+            else
+            {
+                $local:Confirmed = (Get-Confirmation "Session Appliance Is NOT Promoted" "Do you want to promote this session appliance to session master?" `
                                     "Promote." "Cancels this operation.")
+            }
             if ($local:Confirmed)
             {
                 Write-Host "Sending promote command..."
