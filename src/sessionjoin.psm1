@@ -89,7 +89,7 @@ function Connect-Sps
     Remove-Variable -Scope local PasswordPlainText
 
     Invoke-RestMethod -Uri "https://$SessionMaster/api/authentication" -SessionVariable HttpSession `
-        -Headers @{ Authorization = ("Basic {0}" -f $local:BasicAuthInfo) } | Out-Null
+        -Headers @{ Authorization = ("Basic {0}" -f $local:BasicAuthInfo) } | Write-Verbose
     Remove-Variable -Scope local BasicAuthInfo
 
     $HttpSession
@@ -271,7 +271,7 @@ function Set-SafeguardSessionCluster
     $local:SessionCluster.UseHostNameForLaunch = ([bool]$UseDns)
 
     Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core `
-        PUT "Cluster/SessionModules/$($local:SessionCluster.Id)" -Body $local:SessionCluster | Out-Null
+        PUT "Cluster/SessionModules/$($local:SessionCluster.Id)" -Body $local:SessionCluster | Write-Verbose
 
     Get-SafeguardSessionCluster -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $SessionMaster -AllFields:$AllFields
 }
@@ -305,6 +305,12 @@ A string containing the login name for the session master.
 .PARAMETER SessionPassword
 A secure string containing the password for the session master.
 
+.PARAMETER AutoEnableClustering
+Automatically enable clustering on SPS without prompting.
+
+.PARAMETER AutoPromoteToMaster
+Automatically promote SPS to cluster master without prompting.
+
 .INPUTS
 None.
 
@@ -337,7 +343,11 @@ function Join-SafeguardSessionCluster
         [Parameter(ParameterSetName="Username",Mandatory=$true,Position=1)]
         [string]$SessionUsername,
         [Parameter(ParameterSetName="Username",Position=2)]
-        [SecureString]$SessionPassword
+        [SecureString]$SessionPassword,
+        [Parameter(Mandatory=$false)]
+        [switch]$AutoEnableClustering = $false,
+        [Parameter(Mandatory=$false)]
+        [switch]$AutoPromoteToMaster = $false
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -407,8 +417,16 @@ function Join-SafeguardSessionCluster
             -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } -Method Get)
         if (-not $local:Clustering -or -not $local:Clustering.body.enabled)
         {
-            $local:Confirmed = (Get-Confirmation "Session Appliance Clustering NOT Enabled" "Do you want to enable clustering on this session appliance?" `
+            if ($AutoEnableClustering)
+            {
+                $local:Confirmed = $true
+                Write-Host "Session Appliance Clustering NOT Enabled. AutoEnableCluster is set to TRUE."
+            }
+            else
+            {
+                $local:Confirmed = (Get-Confirmation "Session Appliance Clustering NOT Enabled" "Do you want to enable clustering on this session appliance?" `
                                     "Enable clustering." "Cancels this operation.")
+            }
             if ($local:Confirmed)
             {
                 $local:NicRef = (Get-NicRefForIp -SessionMaster $SessionMaster -HttpSession $HttpSession)
@@ -418,18 +436,18 @@ function Join-SafeguardSessionCluster
                 try
                 {
                     Invoke-RestMethod -WebSession $HttpSession -Method Post -Uri "https://$SessionMaster/api/transaction" `
-                        -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } | Out-Null
+                        -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } | Write-Verbose
 
                     Invoke-RestMethod -WebSession $HttpSession -Method Put -Uri "https://$SessionMaster/api/configuration/local_services/cluster" `
                         -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } -Body (ConvertTo-Json -InputObject @{
                             enabled = $true;
                             listen_address = $local:NicRef
-                        }) | Out-Null
+                        }) | Write-Verbose
 
                     Invoke-RestMethod -WebSession $HttpSession -Method Put -Uri "https://$SessionMaster/api/transaction" `
                         -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } -Body (ConvertTo-Json -InputObject @{
                             status = "commit"
-                        }) | Out-Null
+                        }) | Write-Verbose
 
                     Start-Sleep -Seconds 10
                 }
@@ -437,7 +455,7 @@ function Join-SafeguardSessionCluster
                 {
                     try
                     {
-                        Invoke-RestMethod -WebSession $HttpSession -Method Delete -Uri "https://$SessionMaster/api/transaction" | Out-Null
+                        Invoke-RestMethod -WebSession $HttpSession -Method Delete -Uri "https://$SessionMaster/api/transaction" | Write-Verbose
                     }
                     catch {}
                 }
@@ -454,27 +472,35 @@ function Join-SafeguardSessionCluster
         # Make sure this node is a session master
         try
         {
-            Invoke-RestMethod -WebSession $HttpSession -Method Get -Uri "https://$SessionMaster/api/cluster/status" | Out-Null
+            Invoke-RestMethod -WebSession $HttpSession -Method Get -Uri "https://$SessionMaster/api/cluster/status" | Write-Verbose
         }
         catch
         {
-            $local:Confirmed = (Get-Confirmation "Session Appliance Is NOT Promoted" "Do you want to promote this session appliance to session master?" `
+            if ($AutoPromoteToMaster)
+            {
+                $local:Confirmed = $true
+                Write-Host "Session Appliance Is NOT Promoted. AutoPromoteToMaster is set to TRUE."
+            }
+            else
+            {
+                $local:Confirmed = (Get-Confirmation "Session Appliance Is NOT Promoted" "Do you want to promote this session appliance to session master?" `
                                     "Promote." "Cancels this operation.")
+            }
             if ($local:Confirmed)
             {
                 Write-Host "Sending promote command..."
                 try
                 {
                     Invoke-RestMethod -WebSession $HttpSession -Method Post -Uri "https://$SessionMaster/api/transaction" `
-                        -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } | Out-Null
+                        -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } | Write-Verbose
 
                     Invoke-RestMethod -WebSession $HttpSession -Method Post -Uri "https://$SessionMaster/api/cluster/promote" `
-                        -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } | Out-Null
+                        -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } | Write-Verbose
 
                     Invoke-RestMethod -WebSession $HttpSession -Method Put -Uri "https://$SessionMaster/api/transaction" `
                         -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } -Body (ConvertTo-Json -InputObject @{
                             status = "commit"
-                        }) | Out-Null
+                        }) | Write-Verbose
 
                     Start-Sleep -Seconds 10
                 }
@@ -482,7 +508,7 @@ function Join-SafeguardSessionCluster
                 {
                     try
                     {
-                        Invoke-RestMethod -WebSession $HttpSession -Method Delete -Uri "https://$SessionMaster/api/transaction" | Out-Null
+                        Invoke-RestMethod -WebSession $HttpSession -Method Delete -Uri "https://$SessionMaster/api/transaction" | Write-Verbose
                     }
                     catch {}
                 }
@@ -503,7 +529,7 @@ function Join-SafeguardSessionCluster
                 spp = $Appliance;
                 spp_api_token = $AccessToken;
                 spp_cert_chain = $local:SppCertData
-            }) | Out-Null
+            }) | Write-Verbose
 
         Start-Sleep -Seconds 30
 
@@ -582,7 +608,7 @@ function Split-SafeguardSessionCluster
     }
 
     Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core `
-        DELETE "Cluster/SessionModules/$($local:SessionCluster.Id)" | Out-Null
+        DELETE "Cluster/SessionModules/$($local:SessionCluster.Id)" | Write-Verbose
 }
 
 <#
@@ -698,7 +724,7 @@ function Remove-SafeguardSessionSplitCluster
     }
 
     Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core `
-        DELETE "Cluster/SessionModules/$($local:SessionCluster.Id)" | Out-Null
+        DELETE "Cluster/SessionModules/$($local:SessionCluster.Id)" | Write-Verbose
 }
 
 <#
