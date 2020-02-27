@@ -71,6 +71,8 @@ function Get-SafeguardSessionContainerStatus
         [string]$Component
     )
 
+    Write-Warning "This cmdlet is obsolete and will be removed in a subsequent release."
+
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
@@ -138,6 +140,8 @@ function Get-SafeguardSessionModuleStatus
         [string]$Component
     )
 
+    Write-Warning "This cmdlet is obsolete and will be removed in a subsequent release."
+
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
@@ -200,6 +204,8 @@ function Get-SafeguardSessionModuleVersion
         [switch]$Insecure
     )
 
+    Write-Warning "This cmdlet is obsolete and will be removed in a subsequent release."
+
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
@@ -245,6 +251,8 @@ function Reset-SafeguardSessionModule
         [Parameter(Mandatory=$false)]
         [switch]$Insecure
     )
+
+    Write-Warning "This cmdlet is obsolete and will be removed in a subsequent release."
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
@@ -300,6 +308,8 @@ function Repair-SafeguardSessionModule
         [Parameter(Mandatory=$false)]
         [switch]$Insecure
     )
+
+    Write-Warning "This cmdlet is obsolete and will be removed in a subsequent release."
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
@@ -367,6 +377,8 @@ function Get-SafeguardSessionCertificate
         [string]$Type
     )
 
+    Write-Warning "This cmdlet is obsolete and will be removed in a subsequent release."
+
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
@@ -432,6 +444,8 @@ function Install-SafeguardSessionCertificate
         [Parameter(Mandatory=$false, Position=2)]
         [SecureString]$Password
     )
+
+    Write-Warning "This cmdlet is obsolete and will be removed in a subsequent release."
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
@@ -512,6 +526,8 @@ function Reset-SafeguardSessionCertificate
         [string]$Type
     )
 
+    Write-Warning "This cmdlet is obsolete and will be removed in a subsequent release."
+
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
@@ -575,6 +591,8 @@ function Get-SafeguardSessionSshAlgorithms
         [ValidateSet("Cipher", "Compression", "Kex", "Mac", IgnoreCase=$true)]
         [string]$AlgorithmType
     )
+
+    Write-Warning "This cmdlet is obsolete and will be removed in a subsequent release."
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
@@ -661,6 +679,8 @@ function Set-SafeguardSessionSshAlgorithms
         [string[]]$NewValue
     )
 
+    Write-Warning "This cmdlet is obsolete and will be removed in a subsequent release."
+
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
@@ -742,6 +762,8 @@ function Add-SafeguardSessionSshAlgorithm
         [string]$AlgorithmToAdd
     )
 
+    Write-Warning "This cmdlet is obsolete and will be removed in a subsequent release."
+
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
@@ -821,6 +843,8 @@ function Remove-SafeguardSessionSshAlgorithm
         [Parameter(Mandatory=$true, Position=2)]
         [string]$AlgorithmToRemove
     )
+
+    Write-Warning "This cmdlet is obsolete and will be removed in a subsequent release."
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
