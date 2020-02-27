@@ -889,6 +889,14 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER AssetPartition
+An integer containing an ID  or a string containing the name of the asset partition
+to delete an asset form.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to delete an asset form.
+(If specified, this will override the AssetPartition parameter)
+
 .PARAMETER AssetToDelete
 An integer containing the ID of the asset to remove or a string containing the name.
 
@@ -914,6 +922,10 @@ function Remove-SafeguardAsset
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$AssetToDelete
     )
@@ -921,7 +933,9 @@ function Remove-SafeguardAsset
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:AssetId = Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToDelete
+    $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                          -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $AssetToDelete)
+
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Assets/$($local:AssetId)"
 }
 
@@ -940,6 +954,14 @@ A string containing the bearer token to be used with Safeguard Web API.
 
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID  or a string containing the name of the asset partition
+to edit an asset in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to edit an asset in.
+(If specified, this will override the AssetPartition parameter)
 
 .PARAMETER AssetToEdit
 An integer containing the ID of the asset to edit or a string containing the name.
@@ -1016,6 +1038,10 @@ function Edit-SafeguardAsset
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false,Position=0)]
         [object]$AssetToEdit,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
@@ -1067,7 +1093,8 @@ function Edit-SafeguardAsset
         {
             $AssetToEdit = (Read-Host "AssetToEdit")
         }
-        $local:AssetId = Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToEdit
+        $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $AssetToEdit)
     }
 
     if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
@@ -1108,6 +1135,12 @@ function Edit-SafeguardAsset
             $local:PlatformId = Resolve-SafeguardPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Platform
             $AssetObject.PlatformId = $local:PlatformId
         }
+    }
+    else
+    {
+        # Make sure it is actually in the partition (just in case caller has called Enter-SafeguardAssetPartition)
+        $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $AssetObject.Id)
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Assets/$($AssetObject.Id)" -Body $AssetObject
