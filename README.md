@@ -451,6 +451,9 @@ update this list.
 - New-SafeguardAssetPartition
 - Remove-SafeguardAssetPartition
 - Edit-SafeguardAssetPartition
+- Enter-SafeguardAssetPartition
+- Exit-SafeguardAssetPartition
+- Get-SafeguardCurrentAssetPartition
 
 ### Assets
 
