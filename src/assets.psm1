@@ -1,4 +1,46 @@
 # Helper
+function Resolve-AssetPartitionIdFromSafeguardSession
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition = $null,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$false)]
+        [switch]$UseDefault = $false
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("AssetPartitionId") -and $PSBoundParameters.ContainsKey("AssetPartition"))
+    {
+        Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
+        $AssetPartitionId = (Resolve-SafeguardAssetPartitionId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetPartition)
+    }
+
+    if (-not $AssetPartitionId)
+    {
+        if ($SafeguardSession -and $SafeguardSession["AssetPartitionId"])
+        {
+            $AssetPartitionId = $SafeguardSession["AssetPartitionId"]
+        }
+        else
+        {
+            if ($UseDefault)
+            {
+                # Default behavior is Macrocosm
+                $AssetPartitionId = -1
+            }
+        }
+    }
+
+    $AssetPartitionId
+}
 function Resolve-SafeguardAssetId
 {
     [CmdletBinding()]
@@ -232,6 +274,14 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER AssetPartition
+An integer containing an ID  or a string containing the name of the asset partition
+where this asset should be created.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID where this asset should be created.
+(If specified, this will override the Partition parameter)
+
 .PARAMETER AssetToGet
 An integer containing the ID of the asset to get or a string containing the name.
 
@@ -260,6 +310,10 @@ function Get-SafeguardAsset
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$false,Position=0)]
         [object]$AssetToGet,
         [Parameter(Mandatory=$false)]
@@ -275,14 +329,25 @@ function Get-SafeguardAsset
         $local:Parameters = @{ fields = ($Fields -join ",")}
     }
 
-    if ($PSBoundParameters.ContainsKey("AssetToGet"))
+    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
+    if ($AssetPartitionId)
     {
-        $local:AssetId = Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToGet
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Assets/$($local:AssetId)" -Parameters $local:Parameters
+        $local:RelPath = "AssetPartitions/$AssetPartitionId/Assets"
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Assets" -Parameters $local:Parameters
+        $local:RelPath = "Assets"
+    }
+
+    if ($PSBoundParameters.ContainsKey("AssetToGet"))
+    {
+        $local:AssetId = Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToGet
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)/$($local:AssetId)" -Parameters $local:Parameters
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" -Parameters $local:Parameters
     }
 }
 
@@ -461,7 +526,7 @@ function New-SafeguardAsset
         [Parameter(Mandatory=$false)]
         [object]$AssetPartition,
         [Parameter(Mandatory=$false)]
-        [int]$AssetPartitionId = -1,
+        [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$true,Position=1)]
         [object]$Platform,
         [Parameter(Mandatory=$false)]
@@ -629,14 +694,8 @@ function New-SafeguardAsset
         }
     }
 
-    if (-not $PSBoundParameters.ContainsKey("AssetPartitionId"))
-    {
-        if ($PSBoundParameters.ContainsKey("AssetPartition"))
-        {
-            Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
-            $AssetPartitionId = (Resolve-SafeguardAssetPartitionId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetPartition)
-        }
-    }
+    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -UseDefault)
 
     $local:Body = @{
         Name = "$DisplayName";

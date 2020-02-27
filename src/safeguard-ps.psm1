@@ -864,7 +864,8 @@ function Connect-Safeguard
                 "CertificateFile" = $CertificateFile;
                 "Insecure" = $Insecure;
                 "Gui" = $Gui;
-                "NoWindowTitle" = $NoWindowTitle
+                "NoWindowTitle" = $NoWindowTitle;
+                "AssetPartitionId" = $null
             }
             if (-not $NoWindowTitle)
             {
