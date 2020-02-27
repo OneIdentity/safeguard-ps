@@ -166,6 +166,8 @@ function Invoke-SafeguardSessionsPing
         [string]$NetworkAddress
     )
 
+    Write-Warning "This cmdlet is obsolete and will be removed in a subsequent release."
+
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
@@ -284,6 +286,8 @@ function Invoke-SafeguardSessionsTelnet
         [Parameter(Mandatory=$true,Position=1)]
         [int]$Port
     )
+
+    Write-Warning "This cmdlet is obsolete and will be removed in a subsequent release."
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
