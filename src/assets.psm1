@@ -51,6 +51,10 @@ function Resolve-SafeguardAssetId
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition = $null,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$Asset
     )
@@ -65,13 +69,25 @@ function Resolve-SafeguardAssetId
 
     if (-not ($Asset -as [int]))
     {
+        $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
+        if ($AssetPartitionId)
+        {
+            $local:RelPath = "AssetPartitions/$AssetPartitionId/Assets"
+            $local:ErrMsgSuffix = " in asset partition (Id=$AssetPartitionId)"
+        }
+        else
+        {
+            $local:RelPath = "Assets"
+            $local:ErrMsgSuffix = ""
+        }
         try
         {
-            $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Assets `
+            $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
                                  -Parameters @{ filter = "Name ieq '$Asset'" })
             if (-not $local:Assets)
             {
-                $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Assets `
+                $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
                                      -Parameters @{ filter = "NetworkAddress ieq '$Asset'" })
             }
         }
@@ -79,16 +95,16 @@ function Resolve-SafeguardAssetId
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with ieq filter, trying with q parameter"
-            $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Assets `
+            $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
                                  -Parameters @{ q = $Asset })
         }
         if (-not $local:Assets)
         {
-            throw "Unable to find asset matching '$Asset'"
+            throw "Unable to find asset matching '$Asset'$($local:ErrMsgSuffix)"
         }
         if ($local:Assets.Count -ne 1)
         {
-            throw "Found $($local:Assets.Count) assets matching '$Asset'"
+            throw "Found $($local:Assets.Count) assets matching '$Asset'$($local:ErrMsgSuffix)"
         }
         $local:Assets[0].Id
     }
@@ -369,7 +385,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER AssetPartition
-An integer containing an ID  or a string containing the name of the asset partition
+An integer containing an ID or a string containing the name of the asset partition
 to find assets in.
 
 .PARAMETER AssetPartitionId
@@ -482,7 +498,7 @@ where this asset should be created.
 
 .PARAMETER AssetPartitionId
 An integer containing the asset partition ID where this asset should be created.
-(If specified, this will override the Partition parameter)
+(If specified, this will override the AssetPartition parameter)
 
 .PARAMETER NetworkAddress
 A string containing the network address for this asset.
@@ -779,6 +795,14 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to test the asset in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to test the asset in.
+(If specified, this will override the AssetPartition parameter)
+
 .PARAMETER AssetToTest
 An integer containing the ID of the asset to test connection to or a string containing the name.
 
@@ -804,6 +828,10 @@ function Test-SafeguardAsset
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$AssetToTest
     )
@@ -811,7 +839,8 @@ function Test-SafeguardAsset
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:AssetId = Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToTest
+    $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                          -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $AssetToTest)
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
         POST "Assets/$($local:AssetId)/TestConnection" -LongRunningTask
