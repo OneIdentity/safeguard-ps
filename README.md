@@ -484,6 +484,7 @@ update this list.
 - New-SafeguardDirectoryIdentityProvider
 - Remove-SafeguardDirectoryIdentityProvider
 - Edit-SafeguardDirectoryIdentityProvider
+- Sync-SafeguardDirectoryIdentityProvider
 - Get-SafeguardDirectoryIdentityProviderDomain
 - Get-SafeguardDirectoryIdentityProviderSchemaMapping
 - Set-SafeguardDirectoryIdentityProviderSchemaMapping
