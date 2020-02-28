@@ -1148,10 +1148,10 @@ function Edit-SafeguardAsset
 
 <#
 .SYNOPSIS
-synchronize an existing directory in Safeguard via the Web API.
+Synchronize an existing directory asset in Safeguard via the Web API.
 
 .DESCRIPTION
-synchronize an existing directory in Safeguard.
+Synchronize an existing directory asset in Safeguard.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -1161,6 +1161,14 @@ A string containing the bearer token to be used with Safeguard Web API.
 
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID  or a string containing the name of the asset partition
+to sync the directory asset in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to sync the directory asset in.
+(If specified, this will override the AssetPartition parameter)
 
 .PARAMETER DirectoryToSync
 An integer containing the ID of the directory to synchronize or a string containing the name.
@@ -1187,25 +1195,28 @@ function Sync-SafeguardDirectoryAsset
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true,Position=0)]
+        [Parameter(Mandatory=$false)]
         [object]$AssetPartition,
-        [Parameter(Mandatory=$true,Position=1)]
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
         [object]$DirectoryAssetToSync
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
-    $local:AssetPartitionId = (Resolve-SafeguardAssetPartitionId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetPartition)
-    $local:DirectoryAsset = Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryAssetToSync
+    $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                          -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $DirectoryAssetToSync)
+    $local:DirectoryAsset = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                 -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $local:AssetId)
 
     if(-not $local:DirectoryAsset.IsDirectory)
     {
         throw "Asset '$($local:DirectoryAsset.Name)' is not a directory asset"
     }
     Write-Host "Triggering sync for directory: $($local:DirectoryAsset.Name)"
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Assets/$local:AssetPartitionId/Synchronize?assetId=$($local:DirectoryAsset.Id)"
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Assets/$($local:DirectoryAsset.Id)/Synchronize"
 }
 
 <#
