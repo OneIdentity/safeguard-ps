@@ -131,10 +131,10 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardIdentityProvider -AccessToken $token -Appliance 10.5.32.54 -Insecure
+Get-SafeguardIdentityProvider
 
 .EXAMPLE
-Get-SafeguardIdentityProvider
+Get-SafeguardIdentityProvider test.example.domain
 #>
 function Get-SafeguardIdentityProvider
 {
@@ -181,7 +181,40 @@ function Get-SafeguardIdentityProvider
     }
 }
 
+<#
+.SYNOPSIS
+Get authentication providers configured in Safeguard via the Web API.
 
+.DESCRIPTION
+Get the authentication providers that have been configured in Safeguard.  Based on
+these authentication providers you can configure authentication in Safeguard.  All
+users can request access to passwords or sessions based on policy.  Depending
+on permissions (admin roles) some users can manage different aspects of Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ProviderToGet
+An integer containing an ID  or a string containing the name of the identity provider to return.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardAuthenticationProvider
+
+.EXAMPLE
+Get-SafeguardAuthenticationProvider subdomain.example.domain
+#>
 function Get-SafeguardAuthenticationProvider
 {
     [CmdletBinding()]
