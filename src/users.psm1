@@ -124,6 +124,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER ProviderToGet
 An integer containing an ID  or a string containing the name of the identity provider to return.
 
+.PARAMETER Fields
+An array of the identity provider property names to return.
+
 .INPUTS
 None.
 
@@ -131,10 +134,10 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardIdentityProvider -AccessToken $token -Appliance 10.5.32.54 -Insecure
+Get-SafeguardIdentityProvider
 
 .EXAMPLE
-Get-SafeguardIdentityProvider
+Get-SafeguardIdentityProvider test.example.domain
 #>
 function Get-SafeguardIdentityProvider
 {
@@ -147,39 +150,148 @@ function Get-SafeguardIdentityProvider
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [object]$ProviderToGet
+        [object]$ProviderToGet,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    $local:Parameters = @{}
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
     if ($PSBoundParameters.ContainsKey("ProviderToGet"))
     {
         if ($ProviderToGet -as [int])
         {
-            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "IdentityProviders/$ProviderToGet" -RetryVersion 2 -RetryUrl "IdentityProviders/$ProviderToGet"
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "IdentityProviders/$ProviderToGet" `
+                -RetryVersion 2 -RetryUrl "IdentityProviders/$ProviderToGet" -Parameters $local:Parameters
         }
         else
         {
             try
             {
+                $local:Parameters["filter"] = "Name ieq '$ProviderToGet'"
                 Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
-                    -Parameters @{ filter = "Name ieq '$ProviderToGet'" } -RetryVersion 2 -RetryUrl "IdentityProviders"
+                    -Parameters $local:Parameters -RetryVersion 2 -RetryUrl "IdentityProviders"
             }
             catch
             {
                 Write-Verbose $_
                 Write-Verbose "Caught exception with ieq filter, trying with q parameter"
+                $local:Parameters.Remove("filter")
+                $local:Parameters["q"] = $ProviderToGet
                 Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
-                    -Parameters @{ q = $ProviderToGet } -RetryVersion 2 -RetryUrl "IdentityProviders"
+                    -Parameters $local:Parameters -RetryVersion 2 -RetryUrl "IdentityProviders"
             }
         }
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders -RetryVersion 2 -RetryUrl "IdentityProviders"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
+            -RetryVersion 2 -RetryUrl "IdentityProviders" -Parameters $local:Parameters
     }
 }
+
+<#
+.SYNOPSIS
+Get authentication providers configured in Safeguard via the Web API.
+
+.DESCRIPTION
+Get the authentication providers that have been configured in Safeguard.  Based on
+these authentication providers you can configure authentication in Safeguard.  All
+users can request access to passwords or sessions based on policy.  Depending
+on permissions (admin roles) some users can manage different aspects of Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ProviderToGet
+An integer containing an ID  or a string containing the name of the identity provider to return.
+
+.PARAMETER Fields
+An array of the authentication provider property names to return.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardAuthenticationProvider
+
+.EXAMPLE
+Get-SafeguardAuthenticationProvider subdomain.example.domain
+#>
+function Get-SafeguardAuthenticationProvider
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$ProviderToGet,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Parameters = @{}
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
+    if ($PSBoundParameters.ContainsKey("ProviderToGet"))
+    {
+        if ($ProviderToGet -as [int])
+        {
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AuthenticationProviders/$ProviderToGet" `
+                -RetryVersion 2 -RetryUrl "IdentityProviders/$ProviderToGet" -Parameters $local:Parameters
+        }
+        else
+        {
+            try
+            {
+                $local:Parameters["filter"] = "Name ieq '$ProviderToGet'"
+                Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AuthenticationProviders `
+                    -Parameters $local:Parameters -RetryVersion 2 -RetryUrl "AuthenticationProviders"
+            }
+            catch
+            {
+                Write-Verbose $_
+                Write-Verbose "Caught exception with ieq filter, trying with q parameter"
+                $local:Parameters.Remove("filter")
+                $local:Parameters["q"] = $ProviderToGet
+                Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AuthenticationProviders `
+                    -Parameters $local:Parameters -RetryVersion 2 -RetryUrl "AuthenticationProviders"
+            }
+        }
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AuthenticationProviders `
+            -RetryVersion 2 -RetryUrl "IdentityProviders" -Parameters $local:Parameters
+    }
+}
+
 
 <#
 .SYNOPSIS
