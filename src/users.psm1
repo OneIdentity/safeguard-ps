@@ -158,31 +158,42 @@ function Get-SafeguardIdentityProvider
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    $local:Parameters = @{}
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
     if ($PSBoundParameters.ContainsKey("ProviderToGet"))
     {
         if ($ProviderToGet -as [int])
         {
-            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "IdentityProviders/$ProviderToGet" -RetryVersion 2 -RetryUrl "IdentityProviders/$ProviderToGet"
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "IdentityProviders/$ProviderToGet" `
+                -RetryVersion 2 -RetryUrl "IdentityProviders/$ProviderToGet" -Parameters $local:Parameters
         }
         else
         {
             try
             {
+                $local:Parameters["filter"] = "Name ieq '$ProviderToGet'"
                 Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
-                    -Parameters @{ filter = "Name ieq '$ProviderToGet'" } -RetryVersion 2 -RetryUrl "IdentityProviders"
+                    -Parameters $local:Parameters -RetryVersion 2 -RetryUrl "IdentityProviders"
             }
             catch
             {
                 Write-Verbose $_
                 Write-Verbose "Caught exception with ieq filter, trying with q parameter"
+                $local:Parameters.Remove("filter")
+                $local:Parameters["q"] = $ProviderToGet
                 Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
-                    -Parameters @{ q = $ProviderToGet } -RetryVersion 2 -RetryUrl "IdentityProviders"
+                    -Parameters $local:Parameters -RetryVersion 2 -RetryUrl "IdentityProviders"
             }
         }
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders -RetryVersion 2 -RetryUrl "IdentityProviders"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
+            -RetryVersion 2 -RetryUrl "IdentityProviders" -Parameters $local:Parameters
     }
 }
 
