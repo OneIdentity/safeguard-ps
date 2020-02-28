@@ -92,7 +92,7 @@ function Resolve-SafeguardAssetId
             if (-not $local:Assets)
             {
                 $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
-                                     -Parameters @{ filter = "NetworkAddress ieq '$Asset'" })
+                                     -Parameters @{ filter = "NetworkAddress ieq '$Asset'"; fields = "Id" })
             }
         }
         catch
@@ -100,7 +100,7 @@ function Resolve-SafeguardAssetId
             Write-Verbose $_
             Write-Verbose "Caught exception with ieq filter, trying with q parameter"
             $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
-                                 -Parameters @{ q = $Asset })
+                                 -Parameters @{ q = $Asset; fields = "Id" })
         }
         if (-not $local:Assets)
         {
@@ -117,7 +117,7 @@ function Resolve-SafeguardAssetId
         if ($AssetPartitionId)
         {
             $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
-                                 -Parameters @{ filter = "Id eq $Asset and AssetPartitionId eq $AssetPartitionId" })
+                                 -Parameters @{ filter = "Id eq $Asset and AssetPartitionId eq $AssetPartitionId"; fields = "Id" })
             if (-not $local:Assets)
             {
                 throw "Unable to find asset matching '$Asset'$($local:ErrMsgSuffix)"
@@ -137,6 +137,12 @@ function Resolve-SafeguardAssetAccountId
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
+        [object]$AssetPartition = $null,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$false)]
+        [object]$Asset = $null,
+        [Parameter(Mandatory=$false)]
         [int]$AssetId,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$Account
@@ -150,40 +156,71 @@ function Resolve-SafeguardAssetAccountId
         $Account = $Account.Id
     }
 
+    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
+    if ($AssetPartitionId)
+    {
+        $local:ErrMsgSuffix = " in asset partition (Id=$AssetPartitionId)"
+    }
+    else
+    {
+        $local:ErrMsgSuffix = ""
+    }
+
+    if (-not $AssetId -and ($Asset))
+    {
+        $AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartitionId $AssetPartitionId $Asset)
+    }
+    if ($AssetId)
+    {
+        $local:RelPath = "Assets/$AssetId/Accounts"
+        $local:ErrMsgSuffix = " on asset (Id=$AssetId)$($local:ErrMsgSuffix)"
+    }
+    elseif ($AssetPartitionId)
+    {
+        $local:RelPath = "AssetPartitions/$AssetPartitionId/Accounts"
+    }
+    else
+    {
+        $local:RelPath = "AssetAccounts"
+    }
+
+
     if (-not ($Account -as [int]))
     {
-        if ($PSBoundParameters.ContainsKey("AssetId"))
-        {
-            $local:RelativeUrl = "Assets/$AssetId/Accounts"
-        }
-        else
-        {
-            $local:RelativeUrl = "AssetAccounts"
-        }
         try
         {
-            $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
-                                   -Parameters @{ filter = "Name ieq '$Account'" })
+            $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
+                                   -Parameters @{ filter = "Name ieq '$Account'"; fields = "Id" })
         }
         catch
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with ieq filter, trying with q parameter"
-            $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
-                                   -Parameters @{ q = $Account })
+            $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
+                                   -Parameters @{ q = $Account; fields = "Id" })
         }
         if (-not $local:Accounts)
         {
-            throw "Unable to find account matching '$Account'"
+            throw "Unable to find account matching '$Account'$local:ErrMsgSuffix"
         }
         if ($local:Accounts.Count -ne 1)
         {
-            throw "Found $($local:Accounts.Count) accounts matching '$Account'"
+            throw "Found $($local:Accounts.Count) accounts matching '$Account'$local:ErrMsgSuffix"
         }
         $local:Accounts[0].Id
     }
     else
     {
+        if ($AssetPartitionId)
+        {
+            $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
+                                 -Parameters @{ filter = "Id eq $Asset and AssetPartitionId eq $AssetPartitionId"; fields = "Id" })
+            if (-not $local:Accounts)
+            {
+                throw "Unable to find account matching '$Account'$($local:ErrMsgSuffix)"
+            }
+        }
         $Account
     }
 }
@@ -384,7 +421,7 @@ function Get-SafeguardAsset
 
     if ($PSBoundParameters.ContainsKey("AssetToGet"))
     {
-        $local:AssetId = Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartitionId $AssetPartitionId $AssetToGet
+        $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartitionId $AssetPartitionId $AssetToGet)
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Assets/$($local:AssetId)" -Parameters $local:Parameters
     }
     else
@@ -1170,7 +1207,7 @@ to sync the directory asset in.
 An integer containing the asset partition ID to sync the directory asset in.
 (If specified, this will override the AssetPartition parameter)
 
-.PARAMETER DirectoryToSync
+.PARAMETER DirectoryAssetToSync
 An integer containing the ID of the directory to synchronize or a string containing the name.
 
 .INPUTS
@@ -1183,7 +1220,7 @@ JSON response from Safeguard Web API.
 Sync-SafeguardDirectoryAsset -AccessToken $token -Appliance 10.5.32.54 -Insecure -1 5
 
 .EXAMPLE
-Sync-SafeguardDirectoryAsset fooPartition internal.domain.corp
+Sync-SafeguardDirectoryAsset -AssetPartition fooPartition internal.domain.corp
 #>
 function Sync-SafeguardDirectoryAsset
 {
@@ -1237,6 +1274,14 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to get asset accounts from.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to get asset accounts from.
+(If specified, this will override the AssetPartition parameter)
+
 .PARAMETER AssetToGet
 An integer containing the ID of the asset to get accounts from or a string containing the name.
 
@@ -1268,6 +1313,10 @@ function Get-SafeguardAssetAccount
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$false,Position=0)]
         [object]$AssetToGet,
         [Parameter(Mandatory=$false,Position=1)]
@@ -1285,30 +1334,31 @@ function Get-SafeguardAssetAccount
         $local:Parameters = @{ fields = ($Fields -join ",")}
     }
 
-    if ($PSBoundParameters.ContainsKey("AssetToGet"))
+    if ($PSBoundParameters.ContainsKey("AccountToGet"))
     {
-        $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToGet)
-        if ($PSBoundParameters.ContainsKey("AccountToGet"))
-        {
-            $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToGet)
-            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts/$($local:AccountId)" -Parameters $local:Parameters
-        }
-        else
-        {
-            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Assets/$($local:AssetId)/Accounts" -Parameters $local:Parameters
-        }
+        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToGet -Account $AccountToGet)
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts/$($local:AccountId)" -Parameters $local:Parameters
+    }
+    elseif ($PSBoundParameters.ContainsKey("AssetToGet"))
+    {
+        $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                              -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToGet)
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Assets/$($local:AssetId)/Accounts" -Parameters $local:Parameters
     }
     else
     {
-        if ($PSBoundParameters.ContainsKey("AccountToGet"))
+        $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                                -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
+        if ($AssetPartitionId)
         {
-            $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToGet)
-            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts/$($local:AccountId)" -Parameters $local:Parameters
+            $local:RelPath = "AssetPartitions/$AssetPartitionId/Accounts"
         }
         else
         {
-            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts" -Parameters $local:Parameters
+            $local:RelPath = "Accounts"
         }
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" -Parameters $local:Parameters
     }
 }
 

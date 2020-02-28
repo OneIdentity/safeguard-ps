@@ -26,14 +26,14 @@ function Resolve-SafeguardAssetPartitionId
         try
         {
             $local:Partitions = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AssetPartitions `
-                                 -Parameters @{ filter = "Name ieq '$AssetPartition'" })
+                                 -Parameters @{ filter = "Name ieq '$AssetPartition'"; fields = "Id" })
         }
         catch
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with ieq filter, trying with q parameter"
             $local:Partitions = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AssetPartitions `
-                                     -Parameters @{ q = $AssetPartition })
+                                     -Parameters @{ q = $AssetPartition; fields = "Id" })
         }
         if (-not $local:Partitions)
         {
