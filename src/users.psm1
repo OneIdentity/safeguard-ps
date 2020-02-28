@@ -181,6 +181,53 @@ function Get-SafeguardIdentityProvider
     }
 }
 
+
+function Get-SafeguardAuthenticationProvider
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$ProviderToGet
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($PSBoundParameters.ContainsKey("ProviderToGet"))
+    {
+        if ($ProviderToGet -as [int])
+        {
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AuthenticationProviders/$ProviderToGet" -RetryVersion 2 -RetryUrl "IdentityProviders/$ProviderToGet"
+        }
+        else
+        {
+            try
+            {
+                Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AuthenticationProviders `
+                    -Parameters @{ filter = "Name ieq '$ProviderToGet'" } -RetryVersion 2 -RetryUrl "AuthenticationProviders"
+            }
+            catch
+            {
+                Write-Verbose $_
+                Write-Verbose "Caught exception with ieq filter, trying with q parameter"
+                Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AuthenticationProviders `
+                    -Parameters @{ q = $ProviderToGet } -RetryVersion 2 -RetryUrl "AuthenticationProviders"
+            }
+        }
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AuthenticationProviders -RetryVersion 2 -RetryUrl "IdentityProviders"
+    }
+}
+
+
 <#
 .SYNOPSIS
 Create new Starling 2FA secondary authentication provider in Safeguard via the Web API.

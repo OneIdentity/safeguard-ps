@@ -164,7 +164,7 @@ FunctionsToExport = @(
     'Close-SafeguardAccessRequest','Approve-SafeguardAccessRequest','Deny-SafeguardAccessRequest',
     'Get-SafeguardAccessRequestActionLog','Assert-SafeguardAccessRequest',
     # users.psm1
-    'Get-SafeguardIdentityProvider','New-SafeguardStarling2faAuthentication',
+    'Get-SafeguardIdentityProvider','Get-SafeguardAuthenticationProvider','New-SafeguardStarling2faAuthentication',
     'Get-SafeguardUser','Find-SafeguardUser','New-SafeguardUser','Remove-SafeguardUser','Set-SafeguardUserPassword',
     'Edit-SafeguardUser','Enable-SafeguardUser','Disable-SafeguardUser','Rename-SafeguardUser',
     # assets.psm1

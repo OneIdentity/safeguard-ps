@@ -434,6 +434,7 @@ update this list.
 ### Users
 
 - Get-SafeguardIdentityProvider
+- Get-SafeguardAuthenticationProvider
 - New-SafeguardStarling2faAuthentication
 - Get-SafeguardUser
 - Find-SafeguardUser
