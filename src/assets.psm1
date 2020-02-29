@@ -1356,7 +1356,7 @@ function Get-SafeguardAssetAccount
         }
         else
         {
-            $local:RelPath = "Accounts"
+            $local:RelPath = "AssetAccounts"
         }
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" -Parameters $local:Parameters
     }
@@ -1482,6 +1482,14 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to create the new asset account in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to create the new asset account in.
+(If specified, this will override the AssetPartition parameter)
+
 .PARAMETER ParentAsset
 An integer containing the ID of the asset to get accounts from or a string containing the name.
 
@@ -1516,6 +1524,10 @@ function New-SafeguardAssetAccount
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ParentAsset,
         [Parameter(Mandatory=$true,Position=1)]
@@ -1531,7 +1543,8 @@ function New-SafeguardAssetAccount
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ParentAsset)
+    $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                          -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $ParentAsset)
 
     $local:Body = @{
         "AssetId" = $local:AssetId;
