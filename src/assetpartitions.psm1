@@ -26,14 +26,14 @@ function Resolve-SafeguardAssetPartitionId
         try
         {
             $local:Partitions = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AssetPartitions `
-                                 -Parameters @{ filter = "Name ieq '$AssetPartition'" })
+                                 -Parameters @{ filter = "Name ieq '$AssetPartition'"; fields = "Id" })
         }
         catch
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with ieq filter, trying with q parameter"
             $local:Partitions = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AssetPartitions `
-                                     -Parameters @{ q = $AssetPartition })
+                                     -Parameters @{ q = $AssetPartition; fields = "Id" })
         }
         if (-not $local:Partitions)
         {
@@ -374,4 +374,70 @@ function Edit-SafeguardAssetPartition
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AssetPartitions/$($AssetPartitionObject.Id)" -Body $AssetPartitionObject
+}
+
+function Enter-SafeguardAssetPartition
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$AssetPartitionToEnter
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not $SafeguardSession)
+    {
+        throw "This cmdlet requires that you log in with the Connect-Safeguard cmdlet"
+    }
+
+    $local:Partition = (Get-SafeguardAssetPartition -Appliance $AccessToken -AccessToken $AccessToken -Insecure:$Insecure $AssetPartitionToEnter)
+    if ($local:Partition)
+    {
+        $SafeguardSession["AssetPartitionId"] = $local:Partition.Id
+        $local:Partition
+    }
+}
+
+function Exit-SafeguardAssetPartition
+{
+    [CmdletBinding()]
+    Param(
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not $SafeguardSession)
+    {
+        throw "This cmdlet requires that you log in with the Connect-Safeguard cmdlet"
+    }
+
+    if (-not $SafeguardSession["AssetPartitionId"])
+    {
+        throw "You have not entered an asset partition"
+    }
+
+    $SafeguardSession["AssetPartitionId"] = $null
+}
+
+function Get-SafeguardCurrentAssetPartition
+{
+    [CmdletBinding()]
+    Param(
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not $SafeguardSession)
+    {
+        throw "This cmdlet requires that you log in with the Connect-Safeguard cmdlet"
+    }
+
+    if ($SafeguardSession["AssetPartitionId"])
+    {
+        Get-SafeguardAssetPartition $SafeguardSession["AssetPartitionId"]
+    }
 }

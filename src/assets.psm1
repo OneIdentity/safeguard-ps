@@ -1,4 +1,49 @@
 # Helper
+function Resolve-AssetPartitionIdFromSafeguardSession
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition = $null,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$false)]
+        [switch]$UseDefault = $false
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not $AssetPartitionId -and $AssetPartition)
+    {
+        Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
+        $AssetPartitionId = (Resolve-SafeguardAssetPartitionId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetPartition)
+    }
+
+    if (-not $AssetPartitionId)
+    {
+        if ($SafeguardSession -and $SafeguardSession["AssetPartitionId"])
+        {
+            $AssetPartitionId = $SafeguardSession["AssetPartitionId"]
+        }
+        else
+        {
+            if ($UseDefault)
+            {
+                # Default behavior is Macrocosm
+                $AssetPartitionId = -1
+            }
+        }
+    }
+
+    $AssetPartitionId
+}
 function Resolve-SafeguardAssetId
 {
     [CmdletBinding()]
@@ -9,6 +54,10 @@ function Resolve-SafeguardAssetId
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition = $null,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$Asset
     )
@@ -21,37 +70,59 @@ function Resolve-SafeguardAssetId
         $Asset = $Asset.Id
     }
 
+    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
+    if ($AssetPartitionId)
+    {
+        $local:RelPath = "AssetPartitions/$AssetPartitionId/Assets"
+        $local:ErrMsgSuffix = " in asset partition (Id=$AssetPartitionId)"
+    }
+    else
+    {
+        $local:RelPath = "Assets"
+        $local:ErrMsgSuffix = ""
+    }
+
     if (-not ($Asset -as [int]))
     {
         try
         {
-            $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Assets `
+            $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
                                  -Parameters @{ filter = "Name ieq '$Asset'" })
             if (-not $local:Assets)
             {
-                $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Assets `
-                                     -Parameters @{ filter = "NetworkAddress ieq '$Asset'" })
+                $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
+                                     -Parameters @{ filter = "NetworkAddress ieq '$Asset'"; fields = "Id" })
             }
         }
         catch
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with ieq filter, trying with q parameter"
-            $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Assets `
-                                 -Parameters @{ q = $Asset })
+            $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
+                                 -Parameters @{ q = $Asset; fields = "Id" })
         }
         if (-not $local:Assets)
         {
-            throw "Unable to find asset matching '$Asset'"
+            throw "Unable to find asset matching '$Asset'$($local:ErrMsgSuffix)"
         }
         if ($local:Assets.Count -ne 1)
         {
-            throw "Found $($local:Assets.Count) assets matching '$Asset'"
+            throw "Found $($local:Assets.Count) assets matching '$Asset'$($local:ErrMsgSuffix)"
         }
         $local:Assets[0].Id
     }
     else
     {
+        if ($AssetPartitionId)
+        {
+            $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
+                                 -Parameters @{ filter = "Id eq $Asset and AssetPartitionId eq $AssetPartitionId"; fields = "Id" })
+            if (-not $local:Assets)
+            {
+                throw "Unable to find asset matching '$Asset'$($local:ErrMsgSuffix)"
+            }
+        }
         $Asset
     }
 }
@@ -66,7 +137,13 @@ function Resolve-SafeguardAssetAccountId
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
-        [int]$AssetId,
+        [object]$AssetPartition = $null,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$false)]
+        [object]$Asset = $null,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetId = $null,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$Account
     )
@@ -79,40 +156,71 @@ function Resolve-SafeguardAssetAccountId
         $Account = $Account.Id
     }
 
+    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
+    if ($AssetPartitionId)
+    {
+        $local:ErrMsgSuffix = " in asset partition (Id=$AssetPartitionId)"
+    }
+    else
+    {
+        $local:ErrMsgSuffix = ""
+    }
+
+    if (-not $AssetId -and ($Asset))
+    {
+        $AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartitionId $AssetPartitionId $Asset)
+    }
+    if ($AssetId)
+    {
+        $local:RelPath = "Assets/$AssetId/Accounts"
+        $local:ErrMsgSuffix = " on asset (Id=$AssetId)$($local:ErrMsgSuffix)"
+    }
+    elseif ($AssetPartitionId)
+    {
+        $local:RelPath = "AssetPartitions/$AssetPartitionId/Accounts"
+    }
+    else
+    {
+        $local:RelPath = "AssetAccounts"
+    }
+
+
     if (-not ($Account -as [int]))
     {
-        if ($PSBoundParameters.ContainsKey("AssetId"))
-        {
-            $local:RelativeUrl = "Assets/$AssetId/Accounts"
-        }
-        else
-        {
-            $local:RelativeUrl = "AssetAccounts"
-        }
         try
         {
-            $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
-                                   -Parameters @{ filter = "Name ieq '$Account'" })
+            $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
+                                   -Parameters @{ filter = "Name ieq '$Account'"; fields = "Id" })
         }
         catch
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with ieq filter, trying with q parameter"
-            $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
-                                   -Parameters @{ q = $Account })
+            $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
+                                   -Parameters @{ q = $Account; fields = "Id" })
         }
         if (-not $local:Accounts)
         {
-            throw "Unable to find account matching '$Account'"
+            throw "Unable to find account matching '$Account'$local:ErrMsgSuffix"
         }
         if ($local:Accounts.Count -ne 1)
         {
-            throw "Found $($local:Accounts.Count) accounts matching '$Account'"
+            throw "Found $($local:Accounts.Count) accounts matching '$Account'$local:ErrMsgSuffix"
         }
         $local:Accounts[0].Id
     }
     else
     {
+        if ($AssetPartitionId)
+        {
+            $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
+                                 -Parameters @{ filter = "Id eq $Account and AssetPartitionId eq $AssetPartitionId"; fields = "Id" })
+            if (-not $local:Accounts)
+            {
+                throw "Unable to find account matching '$Account'$($local:ErrMsgSuffix)"
+            }
+        }
         $Account
     }
 }
@@ -136,6 +244,14 @@ A string containing the bearer token to be used with Safeguard Web API.
 
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to run SSH host key discovery in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to run SSH host key discovery in.
+(If specified, this will override the AssetPartition parameter)
 
 .PARAMETER Asset
 An integer containing the ID of the asset or a string containing the name.
@@ -165,6 +281,10 @@ function Invoke-SafeguardAssetSshHostKeyDiscovery
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$Asset,
         [Parameter(Mandatory=$false)]
@@ -177,7 +297,8 @@ function Invoke-SafeguardAssetSshHostKeyDiscovery
 
     if (($Asset -as [int]) -or ($Asset -is [string]))
     {
-        $local:AssetObj = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Asset)
+        $local:AssetObj = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                               -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $Asset)
     }
     elseif ($Asset -is [array])
     {
@@ -232,6 +353,14 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to get assets from.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to get assets from.
+(If specified, this will override the AssetPartition parameter)
+
 .PARAMETER AssetToGet
 An integer containing the ID of the asset to get or a string containing the name.
 
@@ -260,6 +389,10 @@ function Get-SafeguardAsset
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$false,Position=0)]
         [object]$AssetToGet,
         [Parameter(Mandatory=$false)]
@@ -275,14 +408,25 @@ function Get-SafeguardAsset
         $local:Parameters = @{ fields = ($Fields -join ",")}
     }
 
+    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
+    if ($AssetPartitionId)
+    {
+        $local:RelPath = "AssetPartitions/$AssetPartitionId/Assets"
+    }
+    else
+    {
+        $local:RelPath = "Assets"
+    }
+
     if ($PSBoundParameters.ContainsKey("AssetToGet"))
     {
-        $local:AssetId = Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToGet
+        $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartitionId $AssetPartitionId $AssetToGet)
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Assets/$($local:AssetId)" -Parameters $local:Parameters
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Assets" -Parameters $local:Parameters
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" -Parameters $local:Parameters
     }
 }
 
@@ -303,11 +447,22 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to find assets in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to find assets in.
+(If specified, this will override the AssetPartition parameter)
+
 .PARAMETER SearchString
 A string to search for in the asset.
 
 .PARAMETER QueryFilter
 A string to pass to the -filter query parameter in the Safeguard Web API.
+
+.PARAMETER Fields
+An array of the asset property names to return.
 
 .INPUTS
 None.
@@ -334,25 +489,47 @@ function Find-SafeguardAsset
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$true,Position=0,ParameterSetName="Search")]
         [string]$SearchString,
         [Parameter(Mandatory=$true,Position=0,ParameterSetName="Query")]
-        [string]$QueryFilter
+        [string]$QueryFilter,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($PSCmdlet.ParameterSetName -eq "Search")
+    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
+    if ($AssetPartitionId)
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Assets" `
-            -Parameters @{ q = $SearchString }
+        $local:RelPath = "AssetPartitions/$AssetPartitionId/Assets"
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Assets" `
-            -Parameters @{ filter = $QueryFilter }
+        $local:RelPath = "Assets"
     }
+
+    if ($PSCmdlet.ParameterSetName -eq "Search")
+    {
+        $local:Parameters = @{ q = $SearchString }
+    }
+    else
+    {
+        $local:Parameters = @{ filter = $QueryFilter }
+    }
+
+    if ($Fields)
+    {
+        $local:Parameters["fields"] = ($Fields -join ",")
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" -Parameters $local:Parameters
 }
 
 <#
@@ -384,7 +561,7 @@ where this asset should be created.
 
 .PARAMETER AssetPartitionId
 An integer containing the asset partition ID where this asset should be created.
-(If specified, this will override the Partition parameter)
+(If specified, this will override the AssetPartition parameter)
 
 .PARAMETER NetworkAddress
 A string containing the network address for this asset.
@@ -461,7 +638,7 @@ function New-SafeguardAsset
         [Parameter(Mandatory=$false)]
         [object]$AssetPartition,
         [Parameter(Mandatory=$false)]
-        [int]$AssetPartitionId = -1,
+        [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$true,Position=1)]
         [object]$Platform,
         [Parameter(Mandatory=$false)]
@@ -629,14 +806,8 @@ function New-SafeguardAsset
         }
     }
 
-    if (-not $PSBoundParameters.ContainsKey("AssetPartitionId"))
-    {
-        if ($PSBoundParameters.ContainsKey("AssetPartition"))
-        {
-            Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
-            $AssetPartitionId = (Resolve-SafeguardAssetPartitionId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetPartition)
-        }
-    }
+    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -UseDefault)
 
     $local:Body = @{
         Name = "$DisplayName";
@@ -687,6 +858,14 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to test the asset in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to test the asset in.
+(If specified, this will override the AssetPartition parameter)
+
 .PARAMETER AssetToTest
 An integer containing the ID of the asset to test connection to or a string containing the name.
 
@@ -712,6 +891,10 @@ function Test-SafeguardAsset
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$AssetToTest
     )
@@ -719,7 +902,8 @@ function Test-SafeguardAsset
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:AssetId = Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToTest
+    $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                          -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $AssetToTest)
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
         POST "Assets/$($local:AssetId)/TestConnection" -LongRunningTask
@@ -741,6 +925,14 @@ A string containing the bearer token to be used with Safeguard Web API.
 
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID  or a string containing the name of the asset partition
+to delete an asset form.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to delete an asset form.
+(If specified, this will override the AssetPartition parameter)
 
 .PARAMETER AssetToDelete
 An integer containing the ID of the asset to remove or a string containing the name.
@@ -767,6 +959,10 @@ function Remove-SafeguardAsset
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$AssetToDelete
     )
@@ -774,7 +970,9 @@ function Remove-SafeguardAsset
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:AssetId = Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToDelete
+    $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                          -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $AssetToDelete)
+
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Assets/$($local:AssetId)"
 }
 
@@ -793,6 +991,14 @@ A string containing the bearer token to be used with Safeguard Web API.
 
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID  or a string containing the name of the asset partition
+to edit an asset in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to edit an asset in.
+(If specified, this will override the AssetPartition parameter)
 
 .PARAMETER AssetToEdit
 An integer containing the ID of the asset to edit or a string containing the name.
@@ -869,6 +1075,10 @@ function Edit-SafeguardAsset
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false,Position=0)]
         [object]$AssetToEdit,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
@@ -920,12 +1130,14 @@ function Edit-SafeguardAsset
         {
             $AssetToEdit = (Read-Host "AssetToEdit")
         }
-        $local:AssetId = Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToEdit
+        $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $AssetToEdit)
     }
 
     if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
     {
-        $AssetObject = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:AssetId)
+        $AssetObject = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $local:AssetId)
 
         # Connection Properties
         if (-not $AssetObject.ConnectionProperties) { $AssetObject.ConnectionProperties = @{} }
@@ -962,16 +1174,22 @@ function Edit-SafeguardAsset
             $AssetObject.PlatformId = $local:PlatformId
         }
     }
+    else
+    {
+        # Make sure it is actually in the partition (just in case caller has called Enter-SafeguardAssetPartition)
+        $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $AssetObject.Id)
+    }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Assets/$($AssetObject.Id)" -Body $AssetObject
 }
 
 <#
 .SYNOPSIS
-synchronize an existing directory in Safeguard via the Web API.
+Synchronize an existing directory asset in Safeguard via the Web API.
 
 .DESCRIPTION
-synchronize an existing directory in Safeguard.
+Synchronize an existing directory asset in Safeguard.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -982,7 +1200,15 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
-.PARAMETER DirectoryToSync
+.PARAMETER AssetPartition
+An integer containing an ID  or a string containing the name of the asset partition
+to sync the directory asset in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to sync the directory asset in.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER DirectoryAssetToSync
 An integer containing the ID of the directory to synchronize or a string containing the name.
 
 .INPUTS
@@ -995,7 +1221,7 @@ JSON response from Safeguard Web API.
 Sync-SafeguardDirectoryAsset -AccessToken $token -Appliance 10.5.32.54 -Insecure -1 5
 
 .EXAMPLE
-Sync-SafeguardDirectoryAsset fooPartition internal.domain.corp
+Sync-SafeguardDirectoryAsset -AssetPartition fooPartition internal.domain.corp
 #>
 function Sync-SafeguardDirectoryAsset
 {
@@ -1007,25 +1233,28 @@ function Sync-SafeguardDirectoryAsset
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true,Position=0)]
+        [Parameter(Mandatory=$false)]
         [object]$AssetPartition,
-        [Parameter(Mandatory=$true,Position=1)]
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
         [object]$DirectoryAssetToSync
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
-    $local:AssetPartitionId = (Resolve-SafeguardAssetPartitionId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetPartition)
-    $local:DirectoryAsset = Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryAssetToSync
+    $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                          -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $DirectoryAssetToSync)
+    $local:DirectoryAsset = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                 -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $local:AssetId)
 
     if(-not $local:DirectoryAsset.IsDirectory)
     {
         throw "Asset '$($local:DirectoryAsset.Name)' is not a directory asset"
     }
     Write-Host "Triggering sync for directory: $($local:DirectoryAsset.Name)"
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Assets/$local:AssetPartitionId/Synchronize?assetId=$($local:DirectoryAsset.Id)"
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Assets/$($local:DirectoryAsset.Id)/Synchronize"
 }
 
 <#
@@ -1045,6 +1274,14 @@ A string containing the bearer token to be used with Safeguard Web API.
 
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to get asset accounts from.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to get asset accounts from.
+(If specified, this will override the AssetPartition parameter)
 
 .PARAMETER AssetToGet
 An integer containing the ID of the asset to get accounts from or a string containing the name.
@@ -1077,6 +1314,10 @@ function Get-SafeguardAssetAccount
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$false,Position=0)]
         [object]$AssetToGet,
         [Parameter(Mandatory=$false,Position=1)]
@@ -1094,30 +1335,31 @@ function Get-SafeguardAssetAccount
         $local:Parameters = @{ fields = ($Fields -join ",")}
     }
 
-    if ($PSBoundParameters.ContainsKey("AssetToGet"))
+    if ($PSBoundParameters.ContainsKey("AccountToGet"))
     {
-        $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToGet)
-        if ($PSBoundParameters.ContainsKey("AccountToGet"))
-        {
-            $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToGet)
-            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts/$($local:AccountId)" -Parameters $local:Parameters
-        }
-        else
-        {
-            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Assets/$($local:AssetId)/Accounts" -Parameters $local:Parameters
-        }
+        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToGet -Account $AccountToGet)
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts/$($local:AccountId)" -Parameters $local:Parameters
+    }
+    elseif ($PSBoundParameters.ContainsKey("AssetToGet"))
+    {
+        $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                              -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToGet)
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Assets/$($local:AssetId)/Accounts" -Parameters $local:Parameters
     }
     else
     {
-        if ($PSBoundParameters.ContainsKey("AccountToGet"))
+        $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                                -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
+        if ($AssetPartitionId)
         {
-            $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToGet)
-            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts/$($local:AccountId)" -Parameters $local:Parameters
+            $local:RelPath = "AssetPartitions/$AssetPartitionId/Accounts"
         }
         else
         {
-            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts" -Parameters $local:Parameters
+            $local:RelPath = "AssetAccounts"
         }
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" -Parameters $local:Parameters
     }
 }
 
@@ -1138,11 +1380,22 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to find asset accounts in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to find asset accounts in.
+(If specified, this will override the AssetPartition parameter)
+
 .PARAMETER SearchString
 A string to search for in the asset account.
 
 .PARAMETER QueryFilter
 A string to pass to the -filter query parameter in the Safeguard Web API.
+
+.PARAMETER Fields
+An array of the account property names to return.
 
 .INPUTS
 None.
@@ -1169,25 +1422,47 @@ function Find-SafeguardAssetAccount
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$true,Position=0,ParameterSetName="Search")]
         [string]$SearchString,
         [Parameter(Mandatory=$true,Position=0,ParameterSetName="Query")]
-        [string]$QueryFilter
+        [string]$QueryFilter,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($PSCmdlet.ParameterSetName -eq "Search")
+    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
+    if ($AssetPartitionId)
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts" `
-            -Parameters @{ q = $SearchString }
+        $local:RelPath = "AssetPartitions/$AssetPartitionId/Accounts"
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts" `
-            -Parameters @{ filter = $QueryFilter }
+        $local:RelPath = "AssetAccounts"
     }
+
+    if ($PSCmdlet.ParameterSetName -eq "Search")
+    {
+        $local:Parameters = @{ q = $SearchString }
+    }
+    else
+    {
+        $local:Parameters = @{ filter = $QueryFilter }
+    }
+
+    if ($Fields)
+    {
+        $local:Parameters["fields"] = ($Fields -join ",")
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" -Parameters $local:Parameters
 }
 
 <#
@@ -1207,6 +1482,14 @@ A string containing the bearer token to be used with Safeguard Web API.
 
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to create the new asset account in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to create the new asset account in.
+(If specified, this will override the AssetPartition parameter)
 
 .PARAMETER ParentAsset
 An integer containing the ID of the asset to get accounts from or a string containing the name.
@@ -1242,6 +1525,10 @@ function New-SafeguardAssetAccount
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ParentAsset,
         [Parameter(Mandatory=$true,Position=1)]
@@ -1257,7 +1544,8 @@ function New-SafeguardAssetAccount
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ParentAsset)
+    $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                          -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $ParentAsset)
 
     $local:Body = @{
         "AssetId" = $local:AssetId;
@@ -1289,6 +1577,14 @@ A string containing the bearer token to be used with Safeguard Web API.
 
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to edit the asset account in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to edit the asset account in.
+(If specified, this will override the AssetPartition parameter)
 
 .PARAMETER AssetToEdit
 An integer containing the ID of the asset to edit the account of or a string containing the name.
@@ -1330,6 +1626,10 @@ function Edit-SafeguardAssetAccount
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false,Position=0)]
         [object]$AssetToEdit,
         [Parameter(ParameterSetName="Attributes",Mandatory=$true,Position=1)]
@@ -1352,23 +1652,23 @@ function Edit-SafeguardAssetAccount
 
     if ($PsCmdlet.ParameterSetName -eq "Attributes")
     {
-        if ($PSBoundParameters.ContainsKey("AssetToEdit"))
-        {
-            $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToEdit)
-            $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToEdit)
-        }
-        else
-        {
-            $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToEdit)
-        }
+        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToEdit -Account $AccountToEdit)
     }
 
     if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
     {
-        $AccountObject = (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AccountToGet $local:AccountId)
+        $AccountObject = (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                              -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -AssetToGet $AssetToEdit -AccountToGet $local:AccountId)
 
         if ($PSBoundParameters.ContainsKey("Description")) { $AccountObject.Description = $Description }
         if ($PSBoundParameters.ContainsKey("DomainName")) { $AccountObject.DomainName = $DomainName }
+    }
+    else
+    {
+        # Make sure it is actually in the partition (just in case caller has called Enter-SafeguardAssetPartition)
+        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                              -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId  $AccountObject.Id)
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AssetAccounts/$($AccountObject.Id)" -Body $AccountObject
@@ -1391,6 +1691,14 @@ A string containing the bearer token to be used with Safeguard Web API.
 
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to set the asset account password in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to set the asset account password in.
+(If specified, this will override the AssetPartition parameter)
 
 .PARAMETER AssetToSet
 An integer containing the ID of the asset to set account password on or a string containing the name.
@@ -1423,6 +1731,10 @@ function Set-SafeguardAssetAccountPassword
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$false,Position=0)]
         [object]$AssetToSet,
         [Parameter(Mandatory=$true,Position=1)]
@@ -1434,15 +1746,8 @@ function Set-SafeguardAssetAccountPassword
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($PSBoundParameters.ContainsKey("AssetToSet"))
-    {
-        $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToSet)
-        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToSet)
-    }
-    else
-    {
-        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToSet)
-    }
+    $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                           -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToSet -Account $AccountToSet)
     if (-not $NewPassword)
     {
         $NewPassword = (Read-Host -AsSecureString "NewPassword")
@@ -1469,6 +1774,14 @@ A string containing the bearer token to be used with Safeguard Web API.
 
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to generate the asset account password in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to generate the asset account password in.
+(If specified, this will override the AssetPartition parameter)
 
 .PARAMETER AssetToUse
 An integer containing the ID of the asset to generate password for or a string containing the name.
@@ -1498,6 +1811,10 @@ function New-SafeguardAssetAccountRandomPassword
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$false,Position=0)]
         [object]$AssetToUse,
         [Parameter(Mandatory=$true,Position=1)]
@@ -1507,15 +1824,8 @@ function New-SafeguardAssetAccountRandomPassword
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($PSBoundParameters.ContainsKey("AssetToUse"))
-    {
-        $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToUse)
-        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
-    }
-    else
-    {
-        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToUse)
-    }
+    $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                           -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToUse -Account $AccountToUse)
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts/$($local:AccountId)/GeneratePassword"
 }
 
@@ -1535,6 +1845,14 @@ A string containing the bearer token to be used with Safeguard Web API.
 
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to check the asset account password in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to check the asset account password in.
+(If specified, this will override the AssetPartition parameter)
 
 .PARAMETER AssetToUse
 An integer containing the ID of the asset to check password for or a string containing the name.
@@ -1564,6 +1882,10 @@ function Test-SafeguardAssetAccountPassword
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$false,Position=0)]
         [object]$AssetToUse,
         [Parameter(Mandatory=$true,Position=1)]
@@ -1573,15 +1895,8 @@ function Test-SafeguardAssetAccountPassword
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($PSBoundParameters.ContainsKey("AssetToUse"))
-    {
-        $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToUse)
-        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
-    }
-    else
-    {
-        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToUse)
-    }
+    $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                           -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToUse -Account $AccountToUse)
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts/$($local:AccountId)/CheckPassword" -LongRunningTask
 }
 
@@ -1601,6 +1916,14 @@ A string containing the bearer token to be used with Safeguard Web API.
 
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to change the asset account password in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to change the asset account password in.
+(If specified, this will override the AssetPartition parameter)
 
 .PARAMETER AssetToUse
 An integer containing the ID of the asset to change password for or a string containing the name.
@@ -1630,6 +1953,10 @@ function Invoke-SafeguardAssetAccountPasswordChange
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$false,Position=0)]
         [object]$AssetToUse,
         [Parameter(Mandatory=$true,Position=1)]
@@ -1639,15 +1966,8 @@ function Invoke-SafeguardAssetAccountPasswordChange
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($PSBoundParameters.ContainsKey("AssetToUse"))
-    {
-        $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToUse)
-        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
-    }
-    else
-    {
-        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToUse)
-    }
+    $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                           -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToUse -Account $AccountToUse)
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts/$($local:AccountId)/ChangePassword" -LongRunningTask
 }
 
@@ -1667,6 +1987,14 @@ A string containing the bearer token to be used with Safeguard Web API.
 
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to change the asset account password in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to change the asset account password in.
+(If specified, this will override the AssetPartition parameter)
 
 .PARAMETER AssetToUse
 An integer containing the ID of the asset to remove the account from or a string containing the name.
@@ -1696,6 +2024,10 @@ function Remove-SafeguardAssetAccount
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$false,Position=0)]
         [object]$AssetToUse,
         [Parameter(Mandatory=$true,Position=1)]
@@ -1705,14 +2037,7 @@ function Remove-SafeguardAssetAccount
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($PSBoundParameters.ContainsKey("AssetToUse"))
-    {
-        $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToUse)
-        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToDelete)
-    }
-    else
-    {
-        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToDelete)
-    }
+    $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                           -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToUse -Account $AccountToDelete)
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "AssetAccounts/$($local:AccountId)"
 }

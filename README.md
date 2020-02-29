@@ -452,6 +452,9 @@ update this list.
 - New-SafeguardAssetPartition
 - Remove-SafeguardAssetPartition
 - Edit-SafeguardAssetPartition
+- Enter-SafeguardAssetPartition
+- Exit-SafeguardAssetPartition
+- Get-SafeguardCurrentAssetPartition
 
 ### Assets
 
@@ -482,6 +485,7 @@ update this list.
 - New-SafeguardDirectoryIdentityProvider
 - Remove-SafeguardDirectoryIdentityProvider
 - Edit-SafeguardDirectoryIdentityProvider
+- Sync-SafeguardDirectoryIdentityProvider
 - Get-SafeguardDirectoryIdentityProviderDomain
 - Get-SafeguardDirectoryIdentityProviderSchemaMapping
 - Set-SafeguardDirectoryIdentityProviderSchemaMapping
