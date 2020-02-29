@@ -1,49 +1,4 @@
 # Helper
-function Resolve-AssetPartitionIdFromSafeguardSession
-{
-    [CmdletBinding()]
-    Param(
-        [Parameter(Mandatory=$false)]
-        [string]$Appliance,
-        [Parameter(Mandatory=$false)]
-        [object]$AccessToken,
-        [Parameter(Mandatory=$false)]
-        [switch]$Insecure,
-        [Parameter(Mandatory=$false)]
-        [object]$AssetPartition = $null,
-        [Parameter(Mandatory=$false)]
-        [int]$AssetPartitionId = $null,
-        [Parameter(Mandatory=$false)]
-        [switch]$UseDefault = $false
-    )
-
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    if (-not $AssetPartitionId -and $AssetPartition)
-    {
-        Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
-        $AssetPartitionId = (Resolve-SafeguardAssetPartitionId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetPartition)
-    }
-
-    if (-not $AssetPartitionId)
-    {
-        if ($SafeguardSession -and $SafeguardSession["AssetPartitionId"])
-        {
-            $AssetPartitionId = $SafeguardSession["AssetPartitionId"]
-        }
-        else
-        {
-            if ($UseDefault)
-            {
-                # Default behavior is Macrocosm
-                $AssetPartitionId = -1
-            }
-        }
-    }
-
-    $AssetPartitionId
-}
 function Resolve-SafeguardAssetId
 {
     [CmdletBinding()]
@@ -70,6 +25,7 @@ function Resolve-SafeguardAssetId
         $Asset = $Asset.Id
     }
 
+    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
     $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
                              -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
     if ($AssetPartitionId)
@@ -156,6 +112,7 @@ function Resolve-SafeguardAssetAccountId
         $Account = $Account.Id
     }
 
+    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
     $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
                              -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
     if ($AssetPartitionId)
@@ -408,6 +365,7 @@ function Get-SafeguardAsset
         $local:Parameters = @{ fields = ($Fields -join ",")}
     }
 
+    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
     $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
     if ($AssetPartitionId)
@@ -504,6 +462,7 @@ function Find-SafeguardAsset
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
     $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
     if ($AssetPartitionId)
@@ -806,6 +765,7 @@ function New-SafeguardAsset
         }
     }
 
+    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
     $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -UseDefault)
 
@@ -1349,6 +1309,7 @@ function Get-SafeguardAssetAccount
     }
     else
     {
+        Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
         $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
                                 -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
         if ($AssetPartitionId)
@@ -1437,6 +1398,7 @@ function Find-SafeguardAssetAccount
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
     $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
     if ($AssetPartitionId)

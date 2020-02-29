@@ -83,6 +83,7 @@ NestedModules = @(
     'users.psm1',
     'assets.psm1',
     'assetpartitions.psm1',
+    'profiles.psm1',
     'directories.psm1',
     'groups.psm1',
     'policies.psm1',
@@ -178,6 +179,8 @@ FunctionsToExport = @(
     'Get-SafeguardAssetPartition','New-SafeguardAssetPartition','Remove-SafeguardAssetPartition',
     'Edit-SafeguardAssetPartition',
     'Get-SafeguardCurrentAssetPartition','Enter-SafeguardAssetPartition','Exit-SafeguardAssetPartition',
+    # profiles.psm1
+    'Get-SafeguardPasswordProfile',
     # directories.psm1
     'Get-SafeguardDirectoryIdentityProvider','New-SafeguardDirectoryIdentityProvider',
     'Remove-SafeguardDirectoryIdentityProvider','Edit-SafeguardDirectoryIdentityProvider',

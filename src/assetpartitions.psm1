@@ -1,4 +1,4 @@
-# Helper
+# Helpers
 function Resolve-SafeguardAssetPartitionId
 {
     [CmdletBinding()]
@@ -49,6 +49,50 @@ function Resolve-SafeguardAssetPartitionId
     {
         $AssetPartition
     }
+}
+function Resolve-AssetPartitionIdFromSafeguardSession
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition = $null,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$false)]
+        [switch]$UseDefault = $false
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not $AssetPartitionId -and $AssetPartition)
+    {
+        $AssetPartitionId = (Resolve-SafeguardAssetPartitionId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetPartition)
+    }
+
+    if (-not $AssetPartitionId)
+    {
+        if ($SafeguardSession -and $SafeguardSession["AssetPartitionId"])
+        {
+            $AssetPartitionId = $SafeguardSession["AssetPartitionId"]
+        }
+        else
+        {
+            if ($UseDefault)
+            {
+                # Default behavior is Macrocosm
+                $AssetPartitionId = -1
+            }
+        }
+    }
+
+    $AssetPartitionId
 }
 
 
