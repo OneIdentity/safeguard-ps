@@ -1692,6 +1692,14 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to set the asset account password in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to set the asset account password in.
+(If specified, this will override the AssetPartition parameter)
+
 .PARAMETER AssetToSet
 An integer containing the ID of the asset to set account password on or a string containing the name.
 
@@ -1723,6 +1731,10 @@ function Set-SafeguardAssetAccountPassword
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$false,Position=0)]
         [object]$AssetToSet,
         [Parameter(Mandatory=$true,Position=1)]
@@ -1734,15 +1746,8 @@ function Set-SafeguardAssetAccountPassword
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($PSBoundParameters.ContainsKey("AssetToSet"))
-    {
-        $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToSet)
-        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToSet)
-    }
-    else
-    {
-        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToSet)
-    }
+    $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                           -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToSet -Account $AccountToSet)
     if (-not $NewPassword)
     {
         $NewPassword = (Read-Host -AsSecureString "NewPassword")
