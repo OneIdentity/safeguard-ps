@@ -1775,6 +1775,14 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to generate the asset account password in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to generate the asset account password in.
+(If specified, this will override the AssetPartition parameter)
+
 .PARAMETER AssetToUse
 An integer containing the ID of the asset to generate password for or a string containing the name.
 
@@ -1803,6 +1811,10 @@ function New-SafeguardAssetAccountRandomPassword
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$false,Position=0)]
         [object]$AssetToUse,
         [Parameter(Mandatory=$true,Position=1)]
@@ -1812,15 +1824,8 @@ function New-SafeguardAssetAccountRandomPassword
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($PSBoundParameters.ContainsKey("AssetToUse"))
-    {
-        $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToUse)
-        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
-    }
-    else
-    {
-        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToUse)
-    }
+    $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                           -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToUse -Account $AccountToUse)
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts/$($local:AccountId)/GeneratePassword"
 }
 
