@@ -143,7 +143,7 @@ function Resolve-SafeguardAssetAccountId
         [Parameter(Mandatory=$false)]
         [object]$Asset = $null,
         [Parameter(Mandatory=$false)]
-        [int]$AssetId,
+        [int]$AssetId = $null,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$Account
     )
@@ -215,7 +215,7 @@ function Resolve-SafeguardAssetAccountId
         if ($AssetPartitionId)
         {
             $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
-                                 -Parameters @{ filter = "Id eq $Asset and AssetPartitionId eq $AssetPartitionId"; fields = "Id" })
+                                 -Parameters @{ filter = "Id eq $Account and AssetPartitionId eq $AssetPartitionId"; fields = "Id" })
             if (-not $local:Accounts)
             {
                 throw "Unable to find account matching '$Account'$($local:ErrMsgSuffix)"
@@ -1136,7 +1136,8 @@ function Edit-SafeguardAsset
 
     if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
     {
-        $AssetObject = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:AssetId)
+        $AssetObject = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $local:AssetId)
 
         # Connection Properties
         if (-not $AssetObject.ConnectionProperties) { $AssetObject.ConnectionProperties = @{} }
@@ -1577,6 +1578,14 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to edit the asset account in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to edit the asset account in.
+(If specified, this will override the AssetPartition parameter)
+
 .PARAMETER AssetToEdit
 An integer containing the ID of the asset to edit the account of or a string containing the name.
 
@@ -1617,6 +1626,10 @@ function Edit-SafeguardAssetAccount
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false,Position=0)]
         [object]$AssetToEdit,
         [Parameter(ParameterSetName="Attributes",Mandatory=$true,Position=1)]
@@ -1639,23 +1652,23 @@ function Edit-SafeguardAssetAccount
 
     if ($PsCmdlet.ParameterSetName -eq "Attributes")
     {
-        if ($PSBoundParameters.ContainsKey("AssetToEdit"))
-        {
-            $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToEdit)
-            $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToEdit)
-        }
-        else
-        {
-            $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToEdit)
-        }
+        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToEdit -Account $AccountToEdit)
     }
 
     if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
     {
-        $AccountObject = (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AccountToGet $local:AccountId)
+        $AccountObject = (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                              -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -AssetToGet $AssetToEdit -AccountToGet $local:AccountId)
 
         if ($PSBoundParameters.ContainsKey("Description")) { $AccountObject.Description = $Description }
         if ($PSBoundParameters.ContainsKey("DomainName")) { $AccountObject.DomainName = $DomainName }
+    }
+    else
+    {
+        # Make sure it is actually in the partition (just in case caller has called Enter-SafeguardAssetPartition)
+        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                              -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId  $AccountObject.Id)
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AssetAccounts/$($AccountObject.Id)" -Body $AccountObject
