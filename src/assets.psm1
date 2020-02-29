@@ -1379,11 +1379,22 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to find asset accounts in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to find asset accounts in.
+(If specified, this will override the AssetPartition parameter)
+
 .PARAMETER SearchString
 A string to search for in the asset account.
 
 .PARAMETER QueryFilter
 A string to pass to the -filter query parameter in the Safeguard Web API.
+
+.PARAMETER Fields
+An array of the account property names to return.
 
 .INPUTS
 None.
@@ -1410,25 +1421,47 @@ function Find-SafeguardAssetAccount
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$true,Position=0,ParameterSetName="Search")]
         [string]$SearchString,
         [Parameter(Mandatory=$true,Position=0,ParameterSetName="Query")]
-        [string]$QueryFilter
+        [string]$QueryFilter,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($PSCmdlet.ParameterSetName -eq "Search")
+    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
+    if ($AssetPartitionId)
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts" `
-            -Parameters @{ q = $SearchString }
+        $local:RelPath = "AssetPartitions/$AssetPartitionId/Accounts"
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts" `
-            -Parameters @{ filter = $QueryFilter }
+        $local:RelPath = "AssetAccounts"
     }
+
+    if ($PSCmdlet.ParameterSetName -eq "Search")
+    {
+        $local:Parameters = @{ q = $SearchString }
+    }
+    else
+    {
+        $local:Parameters = @{ filter = $QueryFilter }
+    }
+
+    if ($Fields)
+    {
+        $local:Parameters["fields"] = ($Fields -join ",")
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" -Parameters $local:Parameters
 }
 
 <#
