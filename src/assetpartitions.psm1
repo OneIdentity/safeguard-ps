@@ -420,6 +420,31 @@ function Edit-SafeguardAssetPartition
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AssetPartitions/$($AssetPartitionObject.Id)" -Body $AssetPartitionObject
 }
 
+<#
+.SYNOPSIS
+Enter an asset partition so that asset administration is done in that context.
+
+.DESCRIPTION
+Asset partitions are an administrative container for Safeguard assets.  Asset
+partitions may be given owners who can manage only the assets within that
+asset partition.  This cmdlet places the session in the context of an asset
+partition so that subsequent operations are done in that context.
+
+.PARAMETER AssetPartitionToEnter
+An integer containing the ID of the asset partition to enter or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Enter-SafeguardAssetPartition "Unix Servers"
+
+.EXAMPLE
+Enter-SafeguardAssetPartition 15
+#>
 function Enter-SafeguardAssetPartition
 {
     [CmdletBinding()]
@@ -444,6 +469,25 @@ function Enter-SafeguardAssetPartition
     }
 }
 
+<#
+.SYNOPSIS
+Exit an asset partition so that asset administration is done globally.
+
+.DESCRIPTION
+Asset partitions are an administrative container for Safeguard assets.  Asset
+partitions may be given owners who can manage only the assets within that
+asset partition.  This cmdlet moves the session back out of  the context of an
+asset partition so that subsequent operations are done globally.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Exit-SafeguardAssetPartition
+#>
 function Exit-SafeguardAssetPartition
 {
     [CmdletBinding()]
@@ -466,6 +510,25 @@ function Exit-SafeguardAssetPartition
     $SafeguardSession["AssetPartitionId"] = $null
 }
 
+<#
+.SYNOPSIS
+Display the asset partition context of your current session.
+
+.DESCRIPTION
+Asset partitions are an administrative container for Safeguard assets.  Asset
+partitions may be given owners who can manage only the assets within that
+asset partition.  This cmdlet reports on the asset partition that has been
+entered or it returns nothing if you have not entered an asset partition.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardCurrentAssetPartition
+#>
 function Get-SafeguardCurrentAssetPartition
 {
     [CmdletBinding()]
