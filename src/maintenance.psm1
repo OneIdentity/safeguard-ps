@@ -12,7 +12,15 @@ function Test-SupportForClusterPatch
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    $local:IsReplica = (Get-SafeguardStatus -Appliance $Appliance -Insecure:$Insecure).IsReplica)
+	if($local:IsReplica)
+	{ 
+		$false
+		return;
+	}
+
     $local:ApplianceVersion = (Get-SafeguardVersion -Appliance $Appliance -Insecure:$Insecure)
+
     if ($local:ApplianceVersion.Major -gt 2 -or ($local:ApplianceVersion.Major -eq 2 -and $local:ApplianceVersion.Minor -gt 0))
     {
         $true
