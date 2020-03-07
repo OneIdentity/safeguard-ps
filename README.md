@@ -331,6 +331,7 @@ update this list.
 - Get-SafeguardSupportBundle
 - Get-SafeguardPatch
 - Clear-SafeguardPatch
+- Set-SafeguardPatch
 - Install-SafeguardPatch
 - New-SafeguardBackup
 - Remove-SafeguardBackup

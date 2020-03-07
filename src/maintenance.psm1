@@ -12,7 +12,15 @@ function Test-SupportForClusterPatch
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    $local:IsReplica = (Get-SafeguardStatus -Appliance $Appliance -Insecure:$Insecure).IsReplica)
+	if($local:IsReplica)
+	{ 
+		$false
+		return;
+	}
+
     $local:ApplianceVersion = (Get-SafeguardVersion -Appliance $Appliance -Insecure:$Insecure)
+
     if ($local:ApplianceVersion.Major -gt 2 -or ($local:ApplianceVersion.Major -eq 2 -and $local:ApplianceVersion.Minor -gt 0))
     {
         $true
@@ -1508,6 +1516,285 @@ function Install-SafeguardPatch
         Write-Host "Patch installation canceled."
     }
 }
+
+
+<#
+.SYNOPSIS
+Stages a patch on Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Upload a patch to a Safeguard appliance via the Web API. If there is already a staged patch, removes it
+and uploads the specified one. If successful, prompts for distribution of the staged patch to other appliances in the cluster.
+Upon distribution, also removes any patch on the other appliance and stages the specified patch.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Version
+Version of the Web API you are using (default: 2).
+
+.PARAMETER Patch
+A string containing the path to a patch file.
+
+.PARAMETER Timeout
+A timeout value in seconds for uploading.
+
+.PARAMETER Force
+Do not prompt for confirmation. Automatically distribute the patch once successfully staged.
+
+.INPUTS
+None.
+
+.OUTPUTS
+Script output as strings.
+
+.EXAMPLE
+Set-SafeguardPatch -AccessToken $token -Patch XX.sgp -Appliance 10.5.32.54.
+#>
+function Set-SafeguardPatch
+{
+    [CmdletBinding(DefaultParameterSetName="NewPatch")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [int]$Version = 3,
+        [Parameter(ParameterSetName="NewPatch",Mandatory=$true,Position=0)]
+        [string]$Patch,
+        [Parameter(ParameterSetName="NewPatch",Mandatory=$false)]
+        [int]$Timeout = 5400,
+        [Parameter(Mandatory=$false)]
+        [switch]$Force
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($SafeguardSession)
+    {
+        $Insecure = $SafeguardSession["Insecure"]
+    }
+    if (-not ($PSBoundParameters.ContainsKey("Version")) -and $SafeguardSession)
+    {
+        $Version = $SafeguardSession["Version"]
+    }
+    if (-not $Appliance -and $SafeguardSession)
+    {
+        $Appliance = $SafeguardSession["Appliance"]
+    }
+    if (-not $AccessToken -and $SafeguardSession)
+    {
+        $AccessToken = $SafeguardSession["AccessToken"]
+    }
+    if (-not $Appliance)
+    {
+        $Appliance = (Read-Host "Appliance")
+    }
+    if (-not $AccessToken)
+    {
+        $AccessToken = (Connect-Safeguard -Appliance $Appliance -Insecure:$Insecure -NoSessionVariable -Version $Version)
+    }
+
+    $Response = (Get-SafeguardPatch -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
+    if ($Response)
+    {
+        Write-Host "Removing currently staged patch..."
+        Clear-SafeguardPatch -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure
+        $Response = (Get-SafeguardPatch -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
+        if ($Response)
+        {
+            throw "Failed to delete existing patch"
+        }
+    }
+
+    if (-not ([System.Management.Automation.PSTypeName]"UploadFileStream").Type)
+    {
+        Write-Verbose "Adding the PSType for uploading a file stream"
+        Add-Type -TypeDefinition  @"
+        using System;
+        using System.IO;
+        using System.Net;
+        public static class UploadFileStream
+        {
+            private static readonly byte[] UploadBuffer = new byte[80 * 1024];
+
+            public static string Upload(string pathAndFilename, string appliance, string authorizationToken, string version)
+            {
+                WebRequest   request        = null;
+                WebResponse  response       = null;
+                StreamReader responseStream = null;
+                FileStream   fileStream     = null;
+
+                try
+                {
+                    request = WebRequest.Create(string.Format("https://{0}/service/appliance/v{1}/Patch", appliance, version));
+                    request.Method  = "POST";
+                    request.Timeout = System.Threading.Timeout.Infinite;
+                    ((HttpWebRequest)request).Accept = "application/json";
+                    ((HttpWebRequest)request).AllowWriteStreamBuffering = false;
+
+                    fileStream = new FileStream(pathAndFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+
+                    long bytesLeft        = fileStream.Length;
+                    request.ContentLength = fileStream.Length;
+
+                    request.Headers.Add("Authorization", "Bearer " + authorizationToken);
+
+                    using (Stream sw = request.GetRequestStream())
+                    {
+                        Console.Write("Uploading... ");
+
+                        int consoleTop  = Console.CursorTop;
+                        int consoleLeft = Console.CursorLeft;
+
+                        System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+                        while (bytesLeft > 0)
+                        {
+                            int bytesRead = fileStream.Read(UploadBuffer, 0, UploadBuffer.Length);
+
+                            sw.Write(UploadBuffer, 0, bytesRead);
+
+                            bytesLeft -= bytesRead;
+
+                            if (stopwatch.ElapsedMilliseconds > 1000)
+                            {
+                                int percentDone = (int)((fileStream.Length - bytesLeft) / (double)fileStream.Length * 100);
+
+                                Console.SetCursorPosition(consoleLeft, consoleTop);
+
+                                Console.Write(percentDone + "%");
+
+                                stopwatch.Restart();
+                            }
+                        }
+
+                        Console.SetCursorPosition(consoleLeft, consoleTop);
+                        Console.WriteLine("100%");
+                        Console.WriteLine("Server is processing data...");
+                    }
+
+                    response = request.GetResponse();
+                    responseStream = new StreamReader(response.GetResponseStream());
+
+                    return responseStream.ReadToEnd();
+                }
+                catch (Exception ex)
+                {
+                    string log = ex.ToString();
+
+                    if (ex is WebException)
+                    {
+                        WebException wex = ex as WebException;
+                        HttpWebResponse httpResponse = wex.Response as HttpWebResponse;
+
+                        if (httpResponse != null)
+                        {
+                            StreamReader sr = new StreamReader(httpResponse.GetResponseStream());
+
+                            log = sr.ReadToEnd() + "\r\n" + log;
+
+                            sr.Close();
+                        }
+                    }
+
+                    return log;
+                }
+                finally
+                {
+                    if (responseStream != null)
+                    {
+                        responseStream.Close();
+                    }
+                    if (fileStream != null)
+                    {
+                        fileStream.Dispose();
+                    }
+                    if (response != null)
+                    {
+                        response.Close();
+                    }
+                    else
+                    {
+                        request.Abort();
+                    }
+                }
+            }
+        }
+"@
+    }
+
+    try
+    {
+        Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
+        Edit-SslVersionSupport
+        if ($Insecure)
+        {
+            Disable-SslVerification
+            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+        }
+
+        [UploadFileStream]::Upload($Patch, $Appliance, $AccessToken, $Version)
+    }
+    catch [System.Net.WebException]
+    {
+        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+        Out-SafeguardExceptionIfPossible $_.Exception
+    }
+    finally
+    {
+        if ($Insecure)
+        {
+            Enable-SslVerification
+            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+        }
+    }
+    
+    $local:StagedPatch = (Get-SafeguardPatch -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
+	if($StagedPatch)
+	{
+		Write-Host "Patch $($local:StagedPatch.Title) staged to $($Appliance) successfully."
+	}
+	else
+	{
+	   return;
+	}
+
+	Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+    if (Test-SupportForClusterPatch -Appliance $Appliance -Insecure:$Insecure)
+    {
+		if ($Force)
+		{
+			$local:Confirmed = $true
+		}
+		else
+		{
+			Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+			$local:Confirmed = (Get-Confirmation "Distribute Safeguard Patch" `
+												"Do you want to distribute $($local:StagedPatch.Title) to the cluster?" `
+												"Starts cluster distribute immediately." `
+												"Completes this operation.")
+		}
+		if ($local:Confirmed)
+		{
+			Write-Host "Distributing patch to cluster..."
+			Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST Patch/Distribute
+			Wait-ForPatchDistribution -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure
+			Write-Host "Patch distribution of $($local:StagedPatch.Title) to the cluster is complete."
+		}
+	}
+}
+
 
 
 <#
