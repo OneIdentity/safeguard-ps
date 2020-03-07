@@ -12,12 +12,12 @@ function Test-SupportForClusterPatch
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:IsReplica = (Get-SafeguardStatus -Appliance $Appliance -Insecure:$Insecure).IsReplica)
-	if($local:IsReplica)
-	{ 
-		$false
-		return;
-	}
+    $local:IsReplica = (Get-SafeguardStatus -Appliance $Appliance -Insecure:$Insecure).IsReplica
+    if ($local:IsReplica)
+    {
+        $false
+        return;
+    }
 
     $local:ApplianceVersion = (Get-SafeguardVersion -Appliance $Appliance -Insecure:$Insecure)
 
@@ -1759,40 +1759,40 @@ function Set-SafeguardPatch
             if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
     }
-    
-    $local:StagedPatch = (Get-SafeguardPatch -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
-	if($StagedPatch)
-	{
-		Write-Host "Patch $($local:StagedPatch.Title) staged to $($Appliance) successfully."
-	}
-	else
-	{
-	   return;
-	}
 
-	Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+    $local:StagedPatch = (Get-SafeguardPatch -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
+    if ($StagedPatch)
+    {
+        Write-Host "Patch $($local:StagedPatch.Title) staged to $($Appliance) successfully."
+    }
+    else
+    {
+       return;
+    }
+
+    Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
     if (Test-SupportForClusterPatch -Appliance $Appliance -Insecure:$Insecure)
     {
-		if ($Force)
-		{
-			$local:Confirmed = $true
-		}
-		else
-		{
-			Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
-			$local:Confirmed = (Get-Confirmation "Distribute Safeguard Patch" `
-												"Do you want to distribute $($local:StagedPatch.Title) to the cluster?" `
-												"Starts cluster distribute immediately." `
-												"Completes this operation.")
-		}
-		if ($local:Confirmed)
-		{
-			Write-Host "Distributing patch to cluster..."
-			Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST Patch/Distribute
-			Wait-ForPatchDistribution -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure
-			Write-Host "Patch distribution of $($local:StagedPatch.Title) to the cluster is complete."
-		}
-	}
+        if ($Force)
+        {
+            $local:Confirmed = $true
+        }
+        else
+        {
+            Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+            $local:Confirmed = (Get-Confirmation "Distribute Safeguard Patch" `
+                                                "Do you want to distribute $($local:StagedPatch.Title) to the cluster?" `
+                                                "Starts cluster distribute immediately." `
+                                                "Completes this operation.")
+        }
+        if ($local:Confirmed)
+        {
+            Write-Host "Distributing patch to cluster..."
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST Patch/Distribute
+            Wait-ForPatchDistribution -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure
+            Write-Host "Patch distribution of $($local:StagedPatch.Title) to the cluster is complete."
+        }
+    }
 }
 
 
