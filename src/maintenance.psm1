@@ -1524,8 +1524,9 @@ Stages a patch on Safeguard appliance via the Web API.
 
 .DESCRIPTION
 Upload a patch to a Safeguard appliance via the Web API. If there is already a staged patch, removes it
-and uploads the specified one. If successful, prompts for distribution of the staged patch to other appliances in the cluster.
-Upon distribution, also removes any patch on the other appliance and stages the specified patch.
+and uploads the specified one. If successful and on the primary appliance, prompts for distribution of the
+staged patch to other appliances in the cluster. Upon distribution, also removes any patch on the other 
+appliance and stages the specified patch. NOTE: This does not work using Windows Powershell ISE.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
