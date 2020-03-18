@@ -461,6 +461,11 @@ function Enter-SafeguardAssetPartition
         throw "This cmdlet requires that you log in with the Connect-Safeguard cmdlet"
     }
 
+    if (-not $PSBoundParameters.ContainsKey("AssetPartitionToEnter"))
+    {
+        $AssetPartitionToEnter = (Read-Host "AssetPartitionToEnter")
+    }
+
     $local:Partition = (Get-SafeguardAssetPartition -Appliance $AccessToken -AccessToken $AccessToken -Insecure:$Insecure $AssetPartitionToEnter)
     if ($local:Partition)
     {
