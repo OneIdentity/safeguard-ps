@@ -470,7 +470,11 @@ function Enter-SafeguardAssetPartition
     if ($local:Partition)
     {
         $SafeguardSession["AssetPartitionId"] = $local:Partition.Id
-        $local:Partition
+        Write-Host "Entering [$($local:Partition.Id)] $($local:Partition.Name)"
+        if ($local:Partition.Description)
+        {
+            Write-Host "  Description: $($local:Partition.Description)"
+        }
     }
 }
 
@@ -512,6 +516,8 @@ function Exit-SafeguardAssetPartition
         throw "You have not entered an asset partition"
     }
 
+    $local:Partition = (Get-SafeguardCurrentAssetPartition)
+    Write-Host "Leaving [$($local:Partition.Id)] $($local:Partition.Name)"
     $SafeguardSession["AssetPartitionId"] = $null
 }
 
