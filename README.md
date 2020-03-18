@@ -452,6 +452,9 @@ update this list.
 - New-SafeguardAssetPartition
 - Remove-SafeguardAssetPartition
 - Edit-SafeguardAssetPartition
+- Get-SafeguardAssetPartitionOwner
+- Add-SafeguardAssetPartitionOwner
+- Remove-SafeguardAssetPartitionOwner
 - Enter-SafeguardAssetPartition
 - Exit-SafeguardAssetPartition
 - Get-SafeguardCurrentAssetPartition

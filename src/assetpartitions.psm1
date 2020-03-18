@@ -420,6 +420,119 @@ function Edit-SafeguardAssetPartition
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AssetPartitions/$($AssetPartitionObject.Id)" -Body $AssetPartitionObject
 }
 
+function Get-SafeguardAssetPartitionOwner
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$AssetPartitionToGet,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:PartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                                   -AssetPartition $AssetPartitionToGet)
+    if (-not $local:PartitionId)
+    {
+        $AssetPartitionToGet = (Read-Host "AssetPartitionToGet")
+        $local:PartitionId = (Resolve-SafeguardAssetPartitionId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                                       -AssetPartition $AssetPartitionToGet)
+    }
+
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core GET "AssetPartitions/$($local:PartitionId)/Owners" -Parameters $local:Parameters
+}
+
+function Add-SafeguardAssetPartitionOwner
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$AssetPartitionToEdit,
+        [Parameter(Mandatory=$true, Position=1)]
+        [object[]]$UserList
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:PartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                                   -AssetPartition $AssetPartitionToGet)
+    if (-not $local:PartitionId)
+    {
+        $AssetPartitionToGet = (Read-Host "AssetPartitionToGet")
+        $local:PartitionId = (Resolve-SafeguardAssetPartitionId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                                       -AssetPartition $AssetPartitionToGet)
+    }
+
+    [object[]]$local:Users = $null
+    foreach ($local:User in $UserList)
+    {
+        $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User -Fields Id,UserName,PrimaryAuthenticationProviderId)
+        $local:Users += $($local:ResolvedUser)
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core POST "AssetPartitions/$($local:PartitionId)/Owners/Add" -Body $local:Users
+}
+
+function Remove-SafeguardAssetPartitionOwner
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$AssetPartitionToEdit,
+        [Parameter(Mandatory=$true, Position=1)]
+        [object[]]$UserList
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:PartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                                   -AssetPartition $AssetPartitionToGet)
+    if (-not $local:PartitionId)
+    {
+        $AssetPartitionToGet = (Read-Host "AssetPartitionToGet")
+        $local:PartitionId = (Resolve-SafeguardAssetPartitionId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                                       -AssetPartition $AssetPartitionToGet)
+    }
+
+    [object[]]$local:Users = $null
+    foreach ($local:User in $UserList)
+    {
+        $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User -Fields Id,UserName,PrimaryAuthenticationProviderId)
+        $local:Users += $($local:ResolvedUser)
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core POST "AssetPartitions/$($local:PartitionId)/Owners/Remove" -Body $local:Users
+}
+
 <#
 .SYNOPSIS
 Enter an asset partition so that asset administration is done in that context.
