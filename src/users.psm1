@@ -23,10 +23,16 @@ function Resolve-SafeguardUserObject
 
     if (-not ($User -as [int]))
     {
+        $local:Filter = "UserName ieq '$User'"
+        $local:Pair = ($User -split "\\")
+        if ($local:Pair.Length -eq 2)
+        {
+            $local:Filter = "IdentityProviderName ieq '$($local:Pair[0])' and UserName ieq '$($local:Pair[1])'"
+        }
         try
         {
             $local:Users = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
-                                -Parameters @{ filter = "UserName ieq '$User'" } -RetryVersion 2 -RetryUrl "Users")
+                                -Parameters @{ filter = $local:Filter } -RetryVersion 2 -RetryUrl "Users")
         }
         catch
         {
@@ -74,10 +80,16 @@ function Resolve-SafeguardUserId
 
     if (-not ($User -as [int]))
     {
+        $local:Filter = "UserName ieq '$User'"
+        $local:Pair = ($User -split "\\")
+        if ($local:Pair.Length -eq 2)
+        {
+            $local:Filter = "IdentityProviderName ieq '$($local:Pair[0])' and UserName ieq '$($local:Pair[1])'"
+        }
         try
         {
             $local:Users = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
-                                -Parameters @{ filter = "UserName ieq '$User'" } -RetryVersion 2 -RetryUrl "Users")
+                                -Parameters @{ filter = $local:Filter } -RetryVersion 2 -RetryUrl "Users")
         }
         catch
         {
