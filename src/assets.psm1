@@ -44,7 +44,7 @@ function Resolve-SafeguardAssetId
         try
         {
             $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
-                                 -Parameters @{ filter = "Name ieq '$Asset'" })
+                                 -Parameters @{ filter = "Name ieq '$Asset'"; fields = "Id" })
             if (-not $local:Assets)
             {
                 $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
@@ -72,6 +72,7 @@ function Resolve-SafeguardAssetId
     {
         if ($AssetPartitionId)
         {
+            # Make sure it actually exists
             $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
                                  -Parameters @{ filter = "Id eq $Asset and AssetPartitionId eq $AssetPartitionId"; fields = "Id" })
             if (-not $local:Assets)
