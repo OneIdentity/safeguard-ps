@@ -180,7 +180,10 @@ FunctionsToExport = @(
     'Get-SafeguardAssetPartitionOwner','Add-SafeguardAssetPartitionOwner','Remove-SafeguardAssetPartitionOwner',
     'Get-SafeguardCurrentAssetPartition','Enter-SafeguardAssetPartition','Exit-SafeguardAssetPartition',
     # profiles.psm1
-    'Get-SafeguardPasswordProfile',
+    'Get-SafeguardAccountPasswordRule',
+    'Get-SafeguardPasswordCheckSchedule',
+    'Get-SafeguardPasswordChangeSchedule',
+    'Get-SafeguardPasswordProfile','New-SafeguardPasswordProfile',
     # directories.psm1
     'Get-SafeguardDirectoryIdentityProvider','New-SafeguardDirectoryIdentityProvider',
     'Remove-SafeguardDirectoryIdentityProvider','Edit-SafeguardDirectoryIdentityProvider',

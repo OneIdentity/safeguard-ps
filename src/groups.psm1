@@ -24,7 +24,7 @@ function Resolve-SafeguardGroupId
     {
         "user" { $GroupType = "User"; break }
         "asset" { $GroupType = "Asset"; break }
-        "Account" { $GroupType = "Account"; break }
+        "account" { $GroupType = "Account"; break }
     }
 
     $local:RelativeUrl = "$($GroupType)Groups"
