@@ -268,7 +268,7 @@ function Remove-SafeguardProfileItem
         [Parameter(Mandatory=$true)]
         [ValidateSet("PasswordRule", "CheckSchedule", "ChangeSchedule", "Profile", IgnoreCase=$true)]
         [string]$ItemType,
-        [Parameter(Mandatory=$false,Position=0)]
+        [Parameter(Mandatory=$true,Position=0)]
         [object]$ItemToDelete
     )
 
@@ -293,6 +293,53 @@ function Remove-SafeguardProfileItem
                        -AssetPartitionId $AssetPartitionId -ItemType $ItemType -Item $ItemToDelete)
 
     Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core DELETE "$($local:RelPath)/$($local:ItemId)"
+}
+function Rename-SafeguardProfileItem
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true)]
+        [ValidateSet("PasswordRule", "CheckSchedule", "ChangeSchedule", "Profile", IgnoreCase=$true)]
+        [string]$ItemType,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$ItemToEdit,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$NewName
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    switch ($ItemType)
+    {
+        "passwordrule" { $local:ResourceName = "PasswordRules"; break}
+        "checkschedule" { $local:ResourceName = "CheckSchedules"; break }
+        "changeschedule" { $local:ResourceName = "ChangeSchedules"; break }
+        "profile" { $local:ResourceName = "Profiles"; break }
+    }
+
+    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
+    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -UseDefault)
+
+    $local:RelPath = "AssetPartitions/$AssetPartitionId/$($local:ResourceName)"
+
+    $local:Item = (Get-SafeguardProfileItem -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                       -AssetPartitionId $AssetPartitionId -ItemType $ItemType -ItemToGet $ItemToEdit)
+
+    $local:Item.Name = $NewName
+
+    Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core PUT "$($local:RelPath)/$($local:Item.Id)" -Body $local:Item
 }
 
 # account password rules
@@ -616,6 +663,34 @@ function Remove-SafeguardAccountPasswordRule
         -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -ItemType "PasswordRule" -ItemToDelete $PasswordRuleToDelete
 }
 
+
+function Rename-SafeguardAccountPasswordRule
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$PasswordRuleToEdit,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$NewName
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Rename-SafeguardProfileItem -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition `
+        -AssetPartitionId $AssetPartitionId -ItemType "PasswordRule" -ItemToEdit $PasswordRuleToEdit -NewName $NewName
+}
+
 # password check schedules
 
 <#
@@ -702,6 +777,34 @@ function Remove-SafeguardPasswordCheckSchedule
         -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -ItemType "CheckSchedule" -ItemToDelete $CheckScheduleToDelete
 }
 
+
+function Rename-SafeguardPasswordCheckSchedule
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$CheckScheduleToEdit,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$NewName
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Rename-SafeguardProfileItem -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition `
+        -AssetPartitionId $AssetPartitionId -ItemType "CheckSchedule" -ItemToEdit $CheckScheduleToEdit -NewName $NewName
+}
+
 # password change schedules
 
 <#
@@ -786,6 +889,34 @@ function Remove-SafeguardPasswordChangeSchedule
 
     Remove-SafeguardProfileItem -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
         -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -ItemType "ChangeSchedule" -ItemToDelete $ChangeScheduleToDelete
+}
+
+
+function Rename-SafeguardPasswordChangeSchedule
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$ChangeScheduleToEdit,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$NewName
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Rename-SafeguardProfileItem -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition `
+        -AssetPartitionId $AssetPartitionId -ItemType "ChangeSchedule" -ItemToEdit $ChangeScheduleToEdit -NewName $NewName
 }
 
 # password profiles
@@ -908,4 +1039,32 @@ function Remove-SafeguardPasswordProfile
 
     Remove-SafeguardProfileItem -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
         -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -ItemType "Profile" -ItemToDelete $ProfileToDelete
+}
+
+
+function Rename-SafeguardPasswordProfile
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$ProfileToEdit,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$NewName
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Rename-SafeguardProfileItem -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition `
+        -AssetPartitionId $AssetPartitionId -ItemType "Profile" -ItemToEdit $ProfileToEdit -NewName $NewName
 }
