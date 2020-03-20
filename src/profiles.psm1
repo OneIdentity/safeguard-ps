@@ -637,7 +637,34 @@ function New-SafeguardAccountPasswordRule
         POST "AssetPartitions/$($local:AssetPartitionId)/PasswordRules" -Body $local:Body
 }
 
+<#
+.SYNOPSIS
+Delete an account password rule from Safeguard via the Web API.
 
+.DESCRIPTION
+Delete an account password rule. It must not be associated with a password profile
+in order to be able to delete it.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to delete the account password rule from.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to delete the account password rule from.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER PasswordRuleToDelete
+An integer containing the ID of the account password rule to delete or a string containing the name.
+#>
 function Remove-SafeguardAccountPasswordRule
 {
     [CmdletBinding()]
@@ -751,7 +778,34 @@ function Get-SafeguardPasswordCheckSchedule
         -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -ItemType "CheckSchedule" -ItemToGet $CheckScheduleToGet -Fields $Fields
 }
 
+<#
+.SYNOPSIS
+Delete a password check schedule from Safeguard via the Web API.
 
+.DESCRIPTION
+Delete a password check schedule. It must not be associated with a password profile
+in order to be able to delete it.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to delete the password check schedule from.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to the delete password check schedule from.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER CheckScheduleToDelete
+An integer containing the ID of the password check schedule to delete or a string containing the name.
+#>
 function Remove-SafeguardPasswordCheckSchedule
 {
     [CmdletBinding()]
@@ -865,7 +919,34 @@ function Get-SafeguardPasswordChangeSchedule
         -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -ItemType "ChangeSchedule" -ItemToGet $ChangeScheduleToGet -Fields $Fields
 }
 
+<#
+.SYNOPSIS
+Delete a password change schedule from Safeguard via the Web API.
 
+.DESCRIPTION
+Delete a password change schedule. It must not be associated with a password profile
+in order to be able to delete it.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to delete the password change schedule from.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to the delete password change schedule from.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER ChangeScheduleToDelete
+An integer containing the ID of the password change schedule to delete or a string containing the name.
+#>
 function Remove-SafeguardPasswordChangeSchedule
 {
     [CmdletBinding()]
@@ -1015,7 +1096,34 @@ function New-SafeguardPasswordProfile
         POST "AssetPartitions/$($local:AssetPartitionId)/Profiles" -Body $local:Body
 }
 
+<#
+.SYNOPSIS
+Delete a password profile from Safeguard via the Web API.
 
+.DESCRIPTION
+Delete a password profile. It must not the default password profile of an asset partition
+in order to be able to delete it.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to delete the password profile from.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to the delete password profile from.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER ProfileToDelete
+An integer containing the ID of the password profile to delete or a string containing the name.
+#>
 function Remove-SafeguardPasswordProfile
 {
     [CmdletBinding()]
