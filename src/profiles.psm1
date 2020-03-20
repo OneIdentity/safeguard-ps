@@ -690,7 +690,36 @@ function Remove-SafeguardAccountPasswordRule
         -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -ItemType "PasswordRule" -ItemToDelete $PasswordRuleToDelete
 }
 
+<#
+.SYNOPSIS
+Rename an account password rule in Safeguard via the Web API.
 
+.DESCRIPTION
+Rename an account password rule without changing any of its configuration.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to rename the account password rule in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to rename the account password rule in.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER PasswordRuleToEdit
+An integer containing the ID of the account password rule to rename or a string containing the name.
+
+.PARAMETER NewName
+A string containing the new name for the account password rule.
+#>
 function Rename-SafeguardAccountPasswordRule
 {
     [CmdletBinding()]
@@ -831,7 +860,36 @@ function Remove-SafeguardPasswordCheckSchedule
         -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -ItemType "CheckSchedule" -ItemToDelete $CheckScheduleToDelete
 }
 
+<#
+.SYNOPSIS
+Rename a password check schedule in Safeguard via the Web API.
 
+.DESCRIPTION
+Rename a password check schedule without changing any of its configuration.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to rename the password check schedule in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to rename the password check schedule in.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER CheckScheduleToEdit
+An integer containing the ID of the password check schedule to rename or a string containing the name.
+
+.PARAMETER NewName
+A string containing the new name for the password check schedule.
+#>
 function Rename-SafeguardPasswordCheckSchedule
 {
     [CmdletBinding()]
@@ -972,7 +1030,36 @@ function Remove-SafeguardPasswordChangeSchedule
         -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -ItemType "ChangeSchedule" -ItemToDelete $ChangeScheduleToDelete
 }
 
+<#
+.SYNOPSIS
+Rename a password change schedule in Safeguard via the Web API.
 
+.DESCRIPTION
+Rename a password change schedule without changing any of its configuration.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to rename the password change schedule in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to rename the password change schedule in.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER ChangeScheduleToEdit
+An integer containing the ID of the password change schedule to rename or a string containing the name.
+
+.PARAMETER NewName
+A string containing the new name for the password change schedule.
+#>
 function Rename-SafeguardPasswordChangeSchedule
 {
     [CmdletBinding()]
@@ -1149,7 +1236,36 @@ function Remove-SafeguardPasswordProfile
         -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -ItemType "Profile" -ItemToDelete $ProfileToDelete
 }
 
+<#
+.SYNOPSIS
+Rename a password profile in Safeguard via the Web API.
 
+.DESCRIPTION
+Rename a password profile without changing any of its configuration.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to rename the password profile in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to rename the password profile in.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER ProfileToEdit
+An integer containing the ID of the password profile to rename or a string containing the name.
+
+.PARAMETER NewName
+A string containing the new name for the password profile.
+#>
 function Rename-SafeguardPasswordProfile
 {
     [CmdletBinding()]
