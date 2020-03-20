@@ -180,7 +180,7 @@ FunctionsToExport = @(
     'Get-SafeguardAssetPartitionOwner','Add-SafeguardAssetPartitionOwner','Remove-SafeguardAssetPartitionOwner',
     'Get-SafeguardCurrentAssetPartition','Enter-SafeguardAssetPartition','Exit-SafeguardAssetPartition',
     # profiles.psm1
-    'Get-SafeguardAccountPasswordRule',
+    'Get-SafeguardAccountPasswordRule','New-SafeguardAccountPasswordRule',
     'Get-SafeguardPasswordCheckSchedule',
     'Get-SafeguardPasswordChangeSchedule',
     'Get-SafeguardPasswordProfile','New-SafeguardPasswordProfile',
