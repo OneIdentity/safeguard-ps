@@ -809,6 +809,240 @@ function Get-SafeguardPasswordCheckSchedule
 
 <#
 .SYNOPSIS
+Create a new password check schedule in Safeguard via the Web API.
+
+.DESCRIPTION
+Create a new password check schedule that can be associated to a password profile
+which can be assigned to partitions, assets, and accounts.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to create the password check schedule in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to create the password check schedule in.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER Name
+A string containing the name of the new password check schedule.
+
+.PARAMETER Description
+A string containing the description of the new password check schedule.
+
+.PARAMETER ChangePasswordOnMismatch
+Whether to change the password if a password mismatch is found (does not apply to manual check tasks).
+
+.PARAMETER NotifyOwnersOnMismatch
+Whether to notify delegated owners if a password mismatch is found (does not apply to manual check tasks).
+
+.PARAMETER Never
+Select the password check schedule type of Never, meaning don't run password checks.
+
+.PARAMETER MonthsByDayOfWeek
+Select the password check schedule type of MonthsByDayOfWeek, meaning run password checks every X months (see ScheduleInterval)
+on a particular day (Sun,Mon,Tue,Wed,Thu,Fri,Sat) of a particular week (1st,2nd,3rd,4th,Last).
+
+.PARAMETER MonthsByDay
+Select the password check schedule type of MonthsByDay, meaning run password checks every X months (see ScheduleInterval)
+on a particular day of the month (1-31).
+
+.PARAMETER Weeks
+Select the password check schedule type of Weeks, meaning run password checks every X weeks (see ScheduleInterval)
+on one or more days of the week (Sun,Mon,Tue,Wed,Thu,Fri,Sat).
+
+.PARAMETER Days
+Select the password check schedule type of Days, meaning run password checks every X days (see ScheduleInterval).
+
+.PARAMETER Hours
+Select the password check schedule type of Hours, meaning run password checks every X hours (see ScheduleInterval).
+
+.PARAMETER Minutes
+Select the password check schedule type of Minutes, meaning run password checks every X minutes (see ScheduleInterval).
+
+.PARAMETER ScheduleInterval
+The interval at which to run password checks, for example every X months, weeks, days, hours, or minutes.  (default: 1),
+In other words the default is monthly, weekly, daily, hourly, every minute.
+
+.PARAMETER WeekOfMonth
+Which week of the month to run password checks for MonthsByDayOfWeek schedule type.
+
+.PARAMETER DayOfWeekOfMonth
+Which day of the week to run password checks for MonthsByDayOfWeek schedule type.
+
+.PARAMETER DayOfMonth
+Which day of the month to run password checks for MonthsByDay schedule type.
+
+.PARAMETER RepeatDaysOfWeek
+Which day(s) of the week to run password checks for Weeks schedule type.
+
+.PARAMETER TimeZone
+Which time zone to use for calculating schedule times.  The IDs returned by Get-SafeguardTimeZone can be used to
+determine valid values that can be passed in for this parameter.  (default: time zone of this computer, e.g. Get-TimeZone)
+
+.PARAMETER StartHour
+The hour at which to start running password checks (0-23, using 24-hour clock).
+
+.PARAMETER StartMinute
+The minute at which to start running password checks (0-59).
+#>
+function New-SafeguardPasswordCheckSchedule
+{
+    [CmdletBinding(DefaultParameterSetName="Never")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Name,
+        [Parameter(Mandatory=$false)]
+        [string]$Description,
+        [Parameter(Mandatory=$false)]
+        [switch]$ChangePasswordOnMismatch,
+        [Parameter(Mandatory=$false)]
+        [switch]$NotifyOwnersOnMismatch,
+        [Parameter(Mandatory=$false,ParameterSetName="Never")]
+        [bool]$Never = $true,
+        [Parameter(Mandatory=$true,ParameterSetName="MonthsByDayOfWeek")]
+        [switch]$MonthsByDayOfWeek,
+        [Parameter(Mandatory=$true,ParameterSetName="MonthsByDay")]
+        [switch]$MonthsByDay,
+        [Parameter(Mandatory=$true,ParameterSetName="Weeks")]
+        [switch]$Weeks,
+        [Parameter(Mandatory=$true,ParameterSetName="Days")]
+        [switch]$Days,
+        [Parameter(Mandatory=$true,ParameterSetName="Hours")]
+        [switch]$Hours,
+        [Parameter(Mandatory=$true,ParameterSetName="Minutes")]
+        [switch]$Minutes,
+        [Parameter(Mandatory=$false,ParameterSetName="MonthsByDayOfWeek")]
+        [Parameter(Mandatory=$false,ParameterSetName="MonthsByDay")]
+        [Parameter(Mandatory=$false,ParameterSetName="Weeks")]
+        [Parameter(Mandatory=$false,ParameterSetName="Days")]
+        [Parameter(Mandatory=$false,ParameterSetName="Hours")]
+        [Parameter(Mandatory=$false,ParameterSetName="Minutes")]
+        [int]$ScheduleInterval = 1,
+        [Parameter(Mandatory=$true,ParameterSetName="MonthsByDayOfWeek")]
+        [ValidateSet("First","Second","Third","Fourth","Last",IgnoreCase=$true)]
+        [string]$WeekOfMonth,
+        [Parameter(Mandatory=$true,ParameterSetName="MonthsByDayOfWeek")]
+        [ValidateSet("Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday",IgnoreCase=$true)]
+        [string]$DayOfWeekOfMonth,
+        [Parameter(Mandatory=$true,ParameterSetName="MonthsByDay")]
+        [ValidateRange(1,31)]
+        [int]$DayOfMonth,
+        [Parameter(Mandatory=$true,ParameterSetName="Weeks")]
+        [ValidateSet("Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday",IgnoreCase=$true)]
+        [string[]]$RepeatDaysOfWeek,
+        [Parameter(Mandatory=$false,ParameterSetName="MonthsByDayOfWeek")]
+        [Parameter(Mandatory=$false,ParameterSetName="MonthsByDay")]
+        [Parameter(Mandatory=$false,ParameterSetName="Weeks")]
+        [Parameter(Mandatory=$false,ParameterSetName="Days")]
+        [Parameter(Mandatory=$false,ParameterSetName="Hours")]
+        [Parameter(Mandatory=$false,ParameterSetName="Minutes")]
+        [string]$TimeZone = (Get-TimeZone).Id,
+        [Parameter(Mandatory=$true,ParameterSetName="MonthsByDayOfWeek")]
+        [Parameter(Mandatory=$true,ParameterSetName="MonthsByDay")]
+        [Parameter(Mandatory=$true,ParameterSetName="Weeks")]
+        [Parameter(Mandatory=$true,ParameterSetName="Days")]
+        [ValidateRange(0,23)]
+        [int]$StartHour,
+        [Parameter(Mandatory=$true,ParameterSetName="MonthsByDayOfWeek")]
+        [Parameter(Mandatory=$true,ParameterSetName="MonthsByDay")]
+        [Parameter(Mandatory=$true,ParameterSetName="Weeks")]
+        [Parameter(Mandatory=$true,ParameterSetName="Days")]
+        [Parameter(Mandatory=$true,ParameterSetName="Hours")]
+        [ValidateRange(0,59)]
+        [int]$StartMinute
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
+    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -UseDefault)
+
+    $local:Body = @{
+        "Name" = $Name;
+        "Description" = $Description;
+        "ResetPasswordOnMismatch" = [bool]$ChangePasswordOnMismatch;
+        "NotifyOwnersOnMismatch" = [bool]$NotifyOwnersOnMismatch;
+    }
+
+    if ($PSCmdlet.ParameterSetName -ne "Never")
+    {
+        $local:Body.TimeZoneId = $TimeZone
+        $local:Body.RepeatInterval = $ScheduleInterval
+        # since we don't support time windows for now
+        $local:Body.TimeOfDayType = "Instant"
+    }
+
+    switch ($PsCmdlet.ParameterSetName)
+    {
+        "MonthsByDayOfWeek" {
+            $local:Body.ScheduleType = "Monthly"
+            $local:Body.RepeatMonthlyScheduleType = "DayOfWeekOfMonth"
+            $local:Body.RepeatWeekOfMonth = $WeekOfMonth
+            $local:Body.RepeatDayOfWeek = $DayOfWeekOfMonth
+            break
+        }
+        "MonthsByDay" {
+            $local:Body.ScheduleType = "Monthly"
+            $local:Body.RepeatMonthlyScheduleType = "DayOfMonth"
+            $local:Body.RepeatDayOfMonth = $DayOfMonth
+            break
+        }
+        "Weeks" {
+            $local:Body.ScheduleType = "Weekly"
+            $local:Body.RepeatDaysOfWeek = $RepeatDaysOfWeek
+            break
+        }
+        "Days" {
+            $local:Body.ScheduleType = "Daily"
+            break
+        }
+        "Hours" {
+            $local:Body.ScheduleType = "Hourly"
+            break
+        }
+        "Minutes" {
+            $local:Body.ScheduleType = "Minute"
+            break
+        }
+    }
+
+    if ($PSCmdlet.ParameterSetName -ne "Never" -and $PSCmdlet.ParameterSetName -ne "Minutes" -and $PSCmdlet.ParameterSetName -ne "Hours")
+    {
+        $local:Body.StartHour = $StartHour
+    }
+
+    if ($PSCmdlet.ParameterSetName -ne "Never" -and $PSCmdlet.ParameterSetName -ne "Minutes")
+    {
+        $local:Body.StartMinute = $StartMinute
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        POST "AssetPartitions/$($local:AssetPartitionId)/CheckSchedules" -Body $local:Body
+}
+
+<#
+.SYNOPSIS
 Delete a password check schedule from Safeguard via the Web API.
 
 .DESCRIPTION
