@@ -341,6 +341,55 @@ function Rename-SafeguardProfileItem
 
     Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core PUT "$($local:RelPath)/$($local:Item.Id)" -Body $local:Item
 }
+function Copy-SafeguardProfileItem
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true)]
+        [ValidateSet("PasswordRule", "CheckSchedule", "ChangeSchedule", "Profile", IgnoreCase=$true)]
+        [string]$ItemType,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$ItemToCopy,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$CopyName
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    switch ($ItemType)
+    {
+        "passwordrule" { $local:ResourceName = "PasswordRules"; break}
+        "checkschedule" { $local:ResourceName = "CheckSchedules"; break }
+        "changeschedule" { $local:ResourceName = "ChangeSchedules"; break }
+        "profile" { $local:ResourceName = "Profiles"; break }
+    }
+
+    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
+    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -UseDefault)
+
+    $local:RelPath = "AssetPartitions/$AssetPartitionId/$($local:ResourceName)"
+
+    $local:Item = (Get-SafeguardProfileItem -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                       -AssetPartitionId $AssetPartitionId -ItemType $ItemType -ItemToGet $ItemToCopy)
+
+    $local:Item.Id = 0 # <== gets ignored for POST
+    $local:Item.Name = $CopyName
+
+    Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core POST "$($local:RelPath)" -Body $local:Item
+}
+
 
 # account password rules
 
@@ -747,6 +796,63 @@ function Rename-SafeguardAccountPasswordRule
         -AssetPartitionId $AssetPartitionId -ItemType "PasswordRule" -ItemToEdit $PasswordRuleToEdit -NewName $NewName
 }
 
+<#
+.SYNOPSIS
+Copy an account password rule in Safeguard via the Web API.
+
+.DESCRIPTION
+Copy an account password rule without changing any of its configuration.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to copy the account password rule in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to copy the account password rule in.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER PasswordRuleToCopy
+An integer containing the ID of the account password rule to copy or a string containing the name.
+
+.PARAMETER CopyName
+A string containing the name for the new account password rule.
+#>
+function Copy-SafeguardAccountPasswordRule
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$PasswordRuleToCopy,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$CopyName
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Copy-SafeguardProfileItem -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition `
+        -AssetPartitionId $AssetPartitionId -ItemType "PasswordRule" -ItemToCopy $PasswordRuleToCopy -CopyName $CopyName
+}
+
 # password check schedules
 
 <#
@@ -1008,6 +1114,63 @@ function Rename-SafeguardPasswordCheckSchedule
 
     Rename-SafeguardProfileItem -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition `
         -AssetPartitionId $AssetPartitionId -ItemType "CheckSchedule" -ItemToEdit $CheckScheduleToEdit -NewName $NewName
+}
+
+<#
+.SYNOPSIS
+Copy a password check schedule in Safeguard via the Web API.
+
+.DESCRIPTION
+Copy a password check schedule without changing any of its configuration.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to copy the password check schedule in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to copy the password check schedule in.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER CheckScheduleToEdit
+An integer containing the ID of the password check schedule to copy or a string containing the name.
+
+.PARAMETER CopyName
+A string containing the name for the new password check schedule.
+#>
+function Copy-SafeguardPasswordCheckSchedule
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$CheckScheduleToCopy,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$CopyName
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Copy-SafeguardProfileItem -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition `
+        -AssetPartitionId $AssetPartitionId -ItemType "CheckSchedule" -ItemToCopy $CheckScheduleToCopy -CopyName $CopyName
 }
 
 # password change schedules
@@ -1320,6 +1483,62 @@ function Rename-SafeguardPasswordChangeSchedule
     Rename-SafeguardProfileItem -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition `
         -AssetPartitionId $AssetPartitionId -ItemType "ChangeSchedule" -ItemToEdit $ChangeScheduleToEdit -NewName $NewName
 }
+<#
+.SYNOPSIS
+Copy a password change schedule in Safeguard via the Web API.
+
+.DESCRIPTION
+Copy a password change schedule without changing any of its configuration.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to copy the password change schedule in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to copy the password change schedule in.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER ChangeScheduleToEdit
+An integer containing the ID of the password change schedule to copy or a string containing the name.
+
+.PARAMETER CopyName
+A string containing the name for the new password change schedule.
+#>
+function Copy-SafeguardPasswordChangeSchedule
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$ChangeScheduleToCopy,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$CopyName
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Copy-SafeguardProfileItem -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition `
+        -AssetPartitionId $AssetPartitionId -ItemType "ChangeSchedule" -ItemToCopy $ChangeScheduleToCopy -CopyName $CopyName
+}
 
 # password profiles
 
@@ -1525,4 +1744,61 @@ function Rename-SafeguardPasswordProfile
 
     Rename-SafeguardProfileItem -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition `
         -AssetPartitionId $AssetPartitionId -ItemType "Profile" -ItemToEdit $ProfileToEdit -NewName $NewName
+}
+
+<#
+.SYNOPSIS
+Copy a password profile in Safeguard via the Web API.
+
+.DESCRIPTION
+Copy a password profile without changing any of its configuration.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to copy the password profile in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to copy the password profile in.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER ProfileToEdit
+An integer containing the ID of the password profile to copy or a string containing the name.
+
+.PARAMETER CopyName
+A string containing the name for the new password profile.
+#>
+function Copy-SafeguardPasswordProfile
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$ProfileToCopy,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$CopyName
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Copy-SafeguardProfileItem -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition `
+        -AssetPartitionId $AssetPartitionId -ItemType "Profile" -ItemToCopy $ProfileToCopy -CopyName $CopyName
 }

@@ -185,13 +185,13 @@ FunctionsToExport = @(
     'New-SafeguardScheduleWeekly','New-SafeguardScheduleDaily',
     # profiles.psm1
     'Get-SafeguardAccountPasswordRule','New-SafeguardAccountPasswordRule','Remove-SafeguardAccountPasswordRule',
-    'Rename-SafeguardAccountPasswordRule',
+    'Rename-SafeguardAccountPasswordRule','Copy-SafeguardAccountPasswordRule',
     'Get-SafeguardPasswordCheckSchedule','New-SafeguardPasswordCheckSchedule','Remove-SafeguardPasswordCheckSchedule',
-    'Rename-SafeguardPasswordCheckSchedule',
+    'Rename-SafeguardPasswordCheckSchedule','Copy-SafeguardPasswordCheckSchedule',
     'Get-SafeguardPasswordChangeSchedule','New-SafeguardPasswordChangeSchedule','Remove-SafeguardPasswordChangeSchedule',
-    'Rename-SafeguardPasswordChangeSchedule',
+    'Rename-SafeguardPasswordChangeSchedule','Copy-SafeguardPasswordChangeSchedule',
     'Get-SafeguardPasswordProfile','New-SafeguardPasswordProfile','Remove-SafeguardPasswordProfile',
-    'Rename-SafeguardPasswordProfile',
+    'Rename-SafeguardPasswordProfile','Copy-SafeguardPasswordProfile',
     # directories.psm1
     'Get-SafeguardDirectoryIdentityProvider','New-SafeguardDirectoryIdentityProvider',
     'Remove-SafeguardDirectoryIdentityProvider','Edit-SafeguardDirectoryIdentityProvider',
