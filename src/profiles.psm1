@@ -844,59 +844,15 @@ Whether to change the password if a password mismatch is found (does not apply t
 .PARAMETER NotifyOwnersOnMismatch
 Whether to notify delegated owners if a password mismatch is found (does not apply to manual check tasks).
 
-.PARAMETER Never
-Select the password check schedule type of Never, meaning don't run password checks.
+.PARAMETER Schedule
+A Safeguard schedule object of when to run password checks, see New-SafeguardSchedule and associated cmdlets.
 
-.PARAMETER MonthsByDayOfWeek
-Select the password check schedule type of MonthsByDayOfWeek, meaning run password checks every X months (see ScheduleInterval)
-on a particular day (Sun,Mon,Tue,Wed,Thu,Fri,Sat) of a particular week (1st,2nd,3rd,4th,Last).
-
-.PARAMETER MonthsByDay
-Select the password check schedule type of MonthsByDay, meaning run password checks every X months (see ScheduleInterval)
-on a particular day of the month (1-31).
-
-.PARAMETER Weeks
-Select the password check schedule type of Weeks, meaning run password checks every X weeks (see ScheduleInterval)
-on one or more days of the week (Sun,Mon,Tue,Wed,Thu,Fri,Sat).
-
-.PARAMETER Days
-Select the password check schedule type of Days, meaning run password checks every X days (see ScheduleInterval).
-
-.PARAMETER Hours
-Select the password check schedule type of Hours, meaning run password checks every X hours (see ScheduleInterval).
-
-.PARAMETER Minutes
-Select the password check schedule type of Minutes, meaning run password checks every X minutes (see ScheduleInterval).
-
-.PARAMETER ScheduleInterval
-The interval at which to run password checks, for example every X months, weeks, days, hours, or minutes.  (default: 1),
-In other words the default is monthly, weekly, daily, hourly, every minute.
-
-.PARAMETER WeekOfMonth
-Which week of the month to run password checks for MonthsByDayOfWeek schedule type.
-
-.PARAMETER DayOfWeekOfMonth
-Which day of the week to run password checks for MonthsByDayOfWeek schedule type.
-
-.PARAMETER DayOfMonth
-Which day of the month to run password checks for MonthsByDay schedule type.
-
-.PARAMETER RepeatDaysOfWeek
-Which day(s) of the week to run password checks for Weeks schedule type.
-
-.PARAMETER TimeZone
-Which time zone to use for calculating schedule times.  The IDs returned by Get-SafeguardTimeZone can be used to
-determine valid values that can be passed in for this parameter.  (default: time zone of this computer, e.g. Get-TimeZone)
-
-.PARAMETER StartHour
-The hour at which to start running password checks (0-23, using 24-hour clock).
-
-.PARAMETER StartMinute
-The minute at which to start running password checks (0-59).
+.EXAMPLE
+New-SafeguardPasswordCheckSchedule "Daily Check at Noon" -ChangePasswordOnMismatch -Schedule (New-SafeguardScheduleDaily -StartTime "12:00")
 #>
 function New-SafeguardPasswordCheckSchedule
 {
-    [CmdletBinding(DefaultParameterSetName="Never")]
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -916,59 +872,8 @@ function New-SafeguardPasswordCheckSchedule
         [switch]$ChangePasswordOnMismatch,
         [Parameter(Mandatory=$false)]
         [switch]$NotifyOwnersOnMismatch,
-        [Parameter(Mandatory=$false,ParameterSetName="Never")]
-        [bool]$Never = $true,
-        [Parameter(Mandatory=$true,ParameterSetName="MonthsByDayOfWeek")]
-        [switch]$MonthsByDayOfWeek,
-        [Parameter(Mandatory=$true,ParameterSetName="MonthsByDay")]
-        [switch]$MonthsByDay,
-        [Parameter(Mandatory=$true,ParameterSetName="Weeks")]
-        [switch]$Weeks,
-        [Parameter(Mandatory=$true,ParameterSetName="Days")]
-        [switch]$Days,
-        [Parameter(Mandatory=$true,ParameterSetName="Hours")]
-        [switch]$Hours,
-        [Parameter(Mandatory=$true,ParameterSetName="Minutes")]
-        [switch]$Minutes,
-        [Parameter(Mandatory=$false,ParameterSetName="MonthsByDayOfWeek")]
-        [Parameter(Mandatory=$false,ParameterSetName="MonthsByDay")]
-        [Parameter(Mandatory=$false,ParameterSetName="Weeks")]
-        [Parameter(Mandatory=$false,ParameterSetName="Days")]
-        [Parameter(Mandatory=$false,ParameterSetName="Hours")]
-        [Parameter(Mandatory=$false,ParameterSetName="Minutes")]
-        [int]$ScheduleInterval = 1,
-        [Parameter(Mandatory=$true,ParameterSetName="MonthsByDayOfWeek")]
-        [ValidateSet("First","Second","Third","Fourth","Last",IgnoreCase=$true)]
-        [string]$WeekOfMonth,
-        [Parameter(Mandatory=$true,ParameterSetName="MonthsByDayOfWeek")]
-        [ValidateSet("Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday",IgnoreCase=$true)]
-        [string]$DayOfWeekOfMonth,
-        [Parameter(Mandatory=$true,ParameterSetName="MonthsByDay")]
-        [ValidateRange(1,31)]
-        [int]$DayOfMonth,
-        [Parameter(Mandatory=$true,ParameterSetName="Weeks")]
-        [ValidateSet("Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday",IgnoreCase=$true)]
-        [string[]]$RepeatDaysOfWeek,
-        [Parameter(Mandatory=$false,ParameterSetName="MonthsByDayOfWeek")]
-        [Parameter(Mandatory=$false,ParameterSetName="MonthsByDay")]
-        [Parameter(Mandatory=$false,ParameterSetName="Weeks")]
-        [Parameter(Mandatory=$false,ParameterSetName="Days")]
-        [Parameter(Mandatory=$false,ParameterSetName="Hours")]
-        [Parameter(Mandatory=$false,ParameterSetName="Minutes")]
-        [string]$TimeZone = (Get-TimeZone).Id,
-        [Parameter(Mandatory=$true,ParameterSetName="MonthsByDayOfWeek")]
-        [Parameter(Mandatory=$true,ParameterSetName="MonthsByDay")]
-        [Parameter(Mandatory=$true,ParameterSetName="Weeks")]
-        [Parameter(Mandatory=$true,ParameterSetName="Days")]
-        [ValidateRange(0,23)]
-        [int]$StartHour,
-        [Parameter(Mandatory=$true,ParameterSetName="MonthsByDayOfWeek")]
-        [Parameter(Mandatory=$true,ParameterSetName="MonthsByDay")]
-        [Parameter(Mandatory=$true,ParameterSetName="Weeks")]
-        [Parameter(Mandatory=$true,ParameterSetName="Days")]
-        [Parameter(Mandatory=$true,ParameterSetName="Hours")]
-        [ValidateRange(0,59)]
-        [int]$StartMinute
+        [Parameter(Mandatory=$false)]
+        [HashTable]$Schedule
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -985,56 +890,10 @@ function New-SafeguardPasswordCheckSchedule
         "NotifyOwnersOnMismatch" = [bool]$NotifyOwnersOnMismatch;
     }
 
-    if ($PSCmdlet.ParameterSetName -ne "Never")
+    if ($Schedule)
     {
-        $local:Body.TimeZoneId = $TimeZone
-        $local:Body.RepeatInterval = $ScheduleInterval
-        # since we don't support time windows for now
-        $local:Body.TimeOfDayType = "Instant"
-    }
-
-    switch ($PsCmdlet.ParameterSetName)
-    {
-        "MonthsByDayOfWeek" {
-            $local:Body.ScheduleType = "Monthly"
-            $local:Body.RepeatMonthlyScheduleType = "DayOfWeekOfMonth"
-            $local:Body.RepeatWeekOfMonth = $WeekOfMonth
-            $local:Body.RepeatDayOfWeek = $DayOfWeekOfMonth
-            break
-        }
-        "MonthsByDay" {
-            $local:Body.ScheduleType = "Monthly"
-            $local:Body.RepeatMonthlyScheduleType = "DayOfMonth"
-            $local:Body.RepeatDayOfMonth = $DayOfMonth
-            break
-        }
-        "Weeks" {
-            $local:Body.ScheduleType = "Weekly"
-            $local:Body.RepeatDaysOfWeek = $RepeatDaysOfWeek
-            break
-        }
-        "Days" {
-            $local:Body.ScheduleType = "Daily"
-            break
-        }
-        "Hours" {
-            $local:Body.ScheduleType = "Hourly"
-            break
-        }
-        "Minutes" {
-            $local:Body.ScheduleType = "Minute"
-            break
-        }
-    }
-
-    if ($PSCmdlet.ParameterSetName -ne "Never" -and $PSCmdlet.ParameterSetName -ne "Minutes" -and $PSCmdlet.ParameterSetName -ne "Hours")
-    {
-        $local:Body.StartHour = $StartHour
-    }
-
-    if ($PSCmdlet.ParameterSetName -ne "Never" -and $PSCmdlet.ParameterSetName -ne "Minutes")
-    {
-        $local:Body.StartMinute = $StartMinute
+        Import-Module -Name "$PSScriptRoot\schedules.psm1" -Scope Local
+        $local:Body = (Copy-ScheduleToDto -Schedule $Schedule -Dto $local:Body)
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `

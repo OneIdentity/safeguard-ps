@@ -83,6 +83,7 @@ NestedModules = @(
     'users.psm1',
     'assets.psm1',
     'assetpartitions.psm1',
+    'schedules.psm1',
     'profiles.psm1',
     'directories.psm1',
     'groups.psm1',
@@ -179,6 +180,9 @@ FunctionsToExport = @(
     'Get-SafeguardAssetPartition','New-SafeguardAssetPartition','Remove-SafeguardAssetPartition','Edit-SafeguardAssetPartition',
     'Get-SafeguardAssetPartitionOwner','Add-SafeguardAssetPartitionOwner','Remove-SafeguardAssetPartitionOwner',
     'Get-SafeguardCurrentAssetPartition','Enter-SafeguardAssetPartition','Exit-SafeguardAssetPartition',
+    # schedules.psm1 -- used for creating/updating profile components
+    'New-SafeguardSchedule','New-SafeguardScheduleMonthlyByDayOfWeek','New-SafeguardScheduleMonthlyByDay',
+    'New-SafeguardScheduleWeekly','New-SafeguardScheduleDaily',
     # profiles.psm1
     'Get-SafeguardAccountPasswordRule','New-SafeguardAccountPasswordRule','Remove-SafeguardAccountPasswordRule',
     'Rename-SafeguardAccountPasswordRule',
