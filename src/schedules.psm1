@@ -91,6 +91,12 @@ The hour at which to start running the schedule (0-23, using 24-hour clock).
 
 .PARAMETER StartMinute
 The minute at which to start running the schedule (0-59).
+
+.EXAMPLE
+New-SafeguardSchedule -Hours -ScheduleInterval 8 -StartHour 8 -StartMinute 0
+
+.EXAMPLE
+New-SafeguardSchedule -MonthsByDayOfWeek -ScheduleInterval 6 -WeekOfMonth Last -DayOfWeekOfMonth Saturday -StartTime 1 -StartMinute 30 -TimeZone "Eastern Standard Time"
 #>
 function New-SafeguardSchedule
 {
@@ -158,6 +164,10 @@ function New-SafeguardSchedule
 
     if ($PSCmdlet.ParameterSetName -ne "Never")
     {
+        if ($TimeZone -ieq "Coordinated Universal Time")
+        {
+            $TimeZone = "UTC"
+        }
         $local:Schedule.TimeZoneId = $TimeZone
         $local:Schedule.RepeatInterval = $ScheduleInterval
         # since we don't support time windows for now
@@ -246,6 +256,12 @@ The minute at which to start running the schedule (0-59).
 .PARAMETER TimeZone
 Which time zone to use for calculating schedule times.  The IDs returned by Get-SafeguardTimeZone can be used to
 determine valid values that can be passed in for this parameter.  (default: time zone of this computer, e.g. Get-TimeZone)
+
+.EXAMPLE
+New-SafeguardScheduleMonthlyByDayOfWeek -WeekOfMonth First -DayOfWeekOfMonth Sunday -StartTime "5:00" -TimeZone "Pacific Standard Time"
+
+.EXAMPLE
+New-SafeguardScheduleMonthlyByDayOfWeek -WeekOfMonth Second -DayOfWeekOfMonth Saturday -StartHour 12 -StartMinute 0
 #>
 function New-SafeguardScheduleMonthlyByDayOfWeek
 {
@@ -310,6 +326,12 @@ The minute at which to start running the schedule (0-59).
 .PARAMETER TimeZone
 Which time zone to use for calculating schedule times.  The IDs returned by Get-SafeguardTimeZone can be used to
 determine valid values that can be passed in for this parameter.  (default: time zone of this computer, e.g. Get-TimeZone)
+
+.EXAMPLE
+New-SafeguardScheduleMonthlyByDay -DayOfMonth 15 -StartTime "23:30"
+
+.EXAMPLE
+New-SafeguardScheduleMonthlyByDay -DayOfMonth 1 -StartHour 22 -StartMinute 0 -TimeZone "Mountain Standard Time"
 #>
 function New-SafeguardScheduleMonthlyByDay
 {
@@ -370,6 +392,12 @@ The minute at which to start running the schedule (0-59).
 .PARAMETER TimeZone
 Which time zone to use for calculating schedule times.  The IDs returned by Get-SafeguardTimeZone can be used to
 determine valid values that can be passed in for this parameter.  (default: time zone of this computer, e.g. Get-TimeZone)
+
+.EXAMPLE
+New-SafeguardScheduleWeekly -RepeatDaysOfWeek Saturday -StartTime "11:00"
+
+.EXAMPLE
+New-SafeguardScheduleWeekly -RepeatDaysOfWeek Tuesday,Saturday -StartHour 23 -StartMinute 30 -TimeZone "Pacific Standard Time"
 #>
 function New-SafeguardScheduleWeekly
 {
@@ -426,6 +454,12 @@ The minute at which to start running the schedule (0-59).
 .PARAMETER TimeZone
 Which time zone to use for calculating schedule times.  The IDs returned by Get-SafeguardTimeZone can be used to
 determine valid values that can be passed in for this parameter.  (default: time zone of this computer, e.g. Get-TimeZone)
+
+.EXAMPLE
+New-SafeguardScheduleDaily -StartTime "23:00" -TimeZone "Central Europe Standard Time"
+
+.EXAMPLE
+New-SafeguardScheduleDaily -StartHour 12 -StartMinute 30 -TimeZone "Coordinated Universal Time"
 #>
 function New-SafeguardScheduleDaily
 {
