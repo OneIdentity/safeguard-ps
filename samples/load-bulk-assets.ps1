@@ -5,6 +5,10 @@ Param(
     [Parameter(Mandatory=$true, Position=0)]
     [int]$Quantity,
     [Parameter(Mandatory=$false)]
+    [string]$AssetPrefix,
+    [Parameter(Mandatory=$false)]
+    [string]$AccountName = "root",
+    [Parameter(Mandatory=$false)]
     [switch]$NoAccounts
 )
 
@@ -48,7 +52,7 @@ function Add-OneThousand
         {
             $local:Body += @{
                 AssetId = $local:NewAssetId;
-                Name = "root"
+                Name = $AccountName
             }
         }
         Write-Host -ForegroundColor Green ("[{0:MM/dd/yy} {0:HH:mm:ss}]" -f (Get-Date)) -NoNewline
@@ -65,7 +69,15 @@ if (-not $SafeguardSession)
     throw "This cmdlet requires that you log in with the Connect-Safeguard cmdlet"
 }
 
-$script:Prefix = ((65..90) | Get-Random -Count 5 | ForEach-Object { [char]$_ }) -join ""
+if ($AssetPrefix)
+{
+    $script:Prefix = $AssetPrefix
+}
+else
+{
+    $script:Prefix = ((65..90) | Get-Random -Count 5 | ForEach-Object { [char]$_ }) -join ""
+}
+
 
 $script:Remaining = $Quantity
 $script:FormatString = "{0:d$(([string]$Quantity).Length)}"
