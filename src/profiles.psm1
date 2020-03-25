@@ -1570,7 +1570,7 @@ An integer containing the asset partition ID to get password profiles.
 An integer containing the ID of the password profiles to get or a string containing the name.
 
 .PARAMETER Fields
-An array of the password profiles property names to return.
+An array of the password profile property names to return.
 #>
 function Get-SafeguardPasswordProfile
 {
@@ -1599,7 +1599,43 @@ function Get-SafeguardPasswordProfile
         -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -ItemType "Profile" -ItemToGet $ProfileToGet -Fields $Fields
 }
 
+<#
+.SYNOPSIS
+Create a new password profile from Safeguard via the Web API.
 
+.DESCRIPTION
+Celete a new password profile. It must not the default password profile of an asset partition
+in order to be able to delete it.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to delete the password profile from.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to the delete password profile from.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER PasswordRuleToSet
+An integer containing the ID of the account password rule to set in the new profile
+or a string containing the name.
+
+.PARAMETER CheckScheduleToSet
+An integer containing the ID of the password check schedule to set in the new profile
+or a string containing the name.
+
+.PARAMETER ChangeScheduleToSet
+An integer containing the ID of the password change schedule to set in the new profile
+or a string containing the name.
+#>
 function New-SafeguardPasswordProfile
 {
     [CmdletBinding()]
@@ -1617,7 +1653,13 @@ function New-SafeguardPasswordProfile
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Name,
         [Parameter(Mandatory=$false,Position=1)]
-        [string]$Description = $null
+        [string]$Description,
+        [Parameter(Mandatory=$true)]
+        [object]$PasswordRuleToSet,
+        [Parameter(Mandatory=$true)]
+        [object]$CheckScheduleToSet,
+        [Parameter(Mandatory=$true)]
+        [object]$ChangeScheduleToSet
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -1631,6 +1673,13 @@ function New-SafeguardPasswordProfile
         "Name" = $Name;
         "Description" = $Description
     }
+
+    $local:Body.AccountPasswordRuleId = (Resolve-SafeguardAccountPasswordRuleId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                                             -AssetPartitionId $AssetPartitionId -AccountPasswordRule $PasswordRuleToSet)
+    $local:Body.CheckScheduleId  = (Resolve-SafeguardPasswordCheckScheduleId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                                        -AssetPartitionId $AssetPartitionId -PasswordCheckSchedule $CheckScheduleToSet)
+    $local:Body.ChangeScheduleId = (Resolve-SafeguardPasswordChangeScheduleId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                                        -AssetPartitionId $AssetPartitionId -PasswordChangeSchedule $ChangeScheduleToSet)
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
         POST "AssetPartitions/$($local:AssetPartitionId)/Profiles" -Body $local:Body
@@ -1775,6 +1824,11 @@ An integer containing the ID of the password profile to copy or a string contain
 
 .PARAMETER CopyName
 A string containing the name for the new password profile.
+
+.PARAMETER DeepCopy
+Whether to deep copy the profile, meaning make a copy of the account password rule, check password
+schedule, and change password schedule, which will be given names based on the CopyName parameter
+that is provided.
 #>
 function Copy-SafeguardPasswordProfile
 {
@@ -1793,12 +1847,27 @@ function Copy-SafeguardPasswordProfile
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ProfileToCopy,
         [Parameter(Mandatory=$true,Position=1)]
-        [string]$CopyName
+        [string]$CopyName,
+        [Parameter(Mandatory=$false)]
+        [switch]$DeepCopy
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Copy-SafeguardProfileItem -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition `
-        -AssetPartitionId $AssetPartitionId -ItemType "Profile" -ItemToCopy $ProfileToCopy -CopyName $CopyName
+    $local:Copy = (Copy-SafeguardProfileItem -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition `
+                       -AssetPartitionId $AssetPartitionId -ItemType "Profile" -ItemToCopy $ProfileToCopy -CopyName $CopyName)
+    if ($DeepCopy)
+    {
+        $local:APR = (Copy-SafeguardAccountPasswordRule -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition `
+                          -AssetPartitionId $AssetPartitionId -PasswordRuleToCopy $local:Copy.AccountPasswordRule.Id -CopyName "$CopyName Password Rule")
+        $local:Chk = (Copy-SafeguardPasswordCheckSchedule -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition `
+                          -AssetPartitionId $AssetPartitionId -PasswordRuleToCopy $local:Copy.CheckSchedule.Id -CopyName "$CopyName Check Schedule")
+        $local:Chg = (Copy-SafeguardPasswordChangeSchedule -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition `
+                          -AssetPartitionId $AssetPartitionId -PasswordRuleToCopy $local:Copy.ChangeSchedule.Id -CopyName "$CopyName Change Schedule")
+
+        # TODO: Edit $local:Copy to set the new copied components
+    }
+
+    $local:Copy
 }
