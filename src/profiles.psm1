@@ -1601,11 +1601,12 @@ function Get-SafeguardPasswordProfile
 
 <#
 .SYNOPSIS
-Create a new password profile from Safeguard via the Web API.
+Create a new password profile in Safeguard via the Web API.
 
 .DESCRIPTION
-Celete a new password profile. It must not the default password profile of an asset partition
-in order to be able to delete it.
+Create a new password profile. You must have already created the password rule,
+check schedule, and change schedule so they can be set in the new password
+profile.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -1618,11 +1619,17 @@ Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER AssetPartition
 An integer containing an ID or a string containing the name of the asset partition
-to delete the password profile from.
+to create the password profile in.
 
 .PARAMETER AssetPartitionId
-An integer containing the asset partition ID to the delete password profile from.
+An integer containing the asset partition ID to the create password profile in.
 (If specified, this will override the AssetPartition parameter)
+
+.PARAMETER Name
+A string containing the name for the new profile.
+
+.PARAMETER Description
+A string containing a description for the new profile.
 
 .PARAMETER PasswordRuleToSet
 An integer containing the ID of the account password rule to set in the new profile
@@ -1683,6 +1690,103 @@ function New-SafeguardPasswordProfile
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
         POST "AssetPartitions/$($local:AssetPartitionId)/Profiles" -Body $local:Body
+}
+
+<#
+.SYNOPSIS
+Edit an existing password profile in Safeguard via the Web API.
+
+.DESCRIPTION
+Edit an existing password profile to change which password rule, check schedule,
+or change schedule it is using.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to delete the password profile from.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to the delete password profile from.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER ProfileToEdit
+An integer containing the ID of the password profile to edit or a string containing the name.
+
+.PARAMETER Description
+A string containing a description for the new profile.
+
+.PARAMETER PasswordRuleToSet
+An integer containing the ID of the account password rule to set in the profile
+or a string containing the name.
+
+.PARAMETER CheckScheduleToSet
+An integer containing the ID of the password check schedule to set in the profile
+or a string containing the name.
+
+.PARAMETER ChangeScheduleToSet
+An integer containing the ID of the password change schedule to set in the profile
+or a string containing the name.
+#>
+function Edit-SafeguardPasswordProfile
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$ProfileToEdit,
+        [Parameter(Mandatory=$false,Position=1)]
+        [string]$Description,
+        [Parameter(Mandatory=$false)]
+        [object]$PasswordRuleToSet,
+        [Parameter(Mandatory=$false)]
+        [object]$CheckScheduleToSet,
+        [Parameter(Mandatory=$false)]
+        [object]$ChangeScheduleToSet
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:ProfileObj = (Get-SafeguardPasswordProfile -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $ProfileToEdit)
+
+    if ($PSBoundParameters.ContainsKey("Description")) { $local:ProfileObj.Description = $Description }
+
+    if ($PSBoundParameters.ContainsKey("PasswordRuleToSet"))
+    {
+        $local:ProfileObj.AccountPasswordRuleId = (Resolve-SafeguardAccountPasswordRuleId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                                                       -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -AccountPasswordRule $PasswordRuleToSet)
+    }
+    if ($PSBoundParameters.ContainsKey("CheckScheduleToSet"))
+    {
+        $local:ProfileObj.CheckScheduleId  = (Resolve-SafeguardPasswordCheckScheduleId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                                                  -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -PasswordCheckSchedule $CheckScheduleToSet)
+    }
+    if ($PSBoundParameters.ContainsKey("ChangeScheduleToSet"))
+    {
+        $local:ProfileObj.ChangeScheduleId = (Resolve-SafeguardPasswordChangeScheduleId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                                                  -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -PasswordChangeSchedule $ChangeScheduleToSet)
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        PUT "AssetPartitions/$($local:ProfileObj.AssetPartitionId)/Profiles/$($local:ProfileObj.Id)" -Body $local:ProfileObj
 }
 
 <#
@@ -1862,11 +1966,12 @@ function Copy-SafeguardPasswordProfile
         $local:APR = (Copy-SafeguardAccountPasswordRule -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition `
                           -AssetPartitionId $AssetPartitionId -PasswordRuleToCopy $local:Copy.AccountPasswordRule.Id -CopyName "$CopyName Password Rule")
         $local:Chk = (Copy-SafeguardPasswordCheckSchedule -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition `
-                          -AssetPartitionId $AssetPartitionId -PasswordRuleToCopy $local:Copy.CheckSchedule.Id -CopyName "$CopyName Check Schedule")
+                          -AssetPartitionId $AssetPartitionId -CheckScheduleToCopy $local:Copy.CheckSchedule.Id -CopyName "$CopyName Check Schedule")
         $local:Chg = (Copy-SafeguardPasswordChangeSchedule -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition `
-                          -AssetPartitionId $AssetPartitionId -PasswordRuleToCopy $local:Copy.ChangeSchedule.Id -CopyName "$CopyName Change Schedule")
+                          -AssetPartitionId $AssetPartitionId -ChangeScheduleToCopy $local:Copy.ChangeSchedule.Id -CopyName "$CopyName Change Schedule")
 
-        # TODO: Edit $local:Copy to set the new copied components
+        $local:Copy = (Edit-SafeguardPasswordProfile -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition `
+                           -AssetPartitionId $AssetPartitionId $local:Copy.Id -PasswordRuleToSet $local:APR.Id -CheckScheduleToSet $local:Chk.Id -ChangeScheduleToSet $local:Chg.Id)
     }
 
     $local:Copy
