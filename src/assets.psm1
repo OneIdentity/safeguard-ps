@@ -999,14 +999,17 @@ A string containing an API access key for the service account.
 A string containing the LDAP distinguished name of a service account.  This is used for
 creating LDAP directories.
 
-.PARAMETER NoSslEncryption
-Do not use SSL encryption for LDAP directory.
+.PARAMETER UseSslEncryption
+Whether or not to use SSL encryption for LDAP directory.
 
-.PARAMETER DoNotVerifyServerSslCertificate
-Do not verify Server SSL certificate of LDAP directory.
+.PARAMETER VerifyServerSslCertificate
+Whether or not to verify Server SSL certificate of LDAP directory.
 
 .PARAMETER PrivilegeElevationCommand
 A string containing the privilege elevation command, ex. sudo.
+
+.PARAMETER AllowSessionRequests
+Whether or not to allow session access requests.
 
 .PARAMETER AssetObject
 An object containing the existing asset with desired properties set.
@@ -1071,6 +1074,8 @@ function Edit-SafeguardAsset
         [boolean]$VerifyServerSslCertificate,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$PrivilegeElevationCommand,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [bool]$AllowSessionRequests,
         [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
         [object]$AssetObject
     )
@@ -1098,7 +1103,7 @@ function Edit-SafeguardAsset
     if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
     {
         $AssetObject = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $local:AssetId)
+                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $local:AssetId)
 
         # Connection Properties
         if (-not $AssetObject.ConnectionProperties) { $AssetObject.ConnectionProperties = @{} }
@@ -1129,6 +1134,7 @@ function Edit-SafeguardAsset
         if ($PSBoundParameters.ContainsKey("DisplayName")) { $AssetObject.Name = $DisplayName }
         if ($PSBoundParameters.ContainsKey("Description")) { $AssetObject.Description = $Description }
         if ($PSBoundParameters.ContainsKey("NetworkAddress")) { $AssetObject.NetworkAddress = $NetworkAddress }
+        if ($PSBoundParameters.ContainsKey("AllowSessionRequests")) { $AssetObject.AllowSessionRequests = $AllowSessionRequests }
         if ($PSBoundParameters.ContainsKey("Platform"))
         {
             $local:PlatformId = Resolve-SafeguardPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Platform
