@@ -423,6 +423,9 @@ A string to pass to the -filter query parameter in the Safeguard Web API.
 .PARAMETER Fields
 An array of the asset property names to return.
 
+.PARAMETER OrderBy
+An array of the asset property names to order by.
+
 .INPUTS
 None.
 
@@ -437,6 +440,9 @@ Find-SafeguardAsset "linux.company.corp"
 
 .EXAMPLE
 Find-SafeguardAsset -QueryFilter "Platform.PlatformFamily eq 'Windows'"
+
+.EXAMPLE
+Find-SafeguardAsset -QueryFilter "Name contains 'db-'" -Fields Id,Name -OrderBy Platform.PlatformFamily,-Name
 #>
 function Find-SafeguardAsset
 {
@@ -457,7 +463,9 @@ function Find-SafeguardAsset
         [Parameter(Mandatory=$true,Position=0,ParameterSetName="Query")]
         [string]$QueryFilter,
         [Parameter(Mandatory=$false)]
-        [string[]]$Fields
+        [string[]]$Fields,
+        [Parameter(Mandatory=$false)]
+        [string[]]$OrderBy
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -487,6 +495,10 @@ function Find-SafeguardAsset
     if ($Fields)
     {
         $local:Parameters["fields"] = ($Fields -join ",")
+    }
+    if ($OrderBy)
+    {
+        $local:Parameters["orderby"] = ($OrderBy -join ",")
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" -Parameters $local:Parameters
@@ -1365,6 +1377,9 @@ A string to pass to the -filter query parameter in the Safeguard Web API.
 .PARAMETER Fields
 An array of the account property names to return.
 
+.PARAMETER OrderBy
+An array of the account property names to order by.
+
 .INPUTS
 None.
 
@@ -1399,7 +1414,9 @@ function Find-SafeguardAssetAccount
         [Parameter(Mandatory=$true,Position=0,ParameterSetName="Query")]
         [string]$QueryFilter,
         [Parameter(Mandatory=$false)]
-        [string[]]$Fields
+        [string[]]$Fields,
+        [Parameter(Mandatory=$false)]
+        [string[]]$OrderBy
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -1429,6 +1446,10 @@ function Find-SafeguardAssetAccount
     if ($Fields)
     {
         $local:Parameters["fields"] = ($Fields -join ",")
+    }
+    if ($OrderBy)
+    {
+        $local:Parameters["orderby"] = ($OrderBy -join ",")
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" -Parameters $local:Parameters
