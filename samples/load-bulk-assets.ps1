@@ -5,6 +5,9 @@ Param(
     [Parameter(Mandatory=$true, Position=0)]
     [int]$Quantity,
     [Parameter(Mandatory=$false)]
+    [ValidateSet("OtherManaged","Linux")]
+    [string]$Platform = "OtherManaged",
+    [Parameter(Mandatory=$false)]
     [string]$AssetPrefix,
     [Parameter(Mandatory=$false)]
     [string]$AccountName = "root",
@@ -32,11 +35,10 @@ function Add-OneThousand
         $local:Body += @{
             Name = "$script:Prefix-$($script:FormatString -f $script:Index)";
             Description = "Generated Asset";
+            NetworkAddress = "generated.fake.dns";
             PlatformId = $script:PlatformId;
             AssetPartitionId = $script:AssetPartitionId;
-            ConnectionProperties = @{
-                ServiceAccountCredentialType = "Custom"
-            }
+            ConnectionProperties = $script:ConnectionProps
         }
         $script:Index++
     }
@@ -83,7 +85,16 @@ $script:Remaining = $Quantity
 $script:FormatString = "{0:d$(([string]$Quantity).Length)}"
 $script:Index = 1
 
-$script:PlatformId = (Get-SafeguardPlatform  'Other Managed').Id
+if ($Platform -ieq "Linux")
+{
+    $script:ConnectionProps = @{ ServiceAccountCredentialType = "None" }
+    $script:PlatformId = (Get-SafeguardPlatform  'Other Linux').Id
+}
+else
+{
+    $script:ConnectionProps = @{ ServiceAccountCredentialType = "Custom" }
+    $script:PlatformId = (Get-SafeguardPlatform  'Other Managed').Id
+}
 
 if ($AssetPartitionName)
 {
