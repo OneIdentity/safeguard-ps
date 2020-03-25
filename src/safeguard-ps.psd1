@@ -185,7 +185,7 @@ FunctionsToExport = @(
     'New-SafeguardScheduleWeekly','New-SafeguardScheduleDaily',
     # profiles.psm1
     'Get-SafeguardAccountPasswordRule','New-SafeguardAccountPasswordRule','Remove-SafeguardAccountPasswordRule',
-    'Rename-SafeguardAccountPasswordRule','Copy-SafeguardAccountPasswordRule',
+    'Rename-SafeguardAccountPasswordRule','Copy-SafeguardAccountPasswordRule','Edit-SafeguardAccountPasswordRule',
     'Get-SafeguardPasswordCheckSchedule','New-SafeguardPasswordCheckSchedule','Remove-SafeguardPasswordCheckSchedule',
     'Rename-SafeguardPasswordCheckSchedule','Copy-SafeguardPasswordCheckSchedule',
     'Get-SafeguardPasswordChangeSchedule','New-SafeguardPasswordChangeSchedule','Remove-SafeguardPasswordChangeSchedule',

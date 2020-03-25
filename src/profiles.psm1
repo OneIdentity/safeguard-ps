@@ -688,6 +688,237 @@ function New-SafeguardAccountPasswordRule
 
 <#
 .SYNOPSIS
+Edit an existing account password rule in Safeguard via the Web API.
+
+.DESCRIPTION
+Edit an existing account password rule that can be associated to a password profile
+which can be assigned to partitions, assets, and accounts.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to create the account password rule in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to create the account password rule in.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER PasswordRuleToEdit
+An integer containing the ID of the account password rule to get or a string containing the name.
+
+.PARAMETER Description
+A string containing the description of the account password rule.
+
+.PARAMETER MinCharacters
+An integer of the minimum number of characters (default: 8)
+
+.PARAMETER MaxCharacters
+An integer of the maximum number of characters (default: 12)
+
+.PARAMETER AllowUppercase
+A boolean of whether or not to allow uppercase characters (default: true)
+
+.PARAMETER MinUppercase
+An integer of the minimum number of uppercase characters (default: 1)
+
+.PARAMETER MaxConsecutiveUppercase
+An integer of the maximum number of consecutive uppercase characters (default: not set)
+
+.PARAMETER InvalidUppercase
+A string containing all of the invalid uppercase characters (default: not set)
+Example: "ATXYZ", meaning none of those characters will show up in passwords
+
+.PARAMETER AllowLowercase
+A boolean of whether or not to allow lowercase characters (default: true)
+
+.PARAMETER MinLowercase
+An integer of the minimum number of lowercase characters (default: 1)
+
+.PARAMETER MaxConsecutiveLowercase
+An integer of the maximum number of consecutive lowercase characters (default: not set)
+
+.PARAMETER InvalidLowercaseChars
+A string containing all of the invalid lowercase characters (default: not set)
+Example: "aefbkdjs", meaning none of those characters will show up in passwords
+
+.PARAMETER AllowNumeric
+A boolean of whether or not to allow numeric characters (default: true)
+
+.PARAMETER MinNumeric
+An integer of the minimum number of numeric characters (default: 1)
+
+.PARAMETER MaxConsecutiveNumeric
+An integer of the maximum number of consecutive numeric characters (default: not set)
+
+.PARAMETER InvalidNumericChars
+A string containing all of the invalid numeric characters (default: not set)
+Example: "12590", meaning none of those characters will show up in passwords
+
+.PARAMETER AllowSymbols
+A boolean of whether or not to allow symbol characters (default: false)
+
+.PARAMETER MinSymbols
+An integer of the minimum number of symbol characters (default: 0)
+
+.PARAMETER MaxConsecutiveSymbols
+An integer of the maximum number of consecutive symbol characters (default: not set)
+
+.PARAMETER InvalidSymbolChars
+A string containing all of the invalid symbol characters (default: not set)
+Example: "%^=,", meaning none of those characters will show up in passwords
+This parameter is mutually exclusive with AllowedSymbolChars
+
+.PARAMETER AllowedSymbolChars
+A string containing all of the symbol characters to allow (default: not set)
+Example: "@#$%&", meaning only those characters will be used as symbols in passwords
+
+.PARAMETER AllowedFirstCharType
+A string containing which type of character to start the password with (default: not set)
+
+.PARAMETER AllowedLastCharType
+A string containing which type of character to end the password with (default: not set)
+
+.PARAMETER MaxConsecutiveAlpha
+An integer of the maximum number of consecutive alphabetic characters (default: not set)
+
+.PARAMETER MaxConsecutiveAlphanumeric
+An integer of the maximum number of consecutive alphanumeric characters (default: not set)
+
+.PARAMETER RepeatedCharRestriction
+A string containing the repeated character restriction setting for new passwords (default: "NoConsecutiveRepeatedCharacters")
+#>
+function Edit-SafeguardAccountPasswordRule
+{
+    [CmdletBinding(DefaultParameterSetName="Exclude")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$PasswordRuleToEdit,
+        [Parameter(Mandatory=$false)]
+        [string]$Description,
+        [Parameter(Mandatory=$false)]
+        [int]$MinCharacters,
+        [Parameter(Mandatory=$false)]
+        [int]$MaxCharacters,
+        [Parameter(Mandatory=$false)]
+        [bool]$AllowUppercase,
+        [Parameter(Mandatory=$false)]
+        [int]$MinUppercase,
+        [Parameter(Mandatory=$false)]
+        [int]$MaxConsecutiveUppercase,
+        [Parameter(Mandatory=$false)]
+        [string[]]$InvalidUppercaseChars,
+        [Parameter(Mandatory=$false)]
+        [bool]$AllowLowercase,
+        [Parameter(Mandatory=$false)]
+        [int]$MinLowercase,
+        [Parameter(Mandatory=$false)]
+        [int]$MaxConsecutiveLowercase,
+        [Parameter(Mandatory=$false)]
+        [string]$InvalidLowercaseChars,
+        [Parameter(Mandatory=$false)]
+        [bool]$AllowNumeric,
+        [Parameter(Mandatory=$false)]
+        [int]$MinNumeric,
+        [Parameter(Mandatory=$false)]
+        [int]$MaxConsecutiveNumeric,
+        [Parameter(Mandatory=$false)]
+        [string]$InvalidNumericChars,
+        [Parameter(Mandatory=$false)]
+        [bool]$AllowSymbols,
+        [Parameter(Mandatory=$false)]
+        [int]$MinSymbols,
+        [Parameter(Mandatory=$false)]
+        [int]$MaxConsecutiveSymbols,
+        [Parameter(Mandatory=$false,ParameterSetName="Exclude")]
+        [string]$InvalidSymbolChars,
+        [Parameter(Mandatory=$false,ParameterSetName="Include")]
+        [string]$AllowedSymbolChars,
+        [Parameter(Mandatory=$false)]
+        [ValidateSet("All", "AlphaNumeric", "Alphabetic", IgnoreCase=$true)]
+        [string]$AllowedFirstCharType,
+        [Parameter(Mandatory=$false)]
+        [ValidateSet("All", "AlphaNumeric", "Alphabetic", IgnoreCase=$true)]
+        [string]$AllowedLastCharType,
+        [Parameter(Mandatory=$false)]
+        [int]$MaxConsecutiveAlpha,
+        [Parameter(Mandatory=$false)]
+        [int]$MaxConsecutiveAlphanumeric,
+        [Parameter(Mandatory=$false)]
+        [ValidateSet("NotSpecified", "NoConsecutiveRepeatedCharacters", "NoRepeatedCharacters", "AllowRepeatedCharacters", IgnoreCase=$true)]
+        [string]$RepeatedCharRestriction
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:RuleObj = (Get-SafeguardAccountPasswordRule -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                          -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $PasswordRuleToEdit)
+
+    if ($PSBoundParameters.ContainsKey("Description")) { $local:RuleObj.Description = $Description }
+    if ($PSBoundParameters.ContainsKey("MinCharacters")) { $local:RuleObj.MinCharacters = $MinCharacters }
+    if ($PSBoundParameters.ContainsKey("MaxCharacters")) { $local:RuleObj.MaxCharacters = $MaxCharacters }
+    if ($PSBoundParameters.ContainsKey("AllowUppercase")) { $local:RuleObj.AllowUppercaseCharacters = $AllowUppercase }
+    if ($PSBoundParameters.ContainsKey("MinUppercase")) { $local:RuleObj.MinUppercaseCharacters = $MinUppercase }
+    if ($PSBoundParameters.ContainsKey("AllowLowercase")) { $local:RuleObj.AllowLowercaseCharacters = $AllowLowercase }
+    if ($PSBoundParameters.ContainsKey("MinLowercase")) { $local:RuleObj.MinLowercaseCharacters = $MinLowercase }
+    if ($PSBoundParameters.ContainsKey("AllowNumeric")) { $local:RuleObj.AllowNumericCharacters = $AllowNumeric }
+    if ($PSBoundParameters.ContainsKey("MinNumeric")) { $local:RuleObj.MaxConsecutiveUppercaseCharacters = $MinNumeric }
+    if ($PSBoundParameters.ContainsKey("AllowSymbols")) { $local:RuleObj.AllowNonAlphaNumericCharacters = $AllowSymbols }
+    if ($PSBoundParameters.ContainsKey("MinSymbols")) { $local:RuleObj.MinNonAlphaNumericCharacters = $MinSymbols }
+    if ($PSBoundParameters.ContainsKey("RepeatedCharRestriction")) { $local:RuleObj.RepeatedCharacterRestriction = $RepeatedCharRestriction }
+
+    if ($PSBoundParameters.ContainsKey("MaxConsecutiveUppercase")) { $local:RuleObj.MaxConsecutiveUppercaseCharacters = $MaxConsecutiveUppercase }
+    if ($PSBoundParameters.ContainsKey("InvalidUppercaseChars")) { $local:RuleObj.InvalidUppercaseCharacters = $InvalidUppercaseChars }
+
+    if ($PSBoundParameters.ContainsKey("MaxConsecutiveLowercase")) { $local:RuleObj.MaxConsecutiveLowercaseCharacters = $MaxConsecutiveLowercase }
+    if ($PSBoundParameters.ContainsKey("InvalidLowercaseChars")) { $local:RuleObj.InvalidLowercaseCharacters = [string[]]($InvalidLowercaseChars -split "(?<=.)(?=.)") }
+
+    if ($PSBoundParameters.ContainsKey("MaxConsecutiveNumeric")) { $local:RuleObj.MaxConsecutiveNumericCharacters = $MaxConsecutiveNumeric }
+    if ($PSBoundParameters.ContainsKey("InvalidNumericChars")) { $local:RuleObj.InvalidNumericCharacters = [string[]]($InvalidNumericChars -split "(?<=.)(?=.)") }
+
+    if ($PSBoundParameters.ContainsKey("MaxConsecutiveSymbols")) { $local:RuleObj.MaxConsecutiveNonAlphaNumericCharacters = $MaxConsecutiveSymbols }
+    if ($PSBoundParameters.ContainsKey("SymbolRestrictionType")) { $local:RuleObj.NonAlphaNumericRestrictionType = $SymbolRestrictionType }
+    if ($PSBoundParameters.ContainsKey("InvalidSymbolChars"))
+    {
+        $local:RuleObj.InvalidNonAlphaNumericCharacters = [string[]]($InvalidSymbolChars -split "(?<=.)(?=.)")
+        $local:RuleObj.NonAlphaNumericRestrictionType = "Exclude"
+    }
+    if ($PSBoundParameters.ContainsKey("AllowedSymbolChars"))
+    {
+        $local:RuleObj.AllowedNonAlphaNumericCharacters = [string[]]($AllowedSymbolChars -split "(?<=.)(?=.)")
+        $local:RuleObj.NonAlphaNumericRestrictionType = "Include"
+    }
+
+    if ($PSBoundParameters.ContainsKey("AllowedFirstCharType")) { $local:RuleObj.AllowedFirstCharacterType = $AllowedFirstCharType }
+    if ($PSBoundParameters.ContainsKey("AllowedLastCharType")) { $local:RuleObj.AllowedLastCharacterType = $AllowedLastCharType }
+
+    if ($PSBoundParameters.ContainsKey("MaxConsecutiveAlpha")) { $local:RuleObj.MaxConsecutiveAlphabeticCharacters = $MaxConsecutiveAlpha }
+    if ($PSBoundParameters.ContainsKey("MaxConsecutiveAlphanumeric")) { $local:RuleObj.MaxConsecutiveAlphaNumericCharacters = $MaxConsecutiveAlpha }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        PUT "AssetPartitions/$($local:RuleObj.AssetPartitionId)/PasswordRules/$($local:RuleObj.Id)" -Body $local:RuleObj
+}
+
+<#
+.SYNOPSIS
 Delete an account password rule from Safeguard via the Web API.
 
 .DESCRIPTION
