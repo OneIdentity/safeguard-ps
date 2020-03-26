@@ -1239,10 +1239,10 @@ function New-SafeguardPasswordCheckSchedule
 
 <#
 .SYNOPSIS
-Create a new password check schedule in Safeguard via the Web API.
+Edit an existing password check schedule in Safeguard via the Web API.
 
 .DESCRIPTION
-Create a new password check schedule that can be associated to a password profile
+Edit an existing password check schedule that can be associated to a password profile
 which can be assigned to partitions, assets, and accounts.
 
 .PARAMETER Appliance
@@ -1256,17 +1256,17 @@ Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER AssetPartition
 An integer containing an ID or a string containing the name of the asset partition
-to create the password check schedule in.
+to edit the password check schedule in.
 
 .PARAMETER AssetPartitionId
-An integer containing the asset partition ID to create the password check schedule in.
+An integer containing the asset partition ID to edit the password check schedule in.
 (If specified, this will override the AssetPartition parameter)
 
 .PARAMETER CheckScheduleToEdit
 An integer containing the ID of the password check schedule to edit or a string containing the name.
 
 .PARAMETER Description
-A string containing the description of the new password check schedule.
+A string containing the description for the password check schedule.
 
 .PARAMETER ChangePasswordOnMismatch
 Whether to change the password if a password mismatch is found (does not apply to manual check tasks).
@@ -1691,6 +1691,141 @@ function New-SafeguardPasswordChangeSchedule
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
         POST "AssetPartitions/$($local:AssetPartitionId)/ChangeSchedules" -Body $local:Body
+}
+
+<#
+.SYNOPSIS
+Edit an existing password change schedule in Safeguard via the Web API.
+
+.DESCRIPTION
+Edit an existing password change schedule that can be associated to a password profile
+which can be assigned to partitions, assets, and accounts.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to edit the password change schedule in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to edit the password change schedule in.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER ChangeScheduleToEdit
+An integer containing the ID of the password change schedule to edit or a string containing the name.
+
+.PARAMETER Description
+A string containing the description for the password change schedule.
+
+.PARAMETER ChangePasswordIfInUse
+Whether or not to change the password even if it is currently checked out.
+
+.PARAMETER RequireCurrentPassword
+Whether to require the current password to change to a new password.
+
+.PARAMETER SuspendAccountWhenCheckedIn
+Whether to disable the account when password is not checked out. (limited platform support)
+
+.PARAMETER ChangePasswordsManually
+Whether or not to require asset administrators to change passwords manually.
+
+.PARAMETER UpdateServices
+Whether or not to update Windows services when passwords are changed.
+
+.PARAMETER RestartServices
+Whether or not to restart Windows services when passwords are changed.
+
+.PARAMETER UpdateIisAppPools
+Whether or not to update Windows IIS app pools when passwords are changed.
+
+.PARAMETER UpdateComPlus
+Whether or not to update Windows COM+ services when passwords are changed.
+
+.PARAMETER UpdateTasks
+Whether or not to update Windows tasks when passwords are changed.
+
+.PARAMETER Schedule
+A Safeguard schedule object of when to run password changes, see New-SafeguardSchedule and associated cmdlets.
+
+.EXAMPLE
+Edit-SafeguardPasswordChangeSchedule "Daily Change at Noon" -Schedule (New-SafeguardScheduleDaily -StartTime "12:00") -ChangePasswordsManually
+
+.EXAMPLE
+Edit-SafeguardPasswordChangeSchedule "Windows Daily at 7pm" -Schedule (New-SafeguardScheduleDaily -StartTime "19:00") -ChangePasswordIfInUse -UpdateServices -RestartServices -UpdateTasks
+#>
+function Edit-SafeguardPasswordChangeSchedule
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$ChangeScheduleToEdit,
+        [Parameter(Mandatory=$false)]
+        [string]$Description,
+        [Parameter(Mandatory=$false)]
+        [switch]$ChangePasswordIfInUse,
+        [Parameter(Mandatory=$false)]
+        [switch]$RequireCurrentPassword,
+        [Parameter(Mandatory=$false)]
+        [switch]$SuspendAccountWhenCheckedIn,
+        [Parameter(Mandatory=$false)]
+        [switch]$ChangePasswordsManually,
+        [Parameter(Mandatory=$false)]
+        [switch]$UpdateServices,
+        [Parameter(Mandatory=$false)]
+        [switch]$RestartServices,
+        [Parameter(Mandatory=$false)]
+        [switch]$UpdateIisAppPools,
+        [Parameter(Mandatory=$false)]
+        [switch]$UpdateComPlus,
+        [Parameter(Mandatory=$false)]
+        [switch]$UpdateTasks,
+        [Parameter(Mandatory=$false)]
+        [HashTable]$Schedule
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:ChangeObj = (Get-SafeguardPasswordChangeSchedule -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $ChangeScheduleToEdit)
+
+    if ($PSBoundParameters.ContainsKey("Description")) { $local:ChangeObj.Description = $Description }
+    if ($PSBoundParameters.ContainsKey("ChangePasswordIfInUse")) { $local:ChangeObj.AllowPasswordChangeWhenReleased = [bool]$ChangePasswordIfInUse }
+    if ($PSBoundParameters.ContainsKey("RequireCurrentPassword")) { $local:ChangeObj.RequireCurrentPassword = [bool]$RequireCurrentPassword }
+    if ($PSBoundParameters.ContainsKey("SuspendAccountWhenCheckedIn")) { $local:ChangeObj.SuspendAccountWhenCheckedIn = [bool]$SuspendAccountWhenCheckedIn }
+    if ($PSBoundParameters.ContainsKey("ChangePasswordsManually")) { $local:ChangeObj.NotifyOwnersOnly = [bool]$ChangePasswordsManually }
+
+    if ($PSBoundParameters.ContainsKey("UpdateServices")) { $local:ChangeObj.UpdateWindowsServiceOnPasswordChange = [bool]$UpdateServices }
+    if ($PSBoundParameters.ContainsKey("RestartServices")) { $local:ChangeObj.RestartWindowsServiceOnPasswordChange = [bool]$RestartServices }
+    if ($PSBoundParameters.ContainsKey("UpdateIisAppPools")) { $local:ChangeObj.UpdateIisPoolsOnPasswordChange = [bool]$UpdateIisAppPools }
+    if ($PSBoundParameters.ContainsKey("UpdateComPlus")) { $local:ChangeObj.UpdateComPlusOnPasswordChange = [bool]$UpdateComPlus }
+    if ($PSBoundParameters.ContainsKey("UpdateTasks")) { $local:ChangeObj.UpdateWindowsTasksOnPasswordChange = [bool]$UpdateTasks }
+
+    if ($PSBoundParameters.ContainsKey("Schedule"))
+    {
+        Import-Module -Name "$PSScriptRoot\schedules.psm1" -Scope Local
+        $local:ChangeObj = (Copy-ScheduleToDto -Schedule $Schedule -Dto $local:ChangeObj)
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        PUT "AssetPartitions/$($local:ChangeObj.AssetPartitionId)/ChangeSchedules/$($local:ChangeObj.Id)" -Body $local:ChangeObj
 }
 
 <#

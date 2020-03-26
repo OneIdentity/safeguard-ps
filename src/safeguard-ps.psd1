@@ -189,7 +189,7 @@ FunctionsToExport = @(
     'Get-SafeguardPasswordCheckSchedule','New-SafeguardPasswordCheckSchedule','Remove-SafeguardPasswordCheckSchedule',
     'Rename-SafeguardPasswordCheckSchedule','Copy-SafeguardPasswordCheckSchedule','Edit-SafeguardPasswordCheckSchedule',
     'Get-SafeguardPasswordChangeSchedule','New-SafeguardPasswordChangeSchedule','Remove-SafeguardPasswordChangeSchedule',
-    'Rename-SafeguardPasswordChangeSchedule','Copy-SafeguardPasswordChangeSchedule',
+    'Rename-SafeguardPasswordChangeSchedule','Copy-SafeguardPasswordChangeSchedule','Edit-SafeguardPasswordChangeSchedule',
     'Get-SafeguardPasswordProfile','New-SafeguardPasswordProfile','Remove-SafeguardPasswordProfile',
     'Rename-SafeguardPasswordProfile','Copy-SafeguardPasswordProfile','Edit-SafeguardPasswordProfile',
     # directories.psm1
