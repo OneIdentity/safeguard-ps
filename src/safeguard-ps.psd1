@@ -187,7 +187,7 @@ FunctionsToExport = @(
     'Get-SafeguardAccountPasswordRule','New-SafeguardAccountPasswordRule','Remove-SafeguardAccountPasswordRule',
     'Rename-SafeguardAccountPasswordRule','Copy-SafeguardAccountPasswordRule','Edit-SafeguardAccountPasswordRule',
     'Get-SafeguardPasswordCheckSchedule','New-SafeguardPasswordCheckSchedule','Remove-SafeguardPasswordCheckSchedule',
-    'Rename-SafeguardPasswordCheckSchedule','Copy-SafeguardPasswordCheckSchedule',
+    'Rename-SafeguardPasswordCheckSchedule','Copy-SafeguardPasswordCheckSchedule','Edit-SafeguardPasswordCheckSchedule',
     'Get-SafeguardPasswordChangeSchedule','New-SafeguardPasswordChangeSchedule','Remove-SafeguardPasswordChangeSchedule',
     'Rename-SafeguardPasswordChangeSchedule','Copy-SafeguardPasswordChangeSchedule',
     'Get-SafeguardPasswordProfile','New-SafeguardPasswordProfile','Remove-SafeguardPasswordProfile',

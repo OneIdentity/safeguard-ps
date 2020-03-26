@@ -1239,6 +1239,94 @@ function New-SafeguardPasswordCheckSchedule
 
 <#
 .SYNOPSIS
+Create a new password check schedule in Safeguard via the Web API.
+
+.DESCRIPTION
+Create a new password check schedule that can be associated to a password profile
+which can be assigned to partitions, assets, and accounts.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to create the password check schedule in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to create the password check schedule in.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER CheckScheduleToEdit
+An integer containing the ID of the password check schedule to edit or a string containing the name.
+
+.PARAMETER Description
+A string containing the description of the new password check schedule.
+
+.PARAMETER ChangePasswordOnMismatch
+Whether to change the password if a password mismatch is found (does not apply to manual check tasks).
+
+.PARAMETER NotifyOwnersOnMismatch
+Whether to notify delegated owners if a password mismatch is found (does not apply to manual check tasks).
+
+.PARAMETER Schedule
+A Safeguard schedule object of when to run password checks, see New-SafeguardSchedule and associated cmdlets.
+
+.EXAMPLE
+Edit-SafeguardPasswordCheckSchedule "Daily Check at Noon" -ChangePasswordOnMismatch -Schedule (New-SafeguardScheduleDaily -StartTime "12:00")
+#>
+function Edit-SafeguardPasswordCheckSchedule
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$CheckScheduleToEdit,
+        [Parameter(Mandatory=$false)]
+        [string]$Description,
+        [Parameter(Mandatory=$false)]
+        [switch]$ChangePasswordOnMismatch,
+        [Parameter(Mandatory=$false)]
+        [switch]$NotifyOwnersOnMismatch,
+        [Parameter(Mandatory=$false)]
+        [HashTable]$Schedule
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:CheckObj = (Get-SafeguardPasswordCheckSchedule -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                           -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $CheckScheduleToEdit)
+
+    if ($PSBoundParameters.ContainsKey("Description")) { $local:CheckObj.Description = $Description }
+    if ($PSBoundParameters.ContainsKey("ChangePasswordOnMismatch")) { $local:CheckObj.ResetPasswordOnMismatch = [bool]$ChangePasswordOnMismatch }
+    if ($PSBoundParameters.ContainsKey("NotifyOwnersOnMismatch")) { $local:CheckObj.NotifyOwnersOnMismatch = [bool]$NotifyOwnersOnMismatch }
+    if ($PSBoundParameters.ContainsKey("Schedule"))
+    {
+        Import-Module -Name "$PSScriptRoot\schedules.psm1" -Scope Local
+        $local:CheckObj = (Copy-ScheduleToDto -Schedule $Schedule -Dto $local:CheckObj)
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        PUT "AssetPartitions/$($local:CheckObj.AssetPartitionId)/CheckSchedules/$($local:CheckObj.Id)" -Body $local:CheckObj
+}
+
+<#
+.SYNOPSIS
 Delete a password check schedule from Safeguard via the Web API.
 
 .DESCRIPTION
