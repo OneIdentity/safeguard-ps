@@ -453,6 +453,9 @@ update this list.
 - New-SafeguardAssetPartition
 - Remove-SafeguardAssetPartition
 - Edit-SafeguardAssetPartition
+- Get-SafeguardAssetPartitionOwner
+- Add-SafeguardAssetPartitionOwner
+- Remove-SafeguardAssetPartitionOwner
 - Enter-SafeguardAssetPartition
 - Exit-SafeguardAssetPartition
 - Get-SafeguardCurrentAssetPartition
@@ -479,6 +482,32 @@ update this list.
 - Invoke-SafeguardAssetAccountPasswordChange
 - Invoke-SafeguardAssetSshHostKeyDiscovery
 - Remove-SafeguardAssetAccount
+
+### Profiles
+- Get-SafeguardAccountPasswordRule
+- New-SafeguardAccountPasswordRule
+- Remove-SafeguardAccountPasswordRule
+- Rename-SafeguardAccountPasswordRule
+- Copy-SafeguardAccountPasswordRule
+- Edit-SafeguardAccountPasswordRule
+- Get-SafeguardPasswordCheckSchedule
+- New-SafeguardPasswordCheckSchedule
+- Remove-SafeguardPasswordCheckSchedule
+- Rename-SafeguardPasswordCheckSchedule
+- Copy-SafeguardPasswordCheckSchedule
+- Edit-SafeguardPasswordCheckSchedule
+- Get-SafeguardPasswordChangeSchedule
+- New-SafeguardPasswordChangeSchedule
+- Remove-SafeguardPasswordChangeSchedule
+- Rename-SafeguardPasswordChangeSchedule
+- Copy-SafeguardPasswordChangeSchedule
+- Edit-SafeguardPasswordChangeSchedule
+- Get-SafeguardPasswordProfile
+- New-SafeguardPasswordProfile
+- Remove-SafeguardPasswordProfile
+- Rename-SafeguardPasswordProfile
+- Copy-SafeguardPasswordProfile
+- Edit-SafeguardPasswordProfile
 
 ### Directories
 

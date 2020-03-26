@@ -152,7 +152,7 @@ function Get-AccessCertGroup
             {
                 $local:Authority = "safeguard:$Identifier"
                 $local:Id = $_.Id
-                $local:Owner = $null # TODO: Do we want to try to look up the owner using the created by user ID??
+                $local:Owner = $null # Do we want to try to look up the owner using the created by user ID??
             }
             elseif ($_.DirectoryProperties.NetbiosName) # if it has net bios info it is AD
             {

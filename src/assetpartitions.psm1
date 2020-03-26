@@ -1,4 +1,4 @@
-# Helper
+# Helpers
 function Resolve-SafeguardAssetPartitionId
 {
     [CmdletBinding()]
@@ -49,6 +49,50 @@ function Resolve-SafeguardAssetPartitionId
     {
         $AssetPartition
     }
+}
+function Resolve-AssetPartitionIdFromSafeguardSession
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition = $null,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$false)]
+        [switch]$UseDefault = $false
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not $AssetPartitionId -and $AssetPartition)
+    {
+        $AssetPartitionId = (Resolve-SafeguardAssetPartitionId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetPartition)
+    }
+
+    if (-not $AssetPartitionId)
+    {
+        if ($SafeguardSession -and $SafeguardSession["AssetPartitionId"])
+        {
+            $AssetPartitionId = $SafeguardSession["AssetPartitionId"]
+        }
+        else
+        {
+            if ($UseDefault)
+            {
+                # Default behavior is Macrocosm
+                $AssetPartitionId = -1
+            }
+        }
+    }
+
+    $AssetPartitionId
 }
 
 
@@ -301,7 +345,7 @@ A string containing the name for this asset partition.
 A string containing a description for this asset.
 
 .PARAMETER Owners
-A list strings containing the names of the owners for the new asset partition.
+A list strings containing the names of the owners for the asset partition.
 
 .PARAMETER AssetPartitionObject
 An object containing the existing asset partition with desired properties set.
@@ -376,6 +420,252 @@ function Edit-SafeguardAssetPartition
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AssetPartitions/$($AssetPartitionObject.Id)" -Body $AssetPartitionObject
 }
 
+<#
+.SYNOPSIS
+Get owners of an asset partition in Safeguard via the Web API.
+
+.DESCRIPTION
+Asset partitions are an administrative container for Safeguard assets. Asset
+partitions may be given owners who can manage only the assets within that
+asset partition. This cmdlet gets the list of owners of an asset partition.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartitionToGet
+An integer containing the ID of the asset partition to edit or a string containing the name.
+
+.PARAMETER Fields
+An array of the user property names to return.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardAssetPartitionOwner
+
+.EXAMPLE
+Get-SafeguardAssetPartitionOwner "Unix Servers"
+#>
+function Get-SafeguardAssetPartitionOwner
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$AssetPartitionToGet,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:PartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                                   -AssetPartition $AssetPartitionToGet)
+    if (-not $local:PartitionId)
+    {
+        $AssetPartitionToGet = (Read-Host "AssetPartitionToGet")
+        $local:PartitionId = (Resolve-SafeguardAssetPartitionId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                                       -AssetPartition $AssetPartitionToGet)
+    }
+
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core GET "AssetPartitions/$($local:PartitionId)/Owners" -Parameters $local:Parameters
+}
+
+<#
+.SYNOPSIS
+Add owners to an asset partition in Safeguard via the Web API.
+
+.DESCRIPTION
+Asset partitions are an administrative container for Safeguard assets. Asset
+partitions may be given owners who can manage only the assets within that
+asset partition. This cmdlet adds users to the list of owners of an asset partition.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartitionToEdit
+An integer containing the ID of the asset partition to edit or a string containing the name.
+
+.PARAMETER UserList
+A list strings containing the names of the owners to add to the asset partition.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Add-SafeguardAssetPartitionOwner -UserList "local\Dave","example.com\user1"
+
+.EXAMPLE
+Add-SafeguardAssetPartitionOwner "Unix Servers" "local\Dave","example.com\user1"
+#>
+function Add-SafeguardAssetPartitionOwner
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$AssetPartitionToEdit,
+        [Parameter(Mandatory=$true, Position=1)]
+        [object[]]$UserList
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:PartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                                   -AssetPartition $AssetPartitionToEdit)
+    if (-not $local:PartitionId)
+    {
+        $AssetPartitionToEdit = (Read-Host "AssetPartitionToEdit")
+        $local:PartitionId = (Resolve-SafeguardAssetPartitionId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                                       -AssetPartition $AssetPartitionToEdit)
+    }
+
+    [object[]]$local:Users = $null
+    foreach ($local:User in $UserList)
+    {
+        $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User -Fields Id,UserName,PrimaryAuthenticationProviderId)
+        $local:Users += $($local:ResolvedUser)
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core POST "AssetPartitions/$($local:PartitionId)/Owners/Add" -Body $local:Users
+}
+
+<#
+.SYNOPSIS
+Remove owners from an asset partition in Safeguard via the Web API.
+
+.DESCRIPTION
+Asset partitions are an administrative container for Safeguard assets. Asset
+partitions may be given owners who can manage only the assets within that
+asset partition. This cmdlet removes users from the list of owners of an asset partition.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartitionToEdit
+An integer containing the ID of the asset partition to edit or a string containing the name.
+
+.PARAMETER UserList
+A list strings containing the names of the owners to remove from the asset partition.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardAssetPartitionOwner -UserList "local\Dave","example.com\user1"
+
+.EXAMPLE
+Remove-SafeguardAssetPartitionOwner "Unix Servers" "local\Dave","example.com\user1"
+#>
+function Remove-SafeguardAssetPartitionOwner
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$AssetPartitionToEdit,
+        [Parameter(Mandatory=$true, Position=1)]
+        [object[]]$UserList
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:PartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                                   -AssetPartition $AssetPartitionToEdit)
+    if (-not $local:PartitionId)
+    {
+        $AssetPartitionToEdit = (Read-Host "AssetPartitionToGet")
+        $local:PartitionId = (Resolve-SafeguardAssetPartitionId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                                       -AssetPartition $AssetPartitionToEdit)
+    }
+
+    [object[]]$local:Users = $null
+    foreach ($local:User in $UserList)
+    {
+        $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User -Fields Id,UserName,PrimaryAuthenticationProviderId)
+        $local:Users += $($local:ResolvedUser)
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core POST "AssetPartitions/$($local:PartitionId)/Owners/Remove" -Body $local:Users
+}
+
+<#
+.SYNOPSIS
+Enter an asset partition so that asset administration is done in that context.
+
+.DESCRIPTION
+Asset partitions are an administrative container for Safeguard assets.  Asset
+partitions may be given owners who can manage only the assets within that
+asset partition.  This cmdlet places the session in the context of an asset
+partition so that subsequent operations are done in that context.
+
+.PARAMETER AssetPartitionToEnter
+An integer containing the ID of the asset partition to enter or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Enter-SafeguardAssetPartition "Unix Servers"
+
+.EXAMPLE
+Enter-SafeguardAssetPartition 15
+#>
 function Enter-SafeguardAssetPartition
 {
     [CmdletBinding()]
@@ -392,14 +682,42 @@ function Enter-SafeguardAssetPartition
         throw "This cmdlet requires that you log in with the Connect-Safeguard cmdlet"
     }
 
+    if (-not $PSBoundParameters.ContainsKey("AssetPartitionToEnter"))
+    {
+        $AssetPartitionToEnter = (Read-Host "AssetPartitionToEnter")
+    }
+
     $local:Partition = (Get-SafeguardAssetPartition -Appliance $AccessToken -AccessToken $AccessToken -Insecure:$Insecure $AssetPartitionToEnter)
     if ($local:Partition)
     {
         $SafeguardSession["AssetPartitionId"] = $local:Partition.Id
-        $local:Partition
+        Write-Host "Entering [$($local:Partition.Id)] $($local:Partition.Name)"
+        if ($local:Partition.Description)
+        {
+            Write-Host "  Description: $($local:Partition.Description)"
+        }
     }
 }
 
+<#
+.SYNOPSIS
+Exit an asset partition so that asset administration is done globally.
+
+.DESCRIPTION
+Asset partitions are an administrative container for Safeguard assets.  Asset
+partitions may be given owners who can manage only the assets within that
+asset partition.  This cmdlet moves the session back out of  the context of an
+asset partition so that subsequent operations are done globally.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Exit-SafeguardAssetPartition
+#>
 function Exit-SafeguardAssetPartition
 {
     [CmdletBinding()]
@@ -419,9 +737,30 @@ function Exit-SafeguardAssetPartition
         throw "You have not entered an asset partition"
     }
 
+    $local:Partition = (Get-SafeguardCurrentAssetPartition)
+    Write-Host "Leaving [$($local:Partition.Id)] $($local:Partition.Name)"
     $SafeguardSession["AssetPartitionId"] = $null
 }
 
+<#
+.SYNOPSIS
+Display the asset partition context of your current session.
+
+.DESCRIPTION
+Asset partitions are an administrative container for Safeguard assets.  Asset
+partitions may be given owners who can manage only the assets within that
+asset partition.  This cmdlet reports on the asset partition that has been
+entered or it returns nothing if you have not entered an asset partition.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardCurrentAssetPartition
+#>
 function Get-SafeguardCurrentAssetPartition
 {
     [CmdletBinding()]

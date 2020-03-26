@@ -1,49 +1,4 @@
 # Helper
-function Resolve-AssetPartitionIdFromSafeguardSession
-{
-    [CmdletBinding()]
-    Param(
-        [Parameter(Mandatory=$false)]
-        [string]$Appliance,
-        [Parameter(Mandatory=$false)]
-        [object]$AccessToken,
-        [Parameter(Mandatory=$false)]
-        [switch]$Insecure,
-        [Parameter(Mandatory=$false)]
-        [object]$AssetPartition = $null,
-        [Parameter(Mandatory=$false)]
-        [int]$AssetPartitionId = $null,
-        [Parameter(Mandatory=$false)]
-        [switch]$UseDefault = $false
-    )
-
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    if (-not $AssetPartitionId -and $AssetPartition)
-    {
-        Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
-        $AssetPartitionId = (Resolve-SafeguardAssetPartitionId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetPartition)
-    }
-
-    if (-not $AssetPartitionId)
-    {
-        if ($SafeguardSession -and $SafeguardSession["AssetPartitionId"])
-        {
-            $AssetPartitionId = $SafeguardSession["AssetPartitionId"]
-        }
-        else
-        {
-            if ($UseDefault)
-            {
-                # Default behavior is Macrocosm
-                $AssetPartitionId = -1
-            }
-        }
-    }
-
-    $AssetPartitionId
-}
 function Resolve-SafeguardAssetId
 {
     [CmdletBinding()]
@@ -70,6 +25,7 @@ function Resolve-SafeguardAssetId
         $Asset = $Asset.Id
     }
 
+    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
     $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
                              -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
     if ($AssetPartitionId)
@@ -88,7 +44,7 @@ function Resolve-SafeguardAssetId
         try
         {
             $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
-                                 -Parameters @{ filter = "Name ieq '$Asset'" })
+                                 -Parameters @{ filter = "Name ieq '$Asset'"; fields = "Id" })
             if (-not $local:Assets)
             {
                 $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
@@ -116,6 +72,7 @@ function Resolve-SafeguardAssetId
     {
         if ($AssetPartitionId)
         {
+            # Make sure it actually exists
             $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
                                  -Parameters @{ filter = "Id eq $Asset and AssetPartitionId eq $AssetPartitionId"; fields = "Id" })
             if (-not $local:Assets)
@@ -156,6 +113,7 @@ function Resolve-SafeguardAssetAccountId
         $Account = $Account.Id
     }
 
+    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
     $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
                              -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
     if ($AssetPartitionId)
@@ -408,6 +366,7 @@ function Get-SafeguardAsset
         $local:Parameters = @{ fields = ($Fields -join ",")}
     }
 
+    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
     $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
     if ($AssetPartitionId)
@@ -464,6 +423,9 @@ A string to pass to the -filter query parameter in the Safeguard Web API.
 .PARAMETER Fields
 An array of the asset property names to return.
 
+.PARAMETER OrderBy
+An array of the asset property names to order by.
+
 .INPUTS
 None.
 
@@ -478,6 +440,9 @@ Find-SafeguardAsset "linux.company.corp"
 
 .EXAMPLE
 Find-SafeguardAsset -QueryFilter "Platform.PlatformFamily eq 'Windows'"
+
+.EXAMPLE
+Find-SafeguardAsset -QueryFilter "Name contains 'db-'" -Fields Id,Name -OrderBy Platform.PlatformFamily,-Name
 #>
 function Find-SafeguardAsset
 {
@@ -498,12 +463,15 @@ function Find-SafeguardAsset
         [Parameter(Mandatory=$true,Position=0,ParameterSetName="Query")]
         [string]$QueryFilter,
         [Parameter(Mandatory=$false)]
-        [string[]]$Fields
+        [string[]]$Fields,
+        [Parameter(Mandatory=$false)]
+        [string[]]$OrderBy
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
     $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
     if ($AssetPartitionId)
@@ -527,6 +495,10 @@ function Find-SafeguardAsset
     if ($Fields)
     {
         $local:Parameters["fields"] = ($Fields -join ",")
+    }
+    if ($OrderBy)
+    {
+        $local:Parameters["orderby"] = ($OrderBy -join ",")
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" -Parameters $local:Parameters
@@ -806,6 +778,7 @@ function New-SafeguardAsset
         }
     }
 
+    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
     $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -UseDefault)
 
@@ -1038,14 +1011,17 @@ A string containing an API access key for the service account.
 A string containing the LDAP distinguished name of a service account.  This is used for
 creating LDAP directories.
 
-.PARAMETER NoSslEncryption
-Do not use SSL encryption for LDAP directory.
+.PARAMETER UseSslEncryption
+Whether or not to use SSL encryption for LDAP directory.
 
-.PARAMETER DoNotVerifyServerSslCertificate
-Do not verify Server SSL certificate of LDAP directory.
+.PARAMETER VerifyServerSslCertificate
+Whether or not to verify Server SSL certificate of LDAP directory.
 
 .PARAMETER PrivilegeElevationCommand
 A string containing the privilege elevation command, ex. sudo.
+
+.PARAMETER AllowSessionRequests
+Whether or not to allow session access requests.
 
 .PARAMETER AssetObject
 An object containing the existing asset with desired properties set.
@@ -1110,6 +1086,8 @@ function Edit-SafeguardAsset
         [boolean]$VerifyServerSslCertificate,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$PrivilegeElevationCommand,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [bool]$AllowSessionRequests,
         [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
         [object]$AssetObject
     )
@@ -1137,7 +1115,7 @@ function Edit-SafeguardAsset
     if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
     {
         $AssetObject = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $local:AssetId)
+                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $local:AssetId)
 
         # Connection Properties
         if (-not $AssetObject.ConnectionProperties) { $AssetObject.ConnectionProperties = @{} }
@@ -1168,6 +1146,7 @@ function Edit-SafeguardAsset
         if ($PSBoundParameters.ContainsKey("DisplayName")) { $AssetObject.Name = $DisplayName }
         if ($PSBoundParameters.ContainsKey("Description")) { $AssetObject.Description = $Description }
         if ($PSBoundParameters.ContainsKey("NetworkAddress")) { $AssetObject.NetworkAddress = $NetworkAddress }
+        if ($PSBoundParameters.ContainsKey("AllowSessionRequests")) { $AssetObject.AllowSessionRequests = $AllowSessionRequests }
         if ($PSBoundParameters.ContainsKey("Platform"))
         {
             $local:PlatformId = Resolve-SafeguardPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Platform
@@ -1349,6 +1328,7 @@ function Get-SafeguardAssetAccount
     }
     else
     {
+        Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
         $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
                                 -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
         if ($AssetPartitionId)
@@ -1397,6 +1377,9 @@ A string to pass to the -filter query parameter in the Safeguard Web API.
 .PARAMETER Fields
 An array of the account property names to return.
 
+.PARAMETER OrderBy
+An array of the account property names to order by.
+
 .INPUTS
 None.
 
@@ -1431,12 +1414,15 @@ function Find-SafeguardAssetAccount
         [Parameter(Mandatory=$true,Position=0,ParameterSetName="Query")]
         [string]$QueryFilter,
         [Parameter(Mandatory=$false)]
-        [string[]]$Fields
+        [string[]]$Fields,
+        [Parameter(Mandatory=$false)]
+        [string[]]$OrderBy
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
     $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
     if ($AssetPartitionId)
@@ -1460,6 +1446,10 @@ function Find-SafeguardAssetAccount
     if ($Fields)
     {
         $local:Parameters["fields"] = ($Fields -join ",")
+    }
+    if ($OrderBy)
+    {
+        $local:Parameters["orderby"] = ($OrderBy -join ",")
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" -Parameters $local:Parameters

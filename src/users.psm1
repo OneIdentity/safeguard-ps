@@ -23,10 +23,16 @@ function Resolve-SafeguardUserObject
 
     if (-not ($User -as [int]))
     {
+        $local:Filter = "UserName ieq '$User'"
+        $local:Pair = ($User -split "\\")
+        if ($local:Pair.Length -eq 2)
+        {
+            $local:Filter = "IdentityProviderName ieq '$($local:Pair[0])' and UserName ieq '$($local:Pair[1])'"
+        }
         try
         {
             $local:Users = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
-                                -Parameters @{ filter = "UserName ieq '$User'" } -RetryVersion 2 -RetryUrl "Users")
+                                -Parameters @{ filter = $local:Filter } -RetryVersion 2 -RetryUrl "Users")
         }
         catch
         {
@@ -74,10 +80,16 @@ function Resolve-SafeguardUserId
 
     if (-not ($User -as [int]))
     {
+        $local:Filter = "UserName ieq '$User'"
+        $local:Pair = ($User -split "\\")
+        if ($local:Pair.Length -eq 2)
+        {
+            $local:Filter = "IdentityProviderName ieq '$($local:Pair[0])' and UserName ieq '$($local:Pair[1])'"
+        }
         try
         {
             $local:Users = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
-                                -Parameters @{ filter = "UserName ieq '$User'" } -RetryVersion 2 -RetryUrl "Users")
+                                -Parameters @{ filter = $local:Filter } -RetryVersion 2 -RetryUrl "Users")
         }
         catch
         {
@@ -456,6 +468,12 @@ A string to search for in the user.
 .PARAMETER QueryFilter
 A string to pass to the -filter query parameter in the Safeguard Web API.
 
+.PARAMETER Fields
+An array of the user property names to return.
+
+.PARAMETER OrderBy
+An array of the user property names to order by.
+
 .INPUTS
 None.
 
@@ -484,7 +502,11 @@ function Find-SafeguardUser
         [Parameter(Mandatory=$true,Position=0,ParameterSetName="Search")]
         [string]$SearchString,
         [Parameter(Mandatory=$true,Position=0,ParameterSetName="Query")]
-        [string]$QueryFilter
+        [string]$QueryFilter,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields,
+        [Parameter(Mandatory=$false)]
+        [string[]]$OrderBy
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -492,14 +514,24 @@ function Find-SafeguardUser
 
     if ($PSCmdlet.ParameterSetName -eq "Search")
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
-            -Parameters @{ q = $SearchString }
+        $local:Parameters = @{ q = $SearchString }
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
-            -Parameters @{ filter = $QueryFilter }
+        $local:Parameters = @{ filter = $QueryFilter }
     }
+
+    if ($Fields)
+    {
+        $local:Parameters["fields"] = ($Fields -join ",")
+    }
+    if ($OrderBy)
+    {
+        $local:Parameters["orderby"] = ($OrderBy -join ",")
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
+            -Parameters $local:Parameters
 }
 
 <#
