@@ -7,7 +7,7 @@ Param(
 if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
 if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-Import-Module -Name "$PSScriptRoot\docker\docker-include.psm1" -Scope Local
+Import-Module -Name "$PSScriptRoot\docker\docker-include.psm1" -Scope Local -Force
 
 $ImageType = $ImageType.ToLower()
 Get-SafeguardDockerFile $ImageType # Make sure the ImageType exists

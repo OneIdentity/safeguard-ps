@@ -12,6 +12,9 @@ build_script:
     & .\install-appveyor.ps1
 
     Import-Module -Name safeguard-ps -Verbose
+
+    & .\invoke-docker-build.ps1 nanoserver
+
 test: off
 deploy_script:
 - ps: Publish-Module -Name safeguard-ps -NuGetApiKey $env:PsGalleryApiKey -Verbose

@@ -5,7 +5,7 @@ function Get-SafeguardDockerFileName
         [Parameter(Mandatory=$true,Position=0)]
         [string]$ImageType
     )
-    
+
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
@@ -22,7 +22,8 @@ function Get-SafeguardDockerFileName
         {$_ -ieq "opensuse" -or $_ -ieq "opensuse42.3"} {"Dockerfile_opensuse42.3"}
         # Fedora
         {$_ -ieq "fedora" -or $_ -ieq "fedora28"} {"Dockerfile_fedora28"}
-
+        # Nanoserver
+        "nanoserver" {"Dockerfile_nanoserver"}
         # Unknown
         default { throw "Invalid ImageType specified."}
     }
@@ -39,6 +40,7 @@ function Get-SafeguardDockerFile
             "alpine","alpine3.8",
             "opensuse","opensuse42.3",
             "fedora","fedora28",
+            "nanoserver",
             IgnoreCase=$true)]
         [string]$ImageType = "alpine"
     )
