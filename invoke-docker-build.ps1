@@ -14,7 +14,7 @@ $SafeguardDockerFile = (Get-SafeguardDockerFile $ImageType)
 
 Write-Host $SafeguardDockerFile
 
-if (-not (Test-Command "docker"))
+if (-not (Get-Command "docker" -EA SilentlyContinue))
 {
     throw "Unabled to find docker command. Is docker installed on this machine?"
 }

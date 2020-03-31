@@ -18,5 +18,5 @@ if [ ! -z "$(docker images -q safeguard-ps:$ImageType)" ]; then
     docker rmi --force "safeguard-ps:$ImageType"
 fi
 echo "Building a new image: safeguard-ps:$ImageType ..."
-docker build --no-cache -t "safeguard-ps:$ImageType" -f $DockerFile $ScriptDir
+docker build --no-cache -t "safeguard-ps:$ImageType" -f "docker/$DockerFile" $ScriptDir
 

@@ -12,7 +12,7 @@ Import-Module -Name "$PSScriptRoot\docker\docker-include.psm1" -Scope Local -For
 $ImageType = $ImageType.ToLower()
 Get-SafeguardDockerFile $ImageType # Make sure the ImageType exists
 
-if (-not (Test-Command "docker"))
+if (-not (Get-Command "docker" -EA SilentlyContinue))
 {
     throw "Unabled to find docker command. Is docker installed on this machine?"
 }
