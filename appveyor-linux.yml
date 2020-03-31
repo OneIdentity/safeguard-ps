@@ -1,0 +1,19 @@
+version: 6.0.{build}
+branches:
+  only:
+  - master
+image: Ubuntu1804
+build_script:
+- sh: >-
+
+    ./build-docker.sh ubuntu18.04
+
+    ./build-docker.sh ubuntu16.04
+
+    ./build-docker.sh centos7
+
+    ./build-docker.sh alpine3.8
+
+    ./build-docker.sh opensuse42.3
+
+    ./build-docker.sh fedora28
