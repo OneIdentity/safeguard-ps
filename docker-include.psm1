@@ -1,18 +1,11 @@
-function Get-SafeguardDockerFile
+function Get-SafeguardDockerFileName
 {
     [CmdletBinding()]
     Param(
-        [Parameter(Mandatory=$false,Position=0)]
-        [ValidateSet(
-            "ubuntu","ubuntu18.04","ubuntu16.04",
-            "centos","centos7",
-            "alpine","alpine3.8",
-            "opensuse","opensuse42.3",
-            "fedora","fedora28",
-            IgnoreCase=$true)]
-        [string]$ImageType = "alpine"
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$ImageType
     )
-
+    
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
@@ -33,4 +26,25 @@ function Get-SafeguardDockerFile
         # Unknown
         default { throw "Invalid ImageType specified."}
     }
+}
+
+function Get-SafeguardDockerFile
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false,Position=0)]
+        [ValidateSet(
+            "ubuntu","ubuntu18.04","ubuntu16.04",
+            "centos","centos7",
+            "alpine","alpine3.8",
+            "opensuse","opensuse42.3",
+            "fedora","fedora28",
+            IgnoreCase=$true)]
+        [string]$ImageType = "alpine"
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    (Resolve-Path (Join-Path "docker" (Get-SafeguardDockerFileName $ImageType))).Path
 }
