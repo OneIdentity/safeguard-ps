@@ -14,7 +14,7 @@ build_script:
 
     Import-Module -Name safeguard-ps -Verbose
 
-    & .\invoke-docker-build.ps1 nanoserver
+    & .\invoke-docker-build.ps1 nanoserver {version}
 
 test: off
 deploy_script:

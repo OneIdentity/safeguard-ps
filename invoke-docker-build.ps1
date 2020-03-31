@@ -1,7 +1,9 @@
 [CmdletBinding()]
 Param(
     [Parameter(Mandatory=$false,Position=0)]
-    [string]$ImageType = "alpine"
+    [string]$ImageType = "alpine",
+    [Parameter(Mandatory=$false,Position=0)]
+    [string]$Version
 )
 
 if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -19,6 +21,11 @@ if (-not (Get-Command "docker" -EA SilentlyContinue))
     throw "Unabled to find docker command. Is docker installed on this machine?"
 }
 
+if ($Version)
+{
+    $Version = "$Version-"
+}
+
 if (Invoke-Expression "docker images -q safeguard-ps:$ImageType")
 {
     Write-Host "Cleaning up the old image: safeguard-ps:$ImageType ..."
@@ -26,4 +33,4 @@ if (Invoke-Expression "docker images -q safeguard-ps:$ImageType")
 }
 
 Write-Host "Building a new image: safeguard-ps:$ImageType ..."
-& docker build --no-cache -t "safeguard-ps:$ImageType" -f "$SafeguardDockerFile" "$PSScriptRoot"
+& docker build --no-cache -t "safeguard-ps:$Version$ImageType" -f "$SafeguardDockerFile" "$PSScriptRoot"
