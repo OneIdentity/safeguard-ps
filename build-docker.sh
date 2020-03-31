@@ -8,15 +8,18 @@ else
     ImageType=$1
 fi
 
+if [ ! -z "$2" ]; then
+    Version="${2}-"
+fi
+
 ScriptDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 . "$ScriptDir/docker/docker-include.sh"
 
 DockerFile=`get_safeguard_dockerfile $ImageType`
 
-if [ ! -z "$(docker images -q safeguard-ps:$ImageType)" ]; then
-    echo "Cleaning up the old image: safeguard-ps:$ImageType ..."
-    docker rmi --force "safeguard-ps:$ImageType"
+if [ ! -z "$(docker images -q safeguard-ps:$Version$ImageType)" ]; then
+    echo "Cleaning up the old image: safeguard-ps:$Version$ImageType ..."
+    docker rmi --force "safeguard-ps:$Version$ImageType"
 fi
-echo "Building a new image: safeguard-ps:$ImageType ..."
-docker build --no-cache -t "safeguard-ps:$ImageType" -f "docker/$DockerFile" $ScriptDir
-
+echo "Building a new image: safeguard-ps:$Version$ImageType ..."
+docker build --no-cache -t "safeguard-ps:$Version$ImageType" -f "docker/$DockerFile" $ScriptDir
