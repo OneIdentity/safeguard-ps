@@ -1,13 +1,18 @@
 [CmdletBinding()]
 Param(
+    [Parameter(Mandatory=$false,Position=0)]
+    [string]$TargetDir
 )
 
 if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
 
-$TargetDir = (($env:PSModulePath -split ';') | Where-Object { $_.StartsWith($env:UserProfile) })[0]
 if (-not $TargetDir)
 {
-    throw "Unable to find a PSModulePath in your user profile (" + $env:UserProfile + "), PSModulePath: " + $env:PSModulePath
+    $TargetDir = (($env:PSModulePath -split ';') | Where-Object { $_.StartsWith($env:UserProfile) })[0]
+    if (-not $TargetDir)
+    {
+        throw "Unable to find a PSModulePath in your user profile (" + $env:UserProfile + "), PSModulePath: " + $env:PSModulePath
+    }
 }
 
 if (-not (Test-Path $TargetDir))

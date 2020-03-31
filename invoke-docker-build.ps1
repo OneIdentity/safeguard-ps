@@ -2,7 +2,7 @@
 Param(
     [Parameter(Mandatory=$false,Position=0)]
     [string]$ImageType = "alpine",
-    [Parameter(Mandatory=$false,Position=0)]
+    [Parameter(Mandatory=$false,Position=1)]
     [string]$Version
 )
 

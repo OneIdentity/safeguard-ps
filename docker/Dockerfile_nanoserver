@@ -1,10 +1,10 @@
 FROM mcr.microsoft.com/powershell:lts-nanoserver-1809
 MAINTAINER support@oneidentity.com
 
-COPY ["install-local.ps1", "C:/safeguard/"]
-COPY ["src/", "C:/safeguard/src/"]
+COPY ["*.ps1", "c:/temp/safeguard/"]
+COPY ["src/", "c:/temp/safeguard/src/"]
 
-RUN pwsh -NoProfile -Command "C:\safeguard\install-local.ps1 'C:\Program Files\PowerShell\Modules'; Remove-Item -Path c:\safeguard -Recurse -Force"
+RUN pwsh -NoProfile -Command "if ($env:APPVEYOR_BUILD_VERSION) { C:\temp\safeguard\install-appveyor.ps1 'C:\Program Files\PowerShell\Modules' } else { C:\temp\safeguard\install-local.ps1 'C:\Program Files\PowerShell\Modules' }; Remove-Item -Path 'C:\temp\safeguard' -Recurse -Force"
 
 ENTRYPOINT [ "pwsh" ]
 CMD ["-NoExit", "-Command", "Get-SafeguardBanner"]
