@@ -46,4 +46,3 @@ get_safeguard_dockerfile()
     esac
     echo "$DockerFile"
 }
-
