@@ -22,7 +22,7 @@ build_script:
 
         & .\invoke-docker-build.ps1 nanoserver $env:APPVEYOR_BUILD_VERSION
 
-  }
+    }
 
 test: off
 deploy_script:
