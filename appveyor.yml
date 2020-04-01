@@ -14,13 +14,13 @@ build_script:
 
     Import-Module -Name safeguard-ps -Verbose
 
-    if ((Get-InstalledModule safeguard-ps).Version -notmatch "-pre$") {
+    if ([bool](Import-PowerShellDataFile (Join-Path (Get-Module safeguard-ps).ModuleBase safeguard-ps.psd1)).PrivateData.PSData.Prerelease) {
 
-        & .\invoke-docker-build.ps1 nanoserver $env:APPVEYOR_BUILD_VERSION
+        Write-Host "Not building docker images for pre-release build"
 
     } else {
 
-        Write-Host "Not building docker images for pre-release build"
+        & .\invoke-docker-build.ps1 nanoserver $env:APPVEYOR_BUILD_VERSION
 
     }
 
