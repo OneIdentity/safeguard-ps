@@ -3,20 +3,11 @@ branches:
   only:
   - master
 image: Ubuntu1804
+environment:
+  DockerHubAccessToken:
+    secure: VYKd4CaBJazTyU2VNPi0fAiKMtQcpOjwEMprUL7r6HJCeGL8ODKs+8zoo5PTIgOQ
 build_script:
 - sh: >-
-    Prerelease=`pwsh -Command "([string]([bool](Import-PowerShellDataFile src/safeguard-ps.psd1).PrivateData.PSData.Prerelease)).ToLower()"`
-
-    if $Prerelease; then
-
-        echo "Pre-release"
-
-    else
-
-        echo "Not pre-release"
-
-    fi
-
     ./build-docker.sh ubuntu18.04 $APPVEYOR_BUILD_VERSION
 
     ./build-docker.sh ubuntu16.04 $APPVEYOR_BUILD_VERSION
@@ -36,11 +27,15 @@ deploy_script:
 
     if $Prerelease; then
 
-        echo "Pre-release"
+        echo "Not publishing docker images for pre-release"
 
     else
 
-        echo "Not pre-release"
+        docker login -u petrsnd -p $DockerHubAccessToken
+
+        echo "TODO: docker publish"
+
+        docker logout
 
     fi
 
