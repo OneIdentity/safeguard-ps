@@ -7,7 +7,7 @@ environment:
   PsGalleryApiKey:
     secure: Zgbj3NNbLsk8NLMhVsztd6BUH80ZKq1eu/K43okCHzvahEW5tO5y6gInHp5UTBYm
   DockerHubAccessToken:
-      secure: VYKd4CaBJazTyU2VNPi0fAiKMtQcpOjwEMprUL7r6HJCeGL8ODKs+8zoo5PTIgOQ
+    secure: VYKd4CaBJazTyU2VNPi0fAiKMtQcpOjwEMprUL7r6HJCeGL8ODKs+8zoo5PTIgOQ
 nuget:
   disable_publish_on_pr: true
 build_script:
@@ -24,6 +24,8 @@ build_script:
 
         & .\invoke-docker-build.ps1 nanoserver $env:APPVEYOR_BUILD_VERSION
 
+        docker tag oneidentity/safeguard-ps:${APPVEYOR_BUILD_VERSION}-nanoserver oneidentity/safeguard-ps:${APPVEYOR_BUILD_VERSION}-windows
+
     }
 
 test: off
@@ -37,7 +39,11 @@ deploy_script:
 
     } else {
 
-        Write-Host "TODO: PUBLISH"
+        docker login -u petrsnd -p $DockerHubAccessToken
+
+        docker push oneidentity/safeguard-ps:${APPVEYOR_BUILD_VERSION}-nanoserver
+
+        docker logout
 
     }
 

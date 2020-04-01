@@ -20,6 +20,8 @@ build_script:
 
     ./build-docker.sh fedora28 $APPVEYOR_BUILD_VERSION
 
+    docker tag oneidentity/safeguard-ps:${APPVEYOR_BUILD_VERSION}-alpine3.8 oneidentity/safeguard-ps:latest
+
 test: off
 deploy_script:
 - sh: >-
@@ -33,7 +35,19 @@ deploy_script:
 
         docker login -u petrsnd -p $DockerHubAccessToken
 
-        echo "TODO: docker publish"
+        docker push oneidentity/safeguard-ps:${APPVEYOR_BUILD_VERSION}-ubuntu18.04
+
+        docker push oneidentity/safeguard-ps:${APPVEYOR_BUILD_VERSION}-ubuntu16.04
+
+        docker push oneidentity/safeguard-ps:${APPVEYOR_BUILD_VERSION}-centos7
+
+        docker push oneidentity/safeguard-ps:${APPVEYOR_BUILD_VERSION}-alpine3.8
+
+        docker push oneidentity/safeguard-ps:${APPVEYOR_BUILD_VERSION}-opensuse42.3
+
+        docker push oneidentity/safeguard-ps:${APPVEYOR_BUILD_VERSION}-fedora28
+
+        docker push oneidentity/safeguard-ps:latest
 
         docker logout
 
@@ -43,7 +57,7 @@ notifications:
 - provider: Email
   to:
   - petrsnd@gmail.com
-  subject: safeguard-ps build is failing
+  subject: safeguard-ps linux build is failing
   on_build_success: false
   on_build_failure: true
   on_build_status_changed: false
