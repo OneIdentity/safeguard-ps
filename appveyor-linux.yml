@@ -1,0 +1,63 @@
+version: 6.0.{build}
+branches:
+  only:
+  - master
+image: Ubuntu1804
+environment:
+  DockerHubAccessToken:
+    secure: VYKd4CaBJazTyU2VNPi0fAiKMtQcpOjwEMprUL7r6HJCeGL8ODKs+8zoo5PTIgOQ
+build_script:
+- sh: >-
+    ./build-docker.sh ubuntu18.04 $APPVEYOR_BUILD_VERSION
+
+    ./build-docker.sh ubuntu16.04 $APPVEYOR_BUILD_VERSION
+
+    ./build-docker.sh centos7 $APPVEYOR_BUILD_VERSION
+
+    ./build-docker.sh alpine3.8 $APPVEYOR_BUILD_VERSION
+
+    ./build-docker.sh opensuse42.3 $APPVEYOR_BUILD_VERSION
+
+    ./build-docker.sh fedora28 $APPVEYOR_BUILD_VERSION
+
+    docker tag oneidentity/safeguard-ps:${APPVEYOR_BUILD_VERSION}-alpine3.8 oneidentity/safeguard-ps:latest
+
+test: off
+deploy_script:
+- sh: >-
+    Prerelease=`pwsh -Command "([string]([bool](Import-PowerShellDataFile src/safeguard-ps.psd1).PrivateData.PSData.Prerelease)).ToLower()"`
+
+    if $Prerelease; then
+
+        echo "Not publishing docker images for pre-release"
+
+    else
+
+        docker login -u petrsnd -p $DockerHubAccessToken
+
+        docker push oneidentity/safeguard-ps:${APPVEYOR_BUILD_VERSION}-ubuntu18.04
+
+        docker push oneidentity/safeguard-ps:${APPVEYOR_BUILD_VERSION}-ubuntu16.04
+
+        docker push oneidentity/safeguard-ps:${APPVEYOR_BUILD_VERSION}-centos7
+
+        docker push oneidentity/safeguard-ps:${APPVEYOR_BUILD_VERSION}-alpine3.8
+
+        docker push oneidentity/safeguard-ps:${APPVEYOR_BUILD_VERSION}-opensuse42.3
+
+        docker push oneidentity/safeguard-ps:${APPVEYOR_BUILD_VERSION}-fedora28
+
+        docker push oneidentity/safeguard-ps:latest
+
+        docker logout
+
+    fi
+
+notifications:
+- provider: Email
+  to:
+  - petrsnd@gmail.com
+  subject: safeguard-ps linux build is failing
+  on_build_success: false
+  on_build_failure: true
+  on_build_status_changed: false

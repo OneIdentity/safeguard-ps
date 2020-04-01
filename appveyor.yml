@@ -2,9 +2,12 @@ version: 6.0.{build}
 branches:
   only:
   - master
+image: Visual Studio 2019
 environment:
   PsGalleryApiKey:
     secure: Zgbj3NNbLsk8NLMhVsztd6BUH80ZKq1eu/K43okCHzvahEW5tO5y6gInHp5UTBYm
+  DockerHubAccessToken:
+    secure: VYKd4CaBJazTyU2VNPi0fAiKMtQcpOjwEMprUL7r6HJCeGL8ODKs+8zoo5PTIgOQ
 nuget:
   disable_publish_on_pr: true
 build_script:
@@ -12,9 +15,38 @@ build_script:
     & .\install-appveyor.ps1
 
     Import-Module -Name safeguard-ps -Verbose
+
+    if ([bool](Import-PowerShellDataFile (Join-Path (Get-Module safeguard-ps).ModuleBase safeguard-ps.psd1)).PrivateData.PSData.Prerelease) {
+
+        Write-Host "Not building docker images for pre-release build"
+
+    } else {
+
+        & .\invoke-docker-build.ps1 nanoserver $env:APPVEYOR_BUILD_VERSION
+
+        docker tag oneidentity/safeguard-ps:${APPVEYOR_BUILD_VERSION}-nanoserver oneidentity/safeguard-ps:${APPVEYOR_BUILD_VERSION}-windows
+
+    }
+
 test: off
 deploy_script:
-- ps: Publish-Module -Name safeguard-ps -NuGetApiKey $env:PsGalleryApiKey -Verbose
+- ps: >-
+    Publish-Module -Name safeguard-ps -NuGetApiKey $env:PsGalleryApiKey -Verbose
+
+    if ([bool](Import-PowerShellDataFile (Join-Path (Get-Module safeguard-ps).ModuleBase safeguard-ps.psd1)).PrivateData.PSData.Prerelease) {
+
+        Write-Host "Not publishing docker images for pre-release build"
+
+    } else {
+
+        docker login -u petrsnd -p $DockerHubAccessToken
+
+        docker push oneidentity/safeguard-ps:${APPVEYOR_BUILD_VERSION}-nanoserver
+
+        docker logout
+
+    }
+
 notifications:
 - provider: Email
   to:

@@ -1,9 +1,11 @@
 [CmdletBinding()]
 Param(
-  [string]$TargetDir
+    [Parameter(Mandatory=$false,Position=0)]
+    [string]$TargetDir
 )
 
 if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
 if ($PSVersionTable.Platform -ne "Unix")
 {

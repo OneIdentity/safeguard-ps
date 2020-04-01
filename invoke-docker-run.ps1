@@ -7,18 +7,18 @@ Param(
 if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
 if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-Import-Module -Name "$PSScriptRoot\docker-include.psm1" -Scope Local
+Import-Module -Name "$PSScriptRoot\docker\docker-include.psm1" -Scope Local -Force
 
 $ImageType = $ImageType.ToLower()
 Get-SafeguardDockerFile $ImageType # Make sure the ImageType exists
 
-if (-not (Test-Command "docker"))
+if (-not (Get-Command "docker" -EA SilentlyContinue))
 {
     throw "Unabled to find docker command. Is docker installed on this machine?"
 }
 
-Write-Host "Rebuilding the image: safeguard-ps:$ImageType ..."
+Write-Host "Rebuilding the image: oneidentity/safeguard-ps:$ImageType ..."
 & "$PSScriptRoot/invoke-docker-build.ps1" $ImageType
 
-Write-Host "Building a new image: safeguard-ps:$ImageType ..."
-& docker run -it "safeguard-ps:$ImageType"
+Write-Host "Building a new image: oneidentity/safeguard-ps:$ImageType ..."
+& docker run -it "oneidentity/safeguard-ps:$ImageType"
