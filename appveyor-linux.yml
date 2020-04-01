@@ -5,6 +5,18 @@ branches:
 image: Ubuntu1804
 build_script:
 - sh: >-
+    Prerelease=`pwsh -Command "([string]([bool](Import-PowerShellDataFile src/safeguard-ps.psd1).PrivateData.PSData.Prerelease)).ToLower()"`
+
+    if $Prerelease; then
+
+        echo "Pre-release"
+
+    else
+
+        echo "Not pre-release"
+
+    fi
+
     ./build-docker.sh ubuntu18.04 $APPVEYOR_BUILD_VERSION
 
     ./build-docker.sh ubuntu16.04 $APPVEYOR_BUILD_VERSION
@@ -20,17 +32,17 @@ build_script:
 test: off
 deploy_script:
 - sh: >-
-    Publish-Module -Name safeguard-ps -NuGetApiKey $env:PsGalleryApiKey -Verbose
+    Prerelease=`pwsh -Command "([string]([bool](Import-PowerShellDataFile src/safeguard-ps.psd1).PrivateData.PSData.Prerelease)).ToLower()"`
 
-    if ([bool](Import-PowerShellDataFile (Join-Path (Get-Module safeguard-ps).ModuleBase safeguard-ps.psd1)).PrivateData.PSData.Prerelease) {
+    if $Prerelease; then
 
-       Write-Host "Not publishing docker images for pre-release build"
+        echo "Pre-release"
 
-    } else {
+    else
 
-        Write-Host "TODO: PUBLISH"
+        echo "Not pre-release"
 
-    }
+    fi
 
 notifications:
 - provider: Email
