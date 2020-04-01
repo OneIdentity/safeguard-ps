@@ -14,7 +14,15 @@ build_script:
 
     Import-Module -Name safeguard-ps -Verbose
 
-    & .\invoke-docker-build.ps1 nanoserver $env:APPVEYOR_BUILD_VERSION
+    if ((Get-InstalledModule safeguard-ps).Version -notmatch "-pre$") {
+
+        & .\invoke-docker-build.ps1 nanoserver $env:APPVEYOR_BUILD_VERSION
+
+    } else {
+
+        Write-Host "Not building docker images for pre-release build"
+
+    }
 
 test: off
 deploy_script:
