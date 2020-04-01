@@ -6,20 +6,30 @@ image: Ubuntu1804
 build_script:
 - sh: >-
     ./build-docker.sh ubuntu18.04 $APPVEYOR_BUILD_VERSION
+
     ./build-docker.sh ubuntu16.04 $APPVEYOR_BUILD_VERSION
+
     ./build-docker.sh centos7 $APPVEYOR_BUILD_VERSION
+
     ./build-docker.sh alpine3.8 $APPVEYOR_BUILD_VERSION
+
     ./build-docker.sh opensuse42.3 $APPVEYOR_BUILD_VERSION
+
     ./build-docker.sh fedora28 $APPVEYOR_BUILD_VERSION
 
 test: off
 deploy_script:
 - sh: >-
     Publish-Module -Name safeguard-ps -NuGetApiKey $env:PsGalleryApiKey -Verbose
+
     if ([bool](Import-PowerShellDataFile (Join-Path (Get-Module safeguard-ps).ModuleBase safeguard-ps.psd1)).PrivateData.PSData.Prerelease) {
-        Write-Host "Not publishing docker images for pre-release build"
+
+       Write-Host "Not publishing docker images for pre-release build"
+
     } else {
+
         Write-Host "TODO: PUBLISH"
+
     }
 
 notifications:
