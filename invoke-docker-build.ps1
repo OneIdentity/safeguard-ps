@@ -26,11 +26,11 @@ if ($Version)
     $Version = "$Version-"
 }
 
-if (Invoke-Expression "docker images -q safeguard-ps:$ImageType")
+if (Invoke-Expression "docker images -q oneidentity/safeguard-ps:$ImageType")
 {
-    Write-Host "Cleaning up the old image: safeguard-ps:$ImageType ..."
-    & docker rmi --force "safeguard-ps:$ImageType"
+    Write-Host "Cleaning up the old image: oneidentity/safeguard-ps:$ImageType ..."
+    & docker rmi --force "oneidentity/safeguard-ps:$ImageType"
 }
 
-Write-Host "Building a new image: safeguard-ps:$ImageType ..."
-& docker build --no-cache -t "safeguard-ps:$Version$ImageType" -f "$SafeguardDockerFile" "$PSScriptRoot"
+Write-Host "Building a new image: oneidentity/safeguard-ps:$ImageType ..."
+& docker build --no-cache -t "oneidentity/safeguard-ps:$Version$ImageType" -f "$SafeguardDockerFile" "$PSScriptRoot"

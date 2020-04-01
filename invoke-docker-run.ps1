@@ -17,8 +17,8 @@ if (-not (Get-Command "docker" -EA SilentlyContinue))
     throw "Unabled to find docker command. Is docker installed on this machine?"
 }
 
-Write-Host "Rebuilding the image: safeguard-ps:$ImageType ..."
+Write-Host "Rebuilding the image: oneidentity/safeguard-ps:$ImageType ..."
 & "$PSScriptRoot/invoke-docker-build.ps1" $ImageType
 
-Write-Host "Building a new image: safeguard-ps:$ImageType ..."
-& docker run -it "safeguard-ps:$ImageType"
+Write-Host "Building a new image: oneidentity/safeguard-ps:$ImageType ..."
+& docker run -it "oneidentity/safeguard-ps:$ImageType"
