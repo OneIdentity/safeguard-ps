@@ -2,6 +2,7 @@ version: 6.0.{build}
 branches:
   only:
   - master
+  - 6.0
 image: Visual Studio 2019
 environment:
   PsGalleryApiKey:
@@ -24,14 +25,14 @@ build_script:
 
         & .\invoke-docker-build.ps1 nanoserver $env:APPVEYOR_BUILD_VERSION
 
-        docker tag oneidentity/safeguard-ps:${APPVEYOR_BUILD_VERSION}-nanoserver oneidentity/safeguard-ps:${APPVEYOR_BUILD_VERSION}-windows
+        docker tag oneidentity/safeguard-ps:${env:APPVEYOR_BUILD_VERSION}-nanoserver oneidentity/safeguard-ps:${env:APPVEYOR_BUILD_VERSION}-windows
 
     }
 
 test: off
 deploy_script:
 - ps: >-
-    Publish-Module -Name safeguard-ps -NuGetApiKey $env:PsGalleryApiKey -Verbose -SkipAutomaticTags
+    Publish-Module -Name safeguard-ps -NuGetApiKey $env:PsGalleryApiKey -Verbose -SkipAutomaticTags -Force
 
     if ([bool](Import-PowerShellDataFile (Join-Path (Get-Module safeguard-ps).ModuleBase safeguard-ps.psd1)).PrivateData.PSData.Prerelease) {
 

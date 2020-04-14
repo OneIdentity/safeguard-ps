@@ -302,13 +302,25 @@ PrivateData = @{
         IconUri = 'https://raw.githubusercontent.com/OneIdentity/safeguard-ps/master/SafeguardLogo.ico'
 
         # Pre-release tag
-        Prerelease = '-pre'
+        # Prerelease = '-pre'
 
         # ReleaseNotes of this module
         ReleaseNotes = @"
 safeguard-ps 6.0 Release Notes:
 
-- bug fixes
+- Improved support for managing partitions, including Enter-SafeguardPartition cmdlet
+- Added support for managing password profiles, schedules, and rules
+- Cmdlet support for copying profiles, schedules, and rules
+- Improved Safeguard patch upload cmdlets
+- Added fields support to many cmdlets
+- Fixed a bug where session module (SPS) join cmdlets failed due to Out-Null
+- Added a cmdlet for Wait-SafeguardApplianceStateOnline
+- Fixed Docker image publication to Docker Hub
+
+Use 'Get-SafeguardCommand SafeguardPassword' and 'Get-SafeguardCommand SafeguardAccountPassword' to see the new
+cmdlets for managing profiles.
+
+Remember to use 'Get-Help <name of cmdlet>' for usage information and examples.
 "@
 
     } # End of PSData hashtable
