@@ -25,7 +25,7 @@ build_script:
 
         & .\invoke-docker-build.ps1 nanoserver $env:APPVEYOR_BUILD_VERSION
 
-        docker tag oneidentity/safeguard-ps:${env:APPVEYOR_BUILD_VERSION}-nanoserver oneidentity/safeguard-ps:${APPVEYOR_BUILD_VERSION}-windows
+        docker tag oneidentity/safeguard-ps:${env:APPVEYOR_BUILD_VERSION}-nanoserver oneidentity/safeguard-ps:${env:APPVEYOR_BUILD_VERSION}-windows
 
     }
 
