@@ -40,9 +40,9 @@ deploy_script:
 
     } else {
 
-        docker login -u petrsnd -p $DockerHubAccessToken
+        docker login -u petrsnd -p $env:DockerHubAccessToken
 
-        docker push oneidentity/safeguard-ps:${APPVEYOR_BUILD_VERSION}-nanoserver
+        docker push oneidentity/safeguard-ps:${env:APPVEYOR_BUILD_VERSION}-nanoserver
 
         docker logout
 
