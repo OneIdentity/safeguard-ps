@@ -1,4 +1,4 @@
-version: 6.0.{build}
+version: 6.6.{build}
 branches:
   only:
   - master
@@ -24,7 +24,7 @@ build_script:
 
         & .\invoke-docker-build.ps1 nanoserver $env:APPVEYOR_BUILD_VERSION
 
-        docker tag oneidentity/safeguard-ps:${APPVEYOR_BUILD_VERSION}-nanoserver oneidentity/safeguard-ps:${APPVEYOR_BUILD_VERSION}-windows
+        docker tag oneidentity/safeguard-ps:${env:APPVEYOR_BUILD_VERSION}-nanoserver oneidentity/safeguard-ps:${env:APPVEYOR_BUILD_VERSION}-windows
 
     }
 
@@ -39,9 +39,9 @@ deploy_script:
 
     } else {
 
-        docker login -u petrsnd -p $DockerHubAccessToken
+        docker login -u petrsnd -p $env:DockerHubAccessToken
 
-        docker push oneidentity/safeguard-ps:${APPVEYOR_BUILD_VERSION}-nanoserver
+        docker push oneidentity/safeguard-ps:${env:APPVEYOR_BUILD_VERSION}-nanoserver
 
         docker logout
 
