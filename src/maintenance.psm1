@@ -1362,7 +1362,7 @@ Version of the Web API you are using (default: 2).
 A string containing the path to a patch file.
 
 .PARAMETER Timeout
-A timeout value in seconds for uploading; also used to wait for installation (default: 5400s or 90m)
+A timeout value in seconds for uploading and distributing; also used to wait for installation (default: 3 hours)
 
 .PARAMETER UseStagedPatch
 Use the currently staged patch rather than uploading a new one.
@@ -1397,7 +1397,7 @@ function Install-SafeguardPatch
         [Parameter(ParameterSetName="NewPatch",Mandatory=$true,Position=0)]
         [string]$Patch,
         [Parameter(ParameterSetName="NewPatch",Mandatory=$false)]
-        [int]$Timeout = 5400,
+        [int]$Timeout = 10800,
         [Parameter(ParameterSetName="UseExisting",Mandatory=$false)]
         [switch]$UseStagedPatch = $false,
         [Parameter(Mandatory=$false)]
@@ -1460,6 +1460,7 @@ function Install-SafeguardPatch
 
             Add-UploadFileStreamType
             $local:JsonData = ([UploadFileStream]::Upload((Resolve-Path $Patch), $Appliance, $AccessToken, $Version))
+            Write-Verbose (ConvertFrom-Json $local:JsonData)
         }
         catch [System.Net.WebException]
         {
@@ -1485,9 +1486,39 @@ function Install-SafeguardPatch
         Write-Host "Distributing patch to cluster..."
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST Patch/Distribute
 
-        Wait-ForPatchDistribution -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure
+        Wait-ForPatchDistribution -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout
     }
 
+    Write-Host "Precondition checks...`n"
+    $local:Preconditions = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                core GET "Cluster/Patch/PreconditionCheck").ClusterResults
+
+    $local:Preconditions | ForEach-Object {
+        Write-Host "Appliance ID: $($_.ApplianceId)"
+        Write-Host -NoNewline "Warnings: "
+        if ($_.Warnings)
+        {
+            $local:Warnings = $true
+            Write-Host " "
+            $_.Warnings | ForEach-Object { Write-Warning $_ }
+        }
+        else
+        {
+            Write-Host "None"
+        }
+        Write-Host -NoNewline "Errors: "
+        if ($_.Errors)
+        {
+            $local:Errors = $true
+            Write-Host " "
+            $_.Errors | ForEach-Object { Write-Error $_ }
+        }
+        else
+        {
+            Write-Host "None"
+        }
+        Write-Host " "
+    }
     if ($Force)
     {
         $local:Confirmed = $true
@@ -1497,11 +1528,24 @@ function Install-SafeguardPatch
     }
     else
     {
-        Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
-        $local:Confirmed = (Get-Confirmation "Install Safeguard Patch" `
-                                            "Do you want to install $($local:StagedPatch.Title) on this cluster?" `
-                                            "Starts cluster patch immediately." `
-                                            "Cancels this operation.")
+        if ($local:Errors)
+        {
+            Write-Host -ForegroundColor Magenta "You may not install a patch with errors."
+            $local:Confirmed = $false
+        }
+        elseif ($local:Warnings)
+        {
+            Write-Host -ForegroundColor Magenta "Installing a patch with warnings requires the -Force parameter, use -UseStagedPatch to avoid re-uploading the patch."
+            $local:Confirmed = $false
+        }
+        else
+        {
+            Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+            $local:Confirmed = (Get-Confirmation "Install Safeguard Patch" `
+                                                 "Do you want to install $($local:StagedPatch.Title) on this cluster?" `
+                                                 "Starts cluster patch immediately." `
+                                                 "Cancels this operation.")
+        }
     }
     if ($local:Confirmed)
     {
@@ -1557,7 +1601,7 @@ Version of the Web API you are using (default: 2).
 A string containing the path to a patch file.
 
 .PARAMETER Timeout
-A timeout value in seconds for uploading.
+A timeout value in seconds for uploading and distributing. (default 3 hours)
 
 .PARAMETER Force
 Do not prompt for confirmation. Automatically distribute the patch once successfully staged.
@@ -1586,7 +1630,7 @@ function Set-SafeguardPatch
         [Parameter(ParameterSetName="NewPatch",Mandatory=$true,Position=0)]
         [string]$Patch,
         [Parameter(ParameterSetName="NewPatch",Mandatory=$false)]
-        [int]$Timeout = 5400,
+        [int]$Timeout = 10800,
         [Parameter(Mandatory=$false)]
         [switch]$Force
     )
@@ -1679,15 +1723,15 @@ function Set-SafeguardPatch
         {
             Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
             $local:Confirmed = (Get-Confirmation "Distribute Safeguard Patch" `
-                                                "Do you want to distribute $($local:StagedPatch.Title) to the cluster?" `
-                                                "Starts cluster distribute immediately." `
-                                                "Completes this operation.")
+                                                 "Do you want to distribute $($local:StagedPatch.Title) to the cluster?" `
+                                                 "Starts cluster distribute immediately." `
+                                                 "Completes this operation.")
         }
         if ($local:Confirmed)
         {
             Write-Host "Distributing patch to cluster..."
             Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST Patch/Distribute
-            Wait-ForPatchDistribution -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure
+            Wait-ForPatchDistribution -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout
             Write-Host "Patch distribution of $($local:StagedPatch.Title) to the cluster is complete."
         }
     }
