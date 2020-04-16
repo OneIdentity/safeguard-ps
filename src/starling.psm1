@@ -263,11 +263,11 @@ function Remove-SafeguardStarlingSubscription
     if($Force)
     {
         $local:ExtraHeaders = @{
-	        "X-Force-Delete" = "true";
-	    }
+            "X-Force-Delete" = "true";
+        }
 
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-	    -ExtraHeaders $local:ExtraHeaders Core DELETE "StarlingSubscriptions/$($local:Id)"
+            -ExtraHeaders $local:ExtraHeaders Core DELETE "StarlingSubscriptions/$($local:Id)"
     }
     else
     {
