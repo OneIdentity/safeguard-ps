@@ -1459,7 +1459,7 @@ function Install-SafeguardPatch
             }
 
             Add-UploadFileStreamType
-            [UploadFileStream]::Upload((Resolve-Path $Patch), $Appliance, $AccessToken, $Version)
+            $local:JsonData = ([UploadFileStream]::Upload((Resolve-Path $Patch), $Appliance, $AccessToken, $Version))
         }
         catch [System.Net.WebException]
         {
@@ -1491,6 +1491,9 @@ function Install-SafeguardPatch
     if ($Force)
     {
         $local:Confirmed = $true
+        $local:ExtraHeaders = @{
+            "X-Force" = "true";
+        }
     }
     else
     {
@@ -1503,7 +1506,7 @@ function Install-SafeguardPatch
     if ($local:Confirmed)
     {
         Write-Host "Starting patch install..."
-        $local:MetaData = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST Patch/Install)
+        $local:MetaData = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST Patch/Install -ExtraHeaders $local:ExtraHeaders)
         if ($? -ne 0 -or $LastExitCode -eq 0)
         {
             Write-Host "Patch is currently installing..."
@@ -1535,7 +1538,7 @@ Stages a patch on Safeguard appliance via the Web API.
 .DESCRIPTION
 Upload a patch to a Safeguard appliance via the Web API. If there is already a staged patch, removes it
 and uploads the specified one. If successful and on the primary appliance, prompts for distribution of the
-staged patch to other appliances in the cluster. Upon distribution, also removes any patch on the other 
+staged patch to other appliances in the cluster. Upon distribution, also removes any patch on the other
 appliance and stages the specified patch. NOTE: This does not work using Windows Powershell ISE.
 
 .PARAMETER Appliance
