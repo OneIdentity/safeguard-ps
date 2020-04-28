@@ -579,6 +579,7 @@ update this list.
 
 - Get-SafeguardEvent
 - Get-SafeguardEventName
+- Find-SafeguardEvent
 - Get-SafeguardEventSubscription
 - Find-SafeguardEventSubscription
 - New-SafeguardEventSubscription

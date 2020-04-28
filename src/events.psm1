@@ -44,7 +44,7 @@ function Resolve-SubscriptionEvent
 
 <#
 .SYNOPSIS
-Get events in Safeguard via the Web API.
+Get information on events in Safeguard via the Web API.
 
 .DESCRIPTION
 Safeguard events are events that occur as a result of an administrative activity such as created and deletion of an asset or an account.
@@ -60,6 +60,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER EventToGet
 A string containing the name of the event to get.
+
+.PARAMETER Fields
+An array of the event property names to return.
 
 .INPUTS
 None.
@@ -84,28 +87,36 @@ function Get-SafeguardEvent
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [object]$EventToGet
+        [object]$EventToGet,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
+
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     if ($PSBoundParameters.ContainsKey("EventToGet"))
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Events/$EventToGet"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Events/$EventToGet" -Parameters $local:Parameters
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Events
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Events -Parameters $local:Parameters
     }
 }
 
 <#
 .SYNOPSIS
-Get the names of subscription events in Safeguard by their type via the Web API.
+Get the names of subscribable events in Safeguard by their type via the Web API.
 
 .DESCRIPTION
-Get the list of names of subscription events in Safeguard.
+Get the list of names of subscribable events in Safeguard.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -152,8 +163,8 @@ function Get-SafeguardEventName
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     [object[]]$Names = $null
-    $local:Events = Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Events
-    ForEach($IndividualEvent in $Events)
+    $local:Events = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Events)
+    foreach ($IndividualEvent in $Events)
     {
         if ($PSBoundParameters.ContainsKey("TypeofEvent"))
         {
@@ -168,6 +179,86 @@ function Get-SafeguardEventName
         }
     }
     return $Names
+}
+
+<#
+.SYNOPSIS
+Find information on events in Safeguard via the Web API.
+
+.DESCRIPTION
+Safeguard events are events that occur as a result of an administrative activity such as created and deletion of an asset or an account.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER SearchString
+A string to search for in the event information.
+
+.PARAMETER QueryFilter
+A string to pass to the -filter query parameter in the Safeguard Web API.
+
+.PARAMETER Fields
+An array of the event property names to return.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Find-SafeguardEvent -AccessToken $token -Appliance 10.5.32.54 -Insecure AssetCreated
+
+.EXAMPLE
+Find-SafeguardEvent -QueryFilter  -Fields
+#>
+function Find-SafeguardEvent
+{
+    [CmdletBinding(DefaultParameterSetName="Search")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0,ParameterSetName="Search")]
+        [string]$SearchString,
+        [Parameter(Mandatory=$true,Position=0,ParameterSetName="Query")]
+        [string]$QueryFilter,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($PSCmdlet.ParameterSetName -eq "Search")
+    {
+        $local:Parameters = @{ q = $SearchString }
+        if ($Fields)
+        {
+            $local:Parameters["fields"] = ($Fields -join ",")
+        }
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Events `
+            -Parameters $local:Parameters
+    }
+    else
+    {
+        $local:Parameters = @{ filter = $QueryFilter }
+        if ($Fields)
+        {
+            $local:Parameters["fields"] = ($Fields -join ",")
+        }
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Events `
+            -Parameters $local:Parameters
+    }
 }
 
 <#
