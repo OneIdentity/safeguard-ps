@@ -256,6 +256,9 @@ A string to search for in the platform definitions.
 .PARAMETER QueryFilter
 A string to pass to the -filter query parameter in the Safeguard Web API.
 
+.PARAMETER Fields
+An array of the platform property names to return.
+
 .INPUTS
 None.
 
@@ -287,7 +290,9 @@ function Find-SafeguardPlatform
         [Parameter(Mandatory=$true,Position=0,ParameterSetName="Search")]
         [string]$SearchString,
         [Parameter(Mandatory=$true,Position=0,ParameterSetName="Query")]
-        [string]$QueryFilter
+        [string]$QueryFilter,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -295,10 +300,15 @@ function Find-SafeguardPlatform
 
     if ($PSCmdlet.ParameterSetName -eq "Search")
     {
+        $local:Parameters = @{ filter = "DisplayName icontains '$SearchString' or Name icontains '$SearchString'" }
+        if ($Fields)
+        {
+            $local:Parameters["fields"] = ($Fields -join ",")
+        }
         try
         {
             $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
-                                    -Parameters @{ filter = "DisplayName icontains '$SearchString' or Name icontains '$SearchString'" } -RetryVersion 2 -RetryUrl "Platforms")
+                                    -Parameters $local:Parameters -RetryVersion 2 -RetryUrl "Platforms")
         }
         catch
         {
@@ -307,16 +317,26 @@ function Find-SafeguardPlatform
         }
         if (-not $local:Platforms)
         {
+            $local:Parameters = @{ q = $SearchString }
+            if ($Fields)
+            {
+                $local:Parameters["fields"] = ($Fields -join ",")
+            }
             Write-Verbose "No results yet, trying with q parameter"
             $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
-                                    -Parameters @{ q = $SearchString } -RetryVersion 2 -RetryUrl "Platforms")
+                                    -Parameters $local:Parameters -RetryVersion 2 -RetryUrl "Platforms")
         }
         $local:Platforms
     }
     else
     {
+        $local:Parameters = @{ filter = $QueryFilter }
+        if ($Fields)
+        {
+            $local:Parameters["fields"] = ($Fields -join ",")
+        }
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
-            -Parameters @{ filter = $QueryFilter } -RetryVersion 2 -RetryUrl "Platforms"
+            -Parameters $local:Parameters -RetryVersion 2 -RetryUrl "Platforms"
     }
 }
 
