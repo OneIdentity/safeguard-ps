@@ -254,6 +254,9 @@ A string to search for in the event subscription.
 .PARAMETER QueryFilter
 A string to pass to the -filter query parameter in the Safeguard Web API.
 
+.PARAMETER Fields
+An array of the event property names to return.
+
 .INPUTS
 None.
 
@@ -267,10 +270,10 @@ Find-SafeguardEventSubscription -AccessToken $token -Appliance 10.5.32.54 -Insec
 Find-SafeguardEventSubscription "test"
 
 .EXAMPLE
-Find-SafeguardEventSubscription -QueryFilter "PartitionOwnerIsSubscribed eq True" | ft Id,Type,Description
+Find-SafeguardEventSubscription -QueryFilter "PartitionOwnerIsSubscribed eq True" -Fields Id,Type,Description
 
 .EXAMPLE
-Find-SafeguardEventSubscription -QueryFilter "AdminRoles contains 'ApplianceAdmin'" | ft Id,Type,Description
+Find-SafeguardEventSubscription -QueryFilter "AdminRoles contains 'ApplianceAdmin'" -Fields Id,Type,Description
 #>
 function Find-SafeguardEventSubscription
 {
@@ -285,7 +288,9 @@ function Find-SafeguardEventSubscription
         [Parameter(Mandatory=$true,Position=0,ParameterSetName="Search")]
         [string]$SearchString,
         [Parameter(Mandatory=$true,Position=0,ParameterSetName="Query")]
-        [string]$QueryFilter
+        [string]$QueryFilter,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -293,13 +298,23 @@ function Find-SafeguardEventSubscription
 
     if ($PSCmdlet.ParameterSetName -eq "Search")
     {
+        $local:Parameters = @{ q = $SearchString }
+        if ($Fields)
+        {
+            $local:Parameters["fields"] = ($Fields -join ",")
+        }
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET EventSubscribers `
-            -Parameters @{ q = $SearchString }
+            -Parameters $local:Parameters
     }
     else
     {
+        $local:Parameters = @{ filter = $QueryFilter }
+        if ($Fields)
+        {
+            $local:Parameters["fields"] = ($Fields -join ",")
+        }
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET EventSubscribers `
-            -Parameters @{ filter = $QueryFilter }
+            -Parameters $local:Parameters
     }
 }
 
