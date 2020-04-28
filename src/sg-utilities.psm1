@@ -121,6 +121,10 @@ namespace Ex
             ))
         }
     }
+    if ($ThrownException.Status -eq "TrustFailure")
+    {
+        Write-Host -ForegroundColor Magenta "To ignore SSL/TLS trust failure use the -Insecure parameter to bypass server certificate validation."
+    }
     Write-Verbose "---Exception---"
     $ThrownException | Format-List * -Force | Out-String | Write-Verbose
     if ($ThrownException.InnerException)
