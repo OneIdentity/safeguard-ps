@@ -1,4 +1,82 @@
 #Helper
+function Resolve-Event
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Event
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    while (-not $local:FoundEvent)
+    {
+        Write-Host "Searching for events with '$Event'"
+        try
+        {
+            $local:FoundEvent = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET `
+                                     "Events/$Event")
+        }
+        catch {}
+        if (-not $local:FoundEvent)
+        {
+            $local:Events = ((Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Events `
+                                  -Parameters @{ fields = "Name,Category,Description" }) | Where-Object { $_.Name -match "$Event" })
+            if (($local:Events).Count -eq 0)
+            {
+                $local:Events = ((Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Events `
+                                      -Parameters @{ fields = "Name,Category,Description" }) | Where-Object { $_.Category -match "$Event" })
+            }
+            if (($local:Events).Count -eq 0)
+            {
+                try
+                {
+                    $local:Events = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Events `
+                                        -Parameters @{ filter = "Description icontains '$Event'"; fields = "Name,Category,Description" })
+                }
+                catch
+                {
+                    Write-Verbose $_
+                    Write-Verbose "Caught exception with icontains filter, trying with contains filter"
+                    $local:Events = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Events `
+                                        -Parameters @{ filter = "Description contains '$Event'"; fields = "Name,Category,Description" })
+                }
+            }
+
+            $local:Events = ($local:Events | Sort-Object -Property Name)
+
+            if (($local:Events).Count -eq 0)
+            {
+                throw "Unable to find event matching '$Event'..."
+            }
+
+            if (($local:Events).Count -ne 1)
+            {
+                $local:Longest = (($local:Events).Name | Measure-Object -Maximum -Property Length).Maximum
+                Write-Host "Found $($local:Events.Count) events matching '$Event':"
+                Write-Host "["
+                $local:Events | ForEach-Object {
+                    Write-Host ("    {0,$($local:Longest)} - {1}" -f $_.Name,$_.Description)
+                }
+                Write-Host "]"
+                $Event = (Read-Host "Enter event name or search string")
+            }
+            else
+            {
+                $local:FoundEvent = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET `
+                                         "Events/$($local:Events[0].Name)")
+            }
+        }
+    }
+    $local:FoundEvent
+}
 function Resolve-SubscriptionEvent
 {
     [CmdletBinding()]
@@ -47,7 +125,10 @@ function Resolve-SubscriptionEvent
 Get information on events in Safeguard via the Web API.
 
 .DESCRIPTION
-Safeguard events are events that occur as a result of an administrative activity such as created and deletion of an asset or an account.
+Safeguard events occur as a result of  or access request or administrative activity.
+Administrative activity includes creation and deletion of assets or accounts.  This
+cmdlet helps you get information about events.  This cmdlet tries to get a single event
+by matching name, if that doesn't work it tries category, and finally description.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -92,18 +173,18 @@ function Get-SafeguardEvent
         [string[]]$Fields
     )
 
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
     $local:Parameters = $null
     if ($Fields)
     {
         $local:Parameters = @{ fields = ($Fields -join ",")}
     }
 
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
     if ($PSBoundParameters.ContainsKey("EventToGet"))
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Events/$EventToGet" -Parameters $local:Parameters
+        Resolve-Event -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $EventToGet
     }
     else
     {
@@ -162,23 +243,76 @@ function Get-SafeguardEventName
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-    [object[]]$Names = $null
+
+    [object[]]$local:Names = $null
     $local:Events = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Events)
-    foreach ($IndividualEvent in $Events)
+    foreach ($local:IndividualEvent in $local:Events)
     {
         if ($PSBoundParameters.ContainsKey("TypeofEvent"))
         {
-            if(($IndividualEvent).ObjectType -eq $TypeofEvent)
+            if (($local:IndividualEvent).ObjectType -eq $TypeofEvent)
             {
-                $Names += $(($local:IndividualEvent).Name)
+                $local:Names += $(($local:IndividualEvent).Name)
             }
         }
         else
         {
-            $Names += $(($local:IndividualEvent).Name)
+            $local:Names += $(($local:IndividualEvent).Name)
         }
     }
-    return $Names
+    $local:Names
+}
+
+<#
+.SYNOPSIS
+Get information on events in Safeguard via the Web API.
+
+.DESCRIPTION
+Safeguard events occur as a result of  or access request or administrative activity.
+Administrative activity includes creation and deletion of assets or accounts.  This
+cmdlet helps you get information about events.  This cmdlet gets the properties that
+will be sent to subscribers of an event.  This cmdlet uses Get-SafeguardEvent to
+locate a single event.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER EventToGet
+A string containing the name of the event to get.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardEventProperty AssetCreated
+#>
+function Get-SafeguardEventProperty
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$EventToGet
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    (Get-SafeguardEvent -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $EventToGet).Properties | Format-Table Name,Description
 }
 
 <#

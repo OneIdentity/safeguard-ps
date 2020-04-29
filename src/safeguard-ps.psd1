@@ -216,7 +216,7 @@ FunctionsToExport = @(
     'Get-SafeguardAccessPolicySessionProperty','Get-SafeguardUserLinkedAccount','Add-SafeguardUserLinkedAccount',
     'Remove-SafeguardUserLinkedAccount',
     # events.psm1
-    'Get-SafeguardEvent','Get-SafeguardEventName','Find-SafeguardEvent',
+    'Get-SafeguardEvent','Get-SafeguardEventName','Get-SafeguardEventProperty','Find-SafeguardEvent',
     'Get-SafeguardEventSubscription', 'Find-SafeguardEventSubscription',
     'New-SafeguardEventSubscription', 'Remove-SafeguardEventSubscription', 'Edit-SafeguardEventSubscription',
     # clustering.psm1
