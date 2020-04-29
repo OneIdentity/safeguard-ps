@@ -85,9 +85,17 @@ namespace Ex
             catch {}
             if ($local:ResponseObject.Code) # Safeguard error
             {
+                $local:Message = $local:ResponseObject.Message
+                if ($local:ResponseObject.ModelState)
+                {
+                    $local:Properties = ($local:ResponseObject.ModelState | Get-Member | Where-Object { $_.MemberType -eq "NoteProperty" }).Name
+                    $local:Properties | ForEach-Object {
+                        $local:Message += (" " + $_ + ": " + ($local:ResponseObject.ModelState."$_" -join ","))
+                    }
+                }
                 $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
                     [int]$ThrownException.Response.StatusCode, $local:StatusDescription,
-                    $local:ResponseObject.Code, $local:ResponseObject.Message, $local:ResponseBody
+                    $local:ResponseObject.Code, $local:Message, $local:ResponseBody
                 ))
             }
             elseif ($local:ResponseObject.error_description) # rSTS error
@@ -112,6 +120,10 @@ namespace Ex
                 0, "", "<unable to retrieve response content>"
             ))
         }
+    }
+    if ($ThrownException.Status -eq "TrustFailure")
+    {
+        Write-Host -ForegroundColor Magenta "To ignore SSL/TLS trust failure use the -Insecure parameter to bypass server certificate validation."
     }
     Write-Verbose "---Exception---"
     $ThrownException | Format-List * -Force | Out-String | Write-Verbose

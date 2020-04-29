@@ -256,6 +256,9 @@ A string to search for in the policy asset.
 .PARAMETER QueryFilter
 A string to pass to the -filter query parameter in the Safeguard Web API.
 
+.PARAMETER Fields
+An array of the policy asset property names to return.
+
 .INPUTS
 None.
 
@@ -272,7 +275,7 @@ Find-SafeguardPolicyAsset "HP-UX"
 Find-SafeguardPolicyAsset -QueryFilter "AllowSessionRequests eq False"
 
 .EXAMPLE
-Find-SafeguardPolicyAsset -QueryFilter "Disabled eq True"
+Find-SafeguardPolicyAsset -QueryFilter "Disabled eq True" -Fields Id,Name
 #>
 function Find-SafeguardPolicyAsset
 {
@@ -287,7 +290,9 @@ function Find-SafeguardPolicyAsset
         [Parameter(Mandatory=$true,Position=0,ParameterSetName="Search")]
         [string]$SearchString,
         [Parameter(Mandatory=$true,Position=0,ParameterSetName="Query")]
-        [string]$QueryFilter
+        [string]$QueryFilter,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -295,13 +300,23 @@ function Find-SafeguardPolicyAsset
 
     if ($PSCmdlet.ParameterSetName -eq "Search")
     {
+        $local:Parameters = @{ q = $SearchString }
+        if ($Fields)
+        {
+            $local:Parameters["fields"] = ($Fields -join ",")
+        }
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET PolicyAssets `
-            -Parameters @{ q = $SearchString }
+            -Parameters $local:Parameters
     }
     else
     {
+        $local:Parameters = @{ filter = $QueryFilter }
+        if ($Fields)
+        {
+            $local:Parameters["fields"] = ($Fields -join ",")
+        }
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET PolicyAssets `
-            -Parameters @{ filter = $QueryFilter }
+            -Parameters $local:Parameters
     }
 }
 
@@ -417,6 +432,9 @@ A string to search for in the policy account.
 .PARAMETER QueryFilter
 A string to pass to the -filter query parameter in the Safeguard Web API.
 
+.PARAMETER Fields
+An array of the event property names to return.
+
 .INPUTS
 None.
 
@@ -445,7 +463,9 @@ function Find-SafeguardPolicyAccount
         [Parameter(Mandatory=$true,Position=0,ParameterSetName="Search")]
         [string]$SearchString,
         [Parameter(Mandatory=$true,Position=0,ParameterSetName="Query")]
-        [string]$QueryFilter
+        [string]$QueryFilter,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -453,13 +473,23 @@ function Find-SafeguardPolicyAccount
 
     if ($PSCmdlet.ParameterSetName -eq "Search")
     {
+        $local:Parameters = @{ q = $SearchString }
+        if ($Fields)
+        {
+            $local:Parameters["fields"] = ($Fields -join ",")
+        }
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET PolicyAccounts `
-            -Parameters @{ q = $SearchString }
+            -Parameters $local:Parameters
     }
     else
     {
+        $local:Parameters = @{ filter = $QueryFilter }
+        if ($Fields)
+        {
+            $local:Parameters["fields"] = ($Fields -join ",")
+        }
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET PolicyAccounts `
-            -Parameters @{ filter = $QueryFilter }
+            -Parameters $local:Parameters
     }
 }
 
