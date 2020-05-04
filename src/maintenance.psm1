@@ -1489,35 +1489,38 @@ function Install-SafeguardPatch
         Wait-ForPatchDistribution -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout
     }
 
-    Write-Host "Precondition checks...`n"
-    $local:Preconditions = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                                core GET "Cluster/Patch/PreconditionCheck").ClusterResults
+    if (Test-SafeguardVersion -Appliance $Appliance -Insecure:$Insecure 6.0)
+    {
+        Write-Host "Precondition checks...`n"
+        $local:Preconditions = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                    core GET "Cluster/Patch/PreconditionCheck").ClusterResults
 
-    $local:Preconditions | ForEach-Object {
-        Write-Host "Appliance ID: $($_.ApplianceId)"
-        Write-Host -NoNewline "Warnings: "
-        if ($_.Warnings)
-        {
-            $local:Warnings = $true
+        $local:Preconditions | ForEach-Object {
+            Write-Host "Appliance ID: $($_.ApplianceId)"
+            Write-Host -NoNewline "Warnings: "
+            if ($_.Warnings)
+            {
+                $local:Warnings = $true
+                Write-Host " "
+                $_.Warnings | ForEach-Object { Write-Warning $_ }
+            }
+            else
+            {
+                Write-Host "None"
+            }
+            Write-Host -NoNewline "Errors: "
+            if ($_.Errors)
+            {
+                $local:Errors = $true
+                Write-Host " "
+                $_.Errors | ForEach-Object { Write-Error $_ }
+            }
+            else
+            {
+                Write-Host "None"
+            }
             Write-Host " "
-            $_.Warnings | ForEach-Object { Write-Warning $_ }
         }
-        else
-        {
-            Write-Host "None"
-        }
-        Write-Host -NoNewline "Errors: "
-        if ($_.Errors)
-        {
-            $local:Errors = $true
-            Write-Host " "
-            $_.Errors | ForEach-Object { Write-Error $_ }
-        }
-        else
-        {
-            Write-Host "None"
-        }
-        Write-Host " "
     }
     if ($Force)
     {
