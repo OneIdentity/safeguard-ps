@@ -2736,3 +2736,134 @@ function Disable-SafeguardTls12Only
         Invoke-SafeguardApplianceReboot -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Reason "Disable TLS 1.2 Only" -Force
     }
 }
+
+<#
+.SYNOPSIS
+Verify the contents of an audit log archive file.
+
+.DESCRIPTION
+This cmdlet will read the ZIP file archive exported from Safeguard and verify
+the signature of each of the JSON files inside the archive.  By default this
+cmdlet uses the currently configured audit log signing certificate, but you
+may also specify a certificate as a file.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ArchiveZip
+A string containing the file path to a Safeguard audit log archive file.
+
+.PARAMETER SigningCertificate
+A string containing the file path to a certificate that will be used to verify signatures.
+
+.INPUTS
+None.
+
+.OUTPUTS
+Boolean from Safeguard Web API.
+
+.EXAMPLE
+Test-SafeguardAuditLogArchive 4419154e2128482f9232e3e0a1708f41_Safeguard_Audit_20200510-000000.zip
+
+.EXAMPLE
+Test-SafeguardAuditLogArchive 4419154e2128482f9232e3e0a1708f41_Safeguard_Audit_20200510-000000.zip -SigningCertificate cert.crt
+#>
+function Test-SafeguardAuditLogArchive
+{
+    [CmdletBinding(DefaultParameterSetName="Online")]
+    Param(
+        [Parameter(ParameterSetName="Online",Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(ParameterSetName="Online",Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(ParameterSetName="Online",Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$ArchiveZip,
+        [Parameter(ParameterSetName="Local",Mandatory=$true)]
+        [string]$SigningCertificate
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($PSCmdlet.ParameterSetName -eq "Local")
+    {
+        $local:Base64CertificateData = [System.Convert]::ToBase64String((Get-PfxCertificate $SigningCertificate).RawData)
+    }
+    else
+    {
+        $local:Base64CertificateData = (Get-SafeguardAuditLogSigningCertificate -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure).Base64CertificateData
+    }
+
+    if (-not ([System.Management.Automation.PSTypeName]"AuditLogSignatureVerifier").Type)
+    {
+        Write-Verbose "Adding the PSType for audit log signature verification"
+        Add-Type -TypeDefinition  @"
+using System;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+using System.Text.RegularExpressions;
+
+public class AuditLogSignatureVerifier {
+    private static byte[] ToBuffer(string base64Data) {
+        var match = Regex.Match(base64Data, "-----.*?-----",
+            RegexOptions.Multiline & RegexOptions.Compiled & RegexOptions.IgnoreCase & RegexOptions.ECMAScript);
+        var dataNoLabel = Regex.Replace(base64Data, "-----.*?-----", "",
+            RegexOptions.Multiline & RegexOptions.Compiled & RegexOptions.IgnoreCase & RegexOptions.ECMAScript);
+        var b64String = Regex.Replace(dataNoLabel, "\r|\n", "",
+            RegexOptions.Multiline & RegexOptions.Compiled & RegexOptions.IgnoreCase & RegexOptions.ECMAScript);
+        return Convert.FromBase64String(b64String); }
+    private static byte[] ReadAllBytes(Stream zipStream) {
+        using (var memoryStream = new MemoryStream()) {
+            zipStream.CopyTo(memoryStream);
+            return memoryStream.ToArray(); } }
+    public static bool VerifyArchive(string certificateBase64Data, string zipFilePath) {
+        var buffer = ToBuffer(certificateBase64Data);
+        var cert = new X509Certificate2(buffer);
+        var success = true;
+        using (var archive = ZipFile.OpenRead(zipFilePath)) {
+            Console.WriteLine(string.Format("Verifying audit log archive: {0} ...", zipFilePath));
+            if (!string.Equals(cert.PublicKey.Oid.FriendlyName, "RSA")) {
+                Console.WriteLine(string.Format("  Unable to verify archive with {0} certificate", cert.PublicKey.Oid.FriendlyName));
+                return false; }
+            using (var rsa = cert.GetRSAPublicKey()) {
+                foreach (var entry in archive.Entries.Where(e => e.FullName.EndsWith("json"))) {
+                    Console.Write(string.Format("  {0} -- ", entry.FullName));
+                    var stream = entry.Open();
+                    var sigEntry = archive.GetEntry(entry.FullName.Replace(".json", ".sig"));
+                    if (sigEntry == null) {
+                        Console.WriteLine("FAILED, unable to find .sig file");
+                        success = false; }
+                    else {
+                        var sigStream = sigEntry.Open();
+                        var sigBytes = ReadAllBytes(sigStream);
+                        using (var hasher = SHA256.Create()) {
+                            var hash = hasher.ComputeHash(stream);
+                            if (rsa.VerifyHash(hash, sigBytes, HashAlgorithmName.SHA256, RSASignaturePadding.Pss))
+                                Console.WriteLine("verified");
+                            else {
+                                Console.WriteLine("FAILED, signature does not match");
+                                success = false; } } } } } }
+        return success; } }
+"@ -ReferencedAssemblies System.Security,System.IO.Compression,System.IO.Compression.ZipFile,System.IO.Compression.FileSystem
+    }
+
+    if ([AuditLogSignatureVerifier]::VerifyArchive($local:Base64CertificateData, $ArchiveZip))
+    {
+        Write-Output "SUCCESS: All signatures verified successfully."
+    }
+    else
+    {
+        throw "Audit log signature verification failed"
+    }
+}

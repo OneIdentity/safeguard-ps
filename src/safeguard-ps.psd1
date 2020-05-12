@@ -136,6 +136,7 @@ FunctionsToExport = @(
     'Get-SafeguardBmcConfiguration','Enable-SafeguardBmcConfiguration','Disable-SafeguardBmcConfiguration',
     'Set-SafeguardBmcAdminPassword','Enable-SafeguardTls12Only','Disable-SafeguardTls12Only',
     'Get-SafeguardTls12OnlyStatus',
+    'Test-SafeguardAuditLogArchive',
     # diagnostics.psm1
     'Invoke-SafeguardPing','Invoke-SafeguardSessionsPing','Invoke-SafeguardTelnet','Invoke-SafeguardSessionsTelnet',
     'Get-SafeguardDiagnosticPackage','Set-SafeguardDiagnosticPackage','Clear-SafeguardDiagnosticPackage',
