@@ -2737,7 +2737,43 @@ function Disable-SafeguardTls12Only
     }
 }
 
+<#
+.SYNOPSIS
+Verify the contents of an audit log archive file.
 
+.DESCRIPTION
+This cmdlet will read the ZIP file archive exported from Safeguard and verify
+the signature of each of the JSON files inside the archive.  By default this
+cmdlet uses the currently configured audit log signing certificate, but you
+may also specify a certificate as a file.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ArchiveZip
+A string containing the file path to a Safeguard audit log archive file.
+
+.PARAMETER SigningCertificate
+A string containing the file path to a certificate that will be used to verify signatures.
+
+.INPUTS
+None.
+
+.OUTPUTS
+Boolean from Safeguard Web API.
+
+.EXAMPLE
+Test-SafeguardAuditLogArchive 4419154e2128482f9232e3e0a1708f41_Safeguard_Audit_20200510-000000.zip
+
+.EXAMPLE
+Test-SafeguardAuditLogArchive 4419154e2128482f9232e3e0a1708f41_Safeguard_Audit_20200510-000000.zip -SigningCertificate cert.crt
+#>
 function Test-SafeguardAuditLogArchive
 {
     [CmdletBinding(DefaultParameterSetName="Online")]
