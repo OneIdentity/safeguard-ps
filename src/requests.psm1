@@ -364,7 +364,7 @@ function New-SafeguardAccessRequest
         [Parameter(Mandatory=$false, Position=1)]
         [object]$AccountToUse,
         [Parameter(Mandatory=$true, Position=2)]
-        [ValidateSet("Password", "SSH", "RemoteDesktop", "RDP", "Telnet", IgnoreCase=$true)]
+        [ValidateSet("Password", "SSHKey", "SSH", "RemoteDesktop", "RDP", "Telnet", IgnoreCase=$true)]
         [string]$AccessRequestType,
         [Parameter(Mandatory=$false)]
         [switch]$Emergency = $false,
@@ -1373,6 +1373,10 @@ function Start-SafeguardAccessRequestSession
         }
         "Password" {
             throw "You cannot launch a session for a password request"
+            break
+        }
+        "SSHKey" {
+            throw "You cannot launch a session for an SSH Key request"
             break
         }
         "Telnet" {
