@@ -1594,7 +1594,7 @@ function Close-SafeguardAccessRequest
                     -contains $_ } {
                 Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Cancel -AllFields:$AllFields
             }
-            { "PasswordCheckedOut","SessionInitialized" -contains $_ } {
+            { "PasswordCheckedOut","SshKeyCheckedOut","SessionInitialized" -contains $_ } {
                 Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId CheckIn -AllFields:$AllFields
             }
             { "RequestCheckedIn","Terminated","PendingReview","PendingAccountSuspended" -contains $_ } {
@@ -1603,9 +1603,11 @@ function Close-SafeguardAccessRequest
             { "Expired","PendingAcknowledgment" -contains $_ } {
                 Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Acknowledge -AllFields:$AllFields
             }
-            default {
-                # "Closed","Complete","Reclaimed"
+            { "Closed","Complete","Reclaimed" -contains $_ } {
                 Write-Verbose "Doing nothing for state '$($local:AccessRequest.State)'"
+            }
+            default {
+                Write-Host -ForegroundColor Yellow "Unrecognized state '$($local:AccessRequest.State)'"
             }
         }
     }
