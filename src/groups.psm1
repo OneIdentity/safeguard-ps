@@ -69,7 +69,9 @@ function Get-SafeguardGroup
         [Parameter(Mandatory=$false,Position=1)]
         [object]$GroupToGet,
         [Parameter(Mandatory=$false)]
-        [string[]]$Fields
+        [string[]]$Fields,
+        [Parameter(Mandatory=$false)]
+        [switch]$DynamicOnly
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -88,6 +90,12 @@ function Get-SafeguardGroup
     if ($Fields)
     {
         $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
+    if ($DynamicOnly)
+    {
+        if (-not $local:Parameters) { $local:Parameters = @{} }
+        $local:Parameters.filter = "IsDynamic eq true"
     }
 
     if ($PSBoundParameters.ContainsKey("GroupToGet") -and $GroupToGet)
@@ -1578,4 +1586,75 @@ function Remove-SafeguardAccountGroupMember
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Edit-SafeguardAccountGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Group Remove $AccountList
+}
+
+
+# Dynamic Group cmdlets
+
+
+
+function Get-SafeguardDynamicAccountGroup
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false, Position=0)]
+        [object]$GroupToGet
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\grouptag-utilities.psm1" -Scope Local
+    $local:Group = (Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToGet `
+        -Fields "Id,Name,Description,IsDynamic,CreatedDate,CreatedByUserId,CreatedByUserDisplayName,GroupingRule" -DynamicOnly)
+    $local:Hash = [ordered]@{
+        Id = $local:Group.Id;
+        Name = $local:Group.Name;
+        Description = $local:Group.Description;
+        IsDynamic = $local:Group.IsDynamic;
+        CreatedDate = $local:Group.CreatedDate;
+        CreatedByUserId = $local:Group.CreatedByUserId;
+        CreatedByUserDisplayName = $local:Group.CreatedByUserDisplayName;
+        GroupingRule = (Convert-RuleToString $local:Group.GroupingRule "account");
+    }
+    New-Object PSObject -Property $local:Hash
+}
+
+function Get-SafeguardDynamicAssetGroup
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false, Position=0)]
+        [object]$GroupToGet
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\grouptag-utilities.psm1" -Scope Local
+    $local:Group = (Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $GroupToGet `
+        -Fields "Id,Name,Description,IsDynamic,CreatedDate,CreatedByUserId,CreatedByUserDisplayName,AssetGroupingRule" -DynamicOnly)
+    $local:Hash = [ordered]@{
+        Id = $local:Group.Id;
+        Name = $local:Group.Name;
+        Description = $local:Group.Description;
+        IsDynamic = $local:Group.IsDynamic;
+        CreatedDate = $local:Group.CreatedDate;
+        CreatedByUserId = $local:Group.CreatedByUserId;
+        CreatedByUserDisplayName = $local:Group.CreatedByUserDisplayName;
+        AssetGroupingRule = (Convert-RuleToString $local:Group.AssetGroupingRule "asset");
+    }
+    New-Object PSObject -Property $local:Hash
 }
