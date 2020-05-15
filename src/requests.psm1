@@ -364,7 +364,7 @@ function New-SafeguardAccessRequest
         [Parameter(Mandatory=$false, Position=1)]
         [object]$AccountToUse,
         [Parameter(Mandatory=$true, Position=2)]
-        [ValidateSet("Password", "SSH", "RemoteDesktop", "RDP", "Telnet", IgnoreCase=$true)]
+        [ValidateSet("Password", "SSHKey", "SSH", "RemoteDesktop", "RDP", "Telnet", IgnoreCase=$true)]
         [string]$AccessRequestType,
         [Parameter(Mandatory=$false)]
         [switch]$Emergency = $false,
@@ -495,10 +495,12 @@ function Edit-SafeguardAccessRequest
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [HashTable]$Parameters,
         [Parameter(Mandatory=$true, Position=0)]
         [string]$RequestId,
         [Parameter(Mandatory=$true, Position=1)]
-        [ValidateSet("Approve", "Deny", "Review", "Cancel", "Close", "CheckIn", "CheckOutPassword", "CheckOut", "InitializeSession", "Acknowledge", IgnoreCase=$true)]
+        [ValidateSet("Approve", "Deny", "Review", "Cancel", "Close", "CheckIn", "CheckOutPassword", "CheckOutSshKey", "CheckOut", "InitializeSession", "Acknowledge", IgnoreCase=$true)]
         [string]$Action,
         [Parameter(Mandatory=$false)]
         [string]$Comment,
@@ -520,11 +522,12 @@ function Edit-SafeguardAccessRequest
         "checkin" { $Action = "CheckIn"; break }
         "checkout" { $Action = "CheckOutPassword"; break }
         "checkoutpassword" { $Action = "CheckOutPassword"; break }
+        "checkoutsshkey" { $Action = "CheckOutSshKey"; break }
         "initializesession" { $Action = "InitializeSession"; break }
         "acknowledge" { $Action = "Acknowledge"; break }
     }
 
-    if ($AllFields -or $Action -eq "CheckOutPassword" -or $Action -eq "InitializeSession")
+    if ($AllFields -or $Action -eq "CheckOutPassword" -or $Action -eq "CheckOutSshKey" -or $Action -eq "InitializeSession")
     {
         $local:RequestFields = $null
     }
@@ -536,12 +539,12 @@ function Edit-SafeguardAccessRequest
     if ($Comment)
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-            POST "AccessRequests/$RequestId/$Action" -Body "$Comment" | Select-Object -Property $local:RequestFields
+            POST "AccessRequests/$RequestId/$Action" -Parameters $Parameters -Body "$Comment" | Select-Object -Property $local:RequestFields
     }
     else
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-            POST "AccessRequests/$RequestId/$Action" | Select-Object -Property $local:RequestFields
+            POST "AccessRequests/$RequestId/$Action" -Parameters $Parameters | Select-Object -Property $local:RequestFields
     }
 }
 
@@ -1098,6 +1101,172 @@ function Copy-SafeguardAccessRequestPassword
 
 <#
 .SYNOPSIS
+Gets the SSH host key for an access request via the Web API.
+
+.DESCRIPTION
+This script allows you to get the SSH host key for an access request which can
+be useful to safely communicate with a target asset.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER RequestId
+A string containing the ID of the access request.
+
+.INPUTS
+None.
+
+.OUTPUTS
+None.
+
+.EXAMPLE
+Get-SafeguardAccessRequestSshHostKey 21-1-1-3901-1-4419154e2128482f9232e3e0a1708f41-0001
+#>
+function Get-SafeguardAccessRequestSshHostKey
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]$RequestId
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    (Get-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId -AllFields).AssetSshHostKey
+}
+
+
+function Get-SafeguardAccessRequestSshKey
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]$RequestId,
+        [Parameter(Mandatory=$false)]
+        [ValidateSet("OpenSsh", "Ssh2", "Putty", IgnoreCase=$true)]
+        [string]$KeyFormat = "OpenSsh",
+        [Parameter(Mandatory=$false)]
+        [switch]$ShowPassphrase,
+        [Parameter(Mandatory=$false)]
+        [switch]$Raw
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Request = (Get-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId -AllFields)
+    $local:Response = (Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId `
+                           -Parameters @{keyFormat = $KeyFormat} CheckOutSshKey)
+    if ($Raw)
+    {
+        $local:Response
+    }
+    else
+    {
+        if ($KeyFormat -ieq "Putty")
+        {
+            $local:FileName = "id_$($local:Request.AccountName)_$($local:Request.AccountId).ppk"
+        }
+        else
+        {
+            $local:FileName = "id_$($local:Request.AccountName)_$($local:Request.AccountId).pk"
+        }
+        Out-File $local:FileName -Encoding ASCII -InputObject $local:Response.PrivateKey
+        if ($PSVersionTable.PSEdition -eq "Core")
+        {
+            # TODO: change file permissions
+        }
+        else
+        {
+            try
+            {
+                $local:Rights = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList $Env:USERNAME,2032127,0
+                $local:Acl = (Get-Acl $local:FileName)
+                $local:Acl.AddAccessRule($local:Rights)
+                $local:Acl.SetAccessRuleProtection($true, $false)
+                (Get-Item $local:FileName).SetAccessControl($local:Acl)
+            }
+            catch
+            {
+                Write-Host -ForegroundColor Yellow "Unable to set permissions on private key file: $($_.Exception.Message)"
+            }
+        }
+        Write-Host "Private key: " -NoNewline
+        Write-Host -ForegroundColor Green "$(Resolve-Path $local:FileName)"
+        if ($local:Response.Passphrase)
+        {
+            if ($ShowPassphrase)
+            {
+                Write-Host "Passphrase: $($local:Response.Passphrase)"
+            }
+            else
+            {
+                try
+                {
+                    Set-Clipboard -Value $local:Response.Passphrase
+                    Write-Host "Passphrase: (" -NoNewline
+                    Write-Host -ForegroundColor Magenta "COPIED TO CLIPBOARD" -NoNewline
+                    Write-Host ")"
+                }
+                catch
+                {
+                    try
+                    {
+                        Set-ClipboardText $local:Response.Passphrase
+                        Write-Host "Passphrase: (" -NoNewline
+                        Write-Host -ForegroundColor Magenta "COPIED TO CLIPBOARD" -NoNewline
+                        Write-Host ")"
+                    }
+                    catch
+                    {
+                        Write-Host "Unable to copy passphrase to clipboard, if clipboard doesn't work try -ShowPassphrase or -Raw for full output"
+                        Write-Host -ForegroundColor Yellow "Try to add clipboard support with the ClipboardText module, run 'Install-Module -Name ClipboardText'"
+                        throw $_
+                    }
+                }
+            }
+        }
+        else
+        {
+            Write-Host "Passphrase: <none>"
+        }
+        Write-Host "Command (" -NoNewline
+        Write-Host -ForegroundColor Magenta "PRESS UP ARROW" -NoNewline
+        Write-Host ") -- it has been inserted into your command history:"
+        if ($KeyFormat -ieq "Putty")
+        {
+            $local:CommandLine = "putty.exe -ssh -i $(Resolve-Path $local:FileName) $($local:Request.AccountName)@$($local:Request.AssetNetworkAddress)"
+        }
+        else
+        {
+            $local:CommandLine = "ssh -i $(Resolve-Path $local:FileName) $($local:Request.AccountName)@$($local:Request.AssetNetworkAddress)"
+        }
+        Write-Host "  $($local:CommandLine)"
+        [Microsoft.PowerShell.PSConsoleReadLine]::AddToHistory($local:CommandLine)
+    }
+}
+
+<#
+.SYNOPSIS
 Generate an RDP file for an access request via the Web API.
 
 .DESCRIPTION
@@ -1375,6 +1544,10 @@ function Start-SafeguardAccessRequestSession
             throw "You cannot launch a session for a password request"
             break
         }
+        "SSHKey" {
+            throw "You cannot launch a session for an SSH Key request"
+            break
+        }
         "Telnet" {
             throw "You must start telnet sessions manually, safeguard-ps cannot launch your client"
         }
@@ -1448,7 +1621,7 @@ function Close-SafeguardAccessRequest
                     -contains $_ } {
                 Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Cancel -AllFields:$AllFields
             }
-            { "PasswordCheckedOut","SessionInitialized" -contains $_ } {
+            { "PasswordCheckedOut","SshKeyCheckedOut","SessionInitialized" -contains $_ } {
                 Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId CheckIn -AllFields:$AllFields
             }
             { "RequestCheckedIn","Terminated","PendingReview","PendingAccountSuspended" -contains $_ } {
@@ -1457,9 +1630,11 @@ function Close-SafeguardAccessRequest
             { "Expired","PendingAcknowledgment" -contains $_ } {
                 Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Acknowledge -AllFields:$AllFields
             }
-            default {
-                # "Closed","Complete","Reclaimed"
+            { "Closed","Complete","Reclaimed" -contains $_ } {
                 Write-Verbose "Doing nothing for state '$($local:AccessRequest.State)'"
+            }
+            default {
+                Write-Host -ForegroundColor Yellow "Unrecognized state '$($local:AccessRequest.State)'"
             }
         }
     }

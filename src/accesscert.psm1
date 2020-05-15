@@ -298,6 +298,7 @@ function Get-PermissionText
     switch ($PolEnt.Policy.AccessRequestProperties.AccessRequestType.ToLower())
     {
         "password" { $local:Permission = "checkout $($PolEnt.Account.Name) password"; break }
+        "sshkey" { $local:Permission = "checkout $($PolEnt.Account.Name) SSH key"; break }
         "remotedesktop" {
             if ($PolEnt.Account)
             {
@@ -357,6 +358,7 @@ function Get-PermissionTextV3
     switch ($PolEnt.AccessRequestType.ToLower())
     {
         "password" { $local:Permission = "checkout $($PolEnt.AccountName) password"; break }
+        "sshkey" { $local:Permission = "checkout $($PolEnt.Account.Name) SSH key"; break }
         "remotedesktop" {
             if ($PolEnt.Account)
             {

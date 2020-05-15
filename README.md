@@ -351,6 +351,7 @@ update this list.
 - Get-SafeguardTls12OnlyStatus
 - SafeguardTls12Only
 - Disable-SafeguardTls12Only
+- Test-SafeguardAuditLogArchive
 
 ### Clustering
 
@@ -425,6 +426,8 @@ update this list.
 - Get-SafeguardRequestableAccount (Get-SafeguardMyRequestable)
 - Find-SafeguardRequestableAccount (Find-SafeguardMyRequestable)
 - Get-SafeguardAccessRequestPassword (Get-SafeguardAccessRequestCheckoutPassword)
+- Get-SafeguardAccessRequestSshHostKey
+- Get-SafeguardAccessRequestSshKey
 - Get-SafeguardAccessRequestRdpFile
 - Get-SafeguardAccessRequestRdpUrl
 - Get-SafeguardAccessRequestSshUrl
