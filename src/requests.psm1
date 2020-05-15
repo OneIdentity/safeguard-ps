@@ -1165,6 +1165,8 @@ function Get-SafeguardAccessRequestSshKey
         [ValidateSet("OpenSsh", "Ssh2", "Putty", IgnoreCase=$true)]
         [string]$KeyFormat = "OpenSsh",
         [Parameter(Mandatory=$false)]
+        [switch]$ShowPassphrase,
+        [Parameter(Mandatory=$false)]
         [switch]$Raw
     )
 
@@ -1195,46 +1197,71 @@ function Get-SafeguardAccessRequestSshKey
         }
         else
         {
-            $local:Rights = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList $Env:USERNAME,2032127,0
-            $local:Acl = (Get-Acl $local:FileName)
-            $local:Acl.AddAccessRule($local:Rights)
-            $local:Acl.SetAccessRuleProtection($true, $false)
-            Set-Acl -Path $local:FileName -AclObject $local:Acl
-        }
-        Write-Host "Private key written to $($local:FileName)"
-        if ($local:Response.Passphrase)
-        {
             try
             {
-                Set-Clipboard -Value $local:Response.Passphrase
+                $local:Rights = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList $Env:USERNAME,2032127,0
+                $local:Acl = (Get-Acl $local:FileName)
+                $local:Acl.AddAccessRule($local:Rights)
+                $local:Acl.SetAccessRuleProtection($true, $false)
+                (Get-Item $local:FileName).SetAccessControl($local:Acl)
             }
             catch
             {
+                Write-Host -ForegroundColor Yellow "Unable to set permissions on private key file: $($_.Exception.Message)"
+            }
+        }
+        Write-Host "Private key: " -NoNewline
+        Write-Host -ForegroundColor Green "$(Resolve-Path $local:FileName)"
+        if ($local:Response.Passphrase)
+        {
+            if ($ShowPassphrase)
+            {
+                Write-Host "Passphrase: $($local:Response.Passphrase)"
+            }
+            else
+            {
                 try
                 {
-                    Set-ClipboardText $local:Response.Passphrase
+                    Set-Clipboard -Value $local:Response.Passphrase
+                    Write-Host "Passphrase: (" -NoNewline
+                    Write-Host -ForegroundColor Magenta "COPIED TO CLIPBOARD" -NoNewline
+                    Write-Host ")"
                 }
                 catch
                 {
-                    Write-Host "Unable to copy passphrase to clipboard, if clipboard doesn't work try -Raw for full output"
-                    Write-Host -ForegroundColor Yellow "Try to add clipboard support with the ClipboardText module, run 'Install-Module -Name ClipboardText'"
-                    throw $_
+                    try
+                    {
+                        Set-ClipboardText $local:Response.Passphrase
+                        Write-Host "Passphrase: (" -NoNewline
+                        Write-Host -ForegroundColor Magenta "COPIED TO CLIPBOARD" -NoNewline
+                        Write-Host ")"
+                    }
+                    catch
+                    {
+                        Write-Host "Unable to copy passphrase to clipboard, if clipboard doesn't work try -ShowPassphrase or -Raw for full output"
+                        Write-Host -ForegroundColor Yellow "Try to add clipboard support with the ClipboardText module, run 'Install-Module -Name ClipboardText'"
+                        throw $_
+                    }
                 }
             }
         }
         else
         {
-            Write-Host "No passphrase set on private key"
+            Write-Host "Passphrase: <none>"
         }
-        Write-Host "Command:"
+        Write-Host "Command (" -NoNewline
+        Write-Host -ForegroundColor Magenta "PRESS UP ARROW" -NoNewline
+        Write-Host ") -- it has been inserted into your command history:"
         if ($KeyFormat -ieq "Putty")
         {
-            Write-Host "  putty.exe -ssh -i $($local:FileName) $($local:Request.AccountName)@$($local:Request.AssetNetworkAddress)"
+            $local:CommandLine = "putty.exe -ssh -i $(Resolve-Path $local:FileName) $($local:Request.AccountName)@$($local:Request.AssetNetworkAddress)"
         }
         else
         {
-            Write-Host "  ssh -i $($local:FileName) $($local:Request.AccountName)@$($local:Request.AssetNetworkAddress)"
+            $local:CommandLine = "ssh -i $(Resolve-Path $local:FileName) $($local:Request.AccountName)@$($local:Request.AssetNetworkAddress)"
         }
+        Write-Host "  $($local:CommandLine)"
+        [Microsoft.PowerShell.PSConsoleReadLine]::AddToHistory($local:CommandLine)
     }
 }
 
