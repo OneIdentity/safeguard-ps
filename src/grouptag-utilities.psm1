@@ -229,22 +229,200 @@ function Convert-RuleToString
     (Convert-ConditionGroupToString $Rule.RuleConditionGroup $Type)
 }
 
-
-
-
-
 # convert string to object
-<#
+function Convert-StringToPredicateObject
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true)]
+        [string]$String
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    # TODO:
+}
 function Convert-StringToCondition
 {
 
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true)]
+        [ref]$StringBuf,
+        [Parameter(Mandatory=$true)]
+        [ValidateSet("account","asset",IgnoreCase=$true)]
+        [string]$Type
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Condition = @{
+        ObjectAttribute = "Unknown";
+        CompareType = "Unknown";
+        CompareValue = "Unknown";
+    }
+
+    # First find the end of this condition--
+    # Opening '[' is parsed off, and no nesting is allowed
+    $local:ClosingBracket = $false;
+    $local:InQuote = $false # only single quotes supported
+    for ($local:Char = $StringBuf.Str[$StringBuf.Pos];
+         $StringBuf.Pos -lt $StringBuf.Str.Length ; $StringBuf.Pos++)
+    {
+        if ($local:Char -eq ']' -and -not $InQuote)
+        {
+            $local:ClosingBracket = $true; $StringBuf.Pos++; break;
+        }
+        elseif ($local:Char -eq '''')
+        {
+            $local:InQuote = (-not $local:InQuote)
+        }
+        $local:SubString += $local:Char
+    }
+    if (-not $local:ClosingBracket) { throw "Mismatched bracket while reading condition substring: $($StringBuf.Str)" }
+
+    # Start parsing children in this group
+    $local:StringParts = $local:SubString.(" `t`n", 3, 1)
+    if ($Type -ieq "account")
+    {
+        $local:Condition.ObjectAttribute = (Resolve-ObjectAttributeForAccount $local:StringParts[0])
+    }
+    else
+    {
+        $local:Condition.ObjectAttribute = (Resolve-ObjectAttributeForAsset $local:StringParts[0])
+    }
+
+    # TODO:
+    #$local:Predicate = ()
+
+    $local:Condition
 }
 function Convert-StringToConditionGroup
 {
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true)]
+        [ref]$StringBuf,
+        [Parameter(Mandatory=$true)]
+        [ValidateSet("account","asset",IgnoreCase=$true)]
+        [string]$Type
+    )
 
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:ConditionGroup = @{
+        LogicalJoinType = "And"
+        Children = @()
+    }
+
+    # First find the end of this group--
+    # Opening '(' is parsed off, which means end of this group will be unmatched ')' or end of string
+    $local:Parens = 0; $local:ClosingParen = $false;
+    $local:InQuote = $false # only single quotes supported
+    for ($local:Char = $StringBuf.Str[$StringBuf.Pos];
+         $StringBuf.Pos -lt $StringBuf.Str.Length ; $StringBuf.Pos++)
+    {
+        if ($local:Char -eq ')')
+        {
+            if (-not $InQuote ) { $local:Parens-- }
+            if ($local:Parens -lt 0) { $local:ClosingParen = $true; $StringBuf.Pos++; break; }
+        }
+        elseif ($local:Char -eq '(')
+        {
+            if (-not $local:InQuote) { $local:Parens++ }
+        }
+        elseif ($local:Char -eq '''')
+        {
+            $local:InQuote = (-not $local:InQuote)
+        }
+        $local:SubString += $local:Char
+    }
+    if ($local:InQuote) { throw "Unterminated quote while reading condition group substring: $($StringBuf.Str)" }
+    if ($local:Parens -gt 0 -or ($local:Parens -eq 0 -and -not $local:ClosingParen)) { throw "Mismatched parenthesis while reading condition group substring: $($StringBuf.Str)" }
+
+    # Start parsing children in this group
+    $local:SubStringBuf = (New-Object PSObject -Property @{ Str = $local:SubString; Pos = 0 })
+    for ($local:Char = $local:SubStringBuf.Str[$local:SubStringBuf.Pos];
+         $local:SubStringBuf.Pos -lt $local:SubStringBuf.Str.Length ; $local:SubStringBuf.Pos++)
+    {
+        # Ignore superfluous whitespace
+        if ($local:Char -in ' ','`t','`n') { continue }
+        # Parse condition
+        if ($local:Char -eq '[')
+        {
+            $local:SubStringBuf.Pos++
+            $local:ConditionGroup.Children += @{
+                TaggingGroupingCondition = (Convert-StringToCondition ([ref]$local:SubStringBuf) $Type);
+                TaggingGroupingConditionGroup = $null;
+            }
+        }
+        # Parse condition group
+        elseif ($local:Char -eq '(')
+        {
+            $local:SubStringBuf.Pos++
+            $local:ConditionGroup.Children += @{
+                TaggingGroupingCondition = $null;
+                TaggingGroupingConditionGroup = (Convert-StringToConditionGroup ([ref]$local:SubStringBuf) $Type)
+            }
+        }
+        # Parse logical join type -- this will be the same every time
+        elseif ($local:Char -in 'a','A')
+        {
+            if ($local:SubStringBuf.Str[$local:SubStringBuf.Pos + 1] -in 'n','N' `
+                -and $local:SubStringBuf.Str[$local:SubStringBuf.Pos + 2] -in 'd','D')
+            {
+                $local:ConditionGroup.LogicalJoinType = "And"
+                $local:SubStringBuf.Pos += 2
+            }
+            else
+            {
+                throw "Unrecognized character at position $($local:SubStringBuf.Pos) in condition group substring: $($local:SubString.Str)"
+            }
+        }
+        elseif ($local:Char -in 'o','O')
+        {
+            if ($local:SubStringBuf.Str[$local:SubStringBuf.Pos + 1] -in 'r','R')
+            {
+                $local:ConditionGroup.LogicalJoinType = "Or"
+                $local:SubStringBuf.Pos++
+            }
+            else
+            {
+                throw "Unrecognized character at position $($local:SubStringBuf.Pos) in condition group substring: $($local:SubString.Str)"
+            }
+        }
+        else
+        {
+            throw "Unrecognized character at position $($local:SubStringBuf.Pos) in condition group substring: $($local:SubString.Str)"
+        }
+    }
+
+    $local:ConditionGroup
 }
 function Convert-StringToRule
 {
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true)]
+        [string]$String,
+        [Parameter(Mandatory=$true)]
+        [ValidateSet("account","asset",IgnoreCase=$true)]
+        [string]$Type
+    )
 
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Rule = @{
+        Enabled = $true;
+        Description = $null;
+    }
+
+    $local:StringBuf = (New-Object PSObject -Property @{ Str = $String; Pos = 0 })
+    $local:Rule.RuleConditionGroup = (Convert-StringToConditionGroup ([ref]$local:StringBuf) $Type)
+
+    $local:Rule
 }
-#>
