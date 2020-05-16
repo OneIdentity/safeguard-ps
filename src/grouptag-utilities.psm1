@@ -229,8 +229,7 @@ function Convert-RuleToString
     (Convert-ConditionGroupToString $Rule.RuleConditionGroup $Type)
 }
 
-# convert string to object
-function Convert-StringToPredicateObject
+function Convert-StringToCompareValue
 {
     [CmdletBinding()]
     Param(
@@ -241,7 +240,66 @@ function Convert-StringToPredicateObject
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    # TODO:
+    if (-not $String.StartsWith("'") -or -not $String.EndsWith("'"))
+    {
+        throw "Value string not properly quoted with single quote when parsing predicate: $String"
+    }
+
+    $String.Trim('''')
+}
+
+# convert string to object
+function Convert-StringToPredicateObject
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true)]
+        [string]$String1,
+        [Parameter(Mandatory=$true)]
+        [string]$String2
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Trimmed1 = $String1.Trim()
+    $local:Trimmed2 = $String2.Trim()
+    switch ($local:Trimmed1)
+    {
+        "eq" {
+            if ($local:Trimmed2 -ieq "true") { @{ CompareType = "IsTrue"; CompareValue = $null } }
+            elseif ($local:Trimmed2 -ieq "false") { @{ CompareType = "IsFalse"; CompareValue = $null } }
+            else { @{ CompareType = "EqualTo"; CompareValue = (Convert-StringToCompareValue $local:Trimmed2) } }
+            break
+        }
+        "ne" {
+            @{ CompareType = "NotEqualTo"; CompareValue = (Convert-StringToCompareValue $local:Trimmed2) }
+            break
+        }
+        "contains" {
+            @{ CompareType = "Contains"; CompareValue = (Convert-StringToCompareValue $local:Trimmed2) }
+            break
+        }
+        "notcontains" {
+            @{ CompareType = "DoesNotContain"; CompareValue = (Convert-StringToCompareValue $local:Trimmed2) }
+            break
+        }
+        "startswith" {
+            @{ CompareType = "StartsWith"; CompareValue = (Convert-StringToCompareValue $local:Trimmed2) }
+            break
+        }
+        "endswith" {
+            @{ CompareType = "EndsWith"; CompareValue = (Convert-StringToCompareValue $local:Trimmed2) }
+            break
+        }
+        "match" {
+            @{ CompareType = "RegexCompare"; CompareValue = (Convert-StringToCompareValue $local:Trimmed2) }
+            break
+        }
+        default {
+            throw "Unrecognized comparison type while parsing condition predicate: $String1 $String2"
+        }
+    }
 }
 function Convert-StringToCondition
 {
@@ -268,12 +326,12 @@ function Convert-StringToCondition
     # Opening '[' is parsed off, and no nesting is allowed
     $local:ClosingBracket = $false;
     $local:InQuote = $false # only single quotes supported
-    for ($local:Char = $StringBuf.Str[$StringBuf.Pos];
-         $StringBuf.Pos -lt $StringBuf.Str.Length ; $StringBuf.Pos++)
+    for ( ; $StringBuf.Value.Pos -lt $StringBuf.Value.Str.Length ; $StringBuf.Value.Pos++)
     {
+        $local:Char = $StringBuf.Value.Str[$StringBuf.Value.Pos]
         if ($local:Char -eq ']' -and -not $InQuote)
         {
-            $local:ClosingBracket = $true; $StringBuf.Pos++; break;
+            $local:ClosingBracket = $true; $StringBuf.Value.Pos++; break;
         }
         elseif ($local:Char -eq '''')
         {
@@ -281,10 +339,14 @@ function Convert-StringToCondition
         }
         $local:SubString += $local:Char
     }
-    if (-not $local:ClosingBracket) { throw "Mismatched bracket while reading condition substring: $($StringBuf.Str)" }
+    if (-not $local:ClosingBracket) { throw "Mismatched bracket while reading condition substring: $($StringBuf.Value.Str)" }
 
     # Start parsing children in this group
-    $local:StringParts = $local:SubString.(" `t`n", 3, 1)
+    $local:StringParts = $local:SubString.Split(" `t`n", 3, [StringSplitOptions]::RemoveEmptyEntries)
+    if ($local:StringParts.Count -ne 3)
+    {
+        throw "Conditions string did not parse into three parts [ObjectAttribute CompareType 'CompareValue']: $($local:SubString)"
+    }
     if ($Type -ieq "account")
     {
         $local:Condition.ObjectAttribute = (Resolve-ObjectAttributeForAccount $local:StringParts[0])
@@ -294,8 +356,9 @@ function Convert-StringToCondition
         $local:Condition.ObjectAttribute = (Resolve-ObjectAttributeForAsset $local:StringParts[0])
     }
 
-    # TODO:
-    #$local:Predicate = ()
+    $local:Predicate = (Convert-StringToPredicateObject $local:StringParts[1] $local:StringParts[2])
+    $local:Condition.CompareType = $local:Predicate.CompareType
+    $local:Condition.CompareValue = $local:Predicate.CompareValue
 
     $local:Condition
 }
@@ -320,15 +383,15 @@ function Convert-StringToConditionGroup
 
     # First find the end of this group--
     # Opening '(' is parsed off, which means end of this group will be unmatched ')' or end of string
-    $local:Parens = 0; $local:ClosingParen = $false;
+    $local:Parens = 0
     $local:InQuote = $false # only single quotes supported
-    for ($local:Char = $StringBuf.Str[$StringBuf.Pos];
-         $StringBuf.Pos -lt $StringBuf.Str.Length ; $StringBuf.Pos++)
+    for ( ; $StringBuf.Value.Pos -lt $StringBuf.Value.Str.Length ; $StringBuf.Value.Pos++)
     {
+        $local:Char = $StringBuf.Value.Str[$StringBuf.Value.Pos]
         if ($local:Char -eq ')')
         {
             if (-not $InQuote ) { $local:Parens-- }
-            if ($local:Parens -lt 0) { $local:ClosingParen = $true; $StringBuf.Pos++; break; }
+            if ($local:Parens -lt 0) { $StringBuf.Value.Pos++; break; }
         }
         elseif ($local:Char -eq '(')
         {
@@ -340,14 +403,14 @@ function Convert-StringToConditionGroup
         }
         $local:SubString += $local:Char
     }
-    if ($local:InQuote) { throw "Unterminated quote while reading condition group substring: $($StringBuf.Str)" }
-    if ($local:Parens -gt 0 -or ($local:Parens -eq 0 -and -not $local:ClosingParen)) { throw "Mismatched parenthesis while reading condition group substring: $($StringBuf.Str)" }
+    if ($local:InQuote) { throw "Unterminated quote while reading condition group substring: $($StringBuf.Value.Str)" }
+    if ($local:Parens -gt 0) { throw "Mismatched parenthesis while reading condition group substring: $($StringBuf.Value.Str)" }
 
     # Start parsing children in this group
     $local:SubStringBuf = (New-Object PSObject -Property @{ Str = $local:SubString; Pos = 0 })
-    for ($local:Char = $local:SubStringBuf.Str[$local:SubStringBuf.Pos];
-         $local:SubStringBuf.Pos -lt $local:SubStringBuf.Str.Length ; $local:SubStringBuf.Pos++)
+    for ( ; $local:SubStringBuf.Pos -lt $local:SubStringBuf.Str.Length ; $local:SubStringBuf.Pos++)
     {
+        $local:Char = $local:SubStringBuf.Str[$local:SubStringBuf.Pos]
         # Ignore superfluous whitespace
         if ($local:Char -in ' ','`t','`n') { continue }
         # Parse condition
@@ -421,7 +484,11 @@ function Convert-StringToRule
         Description = $null;
     }
 
-    $local:StringBuf = (New-Object PSObject -Property @{ Str = $String; Pos = 0 })
+    # remove whitespace and first outer paren if superfluous parens included
+    $local:Trimmed = $String.Trim()
+    if ($local:Trimmed.StartsWith("(") -and $local:Trimmed.EndsWith(")")) { $local:Trimmed = $local:Trimmed.TrimStart('(') }
+
+    $local:StringBuf = (New-Object PSObject -Property @{ Str = $local:Trimmed; Pos = 0 })
     $local:Rule.RuleConditionGroup = (Convert-StringToConditionGroup ([ref]$local:StringBuf) $Type)
 
     $local:Rule

@@ -1647,6 +1647,7 @@ function New-SafeguardDynamicAccountGroup
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    Import-Module -Name "$PSScriptRoot\grouptag-utilities.psm1" -Scope Local
     $local:Body = @{
         Name = $Name;
         Description = $Description;
