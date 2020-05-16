@@ -226,7 +226,7 @@ function Convert-RuleToString
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    (Convert-ConditionGroupToString $Rule.RuleConditionGroup $Type)
+    ("(" + (Convert-ConditionGroupToString $Rule.RuleConditionGroup $Type) + ")")
 }
 
 function Convert-StringToCompareValue
@@ -316,11 +316,11 @@ function Convert-StringToCondition
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:Condition = @{
+    $local:Condition = (New-Object PSObject -Property @{
         ObjectAttribute = "Unknown";
         CompareType = "Unknown";
         CompareValue = "Unknown";
-    }
+    })
 
     # First find the end of this condition--
     # Opening '[' is parsed off, and no nesting is allowed
@@ -376,22 +376,28 @@ function Convert-StringToConditionGroup
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:ConditionGroup = @{
+    $local:ConditionGroup = (New-Object PSObject -Property @{
         LogicalJoinType = "And"
         Children = @()
-    }
+    })
 
-    # First find the end of this group--
-    # Opening '(' is parsed off, which means end of this group will be unmatched ')' or end of string
+    # First, check that the condition group starts with opening parenthesis
+    if ($StringBuf.Value.Str[$StringBuf.Value.Pos] -ne '(')
+    {
+        throw "Every condition group must be surrounded by parentheses: $($local:StringBuf.Value.Str)"
+    }
+    # Read the entire condition group into a substring
     $local:Parens = 0
     $local:InQuote = $false # only single quotes supported
     for ( ; $StringBuf.Value.Pos -lt $StringBuf.Value.Str.Length ; $StringBuf.Value.Pos++)
     {
         $local:Char = $StringBuf.Value.Str[$StringBuf.Value.Pos]
+        $local:SubString += $local:Char
         if ($local:Char -eq ')')
         {
             if (-not $InQuote ) { $local:Parens-- }
-            if ($local:Parens -lt 0) { $StringBuf.Value.Pos++; break; }
+            if ($local:Parens -eq 0) { $StringBuf.Value.Pos++; break; }
+            elseif ($local:Parens -lt 0) { throw "Mismatched closing parenthesis while reading condition group substring: $($StringBuf.Value.Str)" }
         }
         elseif ($local:Char -eq '(')
         {
@@ -401,10 +407,13 @@ function Convert-StringToConditionGroup
         {
             $local:InQuote = (-not $local:InQuote)
         }
-        $local:SubString += $local:Char
     }
     if ($local:InQuote) { throw "Unterminated quote while reading condition group substring: $($StringBuf.Value.Str)" }
-    if ($local:Parens -gt 0) { throw "Mismatched parenthesis while reading condition group substring: $($StringBuf.Value.Str)" }
+    if ($local:Parens -gt 0) { throw "Mismatched opening parenthesis while reading condition group substring: $($StringBuf.Value.Str)" }
+
+    # Trim off parenthesis (cannot use TrimStart() and TrimEnd() as they remove all occurrences)
+    $local:SubString = $local:SubString.Substring(1) # remove first char
+    $local:SubString = $local:SubString.Substring(0, ($local:SubString.Length - 1)) # remove last char
 
     # Start parsing children in this group
     $local:SubStringBuf = (New-Object PSObject -Property @{ Str = $local:SubString; Pos = 0 })
@@ -417,19 +426,18 @@ function Convert-StringToConditionGroup
         if ($local:Char -eq '[')
         {
             $local:SubStringBuf.Pos++
-            $local:ConditionGroup.Children += @{
+            $local:ConditionGroup.Children += (New-Object PSObject -Property @{
                 TaggingGroupingCondition = (Convert-StringToCondition ([ref]$local:SubStringBuf) $Type);
                 TaggingGroupingConditionGroup = $null;
-            }
+            })
         }
         # Parse condition group
         elseif ($local:Char -eq '(')
         {
-            $local:SubStringBuf.Pos++
-            $local:ConditionGroup.Children += @{
+            $local:ConditionGroup.Children += (New-Object PSObject -Property @{
                 TaggingGroupingCondition = $null;
                 TaggingGroupingConditionGroup = (Convert-StringToConditionGroup ([ref]$local:SubStringBuf) $Type)
-            }
+            })
         }
         # Parse logical join type -- this will be the same every time
         elseif ($local:Char -in 'a','A')
@@ -479,14 +487,14 @@ function Convert-StringToRule
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:Rule = @{
+    $local:Rule = (New-Object PSObject -Property @{
         Enabled = $true;
         Description = $null;
-    }
+        RuleConditionGroup = $null;
+    })
 
-    # remove whitespace and first outer paren if superfluous parens included
+    # remove whitespace and outer paren if superfluous parens included
     $local:Trimmed = $String.Trim()
-    if ($local:Trimmed.StartsWith("(") -and $local:Trimmed.EndsWith(")")) { $local:Trimmed = $local:Trimmed.TrimStart('(') }
 
     $local:StringBuf = (New-Object PSObject -Property @{ Str = $local:Trimmed; Pos = 0 })
     $local:Rule.RuleConditionGroup = (Convert-StringToConditionGroup ([ref]$local:StringBuf) $Type)

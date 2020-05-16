@@ -344,7 +344,7 @@ function Invoke-WithBody
     $local:BodyInternal = $JsonBody
     if ($Body)
     {
-        $local:BodyInternal = (ConvertTo-Json -Depth 5 -InputObject $Body)
+        $local:BodyInternal = (ConvertTo-Json -Depth 20 -InputObject $Body)
     }
     $local:Url = (New-SafeguardUrl $Appliance $Service $Version $RelativeUrl -Parameters $Parameters)
     Write-Verbose "Url=$($local:Url)"

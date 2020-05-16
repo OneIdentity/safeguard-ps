@@ -1611,19 +1611,30 @@ function Get-SafeguardDynamicAccountGroup
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Import-Module -Name "$PSScriptRoot\grouptag-utilities.psm1" -Scope Local
-    $local:Group = (Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToGet `
-        -Fields "Id,Name,Description,IsDynamic,CreatedDate,CreatedByUserId,CreatedByUserDisplayName,GroupingRule" -DynamicOnly)
-    $local:Hash = [ordered]@{
-        Id = $local:Group.Id;
-        Name = $local:Group.Name;
-        Description = $local:Group.Description;
-        IsDynamic = $local:Group.IsDynamic;
-        CreatedDate = $local:Group.CreatedDate;
-        CreatedByUserId = $local:Group.CreatedByUserId;
-        CreatedByUserDisplayName = $local:Group.CreatedByUserDisplayName;
-        GroupingRule = (Convert-RuleToString $local:Group.GroupingRule "account");
+    if ($GroupToGet)
+    {
+        $local:Groups = (Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToGet `
+            -Fields "Id,Name,Description,IsDynamic,CreatedDate,CreatedByUserId,CreatedByUserDisplayName,GroupingRule" -DynamicOnly)
     }
-    New-Object PSObject -Property $local:Hash
+    else
+    {
+        $local:Groups = (Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account `
+            -Fields "Id,Name,Description,IsDynamic,CreatedDate,CreatedByUserId,CreatedByUserDisplayName,GroupingRule" -DynamicOnly)
+    }
+    foreach ($local:Group in $local:Groups)
+    {
+        $local:Hash = [ordered]@{
+            Id = $local:Group.Id;
+            Name = $local:Group.Name;
+            Description = $local:Group.Description;
+            IsDynamic = $local:Group.IsDynamic;
+            CreatedDate = $local:Group.CreatedDate;
+            CreatedByUserId = $local:Group.CreatedByUserId;
+            CreatedByUserDisplayName = $local:Group.CreatedByUserDisplayName;
+            GroupingRule = (Convert-RuleToString $local:Group.GroupingRule "account");
+        }
+        New-Object PSObject -Property $local:Hash
+    }
 }
 
 function New-SafeguardDynamicAccountGroup
