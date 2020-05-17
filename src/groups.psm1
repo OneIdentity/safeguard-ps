@@ -1716,3 +1716,49 @@ function Get-SafeguardDynamicAssetGroup
     }
     New-Object PSObject -Property $local:Hash
 }
+
+function New-SafeguardDynamicAssetGroup
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]$Name,
+        [Parameter(Mandatory=$false)]
+        [string]$Description,
+        [Parameter(Mandatory=$false, Position=1)]
+        [string]$GroupingRule
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\grouptag-utilities.psm1" -Scope Local
+    $local:Body = @{
+        Name = $Name;
+        Description = $Description;
+        IsDynamic = $true;
+    }
+    if ($local:GroupingRule)
+    {
+        $local:Body.AssetGroupingRule = (Convert-StringToRule $GroupingRule "asset")
+    }
+
+    $local:Group = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST AssetGroups -Body $local:Body)
+    $local:Hash = [ordered]@{
+        Id = $local:Group.Id;
+        Name = $local:Group.Name;
+        Description = $local:Group.Description;
+        IsDynamic = $local:Group.IsDynamic;
+        CreatedDate = $local:Group.CreatedDate;
+        CreatedByUserId = $local:Group.CreatedByUserId;
+        CreatedByUserDisplayName = $local:Group.CreatedByUserDisplayName;
+        AssetGroupingRule = (Convert-RuleToString $local:Group.AssetGroupingRule "asset");
+    }
+    New-Object PSObject -Property $local:Hash
+}

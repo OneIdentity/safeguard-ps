@@ -1,5 +1,15 @@
-# helpers for parsing/generating rules and conditions
+# tagging and grouping rule serialization/deserialization
+#
+# I didn't generate proper grammar or use parsing library here.  I also didn't use a lexer to tokenize symbols, etc.
+# This is all based on a very crude recursive parser that reads out condition groups and conditions.
+#
+# I added mandatory brackets and parentheses to the string representation to make parsing easier LL(1). Open parenthesis
+# always means you are parsing a condition group that ends with close parenthesis.  Open bracket means you are parsing a
+# condition that ends with a closing bracket.  A rule begins with one condition group that may have multiple conditions
+# or other conditions groups embedded within it that are separated by logical joins (and/or).  A condition group may
+# employ either 'and' or 'or' but not both, and condition groups can nest other condition groups.
 
+# helpers for parsing/generating rules and conditions
 function Resolve-ObjectAttributeForAccount
 {
     [CmdletBinding()]
