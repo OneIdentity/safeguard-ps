@@ -1683,6 +1683,53 @@ function New-SafeguardDynamicAccountGroup
     New-Object PSObject -Property $local:Hash
 }
 
+function Edit-SafeguardDynamicAccountGroup
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$GroupToGet,
+        [Parameter(Mandatory=$false)]
+        [string]$Description,
+        [Parameter(Mandatory=$false, Position=1)]
+        [string]$GroupingRule
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Group = (Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToGet)
+    if (-not $local:Group.IsDynamic)
+    {
+        throw "$($local:Group.Name) is not a dynamic account group"
+    }
+
+    Import-Module -Name "$PSScriptRoot\grouptag-utilities.psm1" -Scope Local
+    if ($Description) { $local:Group.Description = $Description }
+    if ($GroupingRule)
+    {
+        $local:Group.GroupingRule = (Convert-StringToRule $GroupingRule "account")
+    }
+    $local:Group = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT `
+                        "AccountGroups/$($local:Group.Id)" -Body $local:Group)
+    $local:Hash = [ordered]@{
+        Id = $local:Group.Id;
+        Name = $local:Group.Name;
+        Description = $local:Group.Description;
+        IsDynamic = $local:Group.IsDynamic;
+        CreatedDate = $local:Group.CreatedDate;
+        CreatedByUserId = $local:Group.CreatedByUserId;
+        CreatedByUserDisplayName = $local:Group.CreatedByUserDisplayName;
+        GroupingRule = (Convert-RuleToString $local:Group.AssetGroupingRule "account");
+    }
+    New-Object PSObject -Property $local:Hash
+}
 
 function Get-SafeguardDynamicAssetGroup
 {
@@ -1750,6 +1797,54 @@ function New-SafeguardDynamicAssetGroup
     }
 
     $local:Group = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST AssetGroups -Body $local:Body)
+    $local:Hash = [ordered]@{
+        Id = $local:Group.Id;
+        Name = $local:Group.Name;
+        Description = $local:Group.Description;
+        IsDynamic = $local:Group.IsDynamic;
+        CreatedDate = $local:Group.CreatedDate;
+        CreatedByUserId = $local:Group.CreatedByUserId;
+        CreatedByUserDisplayName = $local:Group.CreatedByUserDisplayName;
+        AssetGroupingRule = (Convert-RuleToString $local:Group.AssetGroupingRule "asset");
+    }
+    New-Object PSObject -Property $local:Hash
+}
+
+function Edit-SafeguardDynamicAssetGroup
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$GroupToGet,
+        [Parameter(Mandatory=$false)]
+        [string]$Description,
+        [Parameter(Mandatory=$false, Position=1)]
+        [string]$GroupingRule
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Group = (Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $GroupToGet)
+    if (-not $local:Group.IsDynamic)
+    {
+        throw "$($local:Group.Name) is not a dynamic asset group"
+    }
+
+    Import-Module -Name "$PSScriptRoot\grouptag-utilities.psm1" -Scope Local
+    if ($Description) { $local:Group.Description = $Description }
+    if ($GroupingRule)
+    {
+        $local:Group.AssetGroupingRule = (Convert-StringToRule $GroupingRule "asset")
+    }
+    $local:Group = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT `
+                        "AssetGroups/$($local:Group.Id)" -Body $local:Group)
     $local:Hash = [ordered]@{
         Id = $local:Group.Id;
         Name = $local:Group.Name;

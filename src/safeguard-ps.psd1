@@ -213,8 +213,8 @@ FunctionsToExport = @(
     'Get-SafeguardAccountGroup','New-SafeguardAccountGroup','Remove-SafeguardAccountGroup','Edit-SafeguardAccountGroup',
     'Get-SafeguardAccountGroupMember','Add-SafeguardAccountGroupMember','Remove-SafeguardAccountGroupMember',
     # groups.psm1 (dynamic)
-    'Get-SafeguardDynamicAccountGroup','New-SafeguardDynamicAccountGroup',
-    'Get-SafeguardDynamicAssetGroup','New-SafeguardDynamicAssetGroup',
+    'Get-SafeguardDynamicAccountGroup','New-SafeguardDynamicAccountGroup','Edit-SafeguardDynamicAccountGroup',
+    'Get-SafeguardDynamicAssetGroup','New-SafeguardDynamicAsseexittGroup','Edit-SafeguardDynamicAssetGroup',
     # policies.psm1
     'Get-SafeguardPolicyAsset','Find-SafeguardPolicyAsset','Get-SafeguardPolicyAccount','Find-SafeguardPolicyAccount',
     'Get-SafeguardAccessPolicy','Get-SafeguardAccessPolicyScopeItem','Get-SafeguardAccessPolicyAccessRequestProperty',
