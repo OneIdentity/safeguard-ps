@@ -875,7 +875,7 @@ function Get-SafeguardAssetGroupMember
 
 <#
 .SYNOPSIS
-Create an asset group that can added to entitlement membership via the Web API.
+Create an asset group that can be added to access policy scope via the Web API.
 
 .DESCRIPTION
 Asset groups are collections of assets that can be added to an access policy to target
@@ -1292,7 +1292,7 @@ function Get-SafeguardAccountGroupMember
 
 <#
 .SYNOPSIS
-Create an account group that can added to entitlement membership via the Web API.
+Create an account group that can be added to access policy scope via the Web API.
 
 .DESCRIPTION
 Account groups are collections of accounts that can be added to an access policy to target
@@ -1685,6 +1685,56 @@ function Get-SafeguardDynamicAccountGroup
     }
 }
 
+<#
+.SYNOPSIS
+Create a dynamic account group that can be added to access policy scope via the Web API.
+
+.DESCRIPTION
+Account groups are collections of accounts that can be added to an access policy to target
+privileged password access, ssh key access, or privileged session access. This cmdlet creates
+a dynamic account groups.
+
+Dynamic account groups are defined by rules. A rule is a group of conditions. A condition
+group logically joins together the items in the condition groups. The items in the condition
+group may be nested condition groups or conditions. Conditions are made up of an objet attribute
+a comparison type and a comparison value. The string syntax for condition groups are best shown
+by example:
+
+(([AssetName startswith 'slc'] or [AssetName starts with 'phx']) and [Name eq 'root'])
+
+Condition groups must be surrounded by parentheses '()'. Conditions must be surrounded square
+brackets '[]'.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Name
+A string containing the name for the new group.
+
+.PARAMETER Description
+A string containing the description for a new group specific to Safeguard.
+
+.PARAMETER GroupingRule
+A string containing the rule with the conditions for matching accounts.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+New-SafeguardDynamicAccountGroup "Linux Servers" "([Platform startswith 'Linux'])"
+
+.EXAMPLE
+New-SafeguardDynamicAccountGroup "B_OracleServerRoots" -Description "Root accounts for all oracle servers in site B." "([Platform startswith 'Oracle'] and [Tag eq 'Site B'])"
+#>
 function New-SafeguardDynamicAccountGroup
 {
     [CmdletBinding()]
@@ -1860,6 +1910,56 @@ function Get-SafeguardDynamicAssetGroup
     New-Object PSObject -Property $local:Hash
 }
 
+<#
+.SYNOPSIS
+Create a dynamic account group that can be added to access policy scope via the Web API.
+
+.DESCRIPTION
+Asset groups are collections of assets that can be added to an access policy to target
+privileged session access that uses directory accounts or linked accounts.  This cmdlet creates
+a dynamic asset group.
+
+Dynamic asset groups are defined by rules. A rule is a group of conditions. A condition
+group logically joins together the items in the condition groups. The items in the condition
+group may be nested condition groups or conditions. Conditions are made up of an objet attribute
+a comparison type and a comparison value. The string syntax for condition groups are best shown
+by example:
+
+(([AssetName startswith 'slc'] or [AssetName starts with 'phx']) and [Platform startswith 'Ubuntu'])
+
+Condition groups must be surrounded by parentheses '()'. Conditions must be surrounded square
+brackets '[]'.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Name
+A string containing the name for the new group.
+
+.PARAMETER Description
+A string containing the description for a new group specific to Safeguard.
+
+.PARAMETER GroupingRule
+A string containing the rule with the conditions for matching assets.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+New-SafeguardDynamicAssetGroup "Oracle Databases" "([Platform startswith 'Oracle'])"
+
+.EXAMPLE
+New-SafeguardDynamicAssetGroup "LinuxMachines" -Description "Some machines in my lab running Ubuntu" "([Tag eq 'Linux'])"
+#>
 function New-SafeguardDynamicAssetGroup
 {
     [CmdletBinding()]
@@ -1905,6 +2005,7 @@ function New-SafeguardDynamicAssetGroup
     }
     New-Object PSObject -Property $local:Hash
 }
+
 
 function Edit-SafeguardDynamicAssetGroup
 {
