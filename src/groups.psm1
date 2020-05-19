@@ -1172,8 +1172,8 @@ via the Web API.
 
 .DESCRIPTION
 Account groups are collections of accounts that can be added to an access policy to target
-privileged password access or privileged session access.  This cmdlet returns account groups
-that have been defined by policy administrators.
+privileged password access, ssh key access, or privileged session access.  This cmdlet
+returns account groups that have been defined by policy administrators.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -1231,8 +1231,8 @@ to access policy scopes via the Web API.
 
 .DESCRIPTION
 Account groups are collections of accounts that can be added to an access policy to target
-privileged password access or privileged session access.  This cmdlet returns account group
-members that have been defined by policy administrators.
+privileged password access, ssh key access, or privileged session access.  This cmdlet
+returns account group members that have been defined by policy administrators.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -1296,7 +1296,8 @@ Create an account group that can added to entitlement membership via the Web API
 
 .DESCRIPTION
 Account groups are collections of accounts that can be added to an access policy to target
-privileged password access or privileged session access.  This cmdlet creates an account group.
+privileged password access, ssh key access, or privileged session access.  This cmdlet
+creates an account group.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -1592,7 +1593,54 @@ function Remove-SafeguardAccountGroupMember
 # Dynamic Group cmdlets
 
 
+<#
+.SYNOPSIS
+Get dynamic account groups as defined by policy administrators that can added to
+access policy scopes via the Web API.
 
+.DESCRIPTION
+Account groups are collections of accounts that can be added to an access policy to target
+privileged password access, ssh key access, or privileged session access. This cmdlet returns
+dynamic account groups that have been defined by policy administrators.
+
+This cmdlet does not report group members. Use Get-SafeguardAccountGroupMember for that. This
+cmdlet is for showing how dynamic account groups are defined.
+
+Dynamic account groups are defined by rules. A rule is a group of conditions. A condition
+group logically joins together the items in the condition groups. The items in the condition
+group may be nested condition groups or conditions. Conditions are made up of an objet attribute
+a comparison type and a comparison value. The string syntax for condition groups are best shown
+by example:
+
+(([AssetName startswith 'slc'] or [AssetName starts with 'phx']) and [Name eq 'root'])
+
+Condition groups must be surrounded by parentheses '()'. Conditions must be surrounded square
+brackets '[]'.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER GroupToGet
+An integer containing the ID of the account group to get or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardDynamicAccountGroup
+
+.EXAMPLE
+Get-SafeguardDynamicAccountGroup "Linux Root Accounts"
+#>
 function Get-SafeguardDynamicAccountGroup
 {
     [CmdletBinding()]
@@ -1731,6 +1779,54 @@ function Edit-SafeguardDynamicAccountGroup
     New-Object PSObject -Property $local:Hash
 }
 
+<#
+.SYNOPSIS
+Get asset groups as defined by policy administrators that can added to access policy scopes
+via the Web API.
+
+.DESCRIPTION
+Asset groups are collections of assets that can be added to an access policy to target
+privileged session access that uses directory accounts or linked accounts.  This cmdlet returns
+asset groups that have been defined by policy administrators.
+
+This cmdlet does not report group members. Use Get-SafeguardAssetGroupMember for that. This
+cmdlet is for showing how dynamic account groups are defined.
+
+Dynamic asset groups are defined by rules. A rule is a group of conditions. A condition
+group logically joins together the items in the condition groups. The items in the condition
+group may be nested condition groups or conditions. Conditions are made up of an objet attribute
+a comparison type and a comparison value. The string syntax for condition groups are best shown
+by example:
+
+(([AssetName startswith 'slc'] or [AssetName starts with 'phx']) and [Platform startswith 'Ubuntu'])
+
+Condition groups must be surrounded by parentheses '()'. Conditions must be surrounded square
+brackets '[]'.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER GroupToGet
+An integer containing the ID of the asset group to get or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardDynamicAssetGroup
+
+.EXAMPLE
+Get-SafeguardDynamicAssetGroup "Linux Servers"
+#>
 function Get-SafeguardDynamicAssetGroup
 {
     [CmdletBinding()]
