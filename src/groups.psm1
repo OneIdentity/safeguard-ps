@@ -69,7 +69,9 @@ function Get-SafeguardGroup
         [Parameter(Mandatory=$false,Position=1)]
         [object]$GroupToGet,
         [Parameter(Mandatory=$false)]
-        [string[]]$Fields
+        [string[]]$Fields,
+        [Parameter(Mandatory=$false)]
+        [switch]$DynamicOnly
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -88,6 +90,12 @@ function Get-SafeguardGroup
     if ($Fields)
     {
         $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
+    if ($DynamicOnly)
+    {
+        if (-not $local:Parameters) { $local:Parameters = @{} }
+        $local:Parameters.filter = "IsDynamic eq true"
     }
 
     if ($PSBoundParameters.ContainsKey("GroupToGet") -and $GroupToGet)
@@ -867,7 +875,7 @@ function Get-SafeguardAssetGroupMember
 
 <#
 .SYNOPSIS
-Create an asset group that can added to entitlement membership via the Web API.
+Create an asset group that can be added to access policy scope via the Web API.
 
 .DESCRIPTION
 Asset groups are collections of assets that can be added to an access policy to target
@@ -1164,8 +1172,8 @@ via the Web API.
 
 .DESCRIPTION
 Account groups are collections of accounts that can be added to an access policy to target
-privileged password access or privileged session access.  This cmdlet returns account groups
-that have been defined by policy administrators.
+privileged password access, ssh key access, or privileged session access.  This cmdlet
+returns account groups that have been defined by policy administrators.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -1223,8 +1231,8 @@ to access policy scopes via the Web API.
 
 .DESCRIPTION
 Account groups are collections of accounts that can be added to an access policy to target
-privileged password access or privileged session access.  This cmdlet returns account group
-members that have been defined by policy administrators.
+privileged password access, ssh key access, or privileged session access.  This cmdlet
+returns account group members that have been defined by policy administrators.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -1284,11 +1292,12 @@ function Get-SafeguardAccountGroupMember
 
 <#
 .SYNOPSIS
-Create an account group that can added to entitlement membership via the Web API.
+Create an account group that can be added to access policy scope via the Web API.
 
 .DESCRIPTION
 Account groups are collections of accounts that can be added to an access policy to target
-privileged password access or privileged session access.  This cmdlet creates an account group.
+privileged password access, ssh key access, or privileged session access.  This cmdlet
+creates an account group.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -1578,4 +1587,563 @@ function Remove-SafeguardAccountGroupMember
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Edit-SafeguardAccountGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Group Remove $AccountList
+}
+
+
+# Dynamic Group cmdlets
+
+
+<#
+.SYNOPSIS
+Get dynamic account groups as defined by policy administrators that can added to
+access policy scopes via the Web API.
+
+.DESCRIPTION
+Account groups are collections of accounts that can be added to an access policy to target
+privileged password access, ssh key access, or privileged session access. This cmdlet returns
+dynamic account groups that have been defined by policy administrators.
+
+This cmdlet does not report group members. Use Get-SafeguardAccountGroupMember for that. This
+cmdlet is for showing how dynamic account groups are defined.
+
+Dynamic account groups are defined by rules. A rule is a group of conditions. A condition
+group logically joins together the items in the condition groups. The items in the condition
+group may be nested condition groups or conditions. Conditions are made up of an objet attribute
+a comparison type and a comparison value. The string syntax for condition groups are best shown
+by example:
+
+(([AssetName startswith 'slc'] or [AssetName starts with 'phx']) and [Name eq 'root'])
+
+Condition groups must be surrounded by parentheses '()'. Conditions must be surrounded square
+brackets '[]'.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER GroupToGet
+An integer containing the ID of the account group to get or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardDynamicAccountGroup
+
+.EXAMPLE
+Get-SafeguardDynamicAccountGroup "Linux Root Accounts"
+#>
+function Get-SafeguardDynamicAccountGroup
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false, Position=0)]
+        [object]$GroupToGet
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\grouptag-utilities.psm1" -Scope Local
+    if ($GroupToGet)
+    {
+        $local:Groups = (Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToGet `
+            -Fields "Id,Name,Description,IsDynamic,CreatedDate,CreatedByUserId,CreatedByUserDisplayName,GroupingRule" -DynamicOnly)
+    }
+    else
+    {
+        $local:Groups = (Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account `
+            -Fields "Id,Name,Description,IsDynamic,CreatedDate,CreatedByUserId,CreatedByUserDisplayName,GroupingRule" -DynamicOnly)
+    }
+    foreach ($local:Group in $local:Groups)
+    {
+        $local:Hash = [ordered]@{
+            Id = $local:Group.Id;
+            Name = $local:Group.Name;
+            Description = $local:Group.Description;
+            IsDynamic = $local:Group.IsDynamic;
+            CreatedDate = $local:Group.CreatedDate;
+            CreatedByUserId = $local:Group.CreatedByUserId;
+            CreatedByUserDisplayName = $local:Group.CreatedByUserDisplayName;
+            GroupingRule = (Convert-RuleToString $local:Group.GroupingRule "account");
+        }
+        New-Object PSObject -Property $local:Hash
+    }
+}
+
+<#
+.SYNOPSIS
+Create a dynamic account group that can be added to access policy scope via the Web API.
+
+.DESCRIPTION
+Account groups are collections of accounts that can be added to an access policy to target
+privileged password access, ssh key access, or privileged session access. This cmdlet creates
+a dynamic account groups.
+
+Dynamic account groups are defined by rules. A rule is a group of conditions. A condition
+group logically joins together the items in the condition groups. The items in the condition
+group may be nested condition groups or conditions. Conditions are made up of an objet attribute
+a comparison type and a comparison value. The string syntax for condition groups are best shown
+by example:
+
+(([AssetName startswith 'slc'] or [AssetName starts with 'phx']) and [Name eq 'root'])
+
+Condition groups must be surrounded by parentheses '()'. Conditions must be surrounded square
+brackets '[]'.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Name
+A string containing the name for the new group.
+
+.PARAMETER Description
+A string containing the description for a new group specific to Safeguard.
+
+.PARAMETER GroupingRule
+A string containing the rule with the conditions for matching accounts.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+New-SafeguardDynamicAccountGroup "Linux Servers" "([Platform startswith 'Linux'])"
+
+.EXAMPLE
+New-SafeguardDynamicAccountGroup "B_OracleServerRoots" -Description "Root accounts for all oracle servers in site B." "([Platform startswith 'Oracle'] and [Tag eq 'Site B'])"
+#>
+function New-SafeguardDynamicAccountGroup
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]$Name,
+        [Parameter(Mandatory=$false)]
+        [string]$Description,
+        [Parameter(Mandatory=$false, Position=1)]
+        [string]$GroupingRule
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\grouptag-utilities.psm1" -Scope Local
+    $local:Body = @{
+        Name = $Name;
+        Description = $Description;
+        IsDynamic = $true;
+    }
+    if ($local:GroupingRule)
+    {
+        $local:Body.GroupingRule = (Convert-StringToRule $GroupingRule "account")
+    }
+
+    $local:Group = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST AccountGroups -Body $local:Body)
+    $local:Hash = [ordered]@{
+        Id = $local:Group.Id;
+        Name = $local:Group.Name;
+        Description = $local:Group.Description;
+        IsDynamic = $local:Group.IsDynamic;
+        CreatedDate = $local:Group.CreatedDate;
+        CreatedByUserId = $local:Group.CreatedByUserId;
+        CreatedByUserDisplayName = $local:Group.CreatedByUserDisplayName;
+        GroupingRule = (Convert-RuleToString $local:Group.GroupingRule "account");
+    }
+    New-Object PSObject -Property $local:Hash
+}
+
+<#
+.SYNOPSIS
+Edit an existing dynamic account group that can be added to access policy scope via the Web API.
+
+.DESCRIPTION
+Account groups are collections of accounts that can be added to an access policy to target
+privileged password access, ssh key access, or privileged session access. This cmdlet edits
+a dynamic account group, including the rule that defines it.
+
+Dynamic account groups are defined by rules. A rule is a group of conditions. A condition
+group logically joins together the items in the condition groups. The items in the condition
+group may be nested condition groups or conditions. Conditions are made up of an objet attribute
+a comparison type and a comparison value. The string syntax for condition groups are best shown
+by example:
+
+(([AssetName startswith 'slc'] or [AssetName starts with 'phx']) and [Name eq 'root'])
+
+Condition groups must be surrounded by parentheses '()'. Conditions must be surrounded square
+brackets '[]'.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Name
+A string containing the name for the new group.
+
+.PARAMETER Description
+A string containing the description for a new group specific to Safeguard.
+
+.PARAMETER GroupingRule
+A string containing the rule with the conditions for matching accounts.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Edit-SafeguardDynamicAccountGroup "B_OracleServerRoots" "([Platform startswith 'Oracle'] and [Tag eq 'Site B'])"
+#>
+function Edit-SafeguardDynamicAccountGroup
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$GroupToGet,
+        [Parameter(Mandatory=$false)]
+        [string]$Description,
+        [Parameter(Mandatory=$false, Position=1)]
+        [string]$GroupingRule
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Group = (Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToGet)
+    if (-not $local:Group.IsDynamic)
+    {
+        throw "$($local:Group.Name) is not a dynamic account group"
+    }
+
+    Import-Module -Name "$PSScriptRoot\grouptag-utilities.psm1" -Scope Local
+    if ($Description) { $local:Group.Description = $Description }
+    if ($GroupingRule)
+    {
+        $local:Group.GroupingRule = (Convert-StringToRule $GroupingRule "account")
+    }
+    $local:Group = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT `
+                        "AccountGroups/$($local:Group.Id)" -Body $local:Group)
+    $local:Hash = [ordered]@{
+        Id = $local:Group.Id;
+        Name = $local:Group.Name;
+        Description = $local:Group.Description;
+        IsDynamic = $local:Group.IsDynamic;
+        CreatedDate = $local:Group.CreatedDate;
+        CreatedByUserId = $local:Group.CreatedByUserId;
+        CreatedByUserDisplayName = $local:Group.CreatedByUserDisplayName;
+        GroupingRule = (Convert-RuleToString $local:Group.AssetGroupingRule "account");
+    }
+    New-Object PSObject -Property $local:Hash
+}
+
+<#
+.SYNOPSIS
+Get asset groups as defined by policy administrators that can added to access policy scopes
+via the Web API.
+
+.DESCRIPTION
+Asset groups are collections of assets that can be added to an access policy to target
+privileged session access that uses directory accounts or linked accounts.  This cmdlet returns
+asset groups that have been defined by policy administrators.
+
+This cmdlet does not report group members. Use Get-SafeguardAssetGroupMember for that. This
+cmdlet is for showing how dynamic account groups are defined.
+
+Dynamic asset groups are defined by rules. A rule is a group of conditions. A condition
+group logically joins together the items in the condition groups. The items in the condition
+group may be nested condition groups or conditions. Conditions are made up of an objet attribute
+a comparison type and a comparison value. The string syntax for condition groups are best shown
+by example:
+
+(([AssetName startswith 'slc'] or [AssetName starts with 'phx']) and [Platform startswith 'Ubuntu'])
+
+Condition groups must be surrounded by parentheses '()'. Conditions must be surrounded square
+brackets '[]'.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER GroupToGet
+An integer containing the ID of the asset group to get or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardDynamicAssetGroup
+
+.EXAMPLE
+Get-SafeguardDynamicAssetGroup "Linux Servers"
+#>
+function Get-SafeguardDynamicAssetGroup
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false, Position=0)]
+        [object]$GroupToGet
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\grouptag-utilities.psm1" -Scope Local
+    $local:Group = (Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $GroupToGet `
+        -Fields "Id,Name,Description,IsDynamic,CreatedDate,CreatedByUserId,CreatedByUserDisplayName,AssetGroupingRule" -DynamicOnly)
+    $local:Hash = [ordered]@{
+        Id = $local:Group.Id;
+        Name = $local:Group.Name;
+        Description = $local:Group.Description;
+        IsDynamic = $local:Group.IsDynamic;
+        CreatedDate = $local:Group.CreatedDate;
+        CreatedByUserId = $local:Group.CreatedByUserId;
+        CreatedByUserDisplayName = $local:Group.CreatedByUserDisplayName;
+        AssetGroupingRule = (Convert-RuleToString $local:Group.AssetGroupingRule "asset");
+    }
+    New-Object PSObject -Property $local:Hash
+}
+
+<#
+.SYNOPSIS
+Create a dynamic asset group that can be added to access policy scope via the Web API.
+
+.DESCRIPTION
+Asset groups are collections of assets that can be added to an access policy to target
+privileged session access that uses directory accounts or linked accounts.  This cmdlet creates
+a dynamic asset group.
+
+Dynamic asset groups are defined by rules. A rule is a group of conditions. A condition
+group logically joins together the items in the condition groups. The items in the condition
+group may be nested condition groups or conditions. Conditions are made up of an objet attribute
+a comparison type and a comparison value. The string syntax for condition groups are best shown
+by example:
+
+(([AssetName startswith 'slc'] or [AssetName starts with 'phx']) and [Platform startswith 'Ubuntu'])
+
+Condition groups must be surrounded by parentheses '()'. Conditions must be surrounded square
+brackets '[]'.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Name
+A string containing the name for the new group.
+
+.PARAMETER Description
+A string containing the description for a new group specific to Safeguard.
+
+.PARAMETER GroupingRule
+A string containing the rule with the conditions for matching assets.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+New-SafeguardDynamicAssetGroup "Oracle Databases" "([Platform startswith 'Oracle'])"
+
+.EXAMPLE
+New-SafeguardDynamicAssetGroup "LinuxMachines" -Description "Some machines in my lab running Ubuntu" "([Tag eq 'Linux'])"
+#>
+function New-SafeguardDynamicAssetGroup
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]$Name,
+        [Parameter(Mandatory=$false)]
+        [string]$Description,
+        [Parameter(Mandatory=$false, Position=1)]
+        [string]$GroupingRule
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\grouptag-utilities.psm1" -Scope Local
+    $local:Body = @{
+        Name = $Name;
+        Description = $Description;
+        IsDynamic = $true;
+    }
+    if ($local:GroupingRule)
+    {
+        $local:Body.AssetGroupingRule = (Convert-StringToRule $GroupingRule "asset")
+    }
+
+    $local:Group = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST AssetGroups -Body $local:Body)
+    $local:Hash = [ordered]@{
+        Id = $local:Group.Id;
+        Name = $local:Group.Name;
+        Description = $local:Group.Description;
+        IsDynamic = $local:Group.IsDynamic;
+        CreatedDate = $local:Group.CreatedDate;
+        CreatedByUserId = $local:Group.CreatedByUserId;
+        CreatedByUserDisplayName = $local:Group.CreatedByUserDisplayName;
+        AssetGroupingRule = (Convert-RuleToString $local:Group.AssetGroupingRule "asset");
+    }
+    New-Object PSObject -Property $local:Hash
+}
+
+<#
+.SYNOPSIS
+Edit an existing dynamic asset group that can be added to access policy scope via the Web API.
+
+.DESCRIPTION
+Asset groups are collections of assets that can be added to an access policy to target
+privileged session access that uses directory accounts or linked accounts.  This cmdlet edits
+a dynamic asset group, including the rule that defines it.
+
+Dynamic asset groups are defined by rules. A rule is a group of conditions. A condition
+group logically joins together the items in the condition groups. The items in the condition
+group may be nested condition groups or conditions. Conditions are made up of an objet attribute
+a comparison type and a comparison value. The string syntax for condition groups are best shown
+by example:
+
+(([AssetName startswith 'slc'] or [AssetName starts with 'phx']) and [Platform startswith 'Ubuntu'])
+
+Condition groups must be surrounded by parentheses '()'. Conditions must be surrounded square
+brackets '[]'.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Name
+A string containing the name for the new group.
+
+.PARAMETER Description
+A string containing the description for a new group specific to Safeguard.
+
+.PARAMETER GroupingRule
+A string containing the rule with the conditions for matching assets.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Edit-SafeguardDynamicAssetGroup "LinuxMachines" "([Tag eq 'Linux'])"
+#>
+function Edit-SafeguardDynamicAssetGroup
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$GroupToGet,
+        [Parameter(Mandatory=$false)]
+        [string]$Description,
+        [Parameter(Mandatory=$false, Position=1)]
+        [string]$GroupingRule
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Group = (Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $GroupToGet)
+    if (-not $local:Group.IsDynamic)
+    {
+        throw "$($local:Group.Name) is not a dynamic asset group"
+    }
+
+    Import-Module -Name "$PSScriptRoot\grouptag-utilities.psm1" -Scope Local
+    if ($Description) { $local:Group.Description = $Description }
+    if ($GroupingRule)
+    {
+        $local:Group.AssetGroupingRule = (Convert-StringToRule $GroupingRule "asset")
+    }
+    $local:Group = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT `
+                        "AssetGroups/$($local:Group.Id)" -Body $local:Group)
+    $local:Hash = [ordered]@{
+        Id = $local:Group.Id;
+        Name = $local:Group.Name;
+        Description = $local:Group.Description;
+        IsDynamic = $local:Group.IsDynamic;
+        CreatedDate = $local:Group.CreatedDate;
+        CreatedByUserId = $local:Group.CreatedByUserId;
+        CreatedByUserDisplayName = $local:Group.CreatedByUserDisplayName;
+        AssetGroupingRule = (Convert-RuleToString $local:Group.AssetGroupingRule "asset");
+    }
+    New-Object PSObject -Property $local:Hash
 }
