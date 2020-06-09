@@ -712,8 +712,17 @@ function Connect-Safeguard
                         break
                     }
                     "Certificate" {
-                        $IdentityProvider = "certificate"
-                        $local:Scope = "rsts:sts:primaryproviderid:certificate"
+                        # If the user manually entered an Identity Provider ID, use it.
+                        # Otherwise, we'll default to the built-in Certificate provider.
+                        if ($IdentityProvider)
+                        {
+                            $local:Scope = "rsts:sts:primaryproviderid:$($IdentityProvider)"
+                        }
+                        else
+                        {
+                            $IdentityProvider = "certificate"
+                            $local:Scope = "rsts:sts:primaryproviderid:certificate"
+                        }
                     }
                 }
             }
