@@ -308,13 +308,25 @@ PrivateData = @{
         IconUri = 'https://raw.githubusercontent.com/OneIdentity/safeguard-ps/master/SafeguardLogo.ico'
 
         # Pre-release tag
-        Prerelease = '-pre'
+        #Prerelease = '-pre'
 
         # ReleaseNotes of this module
         ReleaseNotes = @"
 safeguard-ps 6.6 Release Notes:
 
-- bug fixes
+- Added Test-SafeguardAuditLogArchive to verify audit log export signature
+- Added access request support for SSH keys:
+    - Get-SafeguardAccessRequestSshHostKey
+    - Get-SafeguardAccessRequestSshKey
+- Added support for creating Dynamic Account Groups and Dynamic Asset Groups
+    - Get-SafeguardDynamicAccountGroup
+    - New-SafeguardDynamicAccountGroup
+    - Edit-SafeguardDynamicAccountGroup
+    - Get-SafeguardDynamicAssetGroup
+    - New-SafeguardDynamicAssetGroup
+    - Edit-SafeguardDynamicAssetGroup
+- Added support for Active Directory certificate authentication (smart card)
+- Fixed bugs
 "@
 
     } # End of PSData hashtable
