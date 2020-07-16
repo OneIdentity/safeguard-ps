@@ -659,3 +659,8 @@ update this list.
 - Get-SafeguardReportUserGroupMembership
 - Get-SafeguardReportAssetManagementConfiguration
 - Get-SafeguardReportA2aEntitlement
+
+### Appliance Settings
+
+- Get-SafeguardApplianceSetting
+- Set-SafeguardApplianceSetting
