@@ -664,3 +664,5 @@ update this list.
 
 - Get-SafeguardApplianceSetting
 - Set-SafeguardApplianceSetting
+- Get-SafeguardCoreSetting
+- Set-SafeguardCoreSetting

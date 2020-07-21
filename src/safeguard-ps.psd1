@@ -265,7 +265,7 @@ FunctionsToExport = @(
     'Get-SafeguardReportUserEntitlement','Get-SafeguardReportUserGroupMembership','Get-SafeguardReportAssetManagementConfiguration',
     'Get-SafeguardReportA2aEntitlement',
 	# setting.psm1
-	'Get-SafeguardApplianceSetting','Set-SafeguardApplianceSetting'
+	'Get-SafeguardApplianceSetting','Set-SafeguardApplianceSetting','Get-SafeguardCoreSetting','Set-SafeguardCoreSetting'
     )
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
