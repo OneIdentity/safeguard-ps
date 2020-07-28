@@ -356,7 +356,7 @@ JSON response from Safeguard Web API.
 Get-SafeguardDeletedAssetAccount -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
-Get-SafeguardDeletedAssetAccount -Fields Id,Name,NetworkAddress
+Get-SafeguardDeletedAssetAccount -Fields Id,Name,AssetNetworkAddress
 #>
 function Get-SafeguardDeletedAssetAccount
 {
@@ -609,7 +609,7 @@ JSON response from Safeguard Web API.
 Get-SafeguardDeletedUser -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
-Get-SafeguardDeletedUser -Fields Id,Name,NetworkAddress
+Get-SafeguardDeletedUser -Fields Id,Name,DisplayName
 #>
 function Get-SafeguardDeletedUser
 {

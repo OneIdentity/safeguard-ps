@@ -666,3 +666,18 @@ update this list.
 - Set-SafeguardApplianceSetting
 - Get-SafeguardCoreSetting
 - Set-SafeguardCoreSetting
+
+### Deleted Objects
+
+- Get-SafeguardDeletedAsset
+- Remove-SafeguardDeletedAsset
+- Restore-SafeguardDeletedAsset
+- Get-SafeguardDeletedAssetAccount
+- Remove-SafeguardDeletedAssetAccount
+- Restore-SafeguardDeletedAssetAccount
+- Get-SafeguardDeletedUser
+- Remove-SafeguardDeletedUser
+- Restore-SafeguardDeletedUser
+- Get-SafeguardPurgeSettings
+- Update-SafeguardPurgeSettings
+- Reset-SafeguardPurgeSettings
