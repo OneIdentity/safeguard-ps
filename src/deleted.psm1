@@ -759,3 +759,217 @@ function Restore-SafeguardDeletedUser
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure  Core POST `
         "Deleted/Users/$($local:User.Id)/Restore" -Body $local:User
 }
+
+########################################################################################
+# PURGE SETTINGS
+########################################################################################
+
+<#
+.SYNOPSIS
+Get the current automatic purge settings.
+
+.DESCRIPTION
+Returns the current automatic purge settings. Automatic purge settings control whether
+Safeguard will automatically purge deleted objects after a specified retention period.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardPurgeSettings -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardPurgeSettings 
+#>
+function Get-SafeguardPurgeSettings
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure  Core GET `
+        "Deleted/PurgeSettings"
+}
+
+
+<#
+.SYNOPSIS
+Update the current automatic purge settings.
+
+.DESCRIPTION
+Update the current automatic purge settings as specified. 
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Settings
+An object representing the new settings to apply. Use the
+Get-SafeguardPurgeSettings command to obtain the settings and
+adjust the properties as desired.
+
+.PARAMETER AutoPurgeAssets
+Indicates whether to automatically purge deleted asset objects 
+after the corresponding retention period expires.
+
+.PARAMETER AutoPurgeAssetAccounts
+Indicates whether to automatically purge deleted asset account objects 
+after the corresponding retention period expires.
+
+.PARAMETER AutoPurgeUsers
+Indicates whether to automatically purge deleted users objects 
+after the corresponding retention period expires.
+
+.PARAMETER DeletedAssetRetentionInDays
+The number of days to retain deleted asset objects before
+automatically purging them. Has no effect if AutoPurgeAssets is false.
+
+.PARAMETER DeletedAssetAccountRetentionInDays
+The number of days to retain deleted asset account objects before
+automatically purging them. Has no effect if AutoPurgeAssetAccounts is false.
+
+.PARAMETER DeletedUserRetentionInDays
+The number of days to retain deleted user objects before
+automatically purging them. Has no effect if AutoPurgeUsers is false.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Update-SafeguardPurgeSettings -AccessToken $token -Appliance 10.5.32.54 -Insecure -Settings $settings
+
+.EXAMPLE
+Update-SafeguardPurgeSettings -Settings $settings
+#>
+function Update-SafeguardPurgeSettings
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [bool]$AutoPurgeAssets,
+        [Parameter(Mandatory=$false)]
+        [bool]$AutoPurgeAssetAccounts,
+        [Parameter(Mandatory=$false)]
+        [bool]$AutoPurgeUsers,
+        [Parameter(Mandatory=$false)]
+        [int]$DeletedAssetRetentionInDays,
+        [Parameter(Mandatory=$false)]
+        [int]$DeletedAssetAccountRetentionInDays,
+        [Parameter(Mandatory=$false)]
+        [int]$DeletedUserRetentionInDays,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$Settings
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:PurgeSettings = $Settings
+    if(-not $local:PurgeSettings) {
+        $local:PurgeSettings = Get-SafeguardPurgeSettings
+    }
+    if($PSBoundParameters.ContainsKey("AutoPurgeAssets")) {
+        $local:PurgeSettings.AutoPurgeAssets = $AutoPurgeAssets
+    }
+    if($PSBoundParameters.ContainsKey("AutoPurgeAssetAccounts")) {
+        $local:PurgeSettings.AutoPurgeAssetAccounts = $AutoPurgeAssetAccounts
+    }
+    if($PSBoundParameters.ContainsKey("AutoPurgeUsers")) {
+        $local:PurgeSettings.AutoPurgeUsers = $AutoPurgeUsers
+    }
+    if($PSBoundParameters.ContainsKey("DeletedAssetRetentionInDays")) {
+        $local:PurgeSettings.DeletedAssetRetentionInDays = $DeletedAssetRetentionInDays
+    }
+    if($PSBoundParameters.ContainsKey("DeletedAssetAccountRetentionInDays")) {
+        $local:PurgeSettings.DeletedAssetAccountRetentionInDays = $DeletedAssetAccountRetentionInDays
+    }
+    if($PSBoundParameters.ContainsKey("DeletedUserRetentionInDays")) {
+        $local:PurgeSettings.DeletedUserRetentionInDays = $DeletedUserRetentionInDays
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure  Core PUT `
+        "Deleted/PurgeSettings" -Body $local:PurgeSettings
+}
+
+<#
+.SYNOPSIS
+Reset the automatic purge settings to default values
+
+.DESCRIPTION
+Resets the automatic purge settings to their default values and returns them. By default,
+deleted objects are never purged automatically.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Reset-SafeguardPurgeSettings -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Reset-SafeguardPurgeSettings
+#>
+function Reset-SafeguardPurgeSettings
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure  Core PUT `
+        "Deleted/PurgeSettings" -Body ""
+}
