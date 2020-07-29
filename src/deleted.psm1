@@ -20,15 +20,16 @@ function Resolve-SafeguardDeletedAssetId
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($Asset.Id -as [int])
+    if ($Asset.Id -is [int])
     {
         $Asset = $Asset.Id
     }
 
     $local:RelPath = "Deleted/Assets"
     $local:ErrMsgSuffix = " in deleted assets"
+    $local:Assets = $null
 
-    if (-not ($Asset -as [int]))
+    if (-not ($Asset -is [int]))
     {
         try
         {
@@ -278,15 +279,16 @@ function Resolve-SafeguardDeletedAssetAccountId
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($AssetAccount.Id -as [int])
+    if ($AssetAccount.Id -is [int])
     {
         $AssetAccount = $AssetAccount.Id
     }
 
     $local:RelPath = "Deleted/AssetAccounts"
     $local:ErrMsgSuffix = " in deleted asset accounts"
+    $local:AssetAccounts = $null
 
-    if (-not ($AssetAccount -as [int]))
+    if (-not ($AssetAccount -is [int]))
     {
         try
         {
@@ -531,15 +533,16 @@ function Resolve-SafeguardDeletedUserId
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($User.Id -as [int])
+    if ($User.Id -is [int])
     {
         $User = $User.Id
     }
 
     $local:RelPath = "Deleted/Users"
     $local:ErrMsgSuffix = " in deleted users"
+    $local:Users = $null
 
-    if (-not ($User -as [int]))
+    if (-not ($User -is [int]))
     {
         try
         {
@@ -561,14 +564,14 @@ function Resolve-SafeguardDeletedUserId
         {
             throw "Found $($local:Users.Count) users matching '$User'$($local:ErrMsgSuffix)"
         }
-        $local:User[0].Id
+        $local:Users[0].Id
     }
     else
     {
         # Make sure it actually exists
-        $local:User = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
+        $local:Users = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
             -Parameters @{ filter = "Id eq $User"; fields = "Id" })
-        if (-not $local:User)
+        if (-not $local:Users)
         {
             throw "Unable to find user matching '$User'$($local:ErrMsgSuffix)"
         }
