@@ -1,3 +1,9 @@
+function IsNumber($var)
+{
+    return $var -is [int] -or $var -is [int64]
+}
+
+
 ########################################################################################
 # ASSETS 
 ########################################################################################
@@ -20,7 +26,7 @@ function Resolve-SafeguardDeletedAssetId
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($Asset.Id -is [int])
+    if (IsNumber $Asset.Id)
     {
         $Asset = $Asset.Id
     }
@@ -29,7 +35,7 @@ function Resolve-SafeguardDeletedAssetId
     $local:ErrMsgSuffix = " in deleted assets"
     $local:Assets = $null
 
-    if (-not ($Asset -is [int]))
+    if (-not (IsNumber $Asset))
     {
         try
         {
@@ -250,7 +256,7 @@ function Restore-SafeguardDeletedAsset
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:Asset = $AssetToRestore
-    if($AssetToRestore -is [int] -or $AssetToRestore -is [string]) {
+    if((IsNumber $AssetToRestore) -or $AssetToRestore -is [string]) {
         $local:Asset = (Get-SafeguardDeletedAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToRestore)[0]
     }
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure  Core POST `
@@ -279,7 +285,7 @@ function Resolve-SafeguardDeletedAssetAccountId
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($AssetAccount.Id -is [int])
+    if (IsNumber $AssetAccount.Id)
     {
         $AssetAccount = $AssetAccount.Id
     }
@@ -288,7 +294,7 @@ function Resolve-SafeguardDeletedAssetAccountId
     $local:ErrMsgSuffix = " in deleted asset accounts"
     $local:AssetAccounts = $null
 
-    if (-not ($AssetAccount -is [int]))
+    if (-not (IsNumber $AssetAccount))
     {
         try
         {
@@ -504,7 +510,7 @@ function Restore-SafeguardDeletedAssetAccount
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:AssetAccount = $AccountToRestore
-    if($AccountToRestore -is [int] -or $AccountToRestore -is [string]) {
+    if((IsNumber $AccountToRestore) -or $AccountToRestore -is [string]) {
         $local:AssetAccount = (Get-SafeguardDeletedAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToRestore)[0]
     }
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure  Core POST `
@@ -533,7 +539,7 @@ function Resolve-SafeguardDeletedUserId
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($User.Id -is [int])
+    if (IsNumber $User.Id)
     {
         $User = $User.Id
     }
@@ -542,7 +548,7 @@ function Resolve-SafeguardDeletedUserId
     $local:ErrMsgSuffix = " in deleted users"
     $local:Users = $null
 
-    if (-not ($User -is [int]))
+    if (-not (IsNumber $User))
     {
         try
         {
@@ -756,7 +762,7 @@ function Restore-SafeguardDeletedUser
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:User = $UserToRestore
-    if($UserToRestore -is [string] -or $UserToRestore -is [int]) {
+    if($UserToRestore -is [string] -or (IsNumber $UserToRestore)) {
         $local:User = (Get-SafeguardDeletedUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToRestore)[0]
     }
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure  Core POST `
