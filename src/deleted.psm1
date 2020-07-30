@@ -20,7 +20,7 @@ function Resolve-SafeguardDeletedAssetId
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($Asset.Id -is [int])
+    if ($Asset.Id -as [int])
     {
         $Asset = $Asset.Id
     }
@@ -29,7 +29,7 @@ function Resolve-SafeguardDeletedAssetId
     $local:ErrMsgSuffix = " in deleted assets"
     $local:Assets = $null
 
-    if (-not ($Asset -is [int]))
+    if (-not ($Asset -as [int]))
     {
         try
         {
@@ -250,7 +250,7 @@ function Restore-SafeguardDeletedAsset
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:Asset = $AssetToRestore
-    if($AssetToRestore -is [int] -or $AssetToRestore -is [string]) {
+    if($AssetToRestore -as [int] -or $AssetToRestore -is [string]) {
         $local:Asset = (Get-SafeguardDeletedAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToRestore)[0]
     }
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure  Core POST `
@@ -279,7 +279,7 @@ function Resolve-SafeguardDeletedAssetAccountId
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($AssetAccount.Id -is [int])
+    if ($AssetAccount.Id -as [int])
     {
         $AssetAccount = $AssetAccount.Id
     }
@@ -288,7 +288,7 @@ function Resolve-SafeguardDeletedAssetAccountId
     $local:ErrMsgSuffix = " in deleted asset accounts"
     $local:AssetAccounts = $null
 
-    if (-not ($AssetAccount -is [int]))
+    if (-not ($AssetAccount -as [int]))
     {
         try
         {
@@ -504,7 +504,7 @@ function Restore-SafeguardDeletedAssetAccount
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:AssetAccount = $AccountToRestore
-    if($AccountToRestore -is [int] -or $AccountToRestore -is [string]) {
+    if($AccountToRestore -as [int] -or $AccountToRestore -is [string]) {
         $local:AssetAccount = (Get-SafeguardDeletedAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToRestore)[0]
     }
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure  Core POST `
@@ -533,7 +533,7 @@ function Resolve-SafeguardDeletedUserId
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($User.Id -is [int])
+    if ($User.Id -as [int])
     {
         $User = $User.Id
     }
@@ -542,7 +542,7 @@ function Resolve-SafeguardDeletedUserId
     $local:ErrMsgSuffix = " in deleted users"
     $local:Users = $null
 
-    if (-not ($User -is [int]))
+    if (-not ($User -as [int]))
     {
         try
         {
@@ -756,7 +756,7 @@ function Restore-SafeguardDeletedUser
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:User = $UserToRestore
-    if($UserToRestore -is [string] -or $UserToRestore -is [int]) {
+    if($UserToRestore -is [string] -or $UserToRestore -as [int]) {
         $local:User = (Get-SafeguardDeletedUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToRestore)[0]
     }
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure  Core POST `
