@@ -681,3 +681,17 @@ update this list.
 - Get-SafeguardPurgeSettings
 - Update-SafeguardPurgeSettings
 - Reset-SafeguardPurgeSettings
+
+### Syslog Server
+
+- Get-SafeguardSyslogServer
+- New-SafeguardSyslogServer
+- Edit-SafeguardSyslogServer
+- Remove-SafeguardSyslogServer
+
+### Debug Settings
+
+- Get-SafeguardDebugSettings
+- Set-SafeguardDebugSettings
+- Enable-SafeguardTlsLogging
+- Disable-SafeguardTlsLogging
