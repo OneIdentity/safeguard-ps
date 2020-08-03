@@ -97,8 +97,10 @@ NestedModules = @(
     'entitlements.psm1',
     'accesscert.psm1',
     'reports.psm1',
-	'settings.psm1',
-    'deleted.psm1'
+    'settings.psm1',
+    'deleted.psm1',
+    'service.psm1',
+    'syslog.psm1'
     )
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
@@ -272,6 +274,10 @@ FunctionsToExport = @(
     'Get-SafeguardDeletedAssetAccount','Remove-SafeguardDeletedAssetAccount','Restore-SafeguardDeletedAssetAccount',
     'Get-SafeguardDeletedUser','Remove-SafeguardDeletedUser','Restore-SafeguardDeletedUser',
     'Get-SafeguardPurgeSettings','Update-SafeguardPurgeSettings','Reset-SafeguardPurgeSettings'
+    # service.psm1
+    'Get-SafeguardDebugSettings', 'Set-SafeguardDebugSettings','Enable-SafeguardTlsLogging', 'Disable-SafeguardTlsLogging'
+    # syslog.psm1
+    'Get-SafeguardSyslogServer','New-SafeguardSyslogServer','Remove-SafeguardSyslogServer','Edit-SafeguardSyslogServer'
     )
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
