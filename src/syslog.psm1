@@ -365,5 +365,5 @@ function Edit-SafeguardSyslogServer
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:id = Resolve-SafeguardSyslogServerId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $SyslogServer
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance PUT "SyslogServers/$($local:id)" -Body $SyslogServer
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "SyslogServers/$($local:id)" -Body $SyslogServer
 }
