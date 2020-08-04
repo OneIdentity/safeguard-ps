@@ -23,8 +23,6 @@ function Resolve-SafeguardSyslogServerId
         $ToResolve = $ToResolve.Id
     }
 
-    
-
     if (-not ($ToResolve -as [int]))
     {
         try
@@ -104,13 +102,32 @@ function Get-SafeguardSyslogServer
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false, Position=0)]
+        [string]$ServerToGet,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "SyslogServers"
+    $local:RelPath = "SyslogServers"
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
+    }
+
+    if($PSBoundParameters.ContainsKey("ServerToGet"))
+    {
+        $local:id = Resolve-SafeguardSyslogServerId $ServerToGet -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure 
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)/$($local:id)" -Parameters $local:Parameters
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" -Parameters $local:Parameters
+    }
 }
 
 <#
