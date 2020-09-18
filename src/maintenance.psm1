@@ -1460,7 +1460,17 @@ function Install-SafeguardPatch
 
             Add-UploadFileStreamType
             $local:JsonData = ([UploadFileStream]::Upload((Resolve-Path $Patch), $Appliance, $AccessToken, $Version))
-            Write-Verbose (ConvertFrom-Json $local:JsonData)
+            try
+            {
+                Write-Verbose (ConvertFrom-Json $local:JsonData)
+            }
+            catch
+            {
+                Write-Verbose "[UploadFileStream]::Upload() didn't return valid JSON"
+                Write-Verbose "Output:"
+                Write-Verbose $local:JsonData
+            }
+
         }
         catch [System.Net.WebException]
         {
