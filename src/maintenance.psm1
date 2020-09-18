@@ -122,10 +122,9 @@ function Add-UploadFileStreamType
 
                         if (httpResponse != null)
                         {
+                            Console.WriteLine(log);
                             StreamReader sr = new StreamReader(httpResponse.GetResponseStream());
-
-                            log = sr.ReadToEnd() + "\r\n" + log;
-
+                            log = sr.ReadToEnd();
                             sr.Close();
                         }
                     }
