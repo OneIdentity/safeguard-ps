@@ -1469,7 +1469,11 @@ function Install-SafeguardPatch
                 Write-Verbose "Output:"
                 Write-Verbose $local:JsonData
             }
-
+            if ($local:JsonData.Code)
+            {
+                $local:ErrMsg = "$($local:JsonData.Code): $($local:JsonData.Message)"
+                throw $local:ErrMsg
+            }
         }
         catch [System.Net.WebException]
         {
