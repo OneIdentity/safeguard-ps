@@ -122,10 +122,9 @@ function Add-UploadFileStreamType
 
                         if (httpResponse != null)
                         {
+                            Console.WriteLine(log);
                             StreamReader sr = new StreamReader(httpResponse.GetResponseStream());
-
-                            log = sr.ReadToEnd() + "\r\n" + log;
-
+                            log = sr.ReadToEnd();
                             sr.Close();
                         }
                     }
@@ -1460,7 +1459,22 @@ function Install-SafeguardPatch
 
             Add-UploadFileStreamType
             $local:JsonData = ([UploadFileStream]::Upload((Resolve-Path $Patch), $Appliance, $AccessToken, $Version))
-            Write-Verbose (ConvertFrom-Json $local:JsonData)
+            try
+            {
+                $local:JsonData = (ConvertFrom-Json $local:JsonData)
+                Write-Verbose $local:JsonData
+            }
+            catch
+            {
+                Write-Verbose "[UploadFileStream]::Upload() didn't return valid JSON"
+                Write-Verbose "Output:"
+                Write-Verbose $local:JsonData
+            }
+            if ($local:JsonData.Code)
+            {
+                $local:ErrMsg = "$($local:JsonData.Code): $($local:JsonData.Message)"
+                throw $local:ErrMsg
+            }
         }
         catch [System.Net.WebException]
         {
