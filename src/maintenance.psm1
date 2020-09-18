@@ -1461,7 +1461,8 @@ function Install-SafeguardPatch
             $local:JsonData = ([UploadFileStream]::Upload((Resolve-Path $Patch), $Appliance, $AccessToken, $Version))
             try
             {
-                Write-Verbose (ConvertFrom-Json $local:JsonData)
+                $local:JsonData = (ConvertFrom-Json $local:JsonData)
+                Write-Verbose $local:JsonData
             }
             catch
             {
