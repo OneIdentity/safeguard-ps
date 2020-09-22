@@ -71,9 +71,21 @@ namespace Ex
         { # different properties and methods on net core
             try
             {
-                $local:ResponseBody = $ThrownException.Response.Content.ReadAsStringAsync().Result
+                $local:ReadResult = $ThrownException.Response.Content.ReadAsStringAsync()
+                $local:ReadResult.Wait()
+                if ($local:ReadResult.IsFaulted)
+                {
+                    Write-Verbose "Exception async fault reading response body: $($local:ReadResult.Exception)"
+                }
+                else
+                {
+                    $local:ResponseBody = $local:ReadResult.Result
+                }
             }
-            catch {}
+            catch
+            {
+                Write-Verbose "Exception thrown reading response body: $_"
+            }
         }
         if ($local:ResponseBody)
         {
