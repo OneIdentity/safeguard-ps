@@ -71,7 +71,7 @@ namespace Ex
         { # different properties and methods on net core
             try
             {
-                $local:ReadResult = $ThrownException.Response.Content.ReadAsStringAsync()
+                $local:ReadResult = $ThrownException.Response.Content.ReadAsStreamAsync()
                 $local:ReadResult.Wait()
                 if ($local:ReadResult.IsFaulted)
                 {
@@ -79,7 +79,12 @@ namespace Ex
                 }
                 else
                 {
-                    $local:ResponseBody = $local:ReadResult.Result
+                    $local:Stream = $local:ReadResult.Result
+                    $local:Reader = New-Object System.IO.StreamReader($local:Stream)
+                    $local:Reader.BaseStream.Position = 0
+                    $local:Reader.DiscardBufferedData()
+                    $local:ResponseBody = $local:Reader.ReadToEnd()
+                    $local:Reader.Dispose()
                 }
             }
             catch
