@@ -422,8 +422,7 @@ function New-SafeguardDirectoryIdentityProvider
                     UseSslEncryption = $true;
                     VerifySslCertificate = $true;
                     ServiceAccountDistinguishedName = $ServiceAccountDistinguishedName;
-                    ServiceAccountPassword = `
-                        [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($ServiceAccountPassword))
+                    ServiceAccountPassword = [System.Net.NetworkCredential]::new("", $ServiceAccountPassword).Password
                 }
             }
         }
@@ -454,8 +453,7 @@ function New-SafeguardDirectoryIdentityProvider
                 ConnectionProperties = @{
                     ServiceAccountDomainName = $ServiceAccountDomainName;
                     ServiceAccountName = $ServiceAccountName;
-                    ServiceAccountPassword = `
-                        [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($ServiceAccountPassword))
+                    ServiceAccountPassword = [System.Net.NetworkCredential]::new("", $ServiceAccountPassword).Password
                 }
             }
         }
@@ -1083,8 +1081,7 @@ function New-SafeguardDirectory
                     UseSslEncryption = $true;
                     VerifySslCertificate = $true;
                     ServiceAccountDistinguishedName = $ServiceAccountDistinguishedName;
-                    ServiceAccountPassword = `
-                        [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($ServiceAccountPassword))
+                    ServiceAccountPassword = [System.Net.NetworkCredential]::new("", $ServiceAccountPassword).Password
                 }
             }
             if ($PSBoundParameters.ContainsKey("NetworkAddress"))
@@ -1113,8 +1110,7 @@ function New-SafeguardDirectory
                 ConnectionProperties = @{
                     ServiceAccountDomainName = $ServiceAccountDomainName;
                     ServiceAccountName = $ServiceAccountName;
-                    ServiceAccountPassword = `
-                        [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($ServiceAccountPassword))
+                    ServiceAccountPassword = [System.Net.NetworkCredential]::new("", $ServiceAccountPassword).Password
                 }
             }
         }
@@ -1394,8 +1390,7 @@ function Edit-SafeguardDirectory
         if ($PSBoundParameters.ContainsKey("ServiceAccountName")) { $DirectoryObject.ConnectionProperties.ServiceAccountName = $ServiceAccountName }
         if ($PSBoundParameters.ContainsKey("ServiceAccountPassword"))
         {
-            $DirectoryObject.ConnectionProperties.ServiceAccountPassword = `
-                [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($ServiceAccountPassword))
+            $DirectoryObject.ConnectionProperties.ServiceAccountPassword = [System.Net.NetworkCredential]::new("", $ServiceAccountPassword).Password
         }
         if ($PSBoundParameters.ContainsKey("ServiceAccountDistinguishedName")) { $DirectoryObject.ConnectionProperties.ServiceAccountDistinguishedName = $ServiceAccountDistinguishedName }
         if ($NoSslEncryption)
@@ -2028,7 +2023,7 @@ function Set-SafeguardDirectoryAccountPassword
             $local:AccountId = (Resolve-SafeguardDirectoryAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AccountToSet)
         }
 
-        $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($NewPassword))
+        $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $NewPassword).Password
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "DirectoryAccounts/$($local:AccountId)/Password" `
             -Body $local:PasswordPlainText -Version 2
     }

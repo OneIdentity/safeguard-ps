@@ -469,7 +469,7 @@ function Install-SafeguardSessionCertificate
         Write-Host "For no password just press enter..."
         $Password = (Read-host "Password" -AsSecureString)
     }
-    $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
+    $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $Password).Password
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT $local:RelativeUrl -Body @{
             Base64CertificateData = "$($local:CertificateContents)";

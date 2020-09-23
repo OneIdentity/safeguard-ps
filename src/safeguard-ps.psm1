@@ -703,12 +703,12 @@ function Connect-Safeguard
                         {
                             $Password = (Read-Host "Password" -AsSecureString)
                         }
-                        $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
+                        $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $Password).Password
                         break
                     }
                     "PSCredential" {
                         $Username = $Credential.UserName
-                        $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Credential.Password))
+                        $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $Credential.Password).Password
                         break
                     }
                     "Certificate" {
