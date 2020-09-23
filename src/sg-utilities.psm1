@@ -232,6 +232,7 @@ function Wait-ForSafeguardStatus
     $local:StartTime = (Get-Date)
     $local:Status = "Unreachable"
     $local:TimeElapsed = 10
+    if ($Timeout -lt 10) { $Timeout = 10 }
     do {
         Write-Progress -Activity "Waiting for $DesiredStatus Status" -Status "Current: $($local:Status)" -PercentComplete (($local:TimeElapsed / $Timeout) * 100)
         try
