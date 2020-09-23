@@ -11,7 +11,7 @@
 RootModule = 'safeguard-ps.psm1'
 
 # Version number of this module.
-ModuleVersion = '6.7.99999'
+ModuleVersion = '6.8.99999'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -327,7 +327,7 @@ PrivateData = @{
 
         # ReleaseNotes of this module
         ReleaseNotes = @"
-safeguard-ps 6.7 Release Notes:
+safeguard-ps 6.8 Release Notes:
 
 - bug fixes
 "@
