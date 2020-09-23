@@ -2107,6 +2107,8 @@ function Import-SafeguardBackup
         $WebClient.Headers.Add("Accept", "application/json")
         $WebClient.Headers.Add("Content-type", "application/octet-stream")
         $WebClient.Headers.Add("Authorization", "Bearer $AccessToken")
+        $BackupFile = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($BackupFile)
+        Write-Host "Loading backup from $BackupFile"
         Write-Host "POSTing backup to Safeguard. This operation may take several minutes..."
 
         $Bytes = [System.IO.File]::ReadAllBytes($BackupFile);
