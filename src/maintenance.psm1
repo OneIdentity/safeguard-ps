@@ -1218,7 +1218,7 @@ function Get-SafeguardSupportBundle
     catch [System.Net.WebException]
     {
         Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-        Out-SafeguardExceptionIfPossible $_.Exception
+        Out-SafeguardExceptionIfPossible $_
     }
     catch
     {
@@ -1479,7 +1479,7 @@ function Install-SafeguardPatch
         catch [System.Net.WebException]
         {
             Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-            Out-SafeguardExceptionIfPossible $_.Exception
+            Out-SafeguardExceptionIfPossible $_
         }
         finally
         {
@@ -1708,7 +1708,7 @@ function Set-SafeguardPatch
     catch [System.Net.WebException]
     {
         Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-        Out-SafeguardExceptionIfPossible $_.Exception
+        Out-SafeguardExceptionIfPossible $_
     }
     finally
     {
@@ -1990,7 +1990,7 @@ function Export-SafeguardBackup
     catch [System.Net.WebException]
     {
         Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-        Out-SafeguardExceptionIfPossible $_.Exception
+        Out-SafeguardExceptionIfPossible $_
     }
     catch
     {
@@ -2118,7 +2118,7 @@ function Import-SafeguardBackup
     catch [System.Net.WebException]
     {
         Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-        Out-SafeguardExceptionIfPossible $_.Exception
+        Out-SafeguardExceptionIfPossible $_
     }
     catch
     {

@@ -429,7 +429,7 @@ function Invoke-Internal
     catch
     {
         Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-        Out-SafeguardExceptionIfPossible $_.Exception
+        Out-SafeguardExceptionIfPossible $_
     }
 }
 
@@ -748,7 +748,7 @@ function Connect-Safeguard
                 catch
                 {
                     Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-                    Out-SafeguardExceptionIfPossible $_.Exception
+                    Out-SafeguardExceptionIfPossible $_
                 }
             }
             else # Assume Client Certificate Authentication
@@ -793,7 +793,7 @@ function Connect-Safeguard
                     Write-Verbose "certificate to send in the initial client connection. This occurs even if you pass in a PFX file specifying"
                     Write-Verbose "exactly which certificate to use."
                     Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-                    Out-SafeguardExceptionIfPossible $_.Exception
+                    Out-SafeguardExceptionIfPossible $_
                 }
             }
         }

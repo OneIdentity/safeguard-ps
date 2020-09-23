@@ -89,7 +89,7 @@ function Invoke-SafeguardA2aMethodWithCertificate
         Write-Warning "store, otherwise Windows doesn't think you have a matching certificate to send in the initial client"
         Write-Warning "connection. This occurs even if you pass in a PFX file specifying exactly which certificate to use."
         Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-        Out-SafeguardExceptionIfPossible $_.Exception
+        Out-SafeguardExceptionIfPossible $_
     }
     finally
     {
