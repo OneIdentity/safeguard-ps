@@ -323,13 +323,17 @@ PrivateData = @{
         IconUri = 'https://raw.githubusercontent.com/OneIdentity/safeguard-ps/master/SafeguardLogo.ico'
 
         # Pre-release tag
-        Prerelease = '-pre'
+        #Prerelease = '-pre'
 
         # ReleaseNotes of this module
         ReleaseNotes = @"
 safeguard-ps 6.7 Release Notes:
 
-- bug fixes
+- Support for the trusted servers setting
+- New cmdlets for managing deleted objects
+- New cmdlets for syslog, debug, and tls settings
+- Fixed an issue with Connect-Safeguard on PowerShell Core 7.x
+- Other bug fixes -- see GitHub for details
 "@
 
     } # End of PSData hashtable
