@@ -1206,6 +1206,7 @@ function Get-SafeguardSupportBundle
         # Use the WebClient class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
         Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
         Add-ExWebClientExType
+        $OutFile = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutFile)
 
         $WebClient = (New-Object Ex.WebClientEx -ArgumentList @($Timeout))
         $WebClient.Headers.Add("Accept", "application/octet-stream")
