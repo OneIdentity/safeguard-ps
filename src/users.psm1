@@ -702,7 +702,7 @@ function New-SafeguardUser
         # Check the password complexity before creating the user so you don't end up with a user without a password
         try
         {
-            $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
+            $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $Password).Password
             Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Users/ValidatePassword" -Body `
                 $local:PasswordPlainText -RetryVersion 2 -RetryUrl "Users/ValidatePassword"
             $local:PasswordPlainText = ""
@@ -899,7 +899,7 @@ function Set-SafeguardUserPassword
         $Password = (Read-Host "Password" -AsSecureString)
     }
 
-    $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
+    $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $Password).Password
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$($local:UserId)/Password" `
         -Body $local:PasswordPlainText -RetryVersion 2 -RetryUrl "Users/$($local:UserId)/Password"

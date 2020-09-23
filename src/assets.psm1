@@ -733,8 +733,7 @@ function New-SafeguardAsset
                     {
                         $ServiceAccountPassword = (Read-Host -AsSecureString "ServiceAccountPassword")
                     }
-                    $local:ConnectionProperties.ServiceAccountPassword = `
-                        [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($ServiceAccountPassword))
+                    $local:ConnectionProperties.ServiceAccountPassword = [System.Net.NetworkCredential]::new("", $ServiceAccountPassword).Password
                 }
             }
             {$_ -eq "directorypassword"} {
@@ -1137,8 +1136,7 @@ function Edit-SafeguardAsset
 
         if ($PSBoundParameters.ContainsKey("ServiceAccountPassword"))
         {
-            $AssetObject.ConnectionProperties.ServiceAccountPassword = `
-                [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($ServiceAccountPassword))
+            $AssetObject.ConnectionProperties.ServiceAccountPassword = [System.Net.NetworkCredential]::new("", $ServiceAccountPassword).Password
         }
         if ($PSBoundParameters.ContainsKey("ServiceAccountSecretKey")) { AssetObject.ConnectionProperties.ServiceAccountSecretKey = $ServiceAccountSecretKey }
 
@@ -1742,7 +1740,7 @@ function Set-SafeguardAssetAccountPassword
     {
         $NewPassword = (Read-Host -AsSecureString "NewPassword")
     }
-    $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($NewPassword))
+    $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $NewPassword).Password
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AssetAccounts/$($local:AccountId)/Password" `
         -Body $local:PasswordPlainText
 }

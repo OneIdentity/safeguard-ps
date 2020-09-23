@@ -241,7 +241,7 @@ function New-SafeguardArchiveServer
         Port = $Port;
         ServiceAccountCredentialType = $ServiceAccountCredentialType;
         ServiceAccountName = "$ServiceAccountName";
-        ServiceAccountPassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($ServiceAccountPassword))
+        ServiceAccountPassword = [System.Net.NetworkCredential]::new("", $ServiceAccountPassword).Password
     }
 
     if ($PSBoundParameters.ContainsKey("ServiceAccountDomainName"))
@@ -561,8 +561,7 @@ function Edit-SafeguardArchiveServer
         if ($PSBoundParameters.ContainsKey("ServiceAccountName")) { $ArchiveServerObject.ConnectionProperties.ServiceAccountName = "$ServiceAccountName" }
         if ($PSBoundParameters.ContainsKey("ServiceAccountPassword"))
         {
-            $ArchiveServerObject.ConnectionProperties.ServiceAccountName = `
-                [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($ServiceAccountPassword))
+            $ArchiveServerObject.ConnectionProperties.ServiceAccountName = [System.Net.NetworkCredential]::new("", $ServiceAccountPassword).Password
         }
         # Body
         if ($PSBoundParameters.ContainsKey("DisplayName")) { $ArchiveServerObject.Name = "$DisplayName" }

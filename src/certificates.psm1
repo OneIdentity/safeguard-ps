@@ -322,7 +322,7 @@ function Install-SafeguardAuditLogSigningCertificate
         Write-Host "For no password just press enter..."
         $Password = (Read-host "Password" -AsSecureString)
     }
-    $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
+    $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $Password).Password
 
     Write-Host "Uploading Certificate..."
     if ($local:PasswordPlainText)
@@ -464,7 +464,7 @@ function Install-SafeguardSslCertificate
         Write-Host "For no password just press enter..."
         $Password = (Read-host "Password" -AsSecureString)
     }
-    $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
+    $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $Password).Password
 
     Write-Host "Uploading Certificate..."
     if ($local:PasswordPlainText)
@@ -1148,7 +1148,7 @@ function New-SafeguardTestCertificatePki
     Write-Host "This cmdlet can be annoying because you have to type your password a lot... this is a limitation of the underlying tools"
     Write-Host -ForegroundColor Yellow "Just type the same password at all of the prompts!!! It can be as simple as one letter."
     $local:PasswordSecure = (Read-Host "Password" -AsSecureString)
-    $local:Password = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($local:PasswordSecure))
+    $local:Password = [System.Net.NetworkCredential]::new("", $local:PasswordSecure).Password
 
     $local:Name = "RootCA"
     $local:Subject = "CN=$($local:Name),$($local:SubjectBaseDn)"

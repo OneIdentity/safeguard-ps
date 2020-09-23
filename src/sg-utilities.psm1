@@ -5,11 +5,13 @@ function Out-SafeguardExceptionIfPossible
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
-        [object]$ThrownException
+        [object]$PsExceptionObject
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:ThrownException = $PsExceptionObject.Exception
 
     if (-not ([System.Management.Automation.PSTypeName]"Ex.SafeguardMethodException").Type)
     {
@@ -44,37 +46,21 @@ namespace Ex
 }
 "@
     }
-    $local:ExceptionToThrow = $ThrownException
-    if ($ThrownException.Response)
+    $local:ExceptionToThrow = $local:ThrownException
+    if ($local:ThrownException.Response)
     {
         Write-Verbose "---Response Status---"
-        if ($ThrownException.Response | Get-Member StatusDescription -MemberType Properties)
+        if ($local:ThrownException.Response | Get-Member StatusDescription -MemberType Properties)
         {
             $local:StatusDescription = $ThrownException.Response.StatusDescription
         }
-        elseif ($ThrownException.Response | Get-Member ReasonPhrase -MemberType Properties)
+        elseif ($local:ThrownException.Response | Get-Member ReasonPhrase -MemberType Properties)
         {
             $local:StatusDescription = $ThrownException.Response.ReasonPhrase
         }
-        Write-Verbose "$([int]$ThrownException.Response.StatusCode) $($local:StatusDescription)"
+        Write-Verbose "$([int]$local:ThrownException.Response.StatusCode) $($local:StatusDescription)"
         Write-Verbose "---Response Body---"
-        if ($ThrownException.Response | Get-Member GetResponseStream -MemberType Methods)
-        {
-            $local:Stream = $ThrownException.Response.GetResponseStream()
-            $local:Reader = New-Object System.IO.StreamReader($local:Stream)
-            $local:Reader.BaseStream.Position = 0
-            $local:Reader.DiscardBufferedData()
-            $local:ResponseBody = $local:Reader.ReadToEnd()
-            $local:Reader.Dispose()
-        }
-        elseif ($ThrownException.Response | Get-Member Content -MemberType Properties)
-        { # different properties and methods on net core
-            try
-            {
-                $local:ResponseBody = $ThrownException.Response.Content.ReadAsStringAsync().Result
-            }
-            catch {}
-        }
+        $local:ResponseBody = $PsExceptionObject.ErrorDetails.Message
         if ($local:ResponseBody)
         {
             Write-Verbose $local:ResponseBody
@@ -109,7 +95,7 @@ namespace Ex
             {
                 $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
                     [int]$ThrownException.Response.StatusCode, $local:StatusDescription,
-                    0, "", $local:ResponseBody
+                    0, "<could not parse body>", $local:ResponseBody
                 ))
             }
         }
@@ -117,7 +103,7 @@ namespace Ex
         {
             $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
                 [int]$ThrownException.Response.StatusCode, $local:StatusDescription,
-                0, "", "<unable to retrieve response content>"
+                0, "<could not read body>", "<unable to retrieve response content>"
             ))
         }
     }

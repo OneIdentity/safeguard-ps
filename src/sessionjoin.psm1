@@ -83,7 +83,7 @@ function Connect-Sps
         if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
     }
 
-    $local:PasswordPlainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($SessionPassword))
+    $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $SessionPassword).Password
 
     $local:BasicAuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $SessionUsername, $local:PasswordPlainText)))
     Remove-Variable -Scope local PasswordPlainText
