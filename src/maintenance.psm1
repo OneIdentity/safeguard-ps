@@ -2222,11 +2222,10 @@ function Restore-SafeguardBackup
 
 <#
 .SYNOPSIS
-Delete a backup from a Safeguard appliance via the Web API.
+Save a Safeguard backup on an archive server via the Web API.
 
 .DESCRIPTION
-This cmdlet will delete a backup stored on a Safeguard appliance.  Only
-delete backups that you have either downloaded or archived.
+This cmdlet will archive a Safeguard backup by saving it to an archive server configured in Safeguard.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
