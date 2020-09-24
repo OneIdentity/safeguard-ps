@@ -1871,7 +1871,7 @@ function Edit-SafeguardDynamicAccountGroup
         CreatedDate = $local:Group.CreatedDate;
         CreatedByUserId = $local:Group.CreatedByUserId;
         CreatedByUserDisplayName = $local:Group.CreatedByUserDisplayName;
-        GroupingRule = (Convert-RuleToString $local:Group.AssetGroupingRule "account");
+        GroupingRule = (Convert-RuleToString $local:Group.GroupingRule "account");
     }
     New-Object PSObject -Property $local:Hash
 }
