@@ -127,9 +127,9 @@ function Add-UploadFileStreamType
                             log = sr.ReadToEnd();
                             sr.Close();
                         }
+                        throw new System.Exception(log);
                     }
-
-                    return log;
+                    throw;
                 }
                 finally
                 {
@@ -1458,6 +1458,7 @@ function Install-SafeguardPatch
                 if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
             }
 
+            # This will throw System.Exception if there is an error staging the patch
             Add-UploadFileStreamType
             $local:JsonData = ([UploadFileStream]::Upload((Resolve-Path $Patch), $Appliance, $AccessToken, $Version))
             try
@@ -1477,7 +1478,7 @@ function Install-SafeguardPatch
                 throw $local:ErrMsg
             }
         }
-        catch [System.Net.WebException]
+        catch [System.Exception]
         {
             Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
             Out-SafeguardExceptionIfPossible $_
@@ -1703,10 +1704,11 @@ function Set-SafeguardPatch
             if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
 
+        # This will throw System.Exception if there is an error staging the patch
         Add-UploadFileStreamType
         [UploadFileStream]::Upload((Resolve-Path $Patch), $Appliance, $AccessToken, $Version)
     }
-    catch [System.Net.WebException]
+    catch [System.Exception]
     {
         Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
         Out-SafeguardExceptionIfPossible $_
