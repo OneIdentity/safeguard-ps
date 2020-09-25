@@ -1408,6 +1408,14 @@ function Edit-SafeguardDirectory
         if ($PSBoundParameters.ContainsKey("NetworkAddress")) { $DirectoryObject.NetworkAddress = $NetworkAddress }
     }
 
+    # Need AssetPartitionId to PUT a directory/asset object. Object returned from Directories endpoint does not contain AssetPartitionId property.
+    # Get the directory object from Asset endpoint instead
+    if(-not $DirectoryObject.AssetPartitionId) 
+    {
+        $AssetObject = Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryObject.Id
+        $DirectoryObject | Add-Member -MemberType ScriptProperty -Name 'AssetPartitionId' -Value { $AssetObject.AssetPartitionId }
+    }
+
     try
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Directories/$($DirectoryObject.Id)" -Body $DirectoryObject -Version 2
@@ -1710,6 +1718,9 @@ function Find-SafeguardDirectoryAccount
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:LdapPlatformId = (Find-SafeguardPlatform "OpenLDAP" -Appliance $Appliance -AccessToken $AccessToken)[0].Id
+    $local:AdPlatformId = (Find-SafeguardPlatform "Active Directory" -Appliance $Appliance -AccessToken $AccessToken)[0].Id
 
     try
     {

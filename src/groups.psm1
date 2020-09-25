@@ -1810,8 +1810,8 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
-.PARAMETER Name
-A string containing the name for the new group.
+.PARAMETER GroupToEdit
+Name of the dynamic account group to edit.
 
 .PARAMETER Description
 A string containing the description for a new group specific to Safeguard.
@@ -1839,7 +1839,7 @@ function Edit-SafeguardDynamicAccountGroup
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [object]$GroupToGet,
+        [object]$GroupToEdit,
         [Parameter(Mandatory=$false)]
         [string]$Description,
         [Parameter(Mandatory=$false, Position=1)]
@@ -1849,7 +1849,7 @@ function Edit-SafeguardDynamicAccountGroup
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:Group = (Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToGet)
+    $local:Group = (Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToEdit)
     if (-not $local:Group.IsDynamic)
     {
         throw "$($local:Group.Name) is not a dynamic account group"
@@ -1871,7 +1871,7 @@ function Edit-SafeguardDynamicAccountGroup
         CreatedDate = $local:Group.CreatedDate;
         CreatedByUserId = $local:Group.CreatedByUserId;
         CreatedByUserDisplayName = $local:Group.CreatedByUserDisplayName;
-        GroupingRule = (Convert-RuleToString $local:Group.AssetGroupingRule "account");
+        GroupingRule = (Convert-RuleToString $local:Group.GroupingRule "account");
     }
     New-Object PSObject -Property $local:Hash
 }
@@ -2082,8 +2082,8 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
-.PARAMETER Name
-A string containing the name for the new group.
+.PARAMETER GroupToEdit
+Name of the dynamic asset group to edit.
 
 .PARAMETER Description
 A string containing the description for a new group specific to Safeguard.
@@ -2111,7 +2111,7 @@ function Edit-SafeguardDynamicAssetGroup
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [object]$GroupToGet,
+        [object]$GroupToEdit,
         [Parameter(Mandatory=$false)]
         [string]$Description,
         [Parameter(Mandatory=$false, Position=1)]
@@ -2121,7 +2121,7 @@ function Edit-SafeguardDynamicAssetGroup
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:Group = (Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $GroupToGet)
+    $local:Group = (Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $GroupToEdit)
     if (-not $local:Group.IsDynamic)
     {
         throw "$($local:Group.Name) is not a dynamic asset group"

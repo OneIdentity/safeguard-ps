@@ -127,9 +127,9 @@ function Add-UploadFileStreamType
                             log = sr.ReadToEnd();
                             sr.Close();
                         }
+                        throw new System.Exception(log);
                     }
-
-                    return log;
+                    throw;
                 }
                 finally
                 {
@@ -1458,6 +1458,7 @@ function Install-SafeguardPatch
                 if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
             }
 
+            # This will throw System.Exception if there is an error staging the patch
             Add-UploadFileStreamType
             $local:JsonData = ([UploadFileStream]::Upload((Resolve-Path $Patch), $Appliance, $AccessToken, $Version))
             try
@@ -1477,7 +1478,7 @@ function Install-SafeguardPatch
                 throw $local:ErrMsg
             }
         }
-        catch [System.Net.WebException]
+        catch [System.Exception]
         {
             Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
             Out-SafeguardExceptionIfPossible $_
@@ -1703,10 +1704,11 @@ function Set-SafeguardPatch
             if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
 
+        # This will throw System.Exception if there is an error staging the patch
         Add-UploadFileStreamType
         [UploadFileStream]::Upload((Resolve-Path $Patch), $Appliance, $AccessToken, $Version)
     }
-    catch [System.Net.WebException]
+    catch [System.Exception]
     {
         Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
         Out-SafeguardExceptionIfPossible $_
@@ -2222,11 +2224,10 @@ function Restore-SafeguardBackup
 
 <#
 .SYNOPSIS
-Delete a backup from a Safeguard appliance via the Web API.
+Save a Safeguard backup on an archive server via the Web API.
 
 .DESCRIPTION
-This cmdlet will delete a backup stored on a Safeguard appliance.  Only
-delete backups that you have either downloaded or archived.
+This cmdlet will archive a Safeguard backup by saving it to an archive server configured in Safeguard.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
