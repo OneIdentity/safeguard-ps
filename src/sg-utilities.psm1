@@ -95,15 +95,24 @@ namespace Ex
             {
                 $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
                     [int]$ThrownException.Response.StatusCode, $local:StatusDescription,
-                    0, "<could not parse body>", $local:ResponseBody
+                    0, "<could not parse response content>", $local:ResponseBody
                 ))
             }
         }
         else # ??
         {
+            $local:ResponseBody = "<unable to retrieve response content>"
+            if ($ThrownException.Response.ContentLength -eq 0)
+            {
+                $local:ErrorDescription = "<no content in response>"
+            }
+            else
+            {
+                $local:ErrorDescription = "<could not read response content>"
+            }
             $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
                 [int]$ThrownException.Response.StatusCode, $local:StatusDescription,
-                0, "<could not read body>", "<unable to retrieve response content>"
+                0, $local:ErrorDescription, $local:ResponseBody
             ))
         }
     }
