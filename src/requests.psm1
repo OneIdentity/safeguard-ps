@@ -1148,7 +1148,62 @@ function Get-SafeguardAccessRequestSshHostKey
     (Get-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId -AllFields).AssetSshHostKey
 }
 
+<#
+.SYNOPSIS
+Gets the SSH private key for an access request via the Web API.
 
+.DESCRIPTION
+This script allows you to get the SSH private key for an access request which can
+be useful to safely communicate with a target asset.  By default, it writes the
+private key as a file, puts an SSH command in your command history, and writes the
+passphrase to the clipboard.  That way you can use the private key by pressing
+arrow-up to get the SSH command and pasting the password to decrypt the private key.
+
+This default behavior can be modified using cmdlet parameters.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER RequestId
+A string containing the ID of the access request.
+
+.PARAMETER KeyFormat
+A string containing which format to use for the private key.  The options are:
+  - OpenSsh: OpenSSH legacy PEM format (default)
+  - Ssh2: Tectia format for use with tools from SSH.com
+  - Putty: Putty format for use with PuTTY tools
+
+.PARAMETER ShowPassphrase
+Whether or not to show the private key passphrase; by default it is copied to
+the clipboard so it can be pasted.
+
+.PARAMETER Raw
+This parameter will cause the output of the API to be returned rather than
+writing the private key to a file or adding a command to your command history.
+
+.PARAMETER
+
+.INPUTS
+None.
+
+.OUTPUTS
+None.
+
+.EXAMPLE
+Get-SafeguardAccessRequestSshKey 21-1-1-3901-1-4419154e2128482f9232e3e0a1708f41-0001
+
+.EXAMPLE
+Get-SafeguardAccessRequestSshKey 21-1-1-3901-1-4419154e2128482f9232e3e0a1708f41-0001 -Raw
+
+.EXAMPLE
+Get-SafeguardAccessRequestSshKey 21-1-1-3901-1-4419154e2128482f9232e3e0a1708f41-0001 -ShowPassphrase -KeyFormat Ssh2
+#>
 function Get-SafeguardAccessRequestSshKey
 {
     [CmdletBinding()]
