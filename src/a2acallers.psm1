@@ -84,7 +84,7 @@ function Invoke-SafeguardA2aMethodWithCertificate
     catch
     {
         Write-Warning "An exception was caught trying to call A2A using a certificate."
-        Write-Warning "If you are experiencing a certificate connection failure, your problem may be an quirk on Windows where"
+        Write-Warning "If you are experiencing a certificate connection failure, your problem may be a quirk on Windows where"
         Write-Warning "the low-level HTTPS client requires that the Issuing CA be in your 'Intermediate Certificate Authorities'"
         Write-Warning "store, otherwise Windows doesn't think you have a matching certificate to send in the initial client"
         Write-Warning "connection. This occurs even if you pass in a PFX file specifying exactly which certificate to use."
@@ -121,7 +121,7 @@ function Invoke-SafeguardA2aCredentialRetrieval
         [string]$CredentialType,
         [Parameter(Mandatory=$false)]
         [ValidateSet("OpenSsh","Ssh2","Putty",IgnoreCase=$true)]
-        [string]$KeyFormat
+        [string]$KeyFormat = $null
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -399,7 +399,7 @@ function Get-SafeguardA2aPrivateKey
         [string]$ApiKey,
         [Parameter(Mandatory=$false)]
         [ValidateSet("OpenSsh","Ssh2","Putty",IgnoreCase=$true)]
-        [string]$KeyFormat
+        [string]$KeyFormat = $null
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -412,8 +412,16 @@ function Get-SafeguardA2aPrivateKey
     }
     else
     {
-        Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
-            -CertificateFile $CertificateFile -Password $Password -CredentialType PrivateKey -KeyFormat $KeyFormat
+        if ($KeyFormat)
+        {
+            Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+                -CertificateFile $CertificateFile -Password $Password -CredentialType PrivateKey -KeyFormat $KeyFormat
+        }
+        else
+        {
+            Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+                -CertificateFile $CertificateFile -Password $Password -CredentialType PrivateKey
+        }
     }
 }
 
