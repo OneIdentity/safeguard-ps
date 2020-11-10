@@ -333,6 +333,7 @@ safeguard-ps 6.7 Release Notes:
 - New cmdlets for managing deleted objects
 - New cmdlets for syslog, debug, and tls settings
 - Fixed an issue with Connect-Safeguard on PowerShell Core 7.x
+- Fixed an issue with A2A cmdlets requesting SSH private keys
 - Other bug fixes -- see GitHub for details
 "@
 
