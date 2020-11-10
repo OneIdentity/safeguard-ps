@@ -84,7 +84,7 @@ function Invoke-SafeguardA2aMethodWithCertificate
     catch
     {
         Write-Warning "An exception was caught trying to call A2A using a certificate."
-        Write-Warning "If you are experiencing a certificate connection failure, your problem may be an quirk on Windows where"
+        Write-Warning "If you are experiencing a certificate connection failure, your problem may be a quirk on Windows where"
         Write-Warning "the low-level HTTPS client requires that the Issuing CA be in your 'Intermediate Certificate Authorities'"
         Write-Warning "store, otherwise Windows doesn't think you have a matching certificate to send in the initial client"
         Write-Warning "connection. This occurs even if you pass in a PFX file specifying exactly which certificate to use."
@@ -117,8 +117,11 @@ function Invoke-SafeguardA2aCredentialRetrieval
         [Parameter(Mandatory=$false)]
         [string]$Authorization,
         [Parameter(Mandatory=$false)]
-        [ValidateSet("Password","Key",IgnoreCase=$true)]
-        [string]$CredentialType
+        [ValidateSet("Password","PrivateKey",IgnoreCase=$true)]
+        [string]$CredentialType,
+        [Parameter(Mandatory=$false)]
+        [ValidateSet("OpenSsh","Ssh2","Putty",IgnoreCase=$true)]
+        [string]$KeyFormat = $null
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -127,18 +130,30 @@ function Invoke-SafeguardA2aCredentialRetrieval
     switch ($CredentialType)
     {
         "password" { $CredentialType = "Password"; break }
-        "key" { $CredentialType = "Key"; break }
+        "privatekey" { $CredentialType = "PrivateKey"; break }
+    }
+
+    $local:RelativeUrl = "Credentials?type=$CredentialType"
+    if ($KeyFormat)
+    {
+        switch ($KeyFormat)
+        {
+            "openssh" { $KeyFormat = "OpenSsh"; break }
+            "ssh2" { $KeyFormat = "Ssh2"; break }
+            "putty" { $KeyFormat = "Putty"; break }
+        }
+        $local:RelativeUrl = "Credentials?type=$CredentialType&keyFormat=$KeyFormat"
     }
 
     if (-not $Thumbprint)
     {
         Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization $Authorization `
-            -CertificateFile $CertificateFile -Password $Password -Service a2a -Method GET -RelativeUrl "Credentials?type=$CredentialType"
+            -CertificateFile $CertificateFile -Password $Password -Service a2a -Method GET -RelativeUrl $local:RelativeUrl
     }
     else
     {
         Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization $Authorization `
-            -Thumbprint $Thumbprint -Service a2a -Method GET -RelativeUrl "Credentials?type=$CredentialType"
+            -Thumbprint $Thumbprint -Service a2a -Method GET -RelativeUrl $local:RelativeUrl
     }
 }
 
@@ -348,6 +363,12 @@ A string containing the thumbprint of a certificate the system certificate store
 .PARAMETER ApiKey
 A string containing the API key that identifies the account being requested.
 
+.PARAMETER KeyFormat
+A string containing which format to use for the private key.  The options are:
+  - OpenSsh: OpenSSH legacy PEM format (default)
+  - Ssh2: Tectia format for use with tools from SSH.com
+  - Putty: Putty format for use with PuTTY tools
+
 .INPUTS
 None.
 
@@ -375,7 +396,10 @@ function Get-SafeguardA2aPrivateKey
         [Parameter(ParameterSetName="CertStore",Mandatory=$true)]
         [string]$Thumbprint,
         [Parameter(Mandatory=$true,Position=1)]
-        [string]$ApiKey
+        [string]$ApiKey,
+        [Parameter(Mandatory=$false)]
+        [ValidateSet("OpenSsh","Ssh2","Putty",IgnoreCase=$true)]
+        [string]$KeyFormat = $null
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -388,8 +412,16 @@ function Get-SafeguardA2aPrivateKey
     }
     else
     {
-        Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
-            -CertificateFile $CertificateFile -Password $Password -CredentialType Key
+        if ($KeyFormat)
+        {
+            Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+                -CertificateFile $CertificateFile -Password $Password -CredentialType PrivateKey -KeyFormat $KeyFormat
+        }
+        else
+        {
+            Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+                -CertificateFile $CertificateFile -Password $Password -CredentialType PrivateKey
+        }
     }
 }
 
