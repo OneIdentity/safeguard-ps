@@ -333,6 +333,7 @@ update this list.
 - Invoke-SafeguardApplianceReboot
 - Invoke-SafeguardApplianceFactoryReset
 - Get-SafeguardSupportBundle
+- Get-SafeguardSupportBundleQuickGlance
 - Get-SafeguardPatch
 - Clear-SafeguardPatch
 - Set-SafeguardPatch
