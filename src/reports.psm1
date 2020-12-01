@@ -980,7 +980,9 @@ Generates report of the last time each was password changed by Safeguard via the
 
 .DESCRIPTION
 This report contains information for every asset account that the caller has access to.
-An asset admin or an auditor would be able to report on every account in Safeguard.
+An asset admin or an auditor would be able to report on every account in Safeguard.  When
+this report is generated, all dates and times are converted from UTC to the local system
+time.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -1045,9 +1047,11 @@ function Get-SafeguardReportPasswordLastChanged
                 AccountName = $_.Name;
                 DomainName = $_.DomainName;
                 Description = $_.Description;
-                LastPasswordChange = $_.LastSuccessPasswordChangeDate;
-                LastPasswordCheck = $_.LastSuccessPasswordCheckDate;
+                LastPasswordChange = "";
+                LastPasswordCheck = "";
             })
+            if ($_.LastSuccessPasswordChangeDate) {$local:Change.LastPasswordChange = (Get-Date $_.LastSuccessPasswordChangeDate -Format "yyyy-MM-dd HH:mm:ss");}
+            if ($_.LastSuccessPasswordCheckDate) {$local:Change.LastPasswordCheck = (Get-Date $_.LastSuccessPasswordCheckDate -Format "yyyy-MM-dd HH:mm:ss");}
             $local:Changes += $local:Change
         }
 
