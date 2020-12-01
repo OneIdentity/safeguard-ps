@@ -973,3 +973,92 @@ function Get-SafeguardReportA2aEntitlement
         Out-FileAndExcel -OutFile $local:OutFile -Excel:$Excel
     }
 }
+
+<#
+.SYNOPSIS
+Generates report of the last time each was password changed by Safeguard via the Web API.
+
+.DESCRIPTION
+This report contains information for every asset account that the caller has access to.
+An asset admin or an auditor would be able to report on every account in Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER OutputDirectory
+String containing the directory where to create the CSV file.
+
+.PARAMETER Excel
+Automatically open the CSV file into excel after it is generation.
+
+.PARAMETER StdOut
+Send CSV to standard out instead of generating a file.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file or CSV text.
+
+.EXAMPLE
+Get-SafeguardReportPasswordLastChanged -Excel
+
+.EXAMPLE
+Get-SafeguardReportPasswordLastChanged -StdOut
+#>
+function Get-SafeguardReportPasswordLastChanged
+{
+    [CmdletBinding(DefaultParameterSetName="File")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false, ParameterSetName="File", Position=0)]
+        [string]$OutputDirectory = (Get-Location),
+        [Parameter(Mandatory=$false, ParameterSetName="File")]
+        [switch]$Excel = $false,
+        [Parameter(Mandatory=$false, ParameterSetName="StdOut")]
+        [switch]$StdOut,
+        [Parameter(Mandatory=$false)]
+        [DateTime]$LocalDate = (Get-Date)
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Changes = @()
+    (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+        -Fields AssetId,Id,AssetName,Name,DomainName,Description,LastSuccessPasswordCheckDate,LastSuccessPasswordChangeDate) | ForEach-Object {
+            $local:Change = New-Object PSObject -Property ([ordered]@{
+                AssetId = $_.AssetId;
+                AccountId = $_.Id;
+                AssetName = $_.AssetName;
+                AccountName = $_.Name;
+                DomainName = $_.DomainName;
+                Description = $_.Description;
+                LastPasswordChange = $_.LastSuccessPasswordChangeDate;
+                LastPasswordCheck = $_.LastSuccessPasswordCheckDate;
+            })
+            $local:Changes += $local:Change
+        }
+
+    if ($StdOut)
+    {
+        $local:Changes | ConvertTo-Csv -NoTypeInformation
+    }
+    else
+    {
+        $local:OutFile = (Get-OutFileForParam -OutputDirectory $OutputDirectory -FileName "sg-password-lastchanged-$((Get-Date).ToString("yyyy-MM-dd")).csv" -StdOut:$StdOut)
+        $local:Changes | ConvertTo-Csv -NoTypeInformation | Out-File $local:OutFile
+        Out-FileAndExcel -OutFile $local:OutFile -Excel:$Excel
+    }
+}

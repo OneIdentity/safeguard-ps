@@ -266,7 +266,7 @@ FunctionsToExport = @(
     'Get-SafeguardReportDailyPasswordCheckFail','Get-SafeguardReportDailyPasswordCheckSuccess',
     'Get-SafeguardReportDailyPasswordChangeFail','Get-SafeguardReportDailyPasswordChangeSuccess',
     'Get-SafeguardReportUserEntitlement','Get-SafeguardReportUserGroupMembership','Get-SafeguardReportAssetManagementConfiguration',
-    'Get-SafeguardReportA2aEntitlement',
+    'Get-SafeguardReportA2aEntitlement','Get-SafeguardReportPasswordLastChanged',
     # setting.psm1
     'Get-SafeguardApplianceSetting','Set-SafeguardApplianceSetting','Get-SafeguardCoreSetting','Set-SafeguardCoreSetting'
     # deleted.psm1
