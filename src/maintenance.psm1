@@ -1238,6 +1238,142 @@ function Get-SafeguardSupportBundle
 
 <#
 .SYNOPSIS
+Get a support bundle quick glance file from a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Save a quick glance file from the Safeguard appliance as a plain text file to the
+file system. If a file path is not specified, one will be generated in
+the current directory.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.PARAMETER OutFile
+A string containing the path to store the support bundle (default: SG-<id>-<date>.zip).
+
+.PARAMETER Version
+Version of the Web API you are using (default: 2).
+
+.PARAMETER Timeout
+A timeout value in seconds (default timeout depends on options specified).
+
+.INPUTS
+None.
+
+.OUTPUTS
+Plain text response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardSupportBundleQuickGlance -Appliance 10.5.32.54 -AccessToken $token
+#>
+function Get-SafeguardSupportBundleQuickGlance
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [string]$OutFile,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [int]$Version = 3,
+        [Parameter(Mandatory=$false)]
+        [int]$Timeout
+    )
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+    Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
+
+    if ($SafeguardSession)
+    {
+        $Insecure = $SafeguardSession["Insecure"]
+    }
+    if (-not ($PSBoundParameters.ContainsKey("Version")) -and $SafeguardSession)
+    {
+        $Version = $SafeguardSession["Version"]
+    }
+    if (-not $Appliance -and $SafeguardSession)
+    {
+        $Appliance = $SafeguardSession["Appliance"]
+    }
+    if (-not $AccessToken -and $SafeguardSession)
+    {
+        $AccessToken = $SafeguardSession["AccessToken"]
+    }
+    if (-not $Appliance)
+    {
+        $Appliance = (Read-Host "Appliance")
+    }
+    if (-not $AccessToken)
+    {
+        $AccessToken = (Connect-Safeguard -Appliance $Appliance -Insecure:$Insecure -NoSessionVariable)
+    }
+    if (-not $OutFile)
+    {
+        $OutFile = (Join-Path (Get-Location) "SG-GC-$Appliance-$((Get-Date).ToString("MMddTHHmmssZz")).txt")
+    }
+
+    # Handle options and timeout
+    $DefaultTimeout = 1200
+    $Url = "https://$Appliance/service/appliance/v$Version/SupportBundle/QuickGlance"
+        
+    if (-not $Timeout)
+    {
+        $Timeout = $DefaultTimeout
+    }
+
+    try
+    {
+        Edit-SslVersionSupport
+        if ($Insecure)
+        {
+            Disable-SslVerification
+            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+        }
+        # Use the WebClient class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
+        Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+        Add-ExWebClientExType
+        $OutFile = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutFile)
+
+        $WebClient = (New-Object Ex.WebClientEx -ArgumentList @($Timeout))
+        $WebClient.Headers.Add("Accept", "application/octet-stream")
+        $WebClient.Headers.Add("Content-type", "application/json")
+        $WebClient.Headers.Add("Authorization", "Bearer $AccessToken")
+        Write-Host "This operation may take few minutes..."
+        Write-Host "Downloading Safeguard quick glance file to: $OutFile"
+        $WebClient.DownloadFile($Url, $OutFile)
+    }
+    catch [System.Net.WebException]
+    {
+        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+        Out-SafeguardExceptionIfPossible $_
+    }
+    catch
+    {
+        Write-Error $_
+        throw "Failed to GET quick glance from Safeguard"
+    }
+    finally
+    {
+        if ($Insecure)
+        {
+            Enable-SslVerification
+            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+        }
+    }
+}
+
+<#
+.SYNOPSIS
 Get patch that is currently staged on an appliance via the Web API.
 
 .DESCRIPTION
