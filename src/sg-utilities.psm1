@@ -61,6 +61,14 @@ namespace Ex
         Write-Verbose "$([int]$local:ThrownException.Response.StatusCode) $($local:StatusDescription)"
         Write-Verbose "---Response Body---"
         $local:ResponseBody = $PsExceptionObject.ErrorDetails.Message
+        if (-not $local:ResponseBody)
+        {
+            Write-Verbose "Unable to read ErrorDetails.Message, trying to read response stream"
+            # try to read again, some runtimes and PowerShell versions fail to populate ErrorDetails
+            $local:Reader = [System.IO.StreamReader]::new($ThrownException.Response.GetResponseStream())
+            $local:ResponseBody = $local:Reader.ReadToEnd()
+            $local:Reader.Close()
+        }
         if ($local:ResponseBody)
         {
             Write-Verbose $local:ResponseBody
