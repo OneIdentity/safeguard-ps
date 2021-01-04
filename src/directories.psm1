@@ -926,7 +926,7 @@ function Get-SafeguardDirectory
             }
             else
             {
-                $local:LdapPlatformId = (Find-SafeguardPlatform "OpenLDAP" -Appliance $Appliance -AccessToken $AccessToken)[0].Id
+                $local:LdapPlatformId = (Find-SafeguardPlatform "Ldap" -Appliance $Appliance -AccessToken $AccessToken | Where-Object {$_.PlatformFamily -eq "OpenLdap"} | Where-Object {$_.Version -ne "2.4"}).Id
                 $local:AdPlatformId = (Find-SafeguardPlatform "Active Directory" -Appliance $Appliance -AccessToken $AccessToken)[0].Id
 
                 if ($Fields)
@@ -1056,7 +1056,7 @@ function New-SafeguardDirectory
     {
         if ($PSCmdlet.ParameterSetName -eq "Ldap")
         {
-            $local:LdapPlatformId = (Find-SafeguardPlatform "OpenLDAP" -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure)[0].Id
+            $local:LdapPlatformId = (Find-SafeguardPlatform "Ldap" -Appliance $Appliance -AccessToken $AccessToken | Where-Object {$_.PlatformFamily -eq "OpenLdap"} | Where-Object {$_.Version -ne "2.4"}).Id
             New-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -DisplayName $NetworkAddress -Platform $local:LdapPlatformId `
                 -ServiceAccountDistinguishedName $ServiceAccountDistinguishedName -ServiceAccountPassword $ServiceAccountPassword `
                 -ServiceAccountCredentialType "password" -Description $Description -NetworkAddress $NetworkAddress -Port $Port `
@@ -1074,7 +1074,7 @@ function New-SafeguardDirectory
     {
         if ($PSCmdlet.ParameterSetName -eq "Ldap")
         {
-            $local:LdapPlatformId = (Find-SafeguardPlatform "OpenLDAP" -Appliance $Appliance -AccessToken $AccessToken)[0].Id
+            $local:LdapPlatformId = (Find-SafeguardPlatform "Ldap" -Appliance $Appliance -AccessToken $AccessToken | Where-Object {$_.PlatformFamily -eq "OpenLdap"} | Where-Object {$_.Version -ne "2.4"}).Id
             $local:Body = @{
                 PlatformId = $local:LdapPlatformId;
                 ConnectionProperties = @{
@@ -1596,7 +1596,7 @@ function Get-SafeguardDirectoryAccount
             }
             else
             {
-                $local:LdapPlatformId = (Find-SafeguardPlatform "OpenLDAP" -Appliance $Appliance -AccessToken $AccessToken)[0].Id
+                $local:LdapPlatformId = (Find-SafeguardPlatform "Ldap" -Appliance $Appliance -AccessToken $AccessToken | Where-Object {$_.PlatformFamily -eq "OpenLdap"} | Where-Object {$_.Version -ne "2.4"}).Id
                 $local:AdPlatformId = (Find-SafeguardPlatform "Active Directory" -Appliance $Appliance -AccessToken $AccessToken)[0].Id
 
                 if ($Fields)
@@ -1637,7 +1637,7 @@ function Get-SafeguardDirectoryAccount
                 }
                 else
                 {
-                    $local:LdapPlatformId = (Find-SafeguardPlatform "OpenLDAP" -Appliance $Appliance -AccessToken $AccessToken)[0].Id
+                    $local:LdapPlatformId = (Find-SafeguardPlatform "Ldap" -Appliance $Appliance -AccessToken $AccessToken | Where-Object {$_.PlatformFamily -eq "OpenLdap"} | Where-Object {$_.Version -ne "2.4"}).Id
                     $local:AdPlatformId = (Find-SafeguardPlatform "Active Directory" -Appliance $Appliance -AccessToken $AccessToken)[0].Id
 
                     if ($Fields)
@@ -1719,7 +1719,7 @@ function Find-SafeguardDirectoryAccount
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:LdapPlatformId = (Find-SafeguardPlatform "OpenLDAP" -Appliance $Appliance -AccessToken $AccessToken)[0].Id
+    $local:LdapPlatformId = (Find-SafeguardPlatform "Ldap" -Appliance $Appliance -AccessToken $AccessToken | Where-Object {$_.PlatformFamily -eq "OpenLdap"} | Where-Object {$_.Version -ne "2.4"}).Id
     $local:AdPlatformId = (Find-SafeguardPlatform "Active Directory" -Appliance $Appliance -AccessToken $AccessToken)[0].Id
 
     try
