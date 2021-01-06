@@ -30,7 +30,7 @@ function Test-SupportForClusterPatch
         $false
     }
 }
-function Add-UploadFileStreamType
+function Add-SendFileStreamCmdletType
 {
     [CmdletBinding()]
     Param(
@@ -39,120 +39,286 @@ function Add-UploadFileStreamType
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if (-not ([System.Management.Automation.PSTypeName]"UploadFileStream").Type)
+    if (-not ([System.Management.Automation.PSTypeName]"SendFileStreamCmdlet").Type)
     {
         Write-Verbose "Adding the PSType for uploading a file stream"
-        Add-Type -TypeDefinition  @"
+
+        # For PowerShell 7, the default behavior is to not include the default assemblies when the
+        # -ReferencedAssemblies parameter is explicitly specified. Therefore, we must be sure to
+        # include them ourselves along with anything else we need. When running on Linux, the
+        # TransportContext and X509Certificate2 object types are in separate assemblies, different
+        # from how they are on Windows. So we need to explicitly include/specify those additional
+        # assemblies. Which then means, to maintain compatibility with all versions of PowerShell,
+        # we also need to explicitly specify what are typically the default assemblies that are
+        # automatically included.
+        # Fortunately, having them as always included doesn't appear to have any ill side effects
+        # when running on Windows.
+        $referenceAssemblies = ("System.dll", "System.Management.Automation.dll", "System.Net.Http.dll", "System.Net.Primitives", "System.Security.Cryptography.X509Certificates.dll")
+
+        # Use the PassThru parameter to return the type that gets generated so we can assign it to
+        # a variable and access it next in order to load/import it, making it available directly in
+        # the PowerShell script, usable/callable like any other Cmdlet.
+        $cls = Add-Type -PassThru -ReferencedAssemblies $referenceAssemblies -TypeDefinition  @"
         using System;
         using System.IO;
+        using System.Management.Automation;
         using System.Net;
-        public static class UploadFileStream
+        using System.Net.Http;
+        using System.Net.Security;
+        using System.Security.Cryptography.X509Certificates;
+        using System.Threading.Tasks;
+
+        // Implement a Cmdlet type so we can utilize the WriteProgress() method and get PowerShell's native
+        // progress bar overlayed while uploading. Using Console.Write() and trying to manually move/set
+        // the cursor position doesn't work in the PowerShell ISE, nor on Linux.
+        //
+        // Also unfortunate is the fact that on Linux, the HttpWebRequest.AllowWriteStreamBuffering cannot
+        // be set to false. https://github.com/dotnet/runtime/issues/18632
+        // With .NET Core (whoes source code is now under .NET Rumtime) on Linux, the HttpWebRequest actually
+        // uses the HttpClient under the hood (with the .NET Framewrok it's the other way around).
+        // https://github.com/dotnet/runtime/blob/master/src/libraries/System.Net.Requests/src/System/Net/HttpWebRequest.cs
+        // And when getting the request stream (see the InternalGetRequestStream() method), it simply creates
+        // a new instance of the RequestStream object
+        // https://github.com/dotnet/runtime/blob/b783c5b42b3d35ef793a9d7aa8c06bcc27567e8d/src/libraries/System.Net.Requests/src/System/Net/RequestStream.cs
+        // Which states in the comments the use of a MemoryStream and it being inefficient for uploading
+        // large amounts of data. There is no way to change this or override it.
+        //
+        // Therefore, we'd be back to the same original problem that made us switch to this embedded code
+        // in the first place, namely, uploading a patch file would use as much memory as the size of the file.
+        //
+        // So the next hurdle is switching to use the HttpClient class. But with that, there was no native
+        // support for being able to compute the progress while uploading. So we had to implement another
+        // custom class. Then, there was a problem with trying to use the WriteProgress() method from outside
+        // the ProcessRecord() method of the Cmdlet and making any async calls synchronous to ensure that we
+        // stay on the same thread.
+        [Cmdlet("Send", "FileStream")]
+        public class SendFileStreamCmdlet : PSCmdlet
         {
-            private static readonly byte[] UploadBuffer = new byte[80 * 1024];
+            [Parameter(Mandatory = true, Position = 0)]
+            public string PathAndFilename { get; set; }
 
-            public static string Upload(string pathAndFilename, string appliance, string authorizationToken, string version)
+            [Parameter(Mandatory = true, Position = 1)]
+            public string Appliance { get; set; }
+
+            [Parameter(Mandatory = true, Position = 2)]
+            public string AuthorizationToken { get; set; }
+
+            [Parameter(Mandatory = true, Position = 3)]
+            public string Version { get; set; }
+
+            [Parameter(Mandatory = true, Position = 4)]
+            public bool Insecure { get; set; }
+
+            private static readonly HttpClientHandler httpClientHandler = new HttpClientHandler() { ClientCertificateOptions = ClientCertificateOption.Manual };
+
+            private static readonly HttpClient httpClient = new HttpClient(httpClientHandler);
+
+            private static bool insecurePerRequest = false;
+
+            private class ProgressStreamContent : HttpContent
             {
-                WebRequest   request        = null;
-                WebResponse  response       = null;
-                StreamReader responseStream = null;
-                FileStream   fileStream     = null;
+                private FileStream content = null;
+                private PSCmdlet cmdlet = null;
 
-                try
+                private readonly byte[] UploadBuffer = new byte[80 * 1024];
+
+                public ProgressStreamContent(FileStream content, PSCmdlet cmdlet)
                 {
-                    request = WebRequest.Create(string.Format("https://{0}/service/appliance/v{1}/Patch", appliance, version));
-                    request.Method  = "POST";
-                    request.Timeout = System.Threading.Timeout.Infinite;
-                    ((HttpWebRequest)request).Accept = "application/json";
-                    ((HttpWebRequest)request).AllowWriteStreamBuffering = false;
+                    this.content = content;
+                    this.cmdlet = cmdlet;
+                }
 
-                    fileStream = new FileStream(pathAndFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                protected override Task SerializeToStreamAsync(Stream stream, TransportContext context)
+                {
+                    ProgressRecord progressRecord = new ProgressRecord(1, "Uploading Patch", "0% Complete");
 
-                    long bytesLeft        = fileStream.Length;
-                    request.ContentLength = fileStream.Length;
+                    cmdlet.Host.UI.WriteProgress(1, progressRecord);
 
-                    request.Headers.Add("Authorization", "Bearer " + authorizationToken);
+                    long bytesLeft = this.content.Length;
 
-                    using (Stream sw = request.GetRequestStream())
+                    System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+                    while (bytesLeft > 0)
                     {
-                        Console.Write("Uploading... ");
+                        int bytesRead = this.content.Read(UploadBuffer, 0, UploadBuffer.Length);
 
-                        int consoleTop  = Console.CursorTop;
-                        int consoleLeft = Console.CursorLeft;
+                        stream.Write(UploadBuffer, 0, bytesRead);
 
-                        System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                        bytesLeft -= bytesRead;
 
-                        while (bytesLeft > 0)
+                        if (stopwatch.ElapsedMilliseconds > 1000)
                         {
-                            int bytesRead = fileStream.Read(UploadBuffer, 0, UploadBuffer.Length);
+                            int percentDone = (int)((this.content.Length - bytesLeft) / (double)this.content.Length * 100);
 
-                            sw.Write(UploadBuffer, 0, bytesRead);
+                            progressRecord.StatusDescription = string.Format("{0}% Complete", percentDone);
+                            progressRecord.PercentComplete = percentDone;
+                            cmdlet.Host.UI.WriteProgress(1, progressRecord);
 
-                            bytesLeft -= bytesRead;
-
-                            if (stopwatch.ElapsedMilliseconds > 1000)
-                            {
-                                int percentDone = (int)((fileStream.Length - bytesLeft) / (double)fileStream.Length * 100);
-
-                                Console.SetCursorPosition(consoleLeft, consoleTop);
-
-                                Console.Write(percentDone + "%");
-
-                                stopwatch.Restart();
-                            }
+                            stopwatch.Restart();
                         }
-
-                        Console.SetCursorPosition(consoleLeft, consoleTop);
-                        Console.WriteLine("100%");
-                        Console.WriteLine("Server is processing data...");
                     }
 
-                    response = request.GetResponse();
-                    responseStream = new StreamReader(response.GetResponseStream());
+                    progressRecord.StatusDescription = "100% Complete";
+                    progressRecord.PercentComplete = 100;
+                    progressRecord.RecordType = ProgressRecordType.Completed;
+                    cmdlet.Host.UI.WriteProgress(1, progressRecord);
 
-                    return responseStream.ReadToEnd();
+                    cmdlet.Host.UI.WriteLine("Upload complete. Server is processing data. Waiting for response...");
+
+                    return Task.WhenAll(); // Returns a completed task. Compatible with .NET < 4.6.
+                }
+
+                protected override bool TryComputeLength(out long length)
+                {
+                    length = this.content.Length;
+                    return true;
+                }
+            }
+
+            private static bool ServerCertificateCustomValidation(HttpRequestMessage requestMessage, X509Certificate2 certificate, X509Chain chain, SslPolicyErrors sslErrors)
+            {
+                if (insecurePerRequest)
+                {
+                    return true;
+                }
+
+                return sslErrors == SslPolicyErrors.None;
+            }
+
+            protected override void ProcessRecord()
+            {
+                try
+                {
+                    // The SSL and Timeout are not per-request settings. Fortunately, this will most likely
+                    // only be used in a single threaded environment. The Timeout property can only be set
+                    // before a request is made. Once a request is made, we can't attempt to set it again.
+                    // Because we have a static instance, it means we can only set it once.
+                    if (httpClient.Timeout != System.Threading.Timeout.InfiniteTimeSpan)
+                    {
+                        httpClient.Timeout = System.Threading.Timeout.InfiniteTimeSpan;
+                    }
+
+                    // These SSL settings also can't be changed after a request is made. Therefore, we will
+                    // always configure it for manual validation and provide our own callback handler so that
+                    // we can dynamically decide what to do. Problem is, we have a static instance and static
+                    // callback method, but need to access the Insecure instance parameter for each call.
+                    //
+                    // We need to handle the use case of connecting to 2 different servers, over the course
+                    // of 2 sessions (Connect-Safeguard/Disconnect-Safeguard), where one connection is made
+                    // securely and the other is not. Noting the fact that this embedded type is only loaded
+                    // once and that the 'httpClientHandler' is a static instance. So this lambda is only
+                    // assigned once, but we need to account for the Insecure parameter on a call-by-call
+                    // basis. So again, this is a bit of a hack and we rely upon the fact that this will most
+                    // likely only be used in a single threaded environment. Therefore, we will set a static
+                    // variable on each request that can then be accessed by our static callback method.
+                    if (httpClientHandler.ServerCertificateCustomValidationCallback == null)
+                    {
+                        httpClientHandler.ServerCertificateCustomValidationCallback = ServerCertificateCustomValidation;
+                    }
+                    insecurePerRequest = Insecure;
+
+                    using (FileStream stream = new FileStream(PathAndFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                    using (HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, string.Format("https://{0}/service/appliance/v{1}/Patch", Appliance, Version)))
+                    {
+                        this.Host.UI.WriteLine("Uploading...");
+
+                        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", AuthorizationToken);
+                        request.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+
+                        request.Content = new ProgressStreamContent(stream, this);
+
+                        var response = httpClient.SendAsync(request).GetAwaiter().GetResult();
+
+                        // Any response we get back, we will attempt to parse as Json. So we're not concerned with
+                        // the HTTP status code. If the response cannot be parsed as Json, the script will fail and
+                        // output the raw response for debugging purposes.
+                        WriteObject(response.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+                    }
                 }
                 catch (Exception ex)
                 {
-                    string log = ex.ToString();
-
-                    if (ex is WebException)
-                    {
-                        WebException wex = ex as WebException;
-                        HttpWebResponse httpResponse = wex.Response as HttpWebResponse;
-
-                        if (httpResponse != null)
-                        {
-                            Console.WriteLine(log);
-                            StreamReader sr = new StreamReader(httpResponse.GetResponseStream());
-                            log = sr.ReadToEnd();
-                            sr.Close();
-                        }
-                        throw new System.Exception(log);
-                    }
-                    throw;
-                }
-                finally
-                {
-                    if (responseStream != null)
-                    {
-                        responseStream.Close();
-                    }
-                    if (fileStream != null)
-                    {
-                        fileStream.Dispose();
-                    }
-                    if (response != null)
-                    {
-                        response.Close();
-                    }
-                    else
-                    {
-                        request.Abort();
-                    }
+                    WriteObject(ex.ToString());
                 }
             }
         }
 "@
+
+        # Import the dynamically generated assembly like it were any other PowerShell script and
+        # we'll be able to call it like regular PowerShell too.
+        Import-Module $cls.Assembly
+    }
+}
+function Send-PatchFile
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true)]
+        [string]$Patch,
+        [Parameter(Mandatory=$true)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$true)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$true)]
+        [int]$Version,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    try
+    {
+        Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
+        Edit-SslVersionSupport
+        if ($Insecure)
+        {
+            Disable-SslVerification
+            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+        }
+
+        Add-SendFileStreamCmdletType
+        $local:JsonData = Send-FileStream (Resolve-Path $Patch) $Appliance $AccessToken $Version $Insecure.IsPresent
+        try
+        {
+            $local:JsonData = (ConvertFrom-Json $local:JsonData)
+            Write-Verbose (ConvertTo-Json $local:JsonData)
+        }
+        catch
+        {
+            throw "Send-FileStream didn't return valid JSON. Cannot continue.`nOutput:`n$local:JsonData"
+        }
+        if ($local:JsonData.Code)
+        {
+            $local:ErrMsg = "$($local:JsonData.Code): $($local:JsonData.Message)"
+            throw $local:ErrMsg
+        }
+
+        # For Safeguard version 6.0 and greater, some precondition checks/errors are returned immediately.
+        # We can try and look for them now, and if there are any, there is no need to continue.
+        if ($local:JsonData.Errors)
+        {
+            Write-Host "There are one or more precondition patch errors. The patch cannot be applied."
+
+            for ($num = 0; $num -lt $local:JsonData.Errors.Count; $num++)
+            {
+                Write-Host -ForegroundColor Magenta "$($num + 1). $($local:JsonData.Errors[$num])`n"
+            }
+
+            return $false
+        }
+
+        return $true
+    }
+    catch [System.Exception]
+    {
+        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+        Out-SafeguardExceptionIfPossible $_
+    }
+    finally
+    {
+        if ($Insecure)
+        {
+            Enable-SslVerification
+            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+        }
     }
 }
 
@@ -1479,8 +1645,11 @@ function Clear-SafeguardPatch
 Install patch on Safeguard appliance via the Web API.
 
 .DESCRIPTION
-Upload a patch to a Safeguard appliance via the Web API, and then call
-the POST action to install it.
+Upload a patch to a Safeguard appliance via the Web API, or use a previously staged patch. If you don't specify
+to use the currently staged patch, if one exists, it will be overwritten. If successful and on the primary
+appliance, the patch will automatically be distributed to other appliances in the cluster. Upon distribution,
+also removes any patch on the other appliance and stages the specified patch. Then, if there are no patch
+precondition warnings or errors (on applicable versions of Safeguard), you will be prompted to install the patch.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -1584,48 +1753,9 @@ function Install-SafeguardPatch
             }
         }
 
-        try
+        if (-not (Send-PatchFile $Patch $Appliance $AccessToken $Version -Insecure:$Insecure))
         {
-            Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
-            Edit-SslVersionSupport
-            if ($Insecure)
-            {
-                Disable-SslVerification
-                if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
-            }
-
-            # This will throw System.Exception if there is an error staging the patch
-            Add-UploadFileStreamType
-            $local:JsonData = ([UploadFileStream]::Upload((Resolve-Path $Patch), $Appliance, $AccessToken, $Version))
-            try
-            {
-                $local:JsonData = (ConvertFrom-Json $local:JsonData)
-                Write-Verbose $local:JsonData
-            }
-            catch
-            {
-                Write-Verbose "[UploadFileStream]::Upload() didn't return valid JSON"
-                Write-Verbose "Output:"
-                Write-Verbose $local:JsonData
-            }
-            if ($local:JsonData.Code)
-            {
-                $local:ErrMsg = "$($local:JsonData.Code): $($local:JsonData.Message)"
-                throw $local:ErrMsg
-            }
-        }
-        catch [System.Exception]
-        {
-            Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-            Out-SafeguardExceptionIfPossible $_
-        }
-        finally
-        {
-            if ($Insecure)
-            {
-                Enable-SslVerification
-                if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
-            }
+            return
         }
     }
 
@@ -1665,7 +1795,10 @@ function Install-SafeguardPatch
             {
                 $local:Errors = $true
                 Write-Host " "
-                $_.Errors | ForEach-Object { Write-Error $_ }
+                # Note, we don't use the Write-Error commandlet because in all of our methods we set the
+                # $ErrorActionPreference to Stop. So if there was more than one error, we'd only see the
+                # first one.
+                $_.Errors | ForEach-Object { Write-Host -ForegroundColor Magenta $_ }
             }
             else
             {
@@ -1738,7 +1871,7 @@ Stages a patch on Safeguard appliance via the Web API.
 Upload a patch to a Safeguard appliance via the Web API. If there is already a staged patch, removes it
 and uploads the specified one. If successful and on the primary appliance, prompts for distribution of the
 staged patch to other appliances in the cluster. Upon distribution, also removes any patch on the other
-appliance and stages the specified patch. NOTE: This does not work using Windows Powershell ISE.
+appliance and stages the specified patch.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -1830,32 +1963,9 @@ function Set-SafeguardPatch
         }
     }
 
-    try
+    if (-not (Send-PatchFile $Patch $Appliance $AccessToken $Version -Insecure:$Insecure))
     {
-        Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
-        Edit-SslVersionSupport
-        if ($Insecure)
-        {
-            Disable-SslVerification
-            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
-        }
-
-        # This will throw System.Exception if there is an error staging the patch
-        Add-UploadFileStreamType
-        [UploadFileStream]::Upload((Resolve-Path $Patch), $Appliance, $AccessToken, $Version)
-    }
-    catch [System.Exception]
-    {
-        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-        Out-SafeguardExceptionIfPossible $_
-    }
-    finally
-    {
-        if ($Insecure)
-        {
-            Enable-SslVerification
-            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
-        }
+        return
     }
 
     $local:StagedPatch = (Get-SafeguardPatch -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
