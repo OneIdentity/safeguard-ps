@@ -2024,7 +2024,10 @@ IP address or hostname of a Safeguard appliance.
 A string containing the bearer token to be used with Safeguard Web API.
 
 .PARAMETER Insecure
-Ignore verification of Safeguard appliance SSL certificate
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Wait
+Specify this flag to wait until the backup is completed before returning.
 
 .INPUTS
 None.
@@ -2047,14 +2050,24 @@ function New-SafeguardBackup
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [switch]$Wait
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Write-Host "Starting a backup operation..."
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST Backups
+    $local:BackupInfo = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST Backups)
+    if ($Wait)
+    {
+        while ($local:BackupInfo.Status -eq "InProcess")
+        {
+            $local:BackupInfo = (Get-SafeguardBackup -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $local:BackupInfo.Id)
+        }
+    }
+    $local:BackupInfo
 }
 
 <#
