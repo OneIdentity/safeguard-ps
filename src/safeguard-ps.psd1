@@ -11,7 +11,7 @@
 RootModule = 'safeguard-ps.psm1'
 
 # Version number of this module.
-ModuleVersion = '6.8.99999'
+ModuleVersion = '6.9.99999'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -26,7 +26,7 @@ Author = 'petrsnd'
 CompanyName = 'One Identity LLC'
 
 # Copyright statement for this module
-Copyright = '(c) 2020 One Identity LLC. All rights reserved.'
+Copyright = '(c) 2021 One Identity LLC. All rights reserved.'
 
 # Description of the functionality provided by this module
 Description = 'Scripting tools for interacting with the One Identity Safeguard Web API.'
@@ -327,7 +327,7 @@ PrivateData = @{
 
         # ReleaseNotes of this module
         ReleaseNotes = @"
-safeguard-ps 6.8 Release Notes:
+safeguard-ps 6.9 Release Notes:
 
 - bug fixes
 "@
