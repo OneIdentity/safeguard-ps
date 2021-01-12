@@ -26,7 +26,7 @@ Author = 'petrsnd'
 CompanyName = 'One Identity LLC'
 
 # Copyright statement for this module
-Copyright = '(c) 2020 One Identity LLC. All rights reserved.'
+Copyright = '(c) 2021 One Identity LLC. All rights reserved.'
 
 # Description of the functionality provided by this module
 Description = 'Scripting tools for interacting with the One Identity Safeguard Web API.'
@@ -323,13 +323,17 @@ PrivateData = @{
         IconUri = 'https://raw.githubusercontent.com/OneIdentity/safeguard-ps/master/SafeguardLogo.ico'
 
         # Pre-release tag
-        Prerelease = '-pre'
+        #Prerelease = '-pre'
 
         # ReleaseNotes of this module
         ReleaseNotes = @"
 safeguard-ps 6.8 Release Notes:
 
-- bug fixes
+- Support bundle quick glance support
+- New Wait parameter for new backup cmdlet
+- Fixed issues with error handling on Windows and other platforms
+- Fixed an error with A2A for SSH private keys
+- Various other bug fixes
 "@
 
     } # End of PSData hashtable
