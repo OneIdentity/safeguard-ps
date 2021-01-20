@@ -1,19 +1,86 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
 # https://aka.ms/yaml
 
 trigger:
-- main
+  branches:
+    include: [ master, 6.* ]
 
-pool:
-  vmImage: 'ubuntu-latest'
+# Global Variables:
+#
+# version.<generated build number> gets set in a variable called VersionString.
+#   VersionString is used to replace placeholders in module file.
+#
+# isPrerelease controls whether the release artifacts on GitHub and the PowerShell module
+#   in the PowerShell Gallery is marked as prerelease or not.
+#
+variables:
+  version: "6.9"
+  isPrerelease: ${{ true }}
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+jobs:
+- job:
+  displayName: "Windows - PowerShell Gallery and Docker Images"
+  pool:
+    vmImage: 'ubuntu-latest'
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+  steps:
+  - task: PowerShell@2
+    inputs:
+      targetType: filePath
+      filePath: $(System.DefaultWorkingDirectory)\versionnumber.ps1
+      arguments: $(version) $(Build.BuildId)
+    displayName: 'Setting build version'
+
+  - task: PowerShell@2
+    inputs:
+      targetType: filePath
+      filePath: $(System.DefaultWorkingDirectory)\install-forpipeline.ps1
+      arguments: $(Build.SourcesDirectory) $(VersionString) $$(isPrerelease)
+    displayName: 'Building PowerShell module'
+    condition: succeeded()
+
+  - task: PowerShell@2
+    inputs:
+      targetType: inline
+      script: |
+        Import-Module -Name safeguard-ps -Verbose
+        if ($$(isPrerelease)) {
+          Write-Host "Not building docker images for pre-release build"
+        } else {
+          & .\invoke-docker-build.ps1 nanoserver $(VersionString)
+          docker tag oneidentity/safeguard-ps:$(VersionString)-nanoserver oneidentity/safeguard-ps:$(VersionString)-windows
+        }
+    displayName: 'Building Docker image'
+    condition: succeeded()
+
+  - task: AzureKeyVault@1
+    inputs:
+      azureSubscription: 'OneIdentity.RD.SBox.Safeguard-ServiceConnection'
+      KeyVaultName: 'SafeguardBuildSecrets'
+      SecretsFilter: 'PowerShellGalleryApiKey'
+    displayName: 'Get PowerShell Gallery API key from Sandbox Azure Key Vault'
+    condition: succeeded()
+
+  - powershell: Publish-Module -Path $(Build.SourcesDirectory)\safeguard-ps -NuGetApiKey "$(PowerShellGalleryApiKey)" -Verbose -SkipAutomaticTags -Force
+    displayName: 'Publish PowerShell module to PowerShell Gallery'
+    condition: succeeded()
+
+  - task: AzureKeyVault@1
+    inputs:
+      azureSubscription: 'OneIdentity.RD.SBox.Safeguard-ServiceConnection'
+      KeyVaultName: 'SafeguardBuildSecrets'
+      SecretsFilter: 'DockerHubAccessToken,DockerHubPassword'
+    displayName: 'Get Docker Hub Access Token from Sandbox Azure Key Vault'
+    condition: and(succeeded(), eq(variables.isPrerelease, true))
+
+  - task: PowerShell@2
+    inputs:
+      targetType: inline
+      script: |
+        docker login -u petrsnd -p $(DockerHubAccessToken)
+        docker push oneidentity/safeguard-ps:$(VersionString)-nanoserver
+        docker logout
+    displayName: 'Pushing Docker Windows Nano Server image to Docker Hub'
+    condition: and(succeeded(), eq(variables.isPrerelease, true))
+
+#- job:
+#  displayName: "Linux - Docker Images"
