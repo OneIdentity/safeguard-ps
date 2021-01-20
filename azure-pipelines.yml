@@ -20,7 +20,7 @@ jobs:
 - job:
   displayName: "Windows - PowerShell Gallery and Docker Images"
   pool:
-    vmImage: 'ubuntu-latest'
+    vmImage: 'windows-latest'
 
   steps:
   - task: PowerShell@2
