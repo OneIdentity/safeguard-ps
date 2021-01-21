@@ -53,8 +53,8 @@ jobs:
         Import-Module -Name safeguard-ps -Verbose
         & .\invoke-docker-build.ps1 nanoserver $(VersionString)
         docker tag oneidentity/safeguard-ps:$(VersionString)-nanoserver oneidentity/safeguard-ps:$(VersionString)-windows
-    displayName: 'Building Docker image'
-    condition: and( succeeded(), eq( variables.isPrerelease, true ) )
+    displayName: 'Building Windows Docker image'
+    condition: succeeded()
 
   - task: AzureKeyVault@1
     inputs:
@@ -86,5 +86,61 @@ jobs:
     displayName: 'Pushing Docker Windows Nano Server image to Docker Hub'
     condition: and( succeeded(), eq( variables.shouldDeploy, true ) )
 
-#- job:
-#  displayName: "Linux - Docker Images"
+- job:
+  displayName: "Linux - Docker Images"
+  pool:
+    vmImage: 'ubuntu-latest'
+
+  steps:
+  - task: Bash@3
+    inputs:
+      targetType: 'filePath'
+      filePath: '$(System.DefaultWorkingDirectory)/versionnumber.sh'
+      arguments: $(Build.SourcesDirectory) $(semanticVersion) $(Build.BuildId)
+    displayName: 'Setting build version'
+
+  - task: Bash@3
+    inputs:
+      targetType: 'inline'
+      script: 'env | sort'
+    displayName: 'Display environment variables'
+
+  - task: Bash@3
+    inputs:
+      targetType: inline
+      script: |
+        $(System.DefaultWorkingDirectory)/build-docker.sh ubuntu18.04 $(VersionString)
+        $(System.DefaultWorkingDirectory)/build-docker.sh ubuntu16.04 $(VersionString)
+        $(System.DefaultWorkingDirectory)/build-docker.sh centos7 $(VersionString)
+        $(System.DefaultWorkingDirectory)/build-docker.sh alpine3.8 $(VersionString)
+        $(System.DefaultWorkingDirectory)/build-docker.sh opensuse42.3 $(VersionString)
+        $(System.DefaultWorkingDirectory)/build-docker.sh fedora28 $(VersionString)
+        docker tag oneidentity/safeguard-ps:$(VersionString)-alpine3.8 oneidentity/safeguard-ps:latest
+      failOnStderr: true
+    displayName: 'Build Linux Docker images'
+    condition: succeeded()
+
+  - task: AzureKeyVault@1
+    inputs:
+      azureSubscription: 'OneIdentity.RD.SBox.Safeguard-ServiceConnection'
+      KeyVaultName: 'SafeguardBuildSecrets'
+      SecretsFilter: 'DockerHubAccessToken,DockerHubPassword'
+    displayName: 'Get Docker Hub Access Token from Sandbox Azure Key Vault'
+    condition: and( succeeded(), eq( variables.shouldDeploy, true ) )
+
+  - task: Bash@3
+    inputs:
+      targetType: 'inline'
+      script: |
+        docker login -u petrsnd --password-stdin <<<$(DockerHubAccessToken) 2>/dev/null
+        docker push oneidentity/safeguard-ps:$(VersionString)-ubuntu18.04
+        docker push oneidentity/safeguard-ps:$(VersionString)-ubuntu16.04
+        docker push oneidentity/safeguard-ps:$(VersionString)-centos7
+        docker push oneidentity/safeguard-ps:$(VersionString)-alpine3.8
+        docker push oneidentity/safeguard-ps:$(VersionString)-opensuse42.3
+        docker push oneidentity/safeguard-ps$(VersionString)-fedora28
+        docker push oneidentity/safeguard-ps:latest
+        docker logout
+      failOnStderr: true
+    condition: and( succeeded(), eq(variables.shouldDeploy, true) )
+    displayName: 'Pushing Linux Docker images to Docker Hub'
