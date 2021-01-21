@@ -44,10 +44,12 @@ jobs:
       filePath: $(System.DefaultWorkingDirectory)\install-forpipeline.ps1
       arguments: $(Build.SourcesDirectory) $(VersionString) $$(isPrerelease)
     displayName: 'Building PowerShell module'
+    continueOnError: false
     condition: succeeded()
 
   - powershell: Import-Module -Name safeguard-ps -Verbose
     displayName: 'Ensure that PowerShell module loads'
+    continueOnError: false
     condition: succeeded()
 
   - task: PowerShell@2
@@ -57,6 +59,7 @@ jobs:
         & $(System.DefaultWorkingDirectory)\invoke-docker-build.ps1 nanoserver $(VersionString)
         docker tag oneidentity/safeguard-ps:$(VersionString)-nanoserver oneidentity/safeguard-ps:$(VersionString)-windows
     displayName: 'Building Windows Docker image'
+    continueOnError: false
     condition: succeeded()
 
   - task: AzureKeyVault@1
@@ -65,10 +68,12 @@ jobs:
       KeyVaultName: 'SafeguardBuildSecrets'
       SecretsFilter: 'PowerShellGalleryApiKey'
     displayName: 'Get PowerShell Gallery API key from Sandbox Azure Key Vault'
+    continueOnError: false
     condition: and( succeeded(), eq( variables.shouldDeploy, true ) )
 
   - powershell: Publish-Module -Path $(Build.SourcesDirectory)\safeguard-ps -NuGetApiKey "$(PowerShellGalleryApiKey)" -Verbose -SkipAutomaticTags -Force
     displayName: 'Publish PowerShell module to PowerShell Gallery'
+    continueOnError: false
     condition: and( succeeded(), eq( variables.shouldDeploy, true ) )
 
   - task: AzureKeyVault@1
@@ -77,6 +82,7 @@ jobs:
       KeyVaultName: 'SafeguardBuildSecrets'
       SecretsFilter: 'DockerHubAccessToken,DockerHubPassword'
     displayName: 'Get Docker Hub Access Token from Sandbox Azure Key Vault'
+    continueOnError: false
     condition: and( succeeded(), eq( variables.shouldDeploy, true ) )
 
   - task: PowerShell@2
@@ -87,6 +93,7 @@ jobs:
         docker push oneidentity/safeguard-ps:$(VersionString)-nanoserver
         docker logout
     displayName: 'Pushing Docker Windows Nano Server image to Docker Hub'
+    continueOnError: false
     condition: and( succeeded(), eq( variables.shouldDeploy, true ) )
 
 - job:
