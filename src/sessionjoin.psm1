@@ -537,7 +537,7 @@ function Join-SafeguardSessionCluster
     }
     catch
     {
-        if (($_.ErrorDetails.Message | ConvertFrom-Json).error.details.response.Code -eq 60657)
+        if ($_.ErrorDetails.Message -and ($_.ErrorDetails.Message | ConvertFrom-Json).error.details.response.Code -eq 60657)
         {
             throw "This SPS cluster is already joined, check the output of Get-SafeguardSessionCluster."
         }
