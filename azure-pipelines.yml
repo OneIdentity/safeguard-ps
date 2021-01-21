@@ -16,7 +16,8 @@ variables:
   version: "6.9"
   isPrerelease: ${{ true }}
   isReleaseBranch: $[ or( eq(variables['Build.SourceBranch'], 'refs/heads/master'), startsWith(variables['Build.SourceBranch'], 'refs/heads/release-') ) ]
-  shouldDeploy: $[ and( eq( variables.isPrerelease, false ), eq( variables.isReleaseBranch, true ) ) ]
+  shouldPublishModule: $[ eq( variables.isReleaseBranch, true ) ]
+  shouldPublishDocker: $[ and( eq( variables.isPrerelease, false ), eq( variables.isReleaseBranch, true ) ) ]
 
 jobs:
 - job:
@@ -89,7 +90,7 @@ jobs:
       KeyVaultName: 'SafeguardBuildSecrets'
       SecretsFilter: 'PowerShellGalleryApiKey'
     displayName: 'Get PowerShell Gallery API key from Sandbox Azure Key Vault'
-    condition: and( succeeded(), eq( variables.shouldDeploy, true ) )
+    condition: and( succeeded(), eq( variables.shouldPublishModule, true ) )
 
   - task: PowerShell@2
     inputs:
@@ -97,7 +98,7 @@ jobs:
       failOnStderr: true
       script: Publish-Module -Path $(Build.SourcesDirectory)\safeguard-ps -NuGetApiKey "$(PowerShellGalleryApiKey)" -Verbose -SkipAutomaticTags -Force
     displayName: 'Publish PowerShell module to PowerShell Gallery'
-    condition: and( succeeded(), eq( variables.shouldDeploy, true ) )
+    condition: and( succeeded(), eq( variables.shouldPublishModule, true ) )
 
   - task: AzureKeyVault@1
     inputs:
@@ -106,7 +107,7 @@ jobs:
       SecretsFilter: 'DockerHubAccessToken,DockerHubPassword'
     displayName: 'Get Docker Hub Access Token from Sandbox Azure Key Vault'
     continueOnError: false
-    condition: and( succeeded(), eq( variables.shouldDeploy, true ) )
+    condition: and( succeeded(), eq( variables.shouldPublishDocker, true ) )
 
   - task: PowerShell@2
     inputs:
@@ -117,7 +118,7 @@ jobs:
         docker push oneidentity/safeguard-ps:$(VersionString)-nanoserver
         docker logout
     displayName: 'Pushing Docker Windows Nano Server image to Docker Hub'
-    condition: and( succeeded(), eq( variables.shouldDeploy, true ) )
+    condition: and( succeeded(), eq( variables.shouldPublishDocker, true ) )
 
 - job:
   displayName: "Linux - Docker Images"
@@ -185,7 +186,7 @@ jobs:
       KeyVaultName: 'SafeguardBuildSecrets'
       SecretsFilter: 'DockerHubAccessToken,DockerHubPassword'
     displayName: 'Get Docker Hub Access Token from Sandbox Azure Key Vault'
-    condition: and( succeeded(), eq( variables.shouldDeploy, true ) )
+    condition: and( succeeded(), eq( variables.shouldPublishDocker, true ) )
 
   - task: Bash@3
     inputs:
@@ -201,5 +202,5 @@ jobs:
         docker push oneidentity/safeguard-ps$(VersionString)-fedora28
         docker push oneidentity/safeguard-ps:latest
         docker logout
-    condition: and( succeeded(), eq(variables.shouldDeploy, true) )
+    condition: and( succeeded(), eq(variables.shouldPublishDocker, true) )
     displayName: 'Pushing Linux Docker images to Docker Hub'
