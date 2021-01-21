@@ -36,6 +36,7 @@ jobs:
     inputs:
       targetType: inline
       script: |
+        Write-Host "PSModulePath = $($env:PSModulePath)"
         $local:TargetDir = (($env:PSModulePath -split ';') | Where-Object { $_.StartsWith($env:UserProfile) })[0]
         if (-not $TargetDir)
         {
@@ -43,6 +44,8 @@ jobs:
         }
         $local:TargetDir = (Resolve-Path $local:TargetDir)
         Write-Output "##vso[task.setvariable variable=ModuleDir;]$($local:TargetDir)"
+    displayName: 'Find PowerShell module path'
+    condition: succeeded()
 
   - task: Bash@3
     inputs:
