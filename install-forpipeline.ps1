@@ -1,19 +1,14 @@
 [CmdletBinding()]
 Param(
-    [Parameter(Mandatory=$false,Position=0)]
-    [string]$TargetDir
+    [Parameter(Mandatory=$true,Position=0)]
+    [string]$TargetDir,
+    [Parameter(Mandatory=$true,Position=1)]
+    [string]$VersionString,
+    [Parameter(Mandatory=$true,Position=2)]
+    [bool]$IsPrerelease
 )
 
 if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-
-if (-not $TargetDir)
-{
-    $TargetDir = (($env:PSModulePath -split ';') | Where-Object { $_.StartsWith($env:UserProfile) })[0]
-    if (-not $TargetDir)
-    {
-        throw "Unable to find a PSModulePath in your user profile (" + $env:UserProfile + "), PSModulePath: " + $env:PSModulePath
-    }
-}
 
 if (-not (Test-Path $TargetDir))
 {
@@ -23,10 +18,20 @@ if (-not (Test-Path $TargetDir))
 $ModuleName = "safeguard-ps"
 $Module = (Join-Path $PSScriptRoot "src\$ModuleName.psd1")
 
-$CodeVersion = "$($env:APPVEYOR_BUILD_VERSION.Split(".")[0..1] -join ".").99999"
-$BuildVersion = "$($env:APPVEYOR_BUILD_VERSION)"
+$CodeVersion = "$($VersionString.Split(".")[0..1] -join ".").99999"
+$BuildVersion = "$($VersionString)"
 Write-Host "Replacing CodeVersion: $CodeVersion with BuildVersion: $BuildVersion"
 (Get-Content $Module -Raw).replace($CodeVersion, $BuildVersion) | Set-Content $Module
+
+if (-not $IsPrerelease)
+{
+    Write-Host "Removing the prerelease tag in the manifest"
+    (Get-Content $Module -Raw).replace("Prerelease = '-pre'", "#Prerelease = '-pre'") | Set-Content $Module
+}
+else
+{
+    Write-Host "The module will be marked as prerelease"
+}
 
 $ModuleDef = (Invoke-Expression -Command (Get-Content $Module -Raw))
 if ($ModuleDef["ModuleVersion"] -ne $BuildVersion)
