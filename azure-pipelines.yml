@@ -96,7 +96,7 @@ jobs:
     inputs:
       targetType: inline
       failOnStderr: true
-      script: Publish-Module -Path $(Build.SourcesDirectory)\safeguard-ps -NuGetApiKey "$(PowerShellGalleryApiKey)" -Verbose -SkipAutomaticTags -Force
+      script: Publish-Module safeguard-ps -NuGetApiKey "$(PowerShellGalleryApiKey)" -Verbose -SkipAutomaticTags -Force
     displayName: 'Publish PowerShell module to PowerShell Gallery'
     condition: and( succeeded(), eq( variables.shouldPublishModule, true ) )
 
