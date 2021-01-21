@@ -2,7 +2,7 @@
 
 trigger:
   branches:
-    include: [ master, 6.* ]
+    include: [ master, release-* ]
 
 # Global Variables:
 #
@@ -15,6 +15,8 @@ trigger:
 variables:
   version: "6.9"
   isPrerelease: ${{ true }}
+  isReleaseBranch: $[ or( eq(variables['Build.SourceBranch'], 'refs/heads/master'), startsWith(variables['Build.SourceBranch'], 'refs/heads/release-') ) ]
+  shouldDeploy: $[ and( eq( isPrerelease, false ), eq( variables.isReleaseBranch, true ) ) ]
 
 jobs:
 - job:
@@ -76,7 +78,7 @@ jobs:
       KeyVaultName: 'SafeguardBuildSecrets'
       SecretsFilter: 'DockerHubAccessToken,DockerHubPassword'
     displayName: 'Get Docker Hub Access Token from Sandbox Azure Key Vault'
-    condition: and(succeeded(), eq(variables.isPrerelease, true))
+    condition: eq( variables.shouldDeploy, true )
 
   - task: PowerShell@2
     inputs:
@@ -86,7 +88,7 @@ jobs:
         docker push oneidentity/safeguard-ps:$(VersionString)-nanoserver
         docker logout
     displayName: 'Pushing Docker Windows Nano Server image to Docker Hub'
-    condition: and(succeeded(), eq(variables.isPrerelease, true))
+    condition: eq( variables.shouldDeploy, true )
 
 #- job:
 #  displayName: "Linux - Docker Images"
