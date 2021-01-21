@@ -101,6 +101,7 @@ jobs:
       script: |
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 
         Install-PackageProvider Nuget –Force
+        Get-PSRepository
         Publish-Module -Name safeguard-ps -NuGetApiKey "$(PowerShellGalleryApiKey)" -Verbose -SkipAutomaticTags -Force
     displayName: 'Publish PowerShell module to PowerShell Gallery'
     condition: and( succeeded(), eq( variables.shouldPublishModule, true ) )
