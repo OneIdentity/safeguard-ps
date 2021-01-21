@@ -4,7 +4,7 @@ MAINTAINER support@oneidentity.com
 COPY ["*.ps1", "c:/temp/safeguard/"]
 COPY ["src/", "c:/temp/safeguard/src/"]
 
-RUN pwsh -NoProfile -Command "if ($env:APPVEYOR_BUILD_VERSION) { C:\temp\safeguard\install-appveyor.ps1 'C:\Program Files\PowerShell\Modules' } else { C:\temp\safeguard\install-local.ps1 'C:\Program Files\PowerShell\Modules' }"
+RUN pwsh -NoProfile -Command "C:\temp\safeguard\install-local.ps1 'C:\Program Files\PowerShell\Modules' }"
 
 ENTRYPOINT [ "pwsh" ]
 CMD ["-NoExit", "-Command", "Get-SafeguardBanner"]
