@@ -32,6 +32,18 @@ jobs:
       arguments: $(version) $(Build.BuildId)
     displayName: 'Setting build version'
 
+  - task: PowerShell@2
+    inputs:
+      targetType: inline
+      script: |
+        $local:TargetDir = (($env:PSModulePath -split ';') | Where-Object { $_.StartsWith($env:UserProfile) })[0]
+        if (-not $TargetDir)
+        {
+          throw "Unable to find a PSModulePath in your user profile (" + $env:UserProfile + "), PSModulePath: " + $env:PSModulePath
+        }
+        $local:TargetDir = (Resolve-Path $local:TargetDir)
+        Write-Output "##vso[task.setvariable variable=ModuleDir;]$($local:TargetDir)"
+
   - task: Bash@3
     inputs:
       targetType: 'inline'
@@ -42,12 +54,15 @@ jobs:
     inputs:
       targetType: filePath
       filePath: $(System.DefaultWorkingDirectory)\install-forpipeline.ps1
-      arguments: $(Build.SourcesDirectory) $(VersionString) $$(isPrerelease)
+      arguments: $(ModuleDir) $(VersionString) $$(isPrerelease)
     displayName: 'Building PowerShell module'
     continueOnError: false
     condition: succeeded()
 
-  - powershell: Import-Module -Name safeguard-ps -Verbose
+  - task: PowerShell@2
+    inputs:
+      targetType: inline
+      script: Import-Module -Name safeguard-ps -Verbose
     displayName: 'Ensure that PowerShell module loads'
     continueOnError: false
     condition: succeeded()
@@ -71,7 +86,10 @@ jobs:
     continueOnError: false
     condition: and( succeeded(), eq( variables.shouldDeploy, true ) )
 
-  - powershell: Publish-Module -Path $(Build.SourcesDirectory)\safeguard-ps -NuGetApiKey "$(PowerShellGalleryApiKey)" -Verbose -SkipAutomaticTags -Force
+  - task: PowerShell@2
+    inputs:
+      targetType: inline
+      script: Publish-Module -Path $(Build.SourcesDirectory)\safeguard-ps -NuGetApiKey "$(PowerShellGalleryApiKey)" -Verbose -SkipAutomaticTags -Force
     displayName: 'Publish PowerShell module to PowerShell Gallery'
     continueOnError: false
     condition: and( succeeded(), eq( variables.shouldDeploy, true ) )
