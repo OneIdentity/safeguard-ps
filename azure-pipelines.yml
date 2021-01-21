@@ -46,12 +46,15 @@ jobs:
     displayName: 'Building PowerShell module'
     condition: succeeded()
 
+  - powershell: Import-Module -Name safeguard-ps -Verbose
+    displayName: 'Ensure that PowerShell module loads'
+    condition: succeeded()
+
   - task: PowerShell@2
     inputs:
       targetType: inline
       script: |
-        Import-Module -Name safeguard-ps -Verbose
-        & .\invoke-docker-build.ps1 nanoserver $(VersionString)
+        & $(System.DefaultWorkingDirectory)\invoke-docker-build.ps1 nanoserver $(VersionString)
         docker tag oneidentity/safeguard-ps:$(VersionString)-nanoserver oneidentity/safeguard-ps:$(VersionString)-windows
     displayName: 'Building Windows Docker image'
     condition: succeeded()
