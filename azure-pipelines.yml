@@ -69,7 +69,9 @@ jobs:
     inputs:
       targetType: inline
       failOnStderr: true
-      script: Import-Module -Name safeguard-ps -Verbose
+      script: |
+        Import-Module -Name safeguard-ps -Verbose
+        Get-PSRepository
     displayName: 'Ensure that PowerShell module loads'
     condition: succeeded()
 
