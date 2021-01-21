@@ -37,12 +37,13 @@ jobs:
       targetType: inline
       script: |
         Write-Host "PSModulePath = $($env:PSModulePath)"
-        $local:TargetDir = (($env:PSModulePath -split ';') | Where-Object { $_.StartsWith($env:UserProfile) })[0]
+        $local:TargetDir = (($env:PSModulePath -split ';') | Where-Object { Test-Path $_ })[0]
         if (-not $TargetDir)
         {
           throw "Unable to find a PSModulePath in your user profile (" + $env:UserProfile + "), PSModulePath: " + $env:PSModulePath
         }
         $local:TargetDir = (Resolve-Path $local:TargetDir)
+        Write-Host "ModuleDir = $($local:TargetDir)"
         Write-Output "##vso[task.setvariable variable=ModuleDir;]$($local:TargetDir)"
     displayName: 'Find PowerShell module path'
     condition: succeeded()
