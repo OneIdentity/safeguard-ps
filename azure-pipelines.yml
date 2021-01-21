@@ -96,7 +96,7 @@ jobs:
     inputs:
       targetType: 'filePath'
       filePath: '$(System.DefaultWorkingDirectory)/versionnumber.sh'
-      arguments: $(Build.SourcesDirectory) $(semanticVersion) $(Build.BuildId)
+      arguments: $(version) $(Build.BuildId)
     displayName: 'Setting build version'
 
   - task: Bash@3
