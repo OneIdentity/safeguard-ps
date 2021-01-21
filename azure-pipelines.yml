@@ -28,6 +28,7 @@ jobs:
   - task: PowerShell@2
     inputs:
       targetType: filePath
+      failOnStderr: true
       filePath: $(System.DefaultWorkingDirectory)\versionnumber.ps1
       arguments: $(version) $(Build.BuildId)
     displayName: 'Setting build version'
@@ -35,6 +36,7 @@ jobs:
   - task: PowerShell@2
     inputs:
       targetType: inline
+      failOnStderr: true
       script: |
         Write-Host "PSModulePath = $($env:PSModulePath)"
         $local:TargetDir = (($env:PSModulePath -split ';') | Where-Object { Test-Path $_ })[0]
@@ -60,25 +62,24 @@ jobs:
       filePath: $(System.DefaultWorkingDirectory)\install-forpipeline.ps1
       arguments: $(ModuleDir) $(VersionString) $$(isPrerelease)
     displayName: 'Building PowerShell module'
-    continueOnError: false
     condition: succeeded()
 
   - task: PowerShell@2
     inputs:
       targetType: inline
+      failOnStderr: true
       script: Import-Module -Name safeguard-ps -Verbose
     displayName: 'Ensure that PowerShell module loads'
-    continueOnError: false
     condition: succeeded()
 
   - task: PowerShell@2
     inputs:
       targetType: inline
+      failOnStderr: true
       script: |
         & $(System.DefaultWorkingDirectory)\invoke-docker-build.ps1 nanoserver $(VersionString)
         docker tag oneidentity/safeguard-ps:$(VersionString)-nanoserver oneidentity/safeguard-ps:$(VersionString)-windows
     displayName: 'Building Windows Docker image'
-    continueOnError: false
     condition: succeeded()
 
   - task: AzureKeyVault@1
@@ -87,15 +88,14 @@ jobs:
       KeyVaultName: 'SafeguardBuildSecrets'
       SecretsFilter: 'PowerShellGalleryApiKey'
     displayName: 'Get PowerShell Gallery API key from Sandbox Azure Key Vault'
-    continueOnError: false
     condition: and( succeeded(), eq( variables.shouldDeploy, true ) )
 
   - task: PowerShell@2
     inputs:
       targetType: inline
+      failOnStderr: true
       script: Publish-Module -Path $(Build.SourcesDirectory)\safeguard-ps -NuGetApiKey "$(PowerShellGalleryApiKey)" -Verbose -SkipAutomaticTags -Force
     displayName: 'Publish PowerShell module to PowerShell Gallery'
-    continueOnError: false
     condition: and( succeeded(), eq( variables.shouldDeploy, true ) )
 
   - task: AzureKeyVault@1
@@ -110,12 +110,12 @@ jobs:
   - task: PowerShell@2
     inputs:
       targetType: inline
+      failOnStderr: true
       script: |
         docker login -u petrsnd -p $(DockerHubAccessToken)
         docker push oneidentity/safeguard-ps:$(VersionString)-nanoserver
         docker logout
     displayName: 'Pushing Docker Windows Nano Server image to Docker Hub'
-    continueOnError: false
     condition: and( succeeded(), eq( variables.shouldDeploy, true ) )
 
 - job:
@@ -127,6 +127,7 @@ jobs:
   - task: Bash@3
     inputs:
       targetType: 'filePath'
+      failOnStderr: true
       filePath: '$(System.DefaultWorkingDirectory)/versionnumber.sh'
       arguments: $(version) $(Build.BuildId)
     displayName: 'Setting build version'
@@ -140,6 +141,7 @@ jobs:
   - task: Bash@3
     inputs:
       targetType: inline
+      failOnStderr: true
       script: |
         $(System.DefaultWorkingDirectory)/build-docker.sh ubuntu18.04 $(VersionString)
         $(System.DefaultWorkingDirectory)/build-docker.sh ubuntu16.04 $(VersionString)
@@ -148,7 +150,6 @@ jobs:
         $(System.DefaultWorkingDirectory)/build-docker.sh opensuse42.3 $(VersionString)
         $(System.DefaultWorkingDirectory)/build-docker.sh fedora28 $(VersionString)
         docker tag oneidentity/safeguard-ps:$(VersionString)-alpine3.8 oneidentity/safeguard-ps:latest
-      failOnStderr: true
     displayName: 'Build Linux Docker images'
     condition: succeeded()
 
@@ -163,6 +164,7 @@ jobs:
   - task: Bash@3
     inputs:
       targetType: 'inline'
+      failOnStderr: true
       script: |
         docker login -u petrsnd --password-stdin <<<$(DockerHubAccessToken) 2>/dev/null
         docker push oneidentity/safeguard-ps:$(VersionString)-ubuntu18.04
@@ -173,6 +175,5 @@ jobs:
         docker push oneidentity/safeguard-ps$(VersionString)-fedora28
         docker push oneidentity/safeguard-ps:latest
         docker logout
-      failOnStderr: true
     condition: and( succeeded(), eq(variables.shouldDeploy, true) )
     displayName: 'Pushing Linux Docker images to Docker Hub'
