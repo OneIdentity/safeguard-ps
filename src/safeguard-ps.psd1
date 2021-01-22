@@ -76,7 +76,6 @@ NestedModules = @(
     'desktopclient.psm1',
     'maintenance.psm1',
     'diagnostics.psm1',
-    'sessionmodule.psm1',
     'sessionjoin.psm1',
     'archives.psm1',
     'requests.psm1',
@@ -147,12 +146,6 @@ FunctionsToExport = @(
     'Invoke-SafeguardDiagnosticPackage','Get-SafeguardDiagnosticPackageStatus','Get-SafeguardDiagnosticPackageLog',
     'Invoke-SafeguardMemberThroughput','Invoke-SafeguardClusterThroughput',
     'Invoke-SafeguardMemberPing','Invoke-SafeguardClusterPing',
-    # sessionmodule.psm1
-    'Get-SafeguardSessionContainerStatus','Get-SafeguardSessionModuleStatus','Get-SafeguardSessionModuleVersion',
-    'Reset-SafeguardSessionModule','Repair-SafeguardSessionModule',
-    'Get-SafeguardSessionCertificate','Install-SafeguardSessionCertificate','Reset-SafeguardSessionCertificate',
-    'Get-SafeguardSessionSshAlgorithms','Set-SafeguardSessionSshAlgorithms',
-    'Add-SafeguardSessionSshAlgorithm','Remove-SafeguardSessionSshAlgorithm',
     # sessionjoin.psm1
     'Get-SafeguardSessionCluster','Set-SafeguardSessionCluster','Join-SafeguardSessionCluster','Split-SafeguardSessionCluster',
     'Get-SafeguardSessionSplitCluster','Remove-SafeguardSessionSplitCluster',

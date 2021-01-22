@@ -375,21 +375,6 @@ update this list.
 - Invoke-SafeguardTelnet
 - Invoke-SafeguardSessionsTelnet
 
-### Session Module
-
-- Get-SafeguardSessionContainerStatus
-- Get-SafeguardSessionModuleStatus
-- Get-SafeguardSessionModuleVersion
-- Reset-SafeguardSessionModule
-- Repair-SafeguardSessionModule
-- Get-SafeguardSessionCertificate
-- Install-SafeguardSessionCertificate
-- Reset-SafeguardSessionCertificate
-- Get-SafeguardSessionSshAlgorithms
-- Set-SafeguardSessionSshAlgorithms
-- Add-SafeguardSessionSshAlgorithm
-- Remove-SafeguardSessionSshAlgorithm
-
 ### Session Cluster Join
 
 - Get-SafeguardSessionCluster
