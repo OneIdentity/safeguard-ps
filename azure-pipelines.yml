@@ -69,7 +69,9 @@ jobs:
     inputs:
       targetType: inline
       failOnStderr: true
-      script: Import-Module -Name safeguard-ps -Verbose
+      script: |
+        Import-Module -Name safeguard-ps -Verbose
+        Get-PSRepository
     displayName: 'Ensure that PowerShell module loads'
     condition: succeeded()
 
@@ -96,7 +98,11 @@ jobs:
     inputs:
       targetType: inline
       failOnStderr: true
-      script: Publish-Module -Name safeguard-ps -NuGetApiKey "$(PowerShellGalleryApiKey)" -Verbose -SkipAutomaticTags -Force
+      script: |
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 
+        Install-PackageProvider Nuget –Force
+        Get-PSRepository
+        Publish-Module -Name safeguard-ps -NuGetApiKey "$(PowerShellGalleryApiKey)" -Verbose -SkipAutomaticTags -Force
     displayName: 'Publish PowerShell module to PowerShell Gallery'
     condition: and( succeeded(), eq( variables.shouldPublishModule, true ) )
 
