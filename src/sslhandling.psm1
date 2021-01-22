@@ -18,8 +18,14 @@ function Disable-SslVerification
         else
         {
             Write-Verbose "Disabling SSL on non-Windows platform"
-            $global:PSDefaultParameterValues.Add("Invoke-RestMethod:SkipCertificateCheck",$true)
-            $global:PSDefaultParameterValues.Add("Invoke-WebRequest:SkipCertificateCheck",$true)
+            if (-not $global:PSDefaultParameterValues.Contains("Invoke-RestMethod:SkipCertificateCheck"))
+            {
+                $global:PSDefaultParameterValues.Add("Invoke-RestMethod:SkipCertificateCheck",$true)
+            }
+            if (-not $global:PSDefaultParameterValues.Contains("Invoke-WebRequest:SkipCertificateCheck"))
+            {
+                $global:PSDefaultParameterValues.Add("Invoke-WebRequest:SkipCertificateCheck",$true)
+            }
         }
     }
     else
