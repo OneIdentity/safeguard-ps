@@ -141,7 +141,7 @@ FunctionsToExport = @(
     'Get-SafeguardTls12OnlyStatus',
     'Test-SafeguardAuditLogArchive',
     # diagnostics.psm1
-    'Invoke-SafeguardPing','Invoke-SafeguardSessionsPing','Invoke-SafeguardTelnet','Invoke-SafeguardSessionsTelnet',
+    'Invoke-SafeguardPing','Invoke-SafeguardTelnet',
     'Get-SafeguardDiagnosticPackage','Set-SafeguardDiagnosticPackage','Clear-SafeguardDiagnosticPackage',
     'Invoke-SafeguardDiagnosticPackage','Get-SafeguardDiagnosticPackageStatus','Get-SafeguardDiagnosticPackageLog',
     'Invoke-SafeguardMemberThroughput','Invoke-SafeguardClusterThroughput',

@@ -371,9 +371,7 @@ update this list.
 ### Diagnostics
 
 - Invoke-SafeguardPing
-- Invoke-SafeguardSessionsPing
 - Invoke-SafeguardTelnet
-- Invoke-SafeguardSessionsTelnet
 
 ### Session Cluster Join
 
