@@ -539,7 +539,7 @@ function Edit-SafeguardA2a
     {
         $local:A2aId = (Resolve-SafeguardA2aId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $A2aToEdit)
         $A2aObject = (Get-SafeguardA2a $local:A2aId)
-        if ($PSBoundParameters.ContainsKey("Name")) { $A2aObject.AppName = $AppName }
+        if ($PSBoundParameters.ContainsKey("Name")) { $A2aObject.AppName = $Name }
         if ($PSBoundParameters.ContainsKey("Description")) { $A2aObject.Description = $Description }
         if ($PSBoundParameters.ContainsKey("CertificateUser"))
         {
