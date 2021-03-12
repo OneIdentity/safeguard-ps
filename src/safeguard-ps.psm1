@@ -733,7 +733,7 @@ function Connect-Safeguard
                 {
                     Write-Verbose "Calling RSTS token service for password authentication..."
                     $local:Scope = "rsts:sts:primaryproviderid:$($IdentityProvider.ToLower())"
-                    $RstsResponse = (Invoke-RestMethod -Method POST -Headers @{
+                    $local:RstsResponse = (Invoke-RestMethod -Method POST -Headers @{
                         "Accept" = "application/json";
                         "Content-type" = "application/json"
                     } -Uri "https://$Appliance/RSTS/oauth2/token" -Body @"
