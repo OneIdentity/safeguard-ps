@@ -47,6 +47,7 @@ else
 {
     Write-Host "Removing module directory '$ModuleDir' contents"
     (Get-ChildItem $ModuleDir) | ForEach-Object {
+        Remove-Item -Recurse -Force (Join-Path $_ *)
         Remove-Item -Recurse -Force $_
     }
 }
