@@ -18,7 +18,7 @@ function Resolve-SafeguardA2aId
 
     if ($A2a.Id -as [int])
     {
-        $A2a = $User.Id
+        $A2a = $A2a.Id
     }
 
     if (-not ($A2a -as [int]))
@@ -347,6 +347,9 @@ A string containing a description for this A2A registration.
 .PARAMETER CertificateUser
 An integer containing the ID of the certificate user or a string containing the name.
 
+.PARAMETER VisibleToCertificateUsers
+Whether to make this A2A registration visible to the certificate user.
+
 .INPUTS
 None.
 
@@ -357,7 +360,7 @@ JSON response from Safeguard Web API.
 New-SafeguardA2a -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
-New-SafeguardA2a "Ticket System" TicketSystemUser -Description "Ticket System Requester"
+New-SafeguardA2a "Ticket System" TicketSystemUser -Description "Ticket System Requester" -VisibleToCertificateUsers
 #>
 function New-SafeguardA2a
 {
@@ -374,7 +377,9 @@ function New-SafeguardA2a
         [Parameter(Mandatory=$true,Position=1)]
         [object]$CertificateUser,
         [Parameter(Mandatory=$false)]
-        [string]$Description
+        [string]$Description,
+        [Parameter(Mandatory=$false)]
+        [switch]$VisibleToCertificateUsers
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -389,6 +394,7 @@ function New-SafeguardA2a
     }
 
     if ($PSBoundParameters.ContainsKey("Description")) { $local:Body.Description = $Description }
+    if ($VisibleToCertificateUsers) { $local:Body.VisibleToCertificateUsers = $true }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "A2ARegistrations" -Body $local:Body
 }
@@ -468,8 +474,20 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER Name
+A string containing the new name for the A2A registration.
+
+.PARAMETER CertificateUser
+An integer containing the ID of the certificate user or a string containing the name.
+
+.PARAMETER Description
+A string containing a description for this A2A registration.
+
 .PARAMETER A2aObject
 An object containing the existing A2A registration with desired properties set.
+
+.PARAMETER VisibleToCertificateUsers
+Whether to make this A2A registration visible to the certificate user.
 
 .INPUTS
 None.
@@ -478,11 +496,20 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
+Edit-SafeguardA2a "OldName" -Name "NewName" -Description "This is a better name" -VisibleToCertificateUsers
+
+.EXAMPLE
+Edit-SafeguardA2a 5 -VisibleToCertificateUsers
+
+.EXAMPLE
+Edit-SafeguardA2a $obj -VisibleToCertificateUsers
+
+.EXAMPLE
 Edit-SafeguardA2a -AccessToken $token -Appliance 10.5.32.54 -Insecure -A2aObject $obj
 #>
 function Edit-SafeguardA2a
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Attributes")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -490,6 +517,16 @@ function Edit-SafeguardA2a
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$true,Position=0)]
+        [object]$A2aToEdit,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$Name,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$Description,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [object]$CertificateUser,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [switch]$VisibleToCertificateUsers,
         [Parameter(ParameterSetName="Object",Mandatory=$true,Position=0,ValueFromPipeline=$true)]
         [object]$A2aObject
     )
@@ -498,9 +535,29 @@ function Edit-SafeguardA2a
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
 
-    if (-not $A2aObject)
+    if ($PSCmdlet.ParameterSetName -eq "Attributes")
     {
-        throw "A2aObject must not be null"
+        $local:A2aId = (Resolve-SafeguardA2aId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $A2aToEdit)
+        $A2aObject = (Get-SafeguardA2a $local:A2aId)
+        if ($PSBoundParameters.ContainsKey("Name")) { $A2aObject.AppName = $Name }
+        if ($PSBoundParameters.ContainsKey("Description")) { $A2aObject.Description = $Description }
+        if ($PSBoundParameters.ContainsKey("CertificateUser"))
+        {
+            $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $CertificateUser)
+            $A2aObject.CertificateUserId = $local:UserId;
+        }
+        if ($PSBoundParameters.ContainsKey("VisibleToCertificateUsers"))
+        {
+            if ($VisibleToCertificateUsers) { $A2aObject.VisibleToCertificateUsers = $true }
+            else { $A2aObject.VisibleToCertificateUsers = $false }
+        }
+    }
+    else
+    {
+        if (-not $A2aObject)
+        {
+            throw "A2aObject must not be null"
+        }
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `

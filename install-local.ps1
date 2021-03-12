@@ -25,6 +25,7 @@ if (-not $TargetDir)
     {
         throw "Unable to find a PSModulePath in your user profile (" + $UserProf + "), PSModulePath: " + $env:PSModulePath
     }
+    Write-Host "Selected target directory = '$TargetDir'"
 }
 
 if (-not (Test-Path $TargetDir))
@@ -38,6 +39,7 @@ $ModuleDef = (Invoke-Expression -Command (Get-Content $Module -Raw))
 
 Write-Host "Installing '$ModuleName $($ModuleDef["ModuleVersion"])' to '$TargetDir'"
 $ModuleDir = (Join-Path $TargetDir $ModuleName)
+Write-Host "Module directory = '$ModuleDir'"
 if (-not (Test-Path $ModuleDir))
 {
     Write-Host "Creating module directory '$ModuleDir'"
@@ -45,8 +47,11 @@ if (-not (Test-Path $ModuleDir))
 }
 else
 {
-    Write-Host "Removing module directory '$ModuleDir'"
-    Remove-Item -Recurse -Force (Join-Path $ModuleDir "*")
+    Write-Host "Removing module directory '$ModuleDir' contents"
+    (Get-ChildItem $ModuleDir) | ForEach-Object {
+        Remove-Item -Recurse -Force (Join-Path $_.FullName *)
+        Remove-Item -Recurse -Force $_.FullName
+    }
 }
 $VersionDir = (Join-Path $ModuleDir $ModuleDef["ModuleVersion"])
 if (-not (Test-Path $VersionDir))

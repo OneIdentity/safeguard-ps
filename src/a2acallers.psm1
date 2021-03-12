@@ -255,6 +255,7 @@ function Get-SafeguardA2aRetrievableAccount
                 ApiKey = $_.ApiKey;
                 AssetId = $_.SystemId;
                 AssetName = $_.SystemName;
+                NetworkAddress = $_.NetworkAddress;
                 AccountId = $_.AccountId;
                 AccountName = $_.AccountName;
                 DomainName = $_.DomainName;
