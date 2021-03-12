@@ -360,7 +360,7 @@ JSON response from Safeguard Web API.
 New-SafeguardA2a -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
-New-SafeguardA2a "Ticket System" TicketSystemUser -Description "Ticket System Requester"
+New-SafeguardA2a "Ticket System" TicketSystemUser -Description "Ticket System Requester" -VisibleToCertificateUsers
 #>
 function New-SafeguardA2a
 {
