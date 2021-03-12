@@ -45,8 +45,10 @@ if (-not (Test-Path $ModuleDir))
 }
 else
 {
-    Write-Host "Removing module directory '$ModuleDir'"
-    Remove-Item -Recurse -Force (Join-Path $ModuleDir "*")
+    Write-Host "Removing module directory '$ModuleDir' contents"
+    (Get-ChildItem $ModuleDir) | ForEach-Object {
+        Remove-Item -Recurse -Force $_
+    }
 }
 $VersionDir = (Join-Path $ModuleDir $ModuleDef["ModuleVersion"])
 if (-not (Test-Path $VersionDir))
