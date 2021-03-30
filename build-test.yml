@@ -10,13 +10,13 @@ pr:
     exclude:
       - README.md
 jobs:
-  - job: Build Windows
+  - job: Build_Windows
     displayName: "Windows - Build module and Docker image"
     pool:
       vmImage: 'windows-latest'
     steps:
       - template: pipeline-templates/build-windows-steps.yml
-  - job: Build Linux
+  - job: Build_Linux
     displayName: "Linux - build module and Docker images"
     pool:
       vmImage: 'ubuntu-latest'

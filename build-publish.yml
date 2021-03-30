@@ -10,7 +10,7 @@ trigger:
       - README.md
 pr: none
 jobs:
-  - job: Build Windows
+  - job: Build_Windows
     displayName: "Windows - Build module and Docker image, publish to PowerShell Gallery, and publish to Docker Hub"
     pool:
       vmImage: 'windows-latest'
@@ -52,7 +52,7 @@ jobs:
             docker logout
         displayName: 'Pushing Docker Windows Nano Server image to Docker Hub'
         condition: and( succeeded(), eq( variables.shouldPublishDocker, true ) )
-  - job: Build Linux
+  - job: Build_Linux
     displayName: "Linux - build module and Docker images, publish images to Docker Hub"
     pool:
       vmImage: 'ubuntu-latest'
