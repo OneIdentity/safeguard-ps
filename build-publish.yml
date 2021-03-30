@@ -1,0 +1,97 @@
+variables:
+  - template: pipeline-templates/global-variables.yml
+trigger:
+  branches:
+    include:
+      - master
+      - release-*
+  paths:
+    exclude:
+      - README.md
+pr: none
+jobs:
+  - job: Build_Windows
+    displayName: "Windows - Build module and Docker image, publish to PowerShell Gallery, and publish to Docker Hub"
+    pool:
+      vmImage: 'windows-latest'
+    steps:
+      - template: pipeline-templates/build-windows-steps.yml
+      - task: AzureKeyVault@1
+        inputs:
+          azureSubscription: 'OneIdentity.RD.SBox.Safeguard-ServiceConnection'
+          KeyVaultName: 'SafeguardBuildSecrets'
+          SecretsFilter: 'PowerShellGalleryApiKey'
+        displayName: 'Get PowerShell Gallery API key from Sandbox Azure Key Vault'
+        condition: and( succeeded(), eq( variables.shouldPublishModule, true ) )
+      - task: PowerShell@2
+        inputs:
+          targetType: inline
+          failOnStderr: true
+          script: |
+            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+            Install-PackageProvider Nuget –Force
+            Get-PSRepository
+            Publish-Module -Name safeguard-ps -NuGetApiKey "$(PowerShellGalleryApiKey)" -Verbose -SkipAutomaticTags -Force
+        displayName: 'Publish PowerShell module to PowerShell Gallery'
+        condition: and( succeeded(), eq( variables.shouldPublishModule, true ) )
+      - task: AzureKeyVault@1
+        inputs:
+          azureSubscription: 'OneIdentity.RD.SBox.Safeguard-ServiceConnection'
+          KeyVaultName: 'SafeguardBuildSecrets'
+          SecretsFilter: 'DockerHubAccessToken,DockerHubPassword'
+        displayName: 'Get Docker Hub Access Token from Sandbox Azure Key Vault'
+        continueOnError: false
+        condition: and( succeeded(), eq( variables.shouldPublishDocker, true ) )
+      - task: PowerShell@2
+        inputs:
+          targetType: inline
+          failOnStderr: true
+          script: |
+            docker login -u petrsnd -p $(DockerHubAccessToken)
+            docker push oneidentity/safeguard-ps:$(VersionString)-nanoserver
+            docker logout
+        displayName: 'Pushing Docker Windows Nano Server image to Docker Hub'
+        condition: and( succeeded(), eq( variables.shouldPublishDocker, true ) )
+  - job: Build_Linux
+    displayName: "Linux - build module and Docker images, publish images to Docker Hub"
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+      - template: pipeline-templates/build-linux-steps.yml
+      - task: Bash@3
+        inputs:
+          targetType: inline
+          failOnStderr: true
+          script: |
+            $(System.DefaultWorkingDirectory)/build-docker.sh ubuntu18.04 $(VersionString)
+            $(System.DefaultWorkingDirectory)/build-docker.sh ubuntu16.04 $(VersionString)
+            $(System.DefaultWorkingDirectory)/build-docker.sh centos7 $(VersionString)
+            $(System.DefaultWorkingDirectory)/build-docker.sh alpine3.8 $(VersionString)
+            $(System.DefaultWorkingDirectory)/build-docker.sh opensuse42.3 $(VersionString)
+            $(System.DefaultWorkingDirectory)/build-docker.sh fedora28 $(VersionString)
+            docker tag oneidentity/safeguard-ps:$(VersionString)-alpine3.8 oneidentity/safeguard-ps:latest
+        displayName: 'Build Linux Docker images'
+        condition: succeeded()
+      - task: AzureKeyVault@1
+        inputs:
+          azureSubscription: 'OneIdentity.RD.SBox.Safeguard-ServiceConnection'
+          KeyVaultName: 'SafeguardBuildSecrets'
+          SecretsFilter: 'DockerHubAccessToken,DockerHubPassword'
+        displayName: 'Get Docker Hub Access Token from Sandbox Azure Key Vault'
+        condition: and( succeeded(), eq( variables.shouldPublishDocker, true ) )
+      - task: Bash@3
+        inputs:
+          targetType: 'inline'
+          failOnStderr: true
+          script: |
+            docker login -u petrsnd --password-stdin <<<$(DockerHubAccessToken) 2>/dev/null
+            docker push oneidentity/safeguard-ps:$(VersionString)-ubuntu18.04
+            docker push oneidentity/safeguard-ps:$(VersionString)-ubuntu16.04
+            docker push oneidentity/safeguard-ps:$(VersionString)-centos7
+            docker push oneidentity/safeguard-ps:$(VersionString)-alpine3.8
+            docker push oneidentity/safeguard-ps:$(VersionString)-opensuse42.3
+            docker push oneidentity/safeguard-ps$(VersionString)-fedora28
+            docker push oneidentity/safeguard-ps:latest
+            docker logout
+        condition: and( succeeded(), eq(variables.shouldPublishDocker, true) )
+        displayName: 'Pushing Linux Docker images to Docker Hub'
