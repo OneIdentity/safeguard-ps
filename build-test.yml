@@ -1,0 +1,24 @@
+variables:
+  - template: pipeline-templates/global-variables.yml
+trigger: none
+pr:
+  branches:
+    include:
+      - master
+      - release-*
+  paths:
+    exclude:
+      - README.md
+jobs:
+  - job: Build Windows
+    displayName: "Windows - Build module and Docker image"
+    pool:
+      vmImage: 'windows-latest'
+    steps:
+      - template: pipeline-templates/build-windows-steps.yml
+  - job: Build Linux
+    displayName: "Linux - build module and Docker images"
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+      - template: pipeline-templates/build-linux-steps.yml
