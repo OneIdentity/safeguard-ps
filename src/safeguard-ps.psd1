@@ -320,9 +320,14 @@ PrivateData = @{
 
         # ReleaseNotes of this module
         ReleaseNotes = @"
-safeguard-ps 6.9 Release Notes:
+safeguard-ps Release Notes:
 
-- bug fixes
+- Fixed an issue with Join-SafeguardSessionCluster
+- Fixed an issue with ignoring SSL certificate verification on non-Windows platforms
+- Removed the old embedded session module cmdlet support
+- Added network address to Get-SafeguardA2aRetrievableAccount output
+- Improved ability to edit A2A registrations and support to add VisibleToCertificateUsers property
+- Worked around issues with OneDrive PS module path
 "@
 
     } # End of PSData hashtable
