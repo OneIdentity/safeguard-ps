@@ -46,7 +46,7 @@ jobs:
           failOnStderr: true
           script: |
             docker login -u petrsnd --password-stdin <<<$(DockerHubAccessToken) 2>/dev/null
-            docker push oneidentity/safeguard-ps:$(VersionString)-ubuntu18.04
+            docker push oneidentity/safeguard-ps:$(VersionString)-nanoserver
             docker logout
         displayName: 'Pushing Docker Windows Nano Server image to Docker Hub'
         condition: and( succeeded(), eq( variables.shouldPublishDocker, true ) )
@@ -56,20 +56,6 @@ jobs:
       vmImage: 'ubuntu-latest'
     steps:
       - template: pipeline-templates/build-linux-steps.yml
-      - task: Bash@3
-        inputs:
-          targetType: inline
-          failOnStderr: true
-          script: |
-            $(System.DefaultWorkingDirectory)/build-docker.sh ubuntu18.04 $(VersionString)
-            $(System.DefaultWorkingDirectory)/build-docker.sh ubuntu16.04 $(VersionString)
-            $(System.DefaultWorkingDirectory)/build-docker.sh centos7 $(VersionString)
-            $(System.DefaultWorkingDirectory)/build-docker.sh alpine3.8 $(VersionString)
-            $(System.DefaultWorkingDirectory)/build-docker.sh opensuse42.3 $(VersionString)
-            $(System.DefaultWorkingDirectory)/build-docker.sh fedora28 $(VersionString)
-            docker tag oneidentity/safeguard-ps:$(VersionString)-alpine3.8 oneidentity/safeguard-ps:latest
-        displayName: 'Build Linux Docker images'
-        condition: succeeded()
       - task: AzureKeyVault@1
         inputs:
           azureSubscription: 'OneIdentity.RD.SBox.Safeguard-ServiceConnection'
