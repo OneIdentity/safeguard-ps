@@ -40,12 +40,12 @@ jobs:
         displayName: 'Get Docker Hub Access Token from Sandbox Azure Key Vault'
         continueOnError: false
         condition: and( succeeded(), eq( variables.shouldPublishDocker, true ) )
-      - task: PowerShell@2
+      - task: Bash@3
         inputs:
-          targetType: inline
+          targetType: 'inline'
           failOnStderr: true
           script: |
-            docker login -u petrsnd -p $(DockerHubAccessToken)
+            docker login -u petrsnd --password-stdin <<<$(DockerHubAccessToken) 2>/dev/null
             docker push oneidentity/safeguard-ps:$(VersionString)-nanoserver
             docker logout
         displayName: 'Pushing Docker Windows Nano Server image to Docker Hub'
@@ -56,20 +56,6 @@ jobs:
       vmImage: 'ubuntu-latest'
     steps:
       - template: pipeline-templates/build-linux-steps.yml
-      - task: Bash@3
-        inputs:
-          targetType: inline
-          failOnStderr: true
-          script: |
-            $(System.DefaultWorkingDirectory)/build-docker.sh ubuntu18.04 $(VersionString)
-            $(System.DefaultWorkingDirectory)/build-docker.sh ubuntu16.04 $(VersionString)
-            $(System.DefaultWorkingDirectory)/build-docker.sh centos7 $(VersionString)
-            $(System.DefaultWorkingDirectory)/build-docker.sh alpine3.8 $(VersionString)
-            $(System.DefaultWorkingDirectory)/build-docker.sh opensuse42.3 $(VersionString)
-            $(System.DefaultWorkingDirectory)/build-docker.sh fedora28 $(VersionString)
-            docker tag oneidentity/safeguard-ps:$(VersionString)-alpine3.8 oneidentity/safeguard-ps:latest
-        displayName: 'Build Linux Docker images'
-        condition: succeeded()
       - task: AzureKeyVault@1
         inputs:
           azureSubscription: 'OneIdentity.RD.SBox.Safeguard-ServiceConnection'
@@ -88,7 +74,7 @@ jobs:
             docker push oneidentity/safeguard-ps:$(VersionString)-centos7
             docker push oneidentity/safeguard-ps:$(VersionString)-alpine3.8
             docker push oneidentity/safeguard-ps:$(VersionString)-opensuse42.3
-            docker push oneidentity/safeguard-ps$(VersionString)-fedora28
+            docker push oneidentity/safeguard-ps:$(VersionString)-fedora28
             docker push oneidentity/safeguard-ps:latest
             docker logout
         condition: and( succeeded(), eq(variables.shouldPublishDocker, true) )
