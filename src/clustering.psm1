@@ -831,6 +831,7 @@ function Unlock-SafeguardCluster
         Wait-ForClusterOperation -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout
     }
 }
+New-Alias -Name Clear-SafeguardClusterOperation -Value Unlock-SafeguardCluster
 
 <#
 .SYNOPSIS
@@ -1236,7 +1237,7 @@ function Invoke-SafeguardMemberThroughput
 Test VPN throughput for the entire cluster using the Safeguard Web API.
 
 .DESCRIPTION
-This cmdlet will test VPN throughput from all appliances to every other 
+This cmdlet will test VPN throughput from all appliances to every other
 appliance in the cluster.
 
 .PARAMETER Appliance
@@ -1427,7 +1428,7 @@ function Invoke-SafeguardMemberPing
 Test ping latency for the entire cluster using the Safeguard Web API.
 
 .DESCRIPTION
-This cmdlet will test ping latency from all appliances to every other 
+This cmdlet will test ping latency from all appliances to every other
 appliance in the cluster.
 
 .PARAMETER Appliance

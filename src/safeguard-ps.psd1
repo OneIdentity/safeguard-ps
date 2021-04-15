@@ -286,7 +286,9 @@ AliasesToExport = @(
     # requests.psm1
     'Get-SafeguardAccessRequestCheckoutPassword',
     'Get-SafeguardMyRequestable','Find-SafeguardMyRequestable',
-    'Revoke-SafeguardAccessRequest'
+    'Revoke-SafeguardAccessRequest',
+    # clustering.psm1
+    'Clear-SafeguardClusterOperation'
 )
 
 # DSC resources to export from this module
