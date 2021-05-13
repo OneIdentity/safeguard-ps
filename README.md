@@ -349,7 +349,7 @@ update this list.
 - Disable-SafeguardBmcConfiguration
 - Set-SafeguardBmcAdminPassword
 - Get-SafeguardTls12OnlyStatus
-- SafeguardTls12Only
+- Enable-SafeguardTls12Only
 - Disable-SafeguardTls12Only
 - Test-SafeguardAuditLogArchive
 
