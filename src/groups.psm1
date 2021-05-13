@@ -1390,7 +1390,7 @@ function Remove-SafeguardAccountGroup
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$false,Position=0)]
+        [Parameter(Mandatory=$true,Position=0)]
         [object]$GroupToDelete
     )
 
