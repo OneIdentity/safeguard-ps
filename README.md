@@ -73,7 +73,7 @@ If you don't have PowerShellGet, run:
 > Install-Module PowerShellGet -Force
 ```
 
-Then, you can install a pre-release version of safeguard-ps by running:
+Restart your Powershell shell. Then, you can install a pre-release version of safeguard-ps by running:
 
 ```Powershell
 > Install-Module -Name safeguard-ps -AllowPrerelease
