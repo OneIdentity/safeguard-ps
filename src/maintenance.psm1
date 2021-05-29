@@ -1491,7 +1491,7 @@ function Get-SafeguardSupportBundleQuickGlance
     # Handle options and timeout
     $DefaultTimeout = 1200
     $Url = "https://$Appliance/service/appliance/v$Version/SupportBundle/QuickGlance"
-        
+
     if (-not $Timeout)
     {
         $Timeout = $DefaultTimeout
@@ -2419,6 +2419,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER BackupId
 A string containing a backup ID, which is a GUID.
 
+.PARAMETER RequirePassword
+Specify that a password is required, you will be prompted for it.
+
 .PARAMETER NoWait
 Specify this flag to continue immediately without waiting for the restore to complete.
 
@@ -2450,6 +2453,8 @@ function Restore-SafeguardBackup
         [Parameter(Mandatory=$false,Position=0)]
         [string]$BackupId,
         [Parameter(Mandatory=$false)]
+        [switch]$RequirePassword,
+        [Parameter(Mandatory=$false)]
         [switch]$NoWait,
         [Parameter(ParameterSetName="NewPatch",Mandatory=$false)]
         [int]$Timeout = 3600
@@ -2466,7 +2471,16 @@ function Restore-SafeguardBackup
     }
 
     Write-Host "Starting restore operation for backup..."
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST "Backups/$BackupId/Restore"
+    if ($RequirePassword)
+    {
+        $local:Password = (Read-Host -AsSecureString -Prompt "Password")
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST "Backups/$BackupId/Restore" `
+            -Body ([System.Net.NetworkCredential]::new("", $local:Password).Password)
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST "Backups/$BackupId/Restore"
+    }
 
     if (-not $NoWait)
     {
