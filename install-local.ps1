@@ -20,7 +20,11 @@ else
 
 if (-not $TargetDir)
 {
-    $TargetDir = [array]($env:PSModulePath -split $Delim) | Where-Object { $_.StartsWith($UserProf) } | Select-Object -First 1
+    $TargetDirs = [array]($env:PSModulePath -split $Delim)
+    $TargetDirs | ForEach-Object {
+        Write-Host "Potential target directory = '$_'"
+    }
+    $TargetDir = $TargetDirs | Where-Object { $_.StartsWith($UserProf) } | Select-Object -First 1
     if (-not $TargetDir)
     {
         throw "Unable to find a PSModulePath in your user profile (" + $UserProf + "), PSModulePath: " + $env:PSModulePath
@@ -28,18 +32,23 @@ if (-not $TargetDir)
     Write-Host "Selected target directory = '$TargetDir'"
 }
 
+Write-Host "Checking for the existence of '$TargetDir'"
 if (-not (Test-Path $TargetDir))
 {
     Write-Host "Creating target directory '$TargetDir'"
     New-Item -Path $TargetDir -ItemType Container -Force | Out-Null
 }
+else
+{
+    Write-Host "Already exists"
+}
 $ModuleName = "safeguard-ps"
 $Module = (Join-Path $PSScriptRoot "src\$ModuleName.psd1")
 $ModuleDef = (Invoke-Expression -Command (Get-Content $Module -Raw))
 
-Write-Host "Installing '$ModuleName $($ModuleDef["ModuleVersion"])' to '$TargetDir'"
+Write-Host -ForegroundColor Green "Installing '$ModuleName $($ModuleDef["ModuleVersion"])' to '$TargetDir'"
 $ModuleDir = (Join-Path $TargetDir $ModuleName)
-Write-Host "Module directory = '$ModuleDir'"
+Write-Host -ForegroundColor Blue "Module directory = '$ModuleDir'"
 if (-not (Test-Path $ModuleDir))
 {
     Write-Host "Creating module directory '$ModuleDir'"
@@ -48,9 +57,8 @@ if (-not (Test-Path $ModuleDir))
 else
 {
     Write-Host "Removing module directory '$ModuleDir' contents"
-    (Get-ChildItem $ModuleDir) | ForEach-Object {
-        Remove-Item -Recurse -Force (Join-Path $_.FullName *)
-        Remove-Item -Recurse -Force $_.FullName
+    (Get-ChildItem -recurse $ModuleDir) | Sort-Object -Property FullName -Descending | ForEach-Object {
+        $_.Delete()
     }
 }
 $VersionDir = (Join-Path $ModuleDir $ModuleDef["ModuleVersion"])
