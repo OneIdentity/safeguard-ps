@@ -260,6 +260,7 @@ FunctionsToExport = @(
     'Get-SafeguardReportDailyPasswordChangeFail','Get-SafeguardReportDailyPasswordChangeSuccess',
     'Get-SafeguardReportUserEntitlement','Get-SafeguardReportUserGroupMembership','Get-SafeguardReportAssetManagementConfiguration',
     'Get-SafeguardReportA2aEntitlement','Get-SafeguardReportPasswordLastChanged',
+    'Get-SafeguardReportAssetAccountPasswordHistory',
     # setting.psm1
     'Get-SafeguardApplianceSetting','Set-SafeguardApplianceSetting','Get-SafeguardCoreSetting','Set-SafeguardCoreSetting'
     # deleted.psm1
@@ -288,7 +289,9 @@ AliasesToExport = @(
     'Get-SafeguardMyRequestable','Find-SafeguardMyRequestable',
     'Revoke-SafeguardAccessRequest',
     # clustering.psm1
-    'Clear-SafeguardClusterOperation'
+    'Clear-SafeguardClusterOperation',
+    # reports.psm1
+    'Get-SafeguardPasswordHistory'
 )
 
 # DSC resources to export from this module
