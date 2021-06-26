@@ -1075,6 +1075,8 @@ Generates report of the password history for an asset account in Safeguard via t
 This report contains past passwords for the request asset account.  The output includes a
 time started and a time ended when that password was valid.
 
+This cmdlet has a simpler alias: Get-SafeguardPasswordHistory
+
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
 
