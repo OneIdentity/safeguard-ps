@@ -1410,7 +1410,7 @@ function Edit-SafeguardDirectory
 
     # Need AssetPartitionId to PUT a directory/asset object. Object returned from Directories endpoint does not contain AssetPartitionId property.
     # Get the directory object from Asset endpoint instead
-    if(-not $DirectoryObject.AssetPartitionId) 
+    if(-not $DirectoryObject.AssetPartitionId)
     {
         $AssetObject = Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryObject.Id
         $DirectoryObject | Add-Member -MemberType ScriptProperty -Name 'AssetPartitionId' -Value { $AssetObject.AssetPartitionId }
@@ -1729,20 +1729,32 @@ function Find-SafeguardDirectoryAccount
             $local:Parameters = @{ q = $SearchString }
             if ($Fields)
             {
+                if (-not ($Fields -contains "PlatformId"))
+                {
+                    $Fields += "PlatformId"
+                    $local:RemovePlatformId = $true
+                }
                 $local:Parameters["fields"] = ($Fields -join ",")
             }
             (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "DirectoryAccounts" `
-                -Parameters $local:Parameters -Version 2) | Where-Object {($_.PlatformId -eq $local:LdapPlatformId) -or ($_.PlatformId -eq $local:AdPlatformId)}
+                -Parameters $local:Parameters -Version 2) | Where-Object {($_.PlatformId -eq $local:LdapPlatformId) -or ($_.PlatformId -eq $local:AdPlatformId)} `
+                | ForEach-Object { if ($local:RemovePlatformId) { $_.PSObject.Properties.Remove('PlatformId') } $_}
         }
         else
         {
             $local:Parameters = @{ filter = $QueryFilter }
             if ($Fields)
             {
+                if (-not ($Fields -contains "PlatformId"))
+                {
+                    $Fields += "PlatformId"
+                    $local:RemovePlatformId = $true
+                }
                 $local:Parameters["fields"] = ($Fields -join ",")
             }
             (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "DirectoryAccounts" `
-                -Parameters $local:Parameters -Version 2) | Where-Object {($_.PlatformId -eq $local:LdapPlatformId) -or ($_.PlatformId -eq $local:AdPlatformId)}
+                -Parameters $local:Parameters -Version 2) | Where-Object {($_.PlatformId -eq $local:LdapPlatformId) -or ($_.PlatformId -eq $local:AdPlatformId)} `
+                | ForEach-Object { if ($local:RemovePlatformId) { $_.PSObject.Properties.Remove('PlatformId') } $_}
         }
     }
     catch
