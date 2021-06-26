@@ -18,7 +18,7 @@ function Resolve-ObjectAttributeForAccount
         [ValidateSet("AllowPasswordRequests","AllowSessionRequests","AllowSSHKeyRequests","AssetName","AssetTag","Description",
                      "DirectoryContainer","Disabled","DiscoveredGroupDistinguishedName","DiscoveredGroupName","DiscoveryJobName",
                      "DistinguishedName","DomainName","EffectiveProfileName","ProfileName","Name","NetBiosName","PartitionName",
-                     "Platform","IsServiceAccount","ObjectSid","Tag",IgnoreCase=$true)]
+                     "Platform","PlatformName","PlatformVersion","IsServiceAccount","ObjectSid","Tag",IgnoreCase=$true)]
         [string]$ObjectAttribute
     )
 
@@ -34,7 +34,7 @@ function Resolve-ObjectAttributeForAsset
         [Parameter(Mandatory=$true)]
         [ValidateSet("AllowSessionRequests","Description","DirectoryContainer","Disabled","DiscoveredGroupDistinguishedName",
                      "DiscoveredGroupName","DiscoveryJobName","EffectiveProfileName","ProfileName","Name","NetworkAddress",
-                     "PartitionName","Platform","Tag",IgnoreCase=$true)]
+                     "PartitionName","Platform","PlatformName","PlatformVersion","Tag",IgnoreCase=$true)]
         [string]$ObjectAttribute
     )
 
