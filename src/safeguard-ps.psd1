@@ -327,7 +327,9 @@ PrivateData = @{
         ReleaseNotes = @"
 safeguard-ps Release Notes:
 
-- bug fixes
+- Installation issues from code with OneDrive Powershell directory
+- Support for password history
+- Various bug fixes
 "@
 
     } # End of PSData hashtable
