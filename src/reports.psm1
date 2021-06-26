@@ -1066,3 +1066,111 @@ function Get-SafeguardReportPasswordLastChanged
         Out-FileAndExcel -OutFile $local:OutFile -Excel:$Excel
     }
 }
+
+<#
+.SYNOPSIS
+Generates report of the password history for an asset account in Safeguard via the Web API.
+
+.DESCRIPTION
+This report contains past passwords for the request asset account.  The output includes a
+time started and a time ended when that password was valid.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER OutputDirectory
+String containing the directory where to create the CSV file.
+
+.PARAMETER Excel
+Automatically open the CSV file into excel after it is generation.
+
+.PARAMETER StdOut
+Send CSV to standard out instead of generating a file.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to get asset account password history from.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to get asset account password history from.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER AssetToGet
+An integer containing the ID of the asset to get asset account password history from or
+a string containing the name.
+
+.PARAMETER AccountToGet
+An integer containing the ID of the account to get asset account password history from or
+a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file or CSV text.
+
+.EXAMPLE
+Get-SafeguardReportAssetAccountPasswordHistory example.corp adm-danp -Excel
+
+.EXAMPLE
+Get-SafeguardReportAssetAccountPasswordHistory linux.example.corp root -StdOut
+
+.EXAMPLE
+Get-SafeguardReportAssetAccountPasswordHistory linux.example.corp root -Days 5 -StdOut
+#>
+function Get-SafeguardReportAssetAccountPasswordHistory
+{
+    [CmdletBinding(DefaultParameterSetName="File")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false, ParameterSetName="File")]
+        [string]$OutputDirectory = (Get-Location),
+        [Parameter(Mandatory=$false, ParameterSetName="File")]
+        [switch]$Excel = $false,
+        [Parameter(Mandatory=$false, ParameterSetName="StdOut")]
+        [switch]$StdOut,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$AssetToGet,
+        [Parameter(Mandatory=$true,Position=1)]
+        [object]$AccountToGet,
+        [Parameter(Mandatory=$false)]
+        [int]$Days = 30
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:PastDays = (0 - $Days)
+    $LocalDate = (Get-Date).AddDays($local:PastDays)
+    $local:DayOnly = (New-Object "System.DateTime" -ArgumentList $LocalDate.Year, $LocalDate.Month, $LocalDate.Day)
+
+    Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+    Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
+    $local:Account = (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -AssetToGet $AssetToGet -AccountToGet $AccountToGet)
+    $local:AccountId = $local:Account.Id
+
+    $local:OutFile = (Get-OutFileForParam -OutputDirectory $OutputDirectory -FileName "sg-pwhistory-$Days-days-$($local:Account.AssetName)-$($local:Account.Name).csv" -StdOut:$StdOut)
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts/$($local:AccountId)/Passwords" `
+        -Accept "text/csv" -OutFile $local:OutFile `
+        -Parameters @{ startDate = (Format-DateTimeAsString $local:DayOnly) }
+
+    Out-FileAndExcel -OutFile $local:OutFile -Excel:$Excel
+}
+New-Alias -Name Get-SafeguardPasswordHistory -Value Get-SafeguardReportAssetAccountPasswordHistory
