@@ -333,7 +333,7 @@ function Set-SafeguardDiagnosticPackage
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST DiagnosticPackage -InFile $PackagePath
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST DiagnosticPackage -InFile $PackagePath -ContentType "application/octet-stream"
 }
 
 <#
