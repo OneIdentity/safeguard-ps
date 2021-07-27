@@ -641,6 +641,7 @@ update this list.
 - Get-SafeguardReportUserEntitlement
 - Get-SafeguardReportUserGroupMembership
 - Get-SafeguardReportAssetGroupMembership
+- Get-SafeguardReportAccountGroupMembership
 - Get-SafeguardReportAssetManagementConfiguration
 - Get-SafeguardReportA2aEntitlement
 - Get-SafeguardReportPasswordLastChanged

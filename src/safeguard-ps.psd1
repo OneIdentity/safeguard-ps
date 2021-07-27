@@ -259,7 +259,7 @@ FunctionsToExport = @(
     'Get-SafeguardReportDailyPasswordCheckFail','Get-SafeguardReportDailyPasswordCheckSuccess',
     'Get-SafeguardReportDailyPasswordChangeFail','Get-SafeguardReportDailyPasswordChangeSuccess',
     'Get-SafeguardReportUserEntitlement',
-    'Get-SafeguardReportUserGroupMembership','Get-SafeguardReportAssetGroupMembership',
+    'Get-SafeguardReportUserGroupMembership','Get-SafeguardReportAssetGroupMembership','Get-SafeguardReportAccountGroupMembership',
     'Get-SafeguardReportAssetManagementConfiguration',
     'Get-SafeguardReportA2aEntitlement','Get-SafeguardReportPasswordLastChanged',
     'Get-SafeguardReportAssetAccountPasswordHistory',
