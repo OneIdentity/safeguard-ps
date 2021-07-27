@@ -634,14 +634,17 @@ update this list.
 
 - Get-SafeguardReportAccountWithoutPassword
 - Get-SafeguardReportDailyAccessRequest
-- Get-SafeguardReportDailyPasswordChangeFail
-- Get-SafeguardReportDailyPasswordChangeSuccess
 - Get-SafeguardReportDailyPasswordCheckFail
 - Get-SafeguardReportDailyPasswordCheckSuccess
+- Get-SafeguardReportDailyPasswordChangeFail
+- Get-SafeguardReportDailyPasswordChangeSuccess
 - Get-SafeguardReportUserEntitlement
 - Get-SafeguardReportUserGroupMembership
+- Get-SafeguardReportAssetGroupMembership
 - Get-SafeguardReportAssetManagementConfiguration
 - Get-SafeguardReportA2aEntitlement
+- Get-SafeguardReportPasswordLastChanged
+- Get-SafeguardReportAssetAccountPasswordHistory
 
 ### Appliance Settings
 

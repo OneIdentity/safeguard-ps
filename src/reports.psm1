@@ -765,6 +765,76 @@ function Get-SafeguardReportUserGroupMembership
     }
 }
 
+function Get-SafeguardReportAssetGroupMembership
+{
+    [CmdletBinding(DefaultParameterSetName="File")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false, ParameterSetName="File")]
+        [string]$OutputDirectory = (Get-Location),
+        [Parameter(Mandatory=$false, ParameterSetName="File")]
+        [switch]$Excel = $false,
+        [Parameter(Mandatory=$false, ParameterSetName="StdOut")]
+        [switch]$StdOut
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Memberships = @()
+    (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetGroups") | ForEach-Object {
+        $local:GroupInfo = New-Object PSObject -Property ([ordered]@{
+            GroupId = $_.Id;
+            GroupName = $_.Name;
+            GroupDescription = $_.Description;
+            GroupIsDynamic = $_.IsDynamic
+        })
+        $_.Assets | ForEach-Object {
+            $local:MembershipInfo = New-Object PSObject -Property ([ordered]@{
+                GroupName = $local:GroupInfo.GroupName;
+                GroupDescription = $local:GroupInfo.GroupDescription;
+                GroupIsDynamic = $local:GroupInfo.GroupIsDynamic;
+                GroupId = $local:GroupInfo.GroupId;
+                AssetName = $_.Name;
+                NetworkAddress = $_.NetworkAddress;
+                DomainName = $_.DomainName;
+                AssetDescription = $_.Description;
+                AssetId = $_.Id;
+                AssetPartitionName = $_.AssetPartitionName;
+                AssetPartitionId = $_.AssetPartitionId;
+                PlatformDisplayName = $_.PlatformDisplayName;
+                PlatformType = $_.PlatformType;
+                PlatformId = $_.PlatformId;
+                Disabled = $_.Disabled;
+                SupportsSessionManagement = $_.SupportsSessionManagement;
+                AllowSessionRequests = $_.AllowSessionRequests;
+                SshHostKeyFingerprint = $_.SshHostKeyFingerprint;
+                SshHostKeyFingerprintSha256 = $_.SshHostKeyFingerprintSha256;
+                SshSessionPort = $_.SessionAccessProperties.SshSessionPort;
+                RemoteDesktopSessionPort = $_.SessionAccessProperties.RemoteDesktopSessionPort;
+                TelnetSessionPort = $_.SessionAccessProperties.TelnetSessionPort
+            })
+            $local:Memberships += $local:MembershipInfo
+        }
+    }
+
+    if ($StdOut)
+    {
+        $local:Memberships | ConvertTo-Csv -NoTypeInformation
+    }
+    else
+    {
+        $local:OutFile = (Get-OutFileForParam -OutputDirectory $OutputDirectory -FileName "sg-assetgroup-memberships-$((Get-Date).ToString("yyyy-MM-dd")).csv" -StdOut:$StdOut)
+        $local:Memberships | ConvertTo-Csv -NoTypeInformation | Out-File $local:OutFile
+        Out-FileAndExcel -OutFile $local:OutFile -Excel:$Excel
+    }
+}
+
 <#
 .SYNOPSIS
 Generates report of account management configuration in Safeguard via the Web API.
