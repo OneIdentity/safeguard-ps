@@ -770,7 +770,7 @@ function Get-SafeguardReportUserGroupMembership
 Generates report of asset group memberships for assets in Safeguard via the Web API.
 
 .DESCRIPTION
-Asset membership report includes which asets are in which groups along with
+Asset membership report includes which assets are in which groups along with
 a few of the attributes of those assets.
 
 .PARAMETER Appliance
@@ -873,6 +873,44 @@ function Get-SafeguardReportAssetGroupMembership
     }
 }
 
+<#
+.SYNOPSIS
+Generates report of account group memberships for accounts in Safeguard via the Web API.
+
+.DESCRIPTION
+Account membership report includes which accounts are in which groups along with
+a few of the attributes of those accounts.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER OutputDirectory
+String containing the directory where to create the CSV file.
+
+.PARAMETER Excel
+Automatically open the CSV file into excel after it is generation.
+
+.PARAMETER StdOut
+Send CSV to standard out instead of generating a file.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file or CSV text.
+
+.EXAMPLE
+Get-SafeguardReportAccountGroupMembership -Excel
+
+.EXAMPLE
+Get-SafeguardReportAccountGroupMembership -StdOut
+#>
 function Get-SafeguardReportAccountGroupMembership
 {
     [CmdletBinding(DefaultParameterSetName="File")]
