@@ -6,6 +6,7 @@ $MyInvocation.MyCommand.ScriptBlock.Module.OnRemove = {
 }
 Edit-SslVersionSupport
 
+
 function Get-SessionConnectionIdentifier
 {
     [CmdletBinding()]
@@ -157,6 +158,200 @@ function Get-RstsTokenFromGui
 
     # Return as a hashtable object because other parts of the code later on will expect it.
     @{access_token=$local:Code}
+}
+function Submit-RstsMultifactorPost
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$PrimaryProviderId,
+        [Parameter(Mandatory=$true,Position=2)]
+        [string]$Username,
+        [Parameter(Mandatory=$true,Position=3)]
+        [securestring]$Password,
+        [Parameter(Mandatory=$true,Position=4)]
+        [object]$CsrfToken,
+        [Parameter(Mandatory=$true,Position=5)]
+        [string]$SecondaryAuthState
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $Password).Password
+    $local:Response = (Invoke-RestMethod -Method POST "https://$Appliance/RSTS/UserLogin/LoginController?response_type=token&redirect_uri=urn%3aInstalledApplication&loginRequestStep=5" `
+        -WebSession $HttpSession -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } -Body @{
+            directoryComboBox = "$PrimaryProviderId";
+            usernameTextbox = "$Username";
+            passwordTextbox = "$($local:PasswordPlainText)";
+            csrfTokenTextbox = "$CsrfToken";
+            secondaryAuthenticationStateTextbox = "$SecondaryAuthState"
+        })
+
+    $local:Response
+}
+function Submit-RstsMultiFactorCredential
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$PrimaryProviderId,
+        [Parameter(Mandatory=$true,Position=2)]
+        [string]$Username,
+        [Parameter(Mandatory=$true,Position=3)]
+        [securestring]$Password,
+        [Parameter(Mandatory=$true,Position=4)]
+        [object]$CsrfToken
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    # MFA preauthenticate
+    $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $Password).Password
+    $local:Response = (Invoke-RestMethod -Method POST "https://$Appliance/RSTS/UserLogin/LoginController?response_type=token&redirect_uri=urn%3aInstalledApplication&loginRequestStep=7" `
+        -WebSession $HttpSession -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } -Body @{
+            directoryComboBox = "$PrimaryProviderId";
+            usernameTextbox = "$Username";
+            passwordTextbox = "$($local:PasswordPlainText)";
+            csrfTokenTextbox = "$CsrfToken"
+        })
+    $local:SecondaryAuthState = $local:Response.State
+
+    # Looping to handle push to authenticate
+    while ($local:SecondaryAuthState)
+    {
+        if ($local:Response.Echo -eq $true)
+        {
+            Write-Host $local:Response.Message
+        }
+        $local:Response = (Submit-RstsMultifactorPost $Appliance $PrimaryProviderId $Username $Password $CsrfToken $local:SecondaryAuthState)
+        $local:SecondaryAuthState = $local:Response.State
+        if ($local:SecondaryAuthState)
+        {
+            Start-Sleep -Seconds 5
+        }
+    }
+
+    # Get final response
+    $local:Response = (Invoke-RestMethod -Method POST "https://$Appliance/RSTS/UserLogin/LoginController?response_type=token&redirect_uri=urn%3aInstalledApplication&loginRequestStep=6" `
+        -WebSession $HttpSession -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } -Body @{
+            directoryComboBox = "$PrimaryProviderId";
+            usernameTextbox = "$Username";
+            passwordTextbox = "$($local:PasswordPlainText)";
+            csrfTokenTextbox = "$CsrfToken"
+        })
+
+    $local:Uri = ([Uri]$local:Response.RelyingPartyUrl)
+    $local:Fragment = ($local:Uri.Fragment.SubString(1))
+    $local:Parts = [System.Web.HttpUtility]::ParseQueryString($local:Fragment)
+
+    (New-Object -TypeName PSObject -Property @{
+            access_token = $local:Parts["access_token"];
+            token_type = $local:Parts["token_type"];
+            expires_in = $local:Parts["expires_in"];
+            scope = $local:Parts["scope"]
+        })
+}
+function Submit-RstsPrimaryCredential
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$PrimaryProviderId,
+        [Parameter(Mandatory=$true,Position=2)]
+        [string]$Username,
+        [Parameter(Mandatory=$true,Position=3)]
+        [securestring]$Password,
+        [Parameter(Mandatory=$true,Position=4)]
+        [object]$CsrfToken
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $Password).Password
+    $local:Response = (Invoke-RestMethod -Method POST "https://$Appliance/RSTS/UserLogin/LoginController?response_type=token&redirect_uri=urn%3aInstalledApplication&loginRequestStep=3" `
+        -WebSession $HttpSession -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } -Body @{
+            directoryComboBox = "$PrimaryProviderId";
+            usernameTextbox = "$Username";
+            passwordTextbox = "$($local:PasswordPlainText)";
+            csrfTokenTextbox = "$CsrfToken"
+        })
+
+    $local:stsIdentity0 = ((($HttpSession).Cookies).GetCookies("https://$Appliance/RSTS") | Where-Object { $_.Name -eq "stsIdentity0" })[0]
+    if (-not $local:stsIdentity0)
+    {
+        throw "Unable to find primary identity cookie"
+    }
+
+    if ($local:Response.SecondaryProviderID)
+    {
+        $local:Response = (Submit-RstsMultiFactorCredential $Appliance $PrimaryProviderId $Username $Password $CsrfToken)
+        $local:Response
+    }
+    else
+    {
+        Write-Verbose "No 2FA configured for $Username"
+        if (-not $local:Response.access_token)
+        {
+            throw "No access token found in RSTS response"
+        }
+        $local:Response.access_token
+    }
+}
+function Get-RstsCsrfTokenAndSession
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Response = (Invoke-RestMethod -Method POST "https://$Appliance/RSTS/UserLogin/LoginController?response_type=token&redirect_uri=urn%3aInstalledApplication&loginRequestStep=1" `
+        -SessionVariable LocalHttpSession -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } -Body @{})
+    $local:CsrfToken = ((($LocalHttpSession).Cookies).GetCookies("https://$Appliance/RSTS") | Where-Object { $_.Name -eq "CsrfToken" })[0]
+    Add-Type -AssemblyName System.Web
+    $local:CsrfToken = ([System.Web.HttpUtility]::UrlDecode($local:CsrfToken.Value))
+    if ($local:CsrfToken -ne $local:Response.AntiCsrfToken)
+    {
+        throw "Anti-CSRF token in response does not match CSRF in cookie"
+    }
+
+    Set-Variable -Name HttpSession -Scope Script -Value $LocalHttpSession
+    $local:CsrfToken
+}
+function Get-RstsTokenWith2fa
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$PrimaryProviderId,
+        [Parameter(Mandatory=$true,Position=2)]
+        [string]$Username,
+        [Parameter(Mandatory=$true,Position=3)]
+        [SecureString]$Password
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    New-Variable -Name "HttpSession" -Scope Script -Value $null -Force
+    $local:CsrfToken = (Get-RstsCsrfTokenAndSession $Appliance)
+    $local:RstsResponse = (Submit-RstsPrimaryCredential $Appliance $PrimaryProviderId $Username $Password $local:CsrfToken)
+    Clear-Variable -Name HttpSession
+    $local:RstsResponse
 }
 function New-SafeguardUrl
 {
@@ -556,8 +751,10 @@ function Connect-Safeguard
         [string]$CertificateFile,
         [Parameter(ParameterSetName="Certificate",Mandatory=$false)]
         [string]$Thumbprint,
-        [Parameter(Mandatory=$false)]
+        [Parameter(ParameterSetName="Gui",Mandatory=$false)]
         [switch]$Gui,
+        [Parameter(ParameterSetName="Username",Mandatory=$false)]
+        [switch]$TwoFactor,
         [Parameter(Mandatory=$false)]
         [int]$Version = 3,
         [Parameter(Mandatory=$false)]
@@ -729,14 +926,20 @@ function Connect-Safeguard
 
             if ($Username)
             {
-                try
+                if ($TwoFactor)
                 {
-                    Write-Verbose "Calling RSTS token service for password authentication..."
-                    $local:Scope = "rsts:sts:primaryproviderid:$($IdentityProvider.ToLower())"
-                    $local:RstsResponse = (Invoke-RestMethod -Method POST -Headers @{
-                        "Accept" = "application/json";
-                        "Content-type" = "application/json"
-                    } -Uri "https://$Appliance/RSTS/oauth2/token" -Body @"
+                    $local:RstsResponse = (Get-RstsTokenWith2fa $Appliance $IdentityProvider $Username (ConvertTo-SecureString -AsPlainText -Force $local:PasswordPlainText))
+                }
+                else
+                {
+                    try
+                    {
+                        Write-Verbose "Calling RSTS token service for password authentication..."
+                        $local:Scope = "rsts:sts:primaryproviderid:$($IdentityProvider.ToLower())"
+                        $local:RstsResponse = (Invoke-RestMethod -Method POST -Headers @{
+                            "Accept" = "application/json";
+                            "Content-type" = "application/json"
+                        } -Uri "https://$Appliance/RSTS/oauth2/token" -Body @"
 {
     "grant_type": "password",
     "username": "$Username",
@@ -744,11 +947,12 @@ function Connect-Safeguard
     "scope": "$($local:Scope)"
 }
 "@)
-                }
-                catch
-                {
-                    Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-                    Out-SafeguardExceptionIfPossible $_
+                    }
+                    catch
+                    {
+                        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+                        Out-SafeguardExceptionIfPossible $_
+                    }
                 }
             }
             else # Assume Client Certificate Authentication
@@ -847,6 +1051,11 @@ function Connect-Safeguard
 }
 "@)
         }
+        elseif ($local:LoginResponse.Status -eq "Needs2FA")
+        {
+            Write-Host -ForegroundColor Magenta "Two-factor authentication required, use -Gui or -TwoFactor parameter"
+        }
+
         if ($local:LoginResponse.Status -ine "Success")
         {
             throw $local:LoginResponse
