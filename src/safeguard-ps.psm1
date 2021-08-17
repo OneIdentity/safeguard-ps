@@ -173,8 +173,10 @@ function Submit-RstsMultifactorPost
         [securestring]$Password,
         [Parameter(Mandatory=$true,Position=4)]
         [object]$CsrfToken,
-        [Parameter(Mandatory=$true,Position=5)]
-        [string]$SecondaryAuthState
+        [Parameter(Mandatory=$false,Position=5)]
+        [string]$SecondaryAuthState,
+        [Parameter(Mandatory=$false,Position=6)]
+        [string]$SecondaryLogin
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -187,7 +189,8 @@ function Submit-RstsMultifactorPost
             usernameTextbox = "$Username";
             passwordTextbox = "$($local:PasswordPlainText)";
             csrfTokenTextbox = "$CsrfToken";
-            secondaryAuthenticationStateTextbox = "$SecondaryAuthState"
+            secondaryAuthenticationStateTextbox = "$SecondaryAuthState";
+            secondaryLoginTextbox = "$SecondaryLogin"
         })
 
     $local:Response
@@ -225,18 +228,23 @@ function Submit-RstsMultiFactorCredential
     $local:SecondaryAuthState = $local:Response.State
     $local:Message = $local:Response.Message
     $local:ShouldEcho = $local:Response.Echo
+    if ($local:ShouldEcho)
+    {
+        Write-Host $local:Message
+    }
 
     # Looping is to handle push to authenticate
-    while ($local:SecondaryAuthState)
+    while ($local:SecondaryAuthState -or $local:SecondaryLogin)
     {
+        $local:Response = (Submit-RstsMultifactorPost $Appliance $PrimaryProviderId $Username $Password $CsrfToken $local:SecondaryAuthState $local:SecondaryLogin)
+        $local:SecondaryAuthState = $local:Response.State
+        $local:Message = $local:Response.Message
+        $local:ShouldEcho = $local:Response.Echo
+        $local:SecondaryLogin = ""
         if ($local:ShouldEcho)
         {
             Write-Host $local:Message
         }
-        $local:Response = (Submit-RstsMultifactorPost $Appliance $PrimaryProviderId $Username $Password $CsrfToken $local:SecondaryAuthState)
-        $local:SecondaryAuthState = $local:Response.State
-        $local:Message = $local:Response.Message
-        $local:ShouldEcho = $local:Response.Echo
         if ($local:SecondaryAuthState)
         {
             if ($local:SecondaryAuthState.StartsWith("DefenderCloudOneTouch:"))
@@ -264,7 +272,8 @@ function Submit-RstsMultiFactorCredential
             }
             elseif ($local:SecondaryAuthState -eq "ShowDefenderCloud")
             {
-                $local:SecondaryAuthState = (Read-Host ":")
+                $local:SecondaryAuthState = ""
+                $local:SecondaryLogin = (Read-Host ":")
             }
             elseif ($local:SecondaryAuthState -eq "OneTouchExpired")
             {
@@ -276,7 +285,8 @@ function Submit-RstsMultiFactorCredential
             }
             else
             {
-                $local:SecondaryAuthState = (Read-Host ":")
+                $local:SecondaryAuthState = ""
+                $local:SecondaryLogin = (Read-Host ":")
             }
         }
     }
@@ -391,11 +401,17 @@ function Get-RstsTokenWith2fa
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    New-Variable -Name "HttpSession" -Scope Script -Value $null -Force
-    $local:CsrfToken = (Get-RstsCsrfTokenAndSession $Appliance)
-    $local:RstsResponse = (Submit-RstsPrimaryCredential $Appliance $PrimaryProviderId $Username $Password $local:CsrfToken)
-    Clear-Variable -Name HttpSession
-    $local:RstsResponse
+    try
+    {
+        New-Variable -Name "HttpSession" -Scope Script -Value $null -Force
+        $local:CsrfToken = (Get-RstsCsrfTokenAndSession $Appliance)
+        $local:RstsResponse = (Submit-RstsPrimaryCredential $Appliance $PrimaryProviderId $Username $Password $local:CsrfToken)
+        $local:RstsResponse
+    }
+    finally
+    {
+        Clear-Variable -Name HttpSession
+    }
 }
 function New-SafeguardUrl
 {
