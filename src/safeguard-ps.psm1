@@ -182,7 +182,7 @@ function Submit-RstsMultifactorPost
 
     $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $Password).Password
     $local:Response = (Invoke-RestMethod -Method POST "https://$Appliance/RSTS/UserLogin/LoginController?response_type=token&redirect_uri=urn%3aInstalledApplication&loginRequestStep=5" `
-        -WebSession $HttpSession -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } -Body @{
+        -WebSession $HttpSession -Headers @{ "Accept" = "application/json"; "Content-type" = "application/x-www-form-urlencoded" } -Body @{
             directoryComboBox = "$PrimaryProviderId";
             usernameTextbox = "$Username";
             passwordTextbox = "$($local:PasswordPlainText)";
@@ -211,35 +211,79 @@ function Submit-RstsMultiFactorCredential
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+
     # MFA preauthenticate
     $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $Password).Password
     $local:Response = (Invoke-RestMethod -Method POST "https://$Appliance/RSTS/UserLogin/LoginController?response_type=token&redirect_uri=urn%3aInstalledApplication&loginRequestStep=7" `
-        -WebSession $HttpSession -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } -Body @{
+        -WebSession $HttpSession -Headers @{ "Accept" = "application/json"; "Content-type" = "application/x-www-form-urlencoded" } -Body @{
             directoryComboBox = "$PrimaryProviderId";
             usernameTextbox = "$Username";
             passwordTextbox = "$($local:PasswordPlainText)";
             csrfTokenTextbox = "$CsrfToken"
         })
     $local:SecondaryAuthState = $local:Response.State
+    $local:Message = $local:Response.Message
+    $local:ShouldEcho = $local:Response.Echo
 
-    # Looping to handle push to authenticate
+    # Looping is to handle push to authenticate
     while ($local:SecondaryAuthState)
     {
-        if ($local:Response.Echo -eq $true)
+        if ($local:ShouldEcho)
         {
-            Write-Host $local:Response.Message
+            Write-Host $local:Message
         }
         $local:Response = (Submit-RstsMultifactorPost $Appliance $PrimaryProviderId $Username $Password $CsrfToken $local:SecondaryAuthState)
         $local:SecondaryAuthState = $local:Response.State
+        $local:Message = $local:Response.Message
+        $local:ShouldEcho = $local:Response.Echo
         if ($local:SecondaryAuthState)
         {
-            Start-Sleep -Seconds 5
+            if ($local:SecondaryAuthState.StartsWith("DefenderCloudOneTouch:"))
+            {
+                Write-Host -NoNewline "  Press any key to use OTP instead... "
+                Start-Sleep -Milliseconds 100;
+                $Host.UI.RawUI.FlushInputBuffer()
+                $local:i = 0;
+                while (-not $Host.UI.RawUI.KeyAvailable -and $local:i -lt 25)
+                {
+                    Write-Host -NoNewline ("`r{0}" -f '/-\|'[($local:i++ % 4)]);
+                    Start-Sleep -Milliseconds 200
+                }
+                if ($Host.UI.RawUI.KeyAvailable)
+                {
+                    Write-Host "`nKey press detected!"
+                    $local:SecondaryAuthState = "UseOtpInstead"
+                    $Host.UI.RawUI.FlushInputBuffer()
+                    Start-Sleep -Milliseconds 100
+                }
+                else
+                {
+                    Write-Host ""
+                }
+            }
+            elseif ($local:SecondaryAuthState -eq "ShowDefenderCloud")
+            {
+                $local:SecondaryAuthState = (Read-Host ":")
+            }
+            elseif ($local:SecondaryAuthState -eq "OneTouchExpired")
+            {
+                throw "The OneTouch push notification has expired."
+            }
+            elseif ($local:SecondaryAuthState.StartsWith("Fido2:"))
+            {
+                throw "FIDO2 is not supported."
+            }
+            else
+            {
+                $local:SecondaryAuthState = (Read-Host ":")
+            }
         }
     }
 
     # Get final response
     $local:Response = (Invoke-RestMethod -Method POST "https://$Appliance/RSTS/UserLogin/LoginController?response_type=token&redirect_uri=urn%3aInstalledApplication&loginRequestStep=6" `
-        -WebSession $HttpSession -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } -Body @{
+        -WebSession $HttpSession -Headers @{ "Accept" = "application/json"; "Content-type" = "application/x-www-form-urlencoded" } -Body @{
             directoryComboBox = "$PrimaryProviderId";
             usernameTextbox = "$Username";
             passwordTextbox = "$($local:PasswordPlainText)";
@@ -278,7 +322,7 @@ function Submit-RstsPrimaryCredential
 
     $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $Password).Password
     $local:Response = (Invoke-RestMethod -Method POST "https://$Appliance/RSTS/UserLogin/LoginController?response_type=token&redirect_uri=urn%3aInstalledApplication&loginRequestStep=3" `
-        -WebSession $HttpSession -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } -Body @{
+        -WebSession $HttpSession -Headers @{ "Accept" = "application/json"; "Content-type" = "application/x-www-form-urlencoded" } -Body @{
             directoryComboBox = "$PrimaryProviderId";
             usernameTextbox = "$Username";
             passwordTextbox = "$($local:PasswordPlainText)";
@@ -318,7 +362,7 @@ function Get-RstsCsrfTokenAndSession
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:Response = (Invoke-RestMethod -Method POST "https://$Appliance/RSTS/UserLogin/LoginController?response_type=token&redirect_uri=urn%3aInstalledApplication&loginRequestStep=1" `
-        -SessionVariable LocalHttpSession -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } -Body @{})
+        -SessionVariable LocalHttpSession -Headers @{ "Accept" = "application/json"; "Content-type" = "application/x-www-form-urlencoded" } -Body @{})
     $local:CsrfToken = ((($LocalHttpSession).Cookies).GetCookies("https://$Appliance/RSTS") | Where-Object { $_.Name -eq "CsrfToken" })[0]
     Add-Type -AssemblyName System.Web
     $local:CsrfToken = ([System.Web.HttpUtility]::UrlDecode($local:CsrfToken.Value))
