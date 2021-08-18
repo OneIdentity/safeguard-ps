@@ -258,9 +258,16 @@ function Remove-SafeguardStarlingSubscription
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:Id = (Get-SafeguardStarlingSubscription -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Name $Name).Id
+    if ($Name -as [int])
+    {
+        $local:Id = $Name
+    }
+    else
+    {
+        $local:Id = (Get-SafeguardStarlingSubscription -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Name $Name).Id
+    }
 
-    if($Force)
+    if ($Force)
     {
         $local:ExtraHeaders = @{
             "X-Force-Delete" = "true";
