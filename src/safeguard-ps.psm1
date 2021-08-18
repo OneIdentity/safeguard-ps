@@ -260,7 +260,7 @@ function Submit-RstsMultiFactorCredential
                 }
                 if ($Host.UI.RawUI.KeyAvailable)
                 {
-                    Write-Host "`nKey press detected!"
+                    Write-Host "" # line feed to to not write prompt over top of previous message
                     $local:SecondaryAuthState = "UseOtpInstead"
                     $Host.UI.RawUI.FlushInputBuffer()
                     Start-Sleep -Milliseconds 100
@@ -737,6 +737,9 @@ Version of the Web API you are using (default: 3).
 
 .PARAMETER Gui
 Display redistributable STS login window in a browser.  Supports 2FA.
+
+.PARAMETER TwoFactor
+Attempt to authenticate using multiple factors via the command line.  Supports Starling 2FA.
 
 .PARAMETER NoSessionVariable
 If this switch is sent the access token will be returned and a login session context variable will not be created.
