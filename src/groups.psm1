@@ -423,7 +423,7 @@ function New-SafeguardUserGroup
         [object]$Directory,
         [Parameter(ParameterSetName="Directory",Mandatory=$false,Position=2)]
         [string]$DomainName,
-        [Parameter(ParameterSetName="Directory",Mandatory=$false)]
+        [Parameter(Mandatory=$false)]
         [ValidateSet('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin','All',IgnoreCase=$true)]
         [string[]]$AdminRoles
     )
@@ -451,21 +451,28 @@ function New-SafeguardUserGroup
             $DomainName = (Resolve-DomainNameFromIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Directory)
         }
         $local:Body.DirectoryProperties = @{ DirectoryId = $local:DirectoryIdentityProvider.Id; DomainName = $local:DomainName }
+    }
 
-        if ($AdminRoles)
+    if ($AdminRoles)
+    {
+        if ($AdminRoles -contains "All")
         {
-            if ($AdminRoles -contains "All")
+            Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+            if (Test-SafeguardMinVersionInternal -Appliance $Appliance -Insecure:$Insecure -MinVersion "2.7")
             {
-                Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-                if (Test-SafeguardMinVersionInternal -Appliance $Appliance -Insecure:$Insecure -MinVersion "2.7")
-                {
-                    $AdminRoles = @('GlobalAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
-                }
-                else
-                {
-                    $AdminRoles = @('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
-                }
+                $AdminRoles = @('GlobalAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
             }
+            else
+            {
+                $AdminRoles = @('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
+            }
+        }
+        if ($local:Body.DirectoryGroupSyncProperties)
+        {
+            $local:Body.DirectoryGroupSyncProperties.AdminRoles = $AdminRoles
+        }
+        else
+        {
             $local:Body.DirectoryGroupSyncProperties = @{ AdminRoles = $AdminRoles }
         }
     }
