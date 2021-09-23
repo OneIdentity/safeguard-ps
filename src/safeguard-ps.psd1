@@ -11,7 +11,7 @@
 RootModule = 'safeguard-ps.psm1'
 
 # Version number of this module.
-ModuleVersion = '6.11.99999'
+ModuleVersion = '6.12.99999'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
