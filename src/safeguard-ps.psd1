@@ -329,7 +329,11 @@ PrivateData = @{
         ReleaseNotes = @"
 safeguard-ps Release Notes:
 
-- bug fixes
+- added management of local user groups with permissions
+- fixed error handling in PS Core
+- added interactive Starling 2FA support via CLI (no GUI)
+- added reports for membership of asset groups and account groups
+- other bug fixes
 "@
 
     } # End of PSData hashtable
