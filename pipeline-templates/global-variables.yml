@@ -1,6 +1,6 @@
 variables:
   - name: version
-    value: "6.11"
+    value: "6.12"
   - name: isPrerelease
     value: ${{ true }}
   - name: shouldPublishDocker
