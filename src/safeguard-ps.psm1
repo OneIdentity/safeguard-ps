@@ -1315,7 +1315,7 @@ finished.
 IP address or hostname of a Safeguard appliance.
 
 .PARAMETER Service
-Safeguard service you would like to call: Appliance or Core.
+Safeguard service you would like to call: Appliance, Core, Notification, Management.
 
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate--will be ignored for entire session.
@@ -1406,7 +1406,7 @@ function Invoke-SafeguardMethod
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
         [Parameter(Mandatory=$true,Position=0)]
-        [ValidateSet("Core","Appliance","Cluster","Notification",IgnoreCase=$true)]
+        [ValidateSet("Core","Appliance","Notification","Management",IgnoreCase=$true)]
         [string]$Service,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure = $false,
