@@ -1670,27 +1670,34 @@ function Close-SafeguardAccessRequest
     $local:MyUser = (Get-SafeguardLoggedInUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Fields Id,AdminRoles)
     if ($local:AccessRequest.RequesterId -eq $local:MyUser.Id -or $local:MyUser.AdminRoles -contains "PolicyAdmin")
     {
-        switch ($local:AccessRequest.State)
+        if ($local:AccessRequest.RequesterId -eq $local:MyUser.Id)
         {
-            { "New","PendingApproval","Approved","PendingTimeRequested","RequestAvailable","PendingAccountRestored","PendingPasswordReset" `
-                    -contains $_ } {
-                Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Cancel -AllFields:$AllFields
+            switch ($local:AccessRequest.State)
+            {
+                { "New","PendingApproval","Approved","PendingTimeRequested","RequestAvailable","PendingAccountRestored","PendingPasswordReset" `
+                        -contains $_ } {
+                    Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Cancel -AllFields:$AllFields
+                }
+                { "PasswordCheckedOut","SshKeyCheckedOut","SessionInitialized" -contains $_ } {
+                    Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId CheckIn -AllFields:$AllFields
+                }
+                { "RequestCheckedIn","Terminated","PendingReview","PendingAccountSuspended" -contains $_ } {
+                    Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Close -AllFields:$AllFields
+                }
+                { "Expired","PendingAcknowledgment" -contains $_ } {
+                    Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Acknowledge -AllFields:$AllFields
+                }
+                { "Closed","Complete","Reclaimed" -contains $_ } {
+                    Write-Verbose "Doing nothing for state '$($local:AccessRequest.State)'"
+                }
+                default {
+                    Write-Host -ForegroundColor Yellow "Unrecognized state '$($local:AccessRequest.State)'"
+                }
             }
-            { "PasswordCheckedOut","SshKeyCheckedOut","SessionInitialized" -contains $_ } {
-                Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId CheckIn -AllFields:$AllFields
-            }
-            { "RequestCheckedIn","Terminated","PendingReview","PendingAccountSuspended" -contains $_ } {
-                Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Close -AllFields:$AllFields
-            }
-            { "Expired","PendingAcknowledgment" -contains $_ } {
-                Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Acknowledge -AllFields:$AllFields
-            }
-            { "Closed","Complete","Reclaimed" -contains $_ } {
-                Write-Verbose "Doing nothing for state '$($local:AccessRequest.State)'"
-            }
-            default {
-                Write-Host -ForegroundColor Yellow "Unrecognized state '$($local:AccessRequest.State)'"
-            }
+        }
+        else
+        {
+            Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId Close -AllFields:$AllFields
         }
     }
     else
