@@ -620,16 +620,6 @@ update this list.
 - Get-SafeguardStarlingSetting
 - Set-SafeguardStarlingSetting
 
-### One Identity Starling Access Certification
-
-- Get-SafeguardAccessCertificationAll
-- Get-SafeguardAccessCertificationAccount
-- Get-SafeguardAccessCertificationGroup
-- Get-SafeguardAccessCertificationEntitlement
-- Get-SafeguardAccessCertificationIdentity
-- Get-ADAccessCertificationIdentity
-- Update-SafeguardAccessCertificationGroupFromAD
-
 ### Reports
 
 - Get-SafeguardReportAccountWithoutPassword
