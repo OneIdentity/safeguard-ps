@@ -11,7 +11,7 @@
 RootModule = 'safeguard-ps.psm1'
 
 # Version number of this module.
-ModuleVersion = '6.11.99999'
+ModuleVersion = '6.12.99999'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -94,7 +94,6 @@ NestedModules = @(
     'a2acallers.psm1',
     'starling.psm1',
     'entitlements.psm1',
-    'accesscert.psm1',
     'reports.psm1',
     'settings.psm1',
     'deleted.psm1',
@@ -246,10 +245,6 @@ FunctionsToExport = @(
     'Get-SafeguardStarlingSubscription','New-SafeguardStarlingSubscription','Remove-SafeguardStarlingSubscription',
     'Get-SafeguardStarlingJoinUrl','Invoke-SafeguardStarlingJoin',
     'Get-SafeguardStarlingSetting','Set-SafeguardStarlingSetting',
-    # accesscert.psm1
-    'Get-SafeguardAccessCertificationIdentity','Get-SafeguardAccessCertificationAccount','Get-SafeguardAccessCertificationGroup',
-    'Get-SafeguardAccessCertificationEntitlement','Get-ADAccessCertificationIdentity','Update-SafeguardAccessCertificationGroupFromAD',
-    'Get-SafeguardAccessCertificationAll',
     # managementShell.psm1
     'Get-SafeguardCommand', 'Get-SafeguardBanner',
     # entitlements.psm1

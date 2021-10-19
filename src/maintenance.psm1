@@ -951,10 +951,7 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardName
-
-.EXAMPLE
-Get-SafeguardName -Appliance 10.5.32.54 -AccessToken $token -Insecure
+Set-SafeguardApplianceName node1
 #>
 function Set-SafeguardApplianceName
 {

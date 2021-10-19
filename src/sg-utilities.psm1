@@ -52,11 +52,11 @@ namespace Ex
         Write-Verbose "---Response Status---"
         if ($local:ThrownException.Response | Get-Member StatusDescription -MemberType Properties)
         {
-            $local:StatusDescription = $ThrownException.Response.StatusDescription
+            $local:StatusDescription = $local:ThrownException.Response.StatusDescription
         }
         elseif ($local:ThrownException.Response | Get-Member ReasonPhrase -MemberType Properties)
         {
-            $local:StatusDescription = $ThrownException.Response.ReasonPhrase
+            $local:StatusDescription = $local:ThrownException.Response.ReasonPhrase
         }
         Write-Verbose "$([int]$local:ThrownException.Response.StatusCode) $($local:StatusDescription)"
         Write-Verbose "---Response Body---"
@@ -64,10 +64,23 @@ namespace Ex
         if (-not $local:ResponseBody)
         {
             Write-Verbose "Unable to read ErrorDetails.Message, trying to read response stream"
-            # try to read again, some runtimes and PowerShell versions fail to populate ErrorDetails
-            $local:Reader = [System.IO.StreamReader]::new($ThrownException.Response.GetResponseStream())
-            $local:ResponseBody = $local:Reader.ReadToEnd()
-            $local:Reader.Close()
+            try
+            {
+                # try to read again, some runtimes and PowerShell versions fail to populate ErrorDetails
+                if ($local:ThrownException.Response | Get-Member GetResponseStream)
+                {
+                    $local:Reader = [System.IO.StreamReader]::new($local:ThrownException.Response.GetResponseStream())
+                    $local:ResponseBody = $local:Reader.ReadToEnd()
+                    $local:Reader.Close()
+                }
+                else
+                {
+                    $local:Reader = [System.IO.StreamReader]::new($local:ThrownException.Response.Content.ReadAsStream())
+                    $local:ResponseBody = $local:Reader.ReadToEnd()
+                    $local:Reader.Close()
+                }
+            }
+            catch {}
         }
         if ($local:ResponseBody)
         {
@@ -88,21 +101,21 @@ namespace Ex
                     }
                 }
                 $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
-                    [int]$ThrownException.Response.StatusCode, $local:StatusDescription,
+                    [int]$local:ThrownException.Response.StatusCode, $local:StatusDescription,
                     $local:ResponseObject.Code, $local:Message, $local:ResponseBody
                 ))
             }
             elseif ($local:ResponseObject.error_description) # rSTS error
             {
                 $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
-                    [int]$ThrownException.Response.StatusCode, $local:StatusDescription,
+                    [int]$local:ThrownException.Response.StatusCode, $local:StatusDescription,
                     0, $local:ResponseObject.error_description, $local:ResponseBody
                 ))
             }
             else # ??
             {
                 $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
-                    [int]$ThrownException.Response.StatusCode, $local:StatusDescription,
+                    [int]$local:ThrownException.Response.StatusCode, $local:StatusDescription,
                     0, "<could not parse response content>", $local:ResponseBody
                 ))
             }
@@ -110,30 +123,44 @@ namespace Ex
         else # ??
         {
             $local:ResponseBody = "<unable to retrieve response content>"
-            if ($ThrownException.Response.ContentLength -eq 0)
+            if ($local:ThrownException.Response | Get-Member ContentLength)
             {
-                $local:ErrorDescription = "<no content in response>"
+                if ($local:ThrownException.Response.ContentLength -eq 0)
+                {
+                    $local:ErrorDescription = "<no content in response>"
+                }
+                else
+                {
+                    $local:ErrorDescription = "<could not read response content>"
+                }
             }
-            else
+            elseif ($local:ThrownException.Response | Get-Member Content)
             {
-                $local:ErrorDescription = "<could not read response content>"
+                if (($local:ThrownException.Response.Content.Headers | Where-Object { $_.Key -eq "Content-Length" }).Value[0] -eq 0)
+                {
+                    $local:ErrorDescription = "<no content in response>"
+                }
+                else
+                {
+                    $local:ErrorDescription = "<could not read response content>"
+                }
             }
             $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
-                [int]$ThrownException.Response.StatusCode, $local:StatusDescription,
+                [int]$local:ThrownException.Response.StatusCode, $local:StatusDescription,
                 0, $local:ErrorDescription, $local:ResponseBody
             ))
         }
     }
-    if ($ThrownException.Status -eq "TrustFailure")
+    if ($local:ThrownException.Status -eq "TrustFailure")
     {
         Write-Host -ForegroundColor Magenta "To ignore SSL/TLS trust failure use the -Insecure parameter to bypass server certificate validation."
     }
     Write-Verbose "---Exception---"
-    $ThrownException | Format-List * -Force | Out-String | Write-Verbose
-    if ($ThrownException.InnerException)
+    $local:ThrownException | Format-List * -Force | Out-String | Write-Verbose
+    if ($local:ThrownException.InnerException)
     {
         Write-Verbose "---Inner Exception---"
-        $ThrownException.InnerException | Format-List * -Force | Out-String | Write-Verbose
+        $local:ThrownException.InnerException | Format-List * -Force | Out-String | Write-Verbose
     }
     throw $local:ExceptionToThrow
 }
