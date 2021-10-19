@@ -1270,10 +1270,10 @@ JSON response from Safeguard Web API.
 Get-SafeguardUserPreference -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
-Get-SafeguardUserPreference -UserToEdit petrsnd PreferenceName calculate_in_use
+Get-SafeguardUserPreference petrsnd settings.myrequests.show_launch_button
 
 .EXAMPLE
-Get-SafeguardUserPreference -UserToEdit petrsnd
+Get-SafeguardUserPreference petrsnd
 #>
 function Get-SafeguardUserPreference
 {
@@ -1335,7 +1335,7 @@ JSON response from Safeguard Web API.
 Set-SafeguardUserPreference -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
-Set-SafeguardUserPreference petrsnd calculate_in_use true
+Set-SafeguardUserPreference petrsnd settings.myrequests.show_launch_button true
 
 .EXAMPLE
 Set-SafeguardUserPreference $UserToEdit $PreferenceName $PreferenceValue
@@ -1408,7 +1408,7 @@ JSON response from Safeguard Web API.
 Remove-SafeguardUser -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
-Remove-SafeguardUser petrsnd calculate_in_use
+Remove-SafeguardUser petrsnd settings.myrequests.show_launch_button
 #>
 function Remove-SafeguardUserPreference
 {
