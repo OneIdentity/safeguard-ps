@@ -1242,8 +1242,8 @@ function Rename-SafeguardUser
 Get user's Preference in Safeguard via the Web API.
 
 .DESCRIPTION
-Get the users Preference.  UserAdmins and GlobalAdmins can use this to get the preferences of a user. This operation only works for
-users from the local identity provider.
+Get the users Preference.  UserAdmins and GlobalAdmins can use this to get the preferences of a user.
+The PreferenceName parameter includes tab completion to easily specify the most common preferences.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -1254,11 +1254,14 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
-.PARAMETER UserToEdit
-An integer containing an ID  or a string containing the name of the user whose preference is desired.
+.PARAMETER UserToGet
+An integer containing an ID  or a string containing the name of the user to get the preference from.
+You may specify the user as <identityprovidername>\<username>.
 
 .PARAMETER PreferenceName
 An string of the user's Preference to return.
+Common preferences are settings.myrequests.calculate_in_use, settings.myrequests.userPreviousVersion,
+settings.myrequests.show_web_launch_button, and settings.myrequests.show_launch_button
 
 .INPUTS
 None.
@@ -1267,13 +1270,10 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardUserPreference -AccessToken $token -Appliance 10.5.32.54 -Insecure
+Get-SafeguardUserPreference petrsnd.corp\petrsnd settings.myrequests.show_launch_button
 
 .EXAMPLE
-Get-SafeguardUserPreference petrsnd settings.myrequests.show_launch_button
-
-.EXAMPLE
-Get-SafeguardUserPreference petrsnd
+Get-SafeguardUserPreference bob.ross settings.myrequests.show_launch_button
 #>
 function Get-SafeguardUserPreference
 {
@@ -1288,6 +1288,13 @@ function Get-SafeguardUserPreference
         [Parameter(Mandatory=$true,Position=0)]
         [object]$UserToGet,
         [Parameter(Mandatory=$true,Position=1)]
+        [ArgumentCompleter({
+            Param($CommandName, $ParameterName, $WordToComplete, $CommandAst, $FakeBoundParameters)
+            return @("settings.myrequests.calculate_in_use",
+                     "settings.myrequests.userPreviousVersion",
+                     "settings.myrequests.show_web_launch_button",
+                     "settings.myrequests.show_launch_button")
+        })]
         [string]$PreferenceName
     )
 
@@ -1295,6 +1302,7 @@ function Get-SafeguardUserPreference
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToGet)
+
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Users/$($local:UserId)/Preferences/$($local:PreferenceName)" -Parameters $local:Parameters
 }
 
@@ -1305,7 +1313,8 @@ Set the Preference in Safeguard for a user in Safeguard via the Web API.
 
 .DESCRIPTION
 Set the Preference for a user in Safeguard.  This operation only works for
-users from the local identity provider.
+users from the local identity provider.  The PreferenceName parameter includes
+tab completion to easily specify the most common preferences.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -1317,10 +1326,13 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER UserToEdit
-An integer containing an ID or a string containing the name of the user.
+An integer containing an ID or a string containing the name of the user to update.
+You may specify the user as <identityprovidername>\<username>.
 
 .PARAMETER PreferenceName
 An string of the user's Preference to set.
+Common preferences are settings.myrequests.calculate_in_use, settings.myrequests.userPreviousVersion,
+settings.myrequests.show_web_launch_button, and settings.myrequests.show_launch_button
 
 .PARAMETER PreferenceValue
 An string of the value to set a user's Preference to.
@@ -1332,13 +1344,10 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Set-SafeguardUserPreference -AccessToken $token -Appliance 10.5.32.54 -Insecure
+Set-SafeguardUserPreference petrsnd.corp\petrsnd settings.myrequests.show_launch_button true
 
 .EXAMPLE
-Set-SafeguardUserPreference petrsnd settings.myrequests.show_launch_button true
-
-.EXAMPLE
-Set-SafeguardUserPreference $UserToEdit $PreferenceName $PreferenceValue
+Set-SafeguardUserPreference bob.ross settings.myrequests.show_launch_button false
 #>
 function Set-SafeguardUserPreference
 {
@@ -1353,6 +1362,13 @@ function Set-SafeguardUserPreference
         [Parameter(Mandatory=$true,Position=0)]
         [object]$UserToEdit,
         [Parameter(Mandatory=$true,Position=1)]
+        [ArgumentCompleter({
+            Param($CommandName, $ParameterName, $WordToComplete, $CommandAst, $FakeBoundParameters)
+            return @("settings.myrequests.calculate_in_use",
+                     "settings.myrequests.userPreviousVersion",
+                     "settings.myrequests.show_web_launch_button",
+                     "settings.myrequests.show_launch_button")
+        })]
         [string]$PreferenceName,
         [Parameter(Mandatory=$false,Position=2)]
         [string]$PreferenceValue
@@ -1381,7 +1397,8 @@ Delete a Preference from a user from Safeguard via the Web API.
 
 .DESCRIPTION
 Delete a Preference from a user from Safeguard.  The user will no longer have that Preference.
-All audit history for that Preference will be retained.
+All audit history for that Preference will be retained.  The PreferenceName parameter includes
+tab completion to easily specify the most common preferences.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -1392,11 +1409,14 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
-.PARAMETER UserToDelete
-An integer containing an ID  or a string containing the name of the user to delete.
+.PARAMETER UserToEdit
+An integer containing an ID or a string containing the name of the user to delete a preference from.
+You may specify the user as <identityprovidername>\<username>.
 
 .PARAMETER PreferenceName
 An string of the user's Preference to delete.
+Common preferences are settings.myrequests.calculate_in_use, settings.myrequests.userPreviousVersion,
+settings.myrequests.show_web_launch_button, and settings.myrequests.show_launch_button
 
 .INPUTS
 None.
@@ -1405,10 +1425,10 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Remove-SafeguardUser -AccessToken $token -Appliance 10.5.32.54 -Insecure
+Remove-SafeguardUserPreference bob.ross settings.myrequests.show_launch_button
 
 .EXAMPLE
-Remove-SafeguardUser petrsnd settings.myrequests.show_launch_button
+Remove-SafeguardUserPreference petrsnd.corp\petrsnd settings.myrequests.show_launch_button
 #>
 function Remove-SafeguardUserPreference
 {
@@ -1421,15 +1441,22 @@ function Remove-SafeguardUserPreference
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
-        [object]$UserToDelete,
+        [object]$UserToEdit,
         [Parameter(Mandatory=$true,Position=1)]
+        [ArgumentCompleter({
+            Param($CommandName, $ParameterName, $WordToComplete, $CommandAst, $FakeBoundParameters)
+            return @("settings.myrequests.calculate_in_use",
+                     "settings.myrequests.userPreviousVersion",
+                     "settings.myrequests.show_web_launch_button",
+                     "settings.myrequests.show_launch_button")
+        })]
         [string]$PreferenceName
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToDelete)
+    $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit)
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Users/$($local:UserId)/Preferences/$($local:PreferenceName)"
 }
