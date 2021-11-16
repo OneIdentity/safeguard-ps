@@ -1236,3 +1236,200 @@ function Rename-SafeguardUser
     $local:UserObject.UserName = $NewUserName
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$($local:UserObject.Id)" -Body $local:UserObject
 }
+
+<#
+.SYNOPSIS
+Get user's Preference in Safeguard via the Web API.
+
+.DESCRIPTION
+Get the users Preference.  UserAdmins and GlobalAdmins can use this to get the preferences of a user. This operation only works for
+users from the local identity provider.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER UserToEdit
+An integer containing an ID  or a string containing the name of the user whose preference is desired.
+
+.PARAMETER PreferenceName
+An string of the user's Preference to return.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardUserPreference -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardUserPreference petrsnd settings.myrequests.show_launch_button
+
+.EXAMPLE
+Get-SafeguardUserPreference petrsnd
+#>
+function Get-SafeguardUserPreference
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$UserToGet,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$PreferenceName
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToGet)
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Users/$($local:UserId)/Preferences/$($local:PreferenceName)" -Parameters $local:Parameters
+}
+
+
+<#
+.SYNOPSIS
+Set the Preference in Safeguard for a user in Safeguard via the Web API.
+
+.DESCRIPTION
+Set the Preference for a user in Safeguard.  This operation only works for
+users from the local identity provider.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER UserToEdit
+An integer containing an ID or a string containing the name of the user.
+
+.PARAMETER PreferenceName
+An string of the user's Preference to set.
+
+.PARAMETER PreferenceValue
+An string of the value to set a user's Preference to.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Set-SafeguardUserPreference -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Set-SafeguardUserPreference petrsnd settings.myrequests.show_launch_button true
+
+.EXAMPLE
+Set-SafeguardUserPreference $UserToEdit $PreferenceName $PreferenceValue
+#>
+function Set-SafeguardUserPreference
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$UserToEdit,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$PreferenceName,
+        [Parameter(Mandatory=$false,Position=2)]
+        [string]$PreferenceValue
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit)
+
+    if (-not $PSBoundParameters.ContainsKey("PreferenceValue"))
+    {
+        $PreferenceValue = (Read-Host "PreferenceValue" -AsSecureString)
+    }
+    $local:Body = @{
+        "Name" = $PreferenceName;
+        "Value" = $PreferenceValue;
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$($local:UserId)/Preferences/$($local:PreferenceName)" -Body $local:Body
+}
+
+<#
+.SYNOPSIS
+Delete a Preference from a user from Safeguard via the Web API.
+
+.DESCRIPTION
+Delete a Preference from a user from Safeguard.  The user will no longer have that Preference.
+All audit history for that Preference will be retained.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER UserToDelete
+An integer containing an ID  or a string containing the name of the user to delete.
+
+.PARAMETER PreferenceName
+An string of the user's Preference to delete.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardUser -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Remove-SafeguardUser petrsnd settings.myrequests.show_launch_button
+#>
+function Remove-SafeguardUserPreference
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$UserToDelete,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$PreferenceName
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToDelete)
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Users/$($local:UserId)/Preferences/$($local:PreferenceName)"
+}
