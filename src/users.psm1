@@ -1254,7 +1254,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
-.PARAMETER UserToEdit
+.PARAMETER UserToGet
 An integer containing an ID  or a string containing the name of the user whose preference is desired.
 
 .PARAMETER PreferenceName
@@ -1408,7 +1408,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
-.PARAMETER UserToDelete
+.PARAMETER UserToEdit
 An integer containing an ID or a string containing the name of the user to delete.
 
 .PARAMETER PreferenceName
@@ -1437,7 +1437,7 @@ function Remove-SafeguardUserPreference
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
-        [object]$UserToDelete,
+        [object]$UserToEdit,
         [Parameter(Mandatory=$true,Position=1)]
         [ArgumentCompleter({
             Param($CommandName, $ParameterName, $WordToComplete, $CommandAst, $FakeBoundParameters)
@@ -1452,7 +1452,7 @@ function Remove-SafeguardUserPreference
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToDelete)
+    $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit)
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Users/$($local:UserId)/Preferences/$($local:PreferenceName)"
 }
