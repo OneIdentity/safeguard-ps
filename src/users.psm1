@@ -1242,8 +1242,8 @@ function Rename-SafeguardUser
 Get user's Preference in Safeguard via the Web API.
 
 .DESCRIPTION
-Get the users Preference.  UserAdmins and GlobalAdmins can use this to get the preferences of a user. This operation only works for
-users from the local identity provider.
+Get the users Preference.  UserAdmins and GlobalAdmins can use this to get the preferences of a user.
+The PreferenceName parameter includes tab completion to easily specify the most common preferences.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -1288,6 +1288,13 @@ function Get-SafeguardUserPreference
         [Parameter(Mandatory=$true,Position=0)]
         [object]$UserToGet,
         [Parameter(Mandatory=$true,Position=1)]
+        [ArgumentCompleter({
+            Param($CommandName, $ParameterName, $WordToComplete, $CommandAst, $FakeBoundParameters)
+            return @("settings.myrequests.calculate_in_use",
+                     "settings.myrequests.userPreviousVersion",
+                     "settings.myrequests.show_web_launch_button",
+                     "settings.myrequests.show_launch_button")
+        })]
         [string]$PreferenceName
     )
 
@@ -1305,7 +1312,8 @@ Set the Preference in Safeguard for a user in Safeguard via the Web API.
 
 .DESCRIPTION
 Set the Preference for a user in Safeguard.  This operation only works for
-users from the local identity provider.
+users from the local identity provider.  The PreferenceName parameter includes
+tab completion to easily specify the most common preferences.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -1353,6 +1361,13 @@ function Set-SafeguardUserPreference
         [Parameter(Mandatory=$true,Position=0)]
         [object]$UserToEdit,
         [Parameter(Mandatory=$true,Position=1)]
+        [ArgumentCompleter({
+            Param($CommandName, $ParameterName, $WordToComplete, $CommandAst, $FakeBoundParameters)
+            return @("settings.myrequests.calculate_in_use",
+                     "settings.myrequests.userPreviousVersion",
+                     "settings.myrequests.show_web_launch_button",
+                     "settings.myrequests.show_launch_button")
+        })]
         [string]$PreferenceName,
         [Parameter(Mandatory=$false,Position=2)]
         [string]$PreferenceValue
@@ -1381,7 +1396,8 @@ Delete a Preference from a user from Safeguard via the Web API.
 
 .DESCRIPTION
 Delete a Preference from a user from Safeguard.  The user will no longer have that Preference.
-All audit history for that Preference will be retained.
+All audit history for that Preference will be retained.  The PreferenceName parameter includes
+tab completion to easily specify the most common preferences.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -1393,7 +1409,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER UserToDelete
-An integer containing an ID  or a string containing the name of the user to delete.
+An integer containing an ID or a string containing the name of the user to delete.
 
 .PARAMETER PreferenceName
 An string of the user's Preference to delete.
@@ -1423,6 +1439,13 @@ function Remove-SafeguardUserPreference
         [Parameter(Mandatory=$true,Position=0)]
         [object]$UserToDelete,
         [Parameter(Mandatory=$true,Position=1)]
+        [ArgumentCompleter({
+            Param($CommandName, $ParameterName, $WordToComplete, $CommandAst, $FakeBoundParameters)
+            return @("settings.myrequests.calculate_in_use",
+                     "settings.myrequests.userPreviousVersion",
+                     "settings.myrequests.show_web_launch_button",
+                     "settings.myrequests.show_launch_button")
+        })]
         [string]$PreferenceName
     )
 
