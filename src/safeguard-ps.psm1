@@ -159,6 +159,153 @@ function Get-RstsTokenFromGui
     # Return as a hashtable object because other parts of the code later on will expect it.
     @{access_token=$local:Code}
 }
+function Get-RstsTokenFromBrowser
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false,Position=1)]
+        [string]$PrimaryProviderId = "",
+        [Parameter(Mandatory=$false,Position=2)]
+        [string]$SecondaryProviderId = "",
+        [Parameter(Mandatory=$false,Position=3)]
+        [string]$Username = "",
+        [Parameter(Mandatory=$false,Position=4)]
+        [int]$Port = 8400
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not ([System.Management.Automation.PSTypeName]"RstsAccessTokenExtractor").Type)
+    {
+        Write-Verbose "Adding the PSType for RstsAccessTokenExtractor"
+        if ($PSVersionTable.PSEdition -eq "Core")
+        {
+            $local:Assemblies = ("System.Web.dll","System.Net.Primitives.dll","System.Net.Sockets.dll","System.Text.RegularExpressions.dll",
+                                 "System.Web.HttpUtility.dll","System.Diagnostics.Process.dll","System.ComponentModel.Primitives.dll",
+                                 "System.Runtime.InteropServices.RuntimeInformation.dll","System.Collections.Specialized","System.Console.dll")
+        }
+        else
+        {
+            $local:Assemblies = ("System.Web.dll","System.Net.Primitives.dll","System.Net.Sockets.dll","System.Text.RegularExpressions.dll",
+                                 "System.Diagnostics.Process.dll","System.ComponentModel.Primitives.dll",
+                                 "System.Runtime.InteropServices.RuntimeInformation.dll","System.Collections.Specialized")
+        }
+        Add-Type -ReferencedAssemblies $local:Assemblies -TypeDefinition @"
+        using System;
+        using System.Diagnostics;
+        using System.Net;
+        using System.Net.Sockets;
+        using System.Runtime.InteropServices;
+        using System.Text;
+        using System.Text.RegularExpressions;
+        using System.Threading;
+        using System.Threading.Tasks;
+        using System.Web;
+        public class RstsAccessTokenExtractor {
+            private const string ClientId = "00000000-0000-0000-0000-000000000000";
+            private readonly string _appliance;
+            public RstsAccessTokenExtractor(string appliance) { _appliance = appliance; }
+            public string AccessToken { get; set; }
+            public string Error { get; set; }
+            public bool Show(string primaryProviderId = "", string secondaryProviderId = "", string username = "", int port = 8400) {
+                var tcpListener = new TcpListener(IPAddress.Loopback, port);
+                tcpListener.Start();
+                try {
+                    string redirectUri = "urn:InstalledApplicationTcpListener";
+                    string accessTokenUri = string.Format("https://{0}/RSTS/Login?response_type=token&client_id={1}&redirect_uri={2}&port={3}", _appliance, ClientId, redirectUri, port);
+                    if (!string.IsNullOrEmpty(primaryProviderId))   redirectUri += string.Format("&primaryProviderId={0}",   HttpUtility.UrlEncode(primaryProviderId));
+                    if (!string.IsNullOrEmpty(secondaryProviderId)) redirectUri += string.Format("&secondaryProviderid={0}", HttpUtility.UrlEncode(secondaryProviderId));
+                    if (!string.IsNullOrEmpty(username))            redirectUri += string.Format("&login_hint={0}", HttpUtility.UrlEncode(username));
+                    try {
+                        var psi = new ProcessStartInfo { FileName = accessTokenUri, UseShellExecute = true };
+                        Process.Start(psi);
+                    }
+                    catch {
+                        // hack because of this: https://github.com/dotnet/corefx/issues/10361
+                        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                            accessTokenUri = accessTokenUri.Replace("&", "^&");
+                            Process.Start(new ProcessStartInfo("cmd", "/c start " + accessTokenUri) { CreateNoWindow = true });
+                        } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+                            Process.Start("xdg-open", accessTokenUri);
+                        } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                            Process.Start("open", accessTokenUri);
+                        }
+                        else { throw; }
+                    }
+                }
+                catch (System.Exception) {
+                    throw;
+                }
+                var source = new CancellationTokenSource();
+                Console.CancelKeyPress += (object sender, ConsoleCancelEventArgs e) => {
+                    source.Cancel();
+                };
+                try {
+                    var listenTask = tcpListener.AcceptTcpClientAsync().ContinueWith<Task<string>>(async t => {
+                        if (t.IsFaulted || t.IsCanceled) return null;
+                        var tcpClient = t.Result;
+                        using (var networkStream = tcpClient.GetStream())
+                        {
+                            var readBuffer = new byte[1024];
+                            var sb = new StringBuilder();
+                            do {
+                                var numberOfBytesRead = await networkStream.ReadAsync(readBuffer, 0, readBuffer.Length, source.Token).ConfigureAwait(false);
+                                var s = Encoding.ASCII.GetString(readBuffer, 0, numberOfBytesRead);
+                                sb.Append(s);
+                            } while (networkStream.DataAvailable);
+                            var fullResponse = "HTTP/1.1 200 OK\r\n\r\n<html><head><title>Authentication Complete</title></head><body><h2>Authentication complete.</h2><p>You can return to PowerShell.</p><p>Feel free to close this browser tab.</p></body></html>\r\n";
+                            var response = Encoding.ASCII.GetBytes(fullResponse);
+                            await networkStream.WriteAsync(response, 0, response.Length, source.Token);
+                            await networkStream.FlushAsync();
+                            return sb.ToString();
+                        }
+                    });
+                    listenTask.Wait(source.Token);
+                    var innerTask = listenTask.Result;
+                    if (innerTask != null) {
+                        innerTask.Wait(source.Token);
+                        if (!innerTask.IsFaulted && innerTask.Result != null)
+                            AccessToken = HttpUtility.ParseQueryString(ExtractUriFromHttpRequest(innerTask.Result)).Get("oauth");
+                        else if (innerTask.Result != null)
+                            Error = innerTask.Result;
+                        else
+                            Error = "No HTTP redirect";
+                    }
+                    return true;
+                }
+                finally {
+                    tcpListener.Stop();
+                }
+            }
+            private string ExtractUriFromHttpRequest(string httpRequest) {
+                string regexp = @"GET \/\?(.*) HTTP";
+                Regex r1 = new Regex(regexp);
+                Match match = r1.Match(httpRequest);
+                if (!match.Success) { throw new InvalidOperationException("Not a GET query"); }
+                return match.Groups[1].Value;
+            }
+        }
+"@
+    }
+    if (-not $global:Browser)
+    {
+        $local:Browser = New-Object -TypeName RstsAccessTokenExtractor -ArgumentList $Appliance
+    }
+    if (!$local:Browser.Show($PrimaryProviderId, $SecondaryProviderId, $Username, $Port))
+    {
+        throw "Unable to correctly manipulate browser"
+    }
+    if (-not $local:Browser.AccessToken)
+    {
+        throw "Unable to obtain access_token"
+    }
+
+    # Return as a hashtable object because other parts of the code later on will expect it.
+    @{access_token=$local:Browser.AccessToken}
+}
 function Submit-RstsMultifactorPost
 {
     [CmdletBinding()]
@@ -816,6 +963,8 @@ function Connect-Safeguard
         [string]$Thumbprint,
         [Parameter(ParameterSetName="Gui",Mandatory=$false)]
         [switch]$Gui,
+        [Parameter(ParameterSetName="Browser",Mandatory=$false)]
+        [switch]$Browser,
         [Parameter(ParameterSetName="Username",Mandatory=$false)]
         [switch]$TwoFactor,
         [Parameter(Mandatory=$false)]
@@ -841,6 +990,10 @@ function Connect-Safeguard
         if ($Gui)
         {
             $local:RstsResponse = (Get-RstsTokenFromGui $Appliance $IdentityProvider "" $Username)
+        }
+        elseif ($Browser)
+        {
+            $local:RstsResponse = (Get-RstsTokenFromBrowser $Appliance $IdentityProvider "" $Username)
         }
         else
         {
