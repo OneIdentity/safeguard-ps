@@ -47,7 +47,7 @@ jobs:
             Write-Verbose -Verbose "Issuer: $($cert.Issuer)"
             $catalogfile = (Get-Module safeguard-ps -ListAvailable)[0].Path -replace "psd1","cat"
             Write-Verbose -Verbose $catalogfile
-            Set-AuthenticodeSignature -Certificate $cert -FilePath $catalogfile
+            Set-AuthenticodeSignature -Certificate $cert -FilePath $catalogfile -TimestampServer "http://timestamp.comodoca.com?td=sha256"
         displayName: 'Signing PowerShell module catalog file'
       - task: PowerShell@2
         inputs:
