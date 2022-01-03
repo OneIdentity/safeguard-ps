@@ -40,8 +40,11 @@ if ($ModuleDef["ModuleVersion"] -ne $BuildVersion)
     throw "Did not replace code version properly, ModuleVersion is '$($ModuleDef["ModuleVersion"])' BuildVersion is '$BuildVersion'"
 }
 
-Write-Host "Adding Catalog file for signing"
-New-FileCatalog -CatalogFilePath $ModuleCatalog -CatalogVersion 2.0 -Path (Join-Path $PSScriptRoot "src")
+if ($Env:OS -eq "Windows_NT")
+{
+    Write-Host "Adding Catalog file for signing"
+    New-FileCatalog -CatalogFilePath $ModuleCatalog -CatalogVersion 2.0 -Path (Join-Path $PSScriptRoot "src")
+}
 
 Write-Host "Installing '$ModuleName $($ModuleDef["ModuleVersion"])' to '$TargetDir'"
 $ModuleDir = (Join-Path $TargetDir $ModuleName)
