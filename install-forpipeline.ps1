@@ -17,6 +17,7 @@ if (-not (Test-Path $TargetDir))
 }
 $ModuleName = "safeguard-ps"
 $Module = (Join-Path $PSScriptRoot "src\$ModuleName.psd1")
+$ModuleCatalog = (Join-Path $PSScriptRoot "src\$ModuleName.cat")
 
 $CodeVersion = "$($VersionString.Split(".")[0..1] -join ".").99999"
 $BuildVersion = "$($VersionString)"
@@ -37,6 +38,12 @@ $ModuleDef = (Invoke-Expression -Command (Get-Content $Module -Raw))
 if ($ModuleDef["ModuleVersion"] -ne $BuildVersion)
 {
     throw "Did not replace code version properly, ModuleVersion is '$($ModuleDef["ModuleVersion"])' BuildVersion is '$BuildVersion'"
+}
+
+if ($Env:OS -eq "Windows_NT")
+{
+    Write-Host "Adding Catalog file for signing"
+    New-FileCatalog -CatalogFilePath $ModuleCatalog -CatalogVersion 2.0 -Path (Join-Path $PSScriptRoot "src")
 }
 
 Write-Host "Installing '$ModuleName $($ModuleDef["ModuleVersion"])' to '$TargetDir'"

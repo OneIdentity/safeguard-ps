@@ -7,7 +7,7 @@ Param(
 if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
 if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-if ($PSVersionTable.Platform -ne "Unix")
+if ($Env:OS -eq "Windows_NT")
 {
     $UserProf = $env:USERPROFILE
     $Delim = ';'
