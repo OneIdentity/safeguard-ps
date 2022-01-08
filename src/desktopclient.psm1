@@ -64,15 +64,7 @@ function Install-SafeguardDesktopClient
     {
         # Get Version Info from Appliance
         $UninstallKey = "HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
-        $Version = (Invoke-RestMethod "https://$Appliance/service/appliance/v2/Version" -EA SilentlyContinue)
-        if (-not $Version)
-        {
-            $Version = (Invoke-RestMethod "https://$Appliance/service/appliance/v1/Version" -EA SilentlyContinue)
-            if (-not $Version)
-            {
-                throw "You must specify a valid Safeguard Appliance"
-            }
-        }
+        $Version = (Invoke-RestMethod "https://$Appliance/service/appliance/v3/Version" -EA SilentlyContinue)
 
         # Clear Safeguard Client Updates
         $Installers = @(Get-ChildItem -Path "$env:LOCALAPPDATA\Pangaea\Safeguard" -Filter "*.msi" -Recurse -EA SilentlyContinue) + `
