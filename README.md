@@ -673,3 +673,7 @@ update this list.
 - Set-SafeguardDebugSettings
 - Enable-SafeguardTlsLogging
 - Disable-SafeguardTlsLogging
+
+### Audit Log
+
+- Get-SafeguardAuditLog
