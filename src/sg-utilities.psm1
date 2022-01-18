@@ -696,6 +696,16 @@ function Resolve-DomainNameFromIdentityProvider
 }
 
 # Helper function for formatting dates (useful for passing to audit log query parameters)
+function Format-UtcDateTimeAsString
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [DateTime]$DateTime
+    )
+
+    "$($DateTime.ToString("yyyy-MM-ddTHH:mm:ssZ"))"
+}
 function Format-DateTimeAsString
 {
     [CmdletBinding()]

@@ -746,7 +746,7 @@ function Invoke-WithBody
     $local:BodyInternal = $JsonBody
     if ($Body)
     {
-        $local:BodyInternal = (ConvertTo-Json -Depth 20 -InputObject $Body)
+        $local:BodyInternal = (ConvertTo-Json -Depth 100 -InputObject $Body)
     }
     $local:Url = (New-SafeguardUrl $Appliance $Service $Version $RelativeUrl -Parameters $Parameters)
     Write-Verbose "Url=$($local:Url)"
@@ -1597,7 +1597,9 @@ function Invoke-SafeguardMethod
         [Parameter(Mandatory=$false)]
         [switch]$LongRunningTask,
         [Parameter(Mandatory=$false)]
-        [HashTable]$ExtraHeaders
+        [HashTable]$ExtraHeaders,
+        [Parameter(Mandatory=$false)]
+        [switch]$JsonOutput
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -1693,9 +1695,18 @@ function Invoke-SafeguardMethod
 
     try
     {
-        Invoke-Internal $Appliance $Service $Method $Version $RelativeUrl $local:Headers `
-                        -Body $Body -JsonBody $JsonBody `
-                        -Parameters $Parameters -InFile $InFile -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout
+        if ($JsonOutput)
+        {
+            (Invoke-Internal $Appliance $Service $Method $Version $RelativeUrl $local:Headers `
+                             -Body $Body -JsonBody $JsonBody -Parameters $Parameters -InFile $InFile -OutFile $OutFile `
+                             -LongRunningTask:$LongRunningTask -Timeout $Timeout) | ConvertTo-Json -Depth 100
+        }
+        else
+        {
+            Invoke-Internal $Appliance $Service $Method $Version $RelativeUrl $local:Headers `
+                            -Body $Body -JsonBody $JsonBody -Parameters $Parameters -InFile $InFile -OutFile $OutFile `
+                            -LongRunningTask:$LongRunningTask -Timeout $Timeout
+        }
     }
     catch
     {
@@ -1704,9 +1715,18 @@ function Invoke-SafeguardMethod
             if (-not $RetryVersion) { $RetryVersion = $Version}
             if (-not $RetryUrl) { $RetryUrl = $RelativeUrl}
             Write-Verbose "Trying to use RetryVersion: $RetryVersion, and RetryUrl: $RetryUrl"
-            Invoke-Internal $Appliance $Service $Method $RetryVersion $RetryUrl $local:Headers `
-                            -Body $Body -JsonBody $JsonBody `
-                            -Parameters $Parameters -InFile $InFile -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout
+            if ($JsonOutput)
+            {
+                (Invoke-Internal $Appliance $Service $Method $RetryVersion $RetryUrl $local:Headers `
+                                 -Body $Body -JsonBody $JsonBody -Parameters $Parameters -InFile $InFile -OutFile $OutFile `
+                                 -LongRunningTask:$LongRunningTask -Timeout $Timeout) | ConvertTo-Json -Depth 100
+            }
+            else
+            {
+                Invoke-Internal $Appliance $Service $Method $RetryVersion $RetryUrl $local:Headers `
+                                -Body $Body -JsonBody $JsonBody -Parameters $Parameters -InFile $InFile -OutFile $OutFile `
+                                -LongRunningTask:$LongRunningTask -Timeout $Timeout
+            }
         }
         else
         {

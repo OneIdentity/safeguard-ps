@@ -98,7 +98,8 @@ NestedModules = @(
     'settings.psm1',
     'deleted.psm1',
     'service.psm1',
-    'syslog.psm1'
+    'syslog.psm1',
+    'auditlog.psm1'
     )
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
@@ -218,7 +219,7 @@ FunctionsToExport = @(
     'Get-SafeguardAccessPolicySessionProperty','Get-SafeguardUserLinkedAccount','Add-SafeguardUserLinkedAccount',
     'Remove-SafeguardUserLinkedAccount',
     # events.psm1
-    'Get-SafeguardEvent','Get-SafeguardEventName','Get-SafeguardEventProperty','Find-SafeguardEvent',
+    'Get-SafeguardEvent','Get-SafeguardEventCategory','Get-SafeguardEventName','Get-SafeguardEventProperty','Find-SafeguardEvent',
     'Get-SafeguardEventSubscription', 'Find-SafeguardEventSubscription',
     'New-SafeguardEventSubscription', 'Remove-SafeguardEventSubscription', 'Edit-SafeguardEventSubscription',
     # clustering.psm1
@@ -265,11 +266,13 @@ FunctionsToExport = @(
     'Get-SafeguardDeletedAsset','Remove-SafeguardDeletedAsset','Restore-SafeguardDeletedAsset',
     'Get-SafeguardDeletedAssetAccount','Remove-SafeguardDeletedAssetAccount','Restore-SafeguardDeletedAssetAccount',
     'Get-SafeguardDeletedUser','Remove-SafeguardDeletedUser','Restore-SafeguardDeletedUser',
-    'Get-SafeguardPurgeSettings','Update-SafeguardPurgeSettings','Reset-SafeguardPurgeSettings'
+    'Get-SafeguardPurgeSettings','Update-SafeguardPurgeSettings','Reset-SafeguardPurgeSettings',
     # service.psm1
-    'Get-SafeguardDebugSettings', 'Set-SafeguardDebugSettings','Enable-SafeguardTlsLogging', 'Disable-SafeguardTlsLogging'
+    'Get-SafeguardDebugSettings', 'Set-SafeguardDebugSettings','Enable-SafeguardTlsLogging', 'Disable-SafeguardTlsLogging',
     # syslog.psm1
-    'Get-SafeguardSyslogServer','New-SafeguardSyslogServer','Remove-SafeguardSyslogServer','Edit-SafeguardSyslogServer'
+    'Get-SafeguardSyslogServer','New-SafeguardSyslogServer','Remove-SafeguardSyslogServer','Edit-SafeguardSyslogServer',
+    # auditlog.psm1
+    'Get-SafeguardAuditLog'
     )
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.

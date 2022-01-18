@@ -565,6 +565,7 @@ update this list.
 
 - Get-SafeguardEvent
 - Get-SafeguardEventName
+- Get-SafeguardEventCategory
 - Get-SafeguardEventProperty
 - Find-SafeguardEvent
 - Get-SafeguardEventSubscription
@@ -672,3 +673,7 @@ update this list.
 - Set-SafeguardDebugSettings
 - Enable-SafeguardTlsLogging
 - Disable-SafeguardTlsLogging
+
+### Audit Log
+
+- Get-SafeguardAuditLog
