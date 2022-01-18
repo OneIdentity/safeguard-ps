@@ -565,6 +565,7 @@ update this list.
 
 - Get-SafeguardEvent
 - Get-SafeguardEventName
+- Get-SafeguardEventCategory
 - Get-SafeguardEventProperty
 - Find-SafeguardEvent
 - Get-SafeguardEventSubscription

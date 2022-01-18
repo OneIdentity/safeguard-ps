@@ -234,10 +234,12 @@ function Get-SafeguardEventName
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false, Position=0)]
-        [ValidateSet('Asset', 'AssetAccount', 'Directory', 'DirectoryAccount', 'IdentityProvider', 'User', 'UserGroup', 'AssetPartition', 'PartitionProfileAccountDiscoverySchedule',
-        'PartitionAccountPasswordRule', 'PartitionProfileChangeSchedule', 'PartitionProfileCheckSchedule', 'PartitionProfile','AccessPolicy', 'AccountGroup', 'AssetGroup',
-        'Role', 'ReasonCode', 'DirectoryAccountDiscoveryJob', 'DirectoryAccountPasswordRule', 'DirectoryProfileChangeSchedule', 'DirectoryProfileCheckSchedule', 'DirectoryProfile',
-        'ArchiveServer', 'TicketSystem', 'PartitionTag', 'PartitionTaggingRule', 'DirectoryTag', 'DirectoryTaggingRule', 'DynamicGroupingRule', IgnoreCase=$true)]
+        [ValidateSet('A2AService','AccessPolicy','AccountDiscoverySchedule','AccountGroup','ArchiveServer',
+        'Asset','AssetAccount','AssetGroup','AssetPartition','AuthenticationProvider','IdentityProvider',
+        'PartitionProfile','PartitionProfileChangeSchedule','PartitionProfileCheckSchedule',
+        'PartitionProfileSyncGroup','PartitionTag','PersonalAccount','ReasonCode','Registration','Role',
+        'SessionModuleConnection','SshKeySyncGroup','StarlingRegisteredConnector','StarlingSubscription',
+        'TicketSystem','User','UserGroup', IgnoreCase=$true)]
         [object]$TypeofEvent
     )
 
@@ -245,7 +247,8 @@ function Get-SafeguardEventName
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     [object[]]$local:Names = $null
-    $local:Events = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Events)
+    $local:Events = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                     Core GET Events -Parameters @{ fields = "Name,Category,ObjectType" })
     foreach ($local:IndividualEvent in $local:Events)
     {
         if ($PSBoundParameters.ContainsKey("TypeofEvent"))
@@ -260,7 +263,81 @@ function Get-SafeguardEventName
             $local:Names += $(($local:IndividualEvent).Name)
         }
     }
-    $local:Names
+    $local:Names | Sort-Object
+}
+
+<#
+.SYNOPSIS
+Get the names of subscribable events in Safeguard by their type via the Web API.
+
+.DESCRIPTION
+Get the list of names of subscribable events in Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER TypeofEvent
+A string containing the type of events for which to return the names of the events that belong to this type.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardEventCategory -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardEventCategory AssetAccount
+#>
+function Get-SafeguardEventCategory
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false, Position=0)]
+        [ValidateSet('A2AService','AccessPolicy','AccountDiscoverySchedule','AccountGroup','ArchiveServer',
+        'Asset','AssetAccount','AssetGroup','AssetPartition','AuthenticationProvider','IdentityProvider',
+        'PartitionProfile','PartitionProfileChangeSchedule','PartitionProfileCheckSchedule',
+        'PartitionProfileSyncGroup','PartitionTag','PersonalAccount','ReasonCode','Registration','Role',
+        'SessionModuleConnection','SshKeySyncGroup','StarlingRegisteredConnector','StarlingSubscription',
+        'TicketSystem','User','UserGroup', IgnoreCase=$true)]
+        [object]$TypeofEvent
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    [object[]]$local:Names = $null
+    $local:Events = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                     Core GET Events -Parameters @{ fields = "Name,Category,ObjectType" })
+    foreach ($local:IndividualEvent in $local:Events)
+    {
+        if ($PSBoundParameters.ContainsKey("TypeofEvent"))
+        {
+            if (($local:IndividualEvent).ObjectType -eq $TypeofEvent)
+            {
+                $local:Names += $(($local:IndividualEvent).Category)
+            }
+        }
+        else
+        {
+            $local:Names += $(($local:IndividualEvent).Category)
+        }
+    }
+    $local:Names | Sort-Object | Get-Unique
 }
 
 <#
@@ -312,7 +389,8 @@ function Get-SafeguardEventProperty
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    (Get-SafeguardEvent -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $EventToGet).Properties | Format-Table Name,Description
+    (Get-SafeguardEvent -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $EventToGet).Properties `
+        | Sort-Object -Property Name | Format-Table Name,Description
 }
 
 <#
