@@ -1540,7 +1540,7 @@ Invoke-SafeguardMethod Core GET Users -Accept "text/csv" -OutFile sg-users.csv
 Invoke-SafeguardMethod -Appliance 10.5.32.54 -Anonymous notification GET SystemVerification/Manufacturing
 
 .EXAMPLE
-Invoke-SafeguardMethod Appliance GET TrustedCertificates -JsonOutput
+Invoke-SafeguardMethod Core GET TrustedCertificates -JsonOutput
 
 .EXAMPLE
 Invoke-SafeguardMethod Core GET Users -Parameters @{ filter = "UserName eq 'admin'" }
