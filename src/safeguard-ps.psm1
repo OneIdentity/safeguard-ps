@@ -1516,10 +1516,13 @@ A file to store the Web API response.
 A file to read for the body of a POST or PUT request.
 
 .PARAMETER Timeout
-A timeout value in seconds (default: 300s or 5m)
+A timeout value in seconds (default: 300s or 5m).
 
 .PARAMETER LongRunningTask
 A switch to specify that this method call should be handled synchronously as a long-running task.
+
+.PARAMETER JsonOutput
+A switch to return data as pretty JSON string.
 
 .INPUTS
 None.
@@ -1537,7 +1540,7 @@ Invoke-SafeguardMethod Core GET Users -Accept "text/csv" -OutFile sg-users.csv
 Invoke-SafeguardMethod -Appliance 10.5.32.54 -Anonymous notification GET SystemVerification/Manufacturing
 
 .EXAMPLE
-Invoke-SafeguardMethod Appliance GET TrustedCertificates
+Invoke-SafeguardMethod Appliance GET TrustedCertificates -JsonOutput
 
 .EXAMPLE
 Invoke-SafeguardMethod Core GET Users -Parameters @{ filter = "UserName eq 'admin'" }
