@@ -328,7 +328,12 @@ PrivateData = @{
         ReleaseNotes = @"
 safeguard-ps Release Notes:
 
-- bug fixes
+- Fixed issue with Close-SafeguardAccessRequest for Policy Admin
+- Removed access cert cmdlet module
+- Added cmdlets to manage user preferences on behalf of other users
+- Support for browser-based interactive login with -Browser parameter to Connect-Safeguard
+- Added timestamped code signing for modules
+- Support for JSON output in Invoke-SafeguardMethod and other cmdlets with -JsonOutput
 "@
 
     } # End of PSData hashtable
