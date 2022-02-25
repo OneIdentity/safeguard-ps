@@ -32,14 +32,14 @@ function Resolve-SafeguardUserObject
         try
         {
             $local:Users = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
-                                -Parameters @{ filter = $local:Filter } -RetryVersion 2 -RetryUrl "Users")
+                                -Parameters @{ filter = $local:Filter })
         }
         catch
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with ieq filter, trying with q parameter"
             $local:Users = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
-                                -Parameters @{ q = $User } -RetryVersion 2 -RetryUrl "Users")
+                                -Parameters @{ q = $User })
         }
         if (-not $local:Users)
         {
@@ -89,14 +89,14 @@ function Resolve-SafeguardUserId
         try
         {
             $local:Users = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
-                                -Parameters @{ filter = $local:Filter } -RetryVersion 2 -RetryUrl "Users")
+                                -Parameters @{ filter = $local:Filter })
         }
         catch
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with ieq filter, trying with q parameter"
             $local:Users = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
-                                -Parameters @{ q = $User } -RetryVersion 2 -RetryUrl "Users")
+                                -Parameters @{ q = $User })
         }
         if (-not $local:Users)
         {
@@ -181,7 +181,7 @@ function Get-SafeguardIdentityProvider
         if ($ProviderToGet -as [int])
         {
             Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "IdentityProviders/$ProviderToGet" `
-                -RetryVersion 2 -RetryUrl "IdentityProviders/$ProviderToGet" -Parameters $local:Parameters
+                -Parameters $local:Parameters
         }
         else
         {
@@ -189,7 +189,7 @@ function Get-SafeguardIdentityProvider
             {
                 $local:Parameters["filter"] = "Name ieq '$ProviderToGet'"
                 Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
-                    -Parameters $local:Parameters -RetryVersion 2 -RetryUrl "IdentityProviders"
+                    -Parameters $local:Parameters
             }
             catch
             {
@@ -198,14 +198,14 @@ function Get-SafeguardIdentityProvider
                 $local:Parameters.Remove("filter")
                 $local:Parameters["q"] = $ProviderToGet
                 Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
-                    -Parameters $local:Parameters -RetryVersion 2 -RetryUrl "IdentityProviders"
+                    -Parameters $local:Parameters
             }
         }
     }
     else
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
-            -RetryVersion 2 -RetryUrl "IdentityProviders" -Parameters $local:Parameters
+            -Parameters $local:Parameters
     }
 }
 
@@ -276,7 +276,7 @@ function Get-SafeguardAuthenticationProvider
         if ($ProviderToGet -as [int])
         {
             Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AuthenticationProviders/$ProviderToGet" `
-                -RetryVersion 2 -RetryUrl "IdentityProviders/$ProviderToGet" -Parameters $local:Parameters
+                -Parameters $local:Parameters
         }
         else
         {
@@ -284,7 +284,7 @@ function Get-SafeguardAuthenticationProvider
             {
                 $local:Parameters["filter"] = "Name ieq '$ProviderToGet'"
                 Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AuthenticationProviders `
-                    -Parameters $local:Parameters -RetryVersion 2 -RetryUrl "AuthenticationProviders"
+                    -Parameters $local:Parameters
             }
             catch
             {
@@ -293,14 +293,14 @@ function Get-SafeguardAuthenticationProvider
                 $local:Parameters.Remove("filter")
                 $local:Parameters["q"] = $ProviderToGet
                 Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AuthenticationProviders `
-                    -Parameters $local:Parameters -RetryVersion 2 -RetryUrl "AuthenticationProviders"
+                    -Parameters $local:Parameters
             }
         }
     }
     else
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AuthenticationProviders `
-            -RetryVersion 2 -RetryUrl "IdentityProviders" -Parameters $local:Parameters
+            -Parameters $local:Parameters
     }
 }
 
@@ -487,12 +487,12 @@ function Get-SafeguardUser
     {
         $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToGet)
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Users/$local:UserId" `
-            -RetryVersion 2 -RetryUrl "Users/$local:UserId" -Parameters $local:Parameters
+            -Parameters $local:Parameters
     }
     else
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
-            -RetryVersion 2 -RetryUrl "Users" -Parameters $local:Parameters
+            -Parameters $local:Parameters
     }
 }
 
@@ -755,7 +755,7 @@ function New-SafeguardUser
         {
             $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $Password).Password
             Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Users/ValidatePassword" -Body `
-                $local:PasswordPlainText -RetryVersion 2 -RetryUrl "Users/ValidatePassword"
+                $local:PasswordPlainText
             $local:PasswordPlainText = ""
         }
         catch
@@ -782,7 +782,7 @@ function New-SafeguardUser
         {
             $local:Body.PrimaryAuthenticationIdentity = $Thumbprint
         }
-        $local:NewUser = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Users -Body $local:Body -RetryVersion 2 -RetryUrl "Users")
+        $local:NewUser = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Users -Body $local:Body)
         if ($local:ProviderResolved -eq $local:LocalProviderId)
         {
             Write-Host "Setting password for new user..."
@@ -817,7 +817,7 @@ function New-SafeguardUser
             UserName = $NewUserName;
             AdminRoles = $AdminRoles;
             DirectoryProperties = @{ DomainName = $DomainName }
-        } -RetryVersion 2 -RetryUrl "Users"
+        }
     }
 }
 
@@ -953,7 +953,7 @@ function Set-SafeguardUserPassword
     $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $Password).Password
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$($local:UserId)/Password" `
-        -Body $local:PasswordPlainText -RetryVersion 2 -RetryUrl "Users/$($local:UserId)/Password"
+        -Body $local:PasswordPlainText
 }
 
 <#
@@ -1089,7 +1089,7 @@ function Edit-SafeguardUser
         }
     }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$($UserObject.Id)" -Body $UserObject -RetryVersion 2 -RetryUrl "Users/$($UserObject.Id)"
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$($UserObject.Id)" -Body $UserObject
 }
 
 <#
