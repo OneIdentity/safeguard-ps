@@ -161,7 +161,7 @@ FunctionsToExport = @(
     'Get-SafeguardMyRequest','Get-SafeguardMyApproval','Get-SafeguardMyReview',
     'Get-SafeguardAccessRequestPassword','Get-SafeguardAccessRequestSshHostKey','Get-SafeguardAccessRequestSshKey',
     'Get-SafeguardAccessRequestRdpFile','Get-SafeguardAccessRequestSshUrl','Get-SafeguardAccessRequestRdpUrl',
-    'Start-SafeguardAccessRequestSession','Copy-SafeguardAccessRequestPassword',
+    'Start-SafeguardAccessRequestSession','Start-SafeguardAccessRequestWebSession','Copy-SafeguardAccessRequestPassword',
     'Close-SafeguardAccessRequest','Approve-SafeguardAccessRequest','Deny-SafeguardAccessRequest',
     'Get-SafeguardAccessRequestActionLog','Assert-SafeguardAccessRequest',
     # users.psm1
