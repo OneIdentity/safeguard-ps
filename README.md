@@ -415,6 +415,7 @@ update this list.
 - Get-SafeguardAccessRequestRdpUrl
 - Get-SafeguardAccessRequestSshUrl
 - Start-SafeguardAccessRequestSession
+- Start-SafeguardAccessRequestWebSession
 - Copy-SafeguardAccessRequestPassword
 - Close-SafeguardAccessRequest
 - Approve-SafeguardAccessRequest
