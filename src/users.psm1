@@ -304,16 +304,24 @@ function Get-SafeguardAuthenticationProvider
     }
 }
 
-
 <#
 .SYNOPSIS
-Create new Starling 2FA secondary authentication provider in Safeguard via the Web API.
-(DEPRECATED: Use Starling Join)
+Set authentication provider as default in Safeguard.
 
 .DESCRIPTION
-Create a new identity provider in Safeguard to enable adding Starling 2FA as a secondary
-authentication method for users.  After this is configured you can add Starling 2FA to
-existing users.  Those users must have an email address and mobile phone number.
+This cmdlet will set the specified authentication provider as the default. The login page will not display a drop down list
+of all available providers. Instead, the end user will be defaulted in to using the specified provider. Only one provider
+can be marked as the default at a time. When updating the specified provider, any previously set default will be cleared.
+
+If a default provider is set and you need to log in using some other provider, like the Safeguard Local provider in order
+to log in as a local administrator user, a query string parameter can be appended to the login page URL, 'primaryProviderID',
+where the value is set to the 'RstsProviderId' you need.
+
+For example, "https://<safeguard>/RSTS/Login?response_type=token&redirect_uri=https%3A%2F%2F<safeguard>%2F&primaryProviderID=local".
+
+You cannot set a provider that is used for two-factor authentication as the default.
+
+This functionality is only applicable to web browser based logins, not programmatic API/OAuth2 logins.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -324,11 +332,8 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
-.PARAMETER ProviderName
-A string containing the name to give this new identity provider.
-
-.PARAMETER ApiKey
-A string containing the API Key obtained from Starling 2FA console.
+.PARAMETER ProviderToGet
+An integer containing an ID  or a string containing the name of the identity provider to set.
 
 .INPUTS
 None.
@@ -337,9 +342,12 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-New-SafeguardStarling2faAuthentication "Company 2FA" $ApiKey
+Set-SafeguardAuthenticationProviderAsDefault "Starling"
+
+.EXAMPLE
+Set-SafeguardAuthenticationProviderAsDefault "Azure AD"
 #>
-function New-SafeguardStarling2faAuthentication
+function Set-SafeguardAuthenticationProviderAsDefault
 {
     [CmdletBinding()]
     Param(
@@ -350,22 +358,65 @@ function New-SafeguardStarling2faAuthentication
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
-        [string]$ProviderName,
-        [Parameter(Mandatory=$true,Position=1)]
-        [string]$ApiKey
+        [object]$ProviderToSet
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:ProviderObject = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-        Core POST IdentityProviders -Body @{
-            Name = $ProviderName;
-            TypeReferenceName = "StarlingTwoFactor"
-        })
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-        Core PUT "IdentityProviders/$($local:ProviderObject.Id)/ApiKey" -Body $ApiKey
-    Get-SafeguardIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:ProviderObject.Id
+    $local:Provider = (Get-SafeguardAuthenticationProvider -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -ProviderToGet $ProviderToSet)
+    if ($local:Provider)
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AuthenticationProviders/$($local:Provider.Id)/ForceAsDefault"
+    }
+    else
+    {
+        throw "Unable to find authentication provider '$ProviderToSet'"
+    }
+}
+
+<#
+.SYNOPSIS
+Clear any authentication provider from being default in Safeguard.
+
+.DESCRIPTION
+This cmdlet will clear any authentication provider from being the default. This will restore the normal
+provider selection behavior of Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Clear-SafeguardAuthenticationProviderAsDefault
+#>
+function Clear-SafeguardAuthenticationProviderAsDefault
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AuthenticationProviders/ClearDefault"
 }
 
 <#
