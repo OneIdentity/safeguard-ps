@@ -283,13 +283,21 @@ function Get-SafeguardAuthenticationProvider
             try
             {
                 $local:Parameters["filter"] = "Name ieq '$ProviderToGet'"
-                Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AuthenticationProviders `
-                    -Parameters $local:Parameters
+                $local:Provider = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AuthenticationProviders `
+                                                          -Parameters $local:Parameters)
             }
             catch
             {
                 Write-Verbose $_
-                Write-Verbose "Caught exception with ieq filter, trying with q parameter"
+                Write-Verbose "Caught exception with ieq filter"
+            }
+            if ($local:Provider)
+            {
+                $local:Provider
+            }
+            else
+            {
+                Write-Verbose "Trying with q parameter"
                 $local:Parameters.Remove("filter")
                 $local:Parameters["q"] = $ProviderToGet
                 Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AuthenticationProviders `
@@ -367,6 +375,10 @@ function Set-SafeguardAuthenticationProviderAsDefault
     $local:Provider = (Get-SafeguardAuthenticationProvider -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -ProviderToGet $ProviderToSet)
     if ($local:Provider)
     {
+        if ($local:Provider.Count -ne 1)
+        {
+            throw "More than one authentication provider matched '$ProviderToSet'"
+        }
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AuthenticationProviders/$($local:Provider.Id)/ForceAsDefault"
     }
     else
