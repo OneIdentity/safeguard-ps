@@ -427,7 +427,8 @@ update this list.
 
 - Get-SafeguardIdentityProvider
 - Get-SafeguardAuthenticationProvider
-- New-SafeguardStarling2faAuthentication
+- Set-SafeguardAuthenticationProviderAsDefault
+- Clear-SafeguardAuthenticationProviderAsDefault
 - Get-SafeguardUser
 - Find-SafeguardUser
 - New-SafeguardUser
