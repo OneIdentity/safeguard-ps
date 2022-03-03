@@ -20,14 +20,8 @@ $Module = (Join-Path $PSScriptRoot "src\$ModuleName.psd1")
 $ModuleCatalog = (Join-Path $PSScriptRoot "src\$ModuleName.cat")
 
 $CodeVersion = "$($VersionString.Split(".")[0..1] -join ".").99999"
-if ($IsPrerelease)
-{
-    $BuildVersion = "$($VersionString)-pre"
-}
-else
-{
-    $BuildVersion = "$($VersionString)"
-}
+$BuildVersion = "$($VersionString)"
+
 Write-Host "Replacing CodeVersion: $CodeVersion with BuildVersion: $BuildVersion"
 (Get-Content $Module -Raw).replace($CodeVersion, $BuildVersion) | Set-Content $Module
 
