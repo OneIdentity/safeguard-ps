@@ -282,6 +282,7 @@ function Remove-SafeguardStarlingSubscription
     }
 }
 
+
 <#
 .SYNOPSIS
 Get a join URL for subscribing this Safeguard instance to One Identity Starling.
@@ -335,12 +336,88 @@ function Get-SafeguardStarlingJoinUrl
 
 <#
 .SYNOPSIS
-Open a browser to join One Identity Starling and record the resulting
-subscription information in Safeguard via the Web API.
+Open an external browser to join One Identity Starling and gather the resulting
+subscription information to join Safegaurd to Starling via the Web API.
 
 .DESCRIPTION
-This is the cmdlet you should use to join Starling from the command line.
-It will open 1) a browser to join Starling, 2) pull the resulting subscription
+This is cmdlet uses an external browser and requires that you copy and paste the
+credentials and token endpoint for finalizing the Starling join.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Name
+A string containing the name of the Starling subscription. (default: "Default")
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Invoke-SafeguardStarlingJoinBrowser
+
+.EXAMPLE
+Invoke-SafeguardStarlingJoin -Name Default
+#>
+function Invoke-SafeguardStarlingJoinBrowser
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [string]$Name = "Default"
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+
+    Write-Host -ForegroundColor Yellow "This command will use an external browser to join Safeguard to Starling."
+    Write-host "You will be required to copy and paste interactively from the browser to answer prompts for join information."
+    $local:Confirmed = (Get-Confirmation "Join to Starling" "Are you sure you want to use an external browser to join to Starling?" `
+                                         "Show the browser." "Cancels this operation.")
+
+    if ($local:Confirmed)
+    {
+        $local:JoinUrl = (Get-SafeguardStarlingJoinUrl -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure)
+        Start-Process $local:JoinUrl
+
+        Write-Host "Following the successful join in the browser, provide the following:"
+        $local:Creds = (Read-Host "Credential String")
+        $local:Endpoint = (Read-Host "Token Endpoint")
+
+        New-SafeguardStarlingSubscription -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+            -Name $Name -ClientCredentials $local:Creds -TokenEndpoint $local:Endpoint -JoinUrl $local:JoinUrl
+
+        Write-Host -ForegroundColor Yellow "You may close the external browser."
+    }
+}
+
+<#
+.SYNOPSIS
+Open an embedded browser to join One Identity Starling and record the resulting
+subscription information in Safeguard via the Web API.
+DEPRECATED -- use Invoke-SafeguardStarlingJoinBrowser instead
+
+.DESCRIPTION
+This is cmdlet uses an embedded browser that is not supported in all versions of
+PowerShell and because it is IE based, it will not work with Starling in the future.
+If you use this cmdlet:
+It will 1) open an embedded browser to join Starling, 2) pull the resulting subscription
 information from the web page, and 3) call Safeguard Web API to create the
 subscription inside Safeguard, which will also create the Starling 2FA identity
 provider.
