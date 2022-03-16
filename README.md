@@ -615,6 +615,7 @@ update this list.
 
 ### One Identity Starling
 
+- Invoke-SafeguardStarlingJoinBrowser
 - Invoke-SafeguardStarlingJoin
 - Get-SafeguardStarlingSubscription
 - New-SafeguardStarlingSubscription

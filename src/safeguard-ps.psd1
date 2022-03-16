@@ -246,7 +246,7 @@ FunctionsToExport = @(
     'Get-SafeguardA2aRetrievableAccount','Get-SafeguardA2aPassword','Get-SafeguardA2aPrivateKey','New-SafeguardA2aAccessRequest',
     # starling.psm1
     'Get-SafeguardStarlingSubscription','New-SafeguardStarlingSubscription','Remove-SafeguardStarlingSubscription',
-    'Get-SafeguardStarlingJoinUrl','Invoke-SafeguardStarlingJoin',
+    'Get-SafeguardStarlingJoinUrl','Invoke-SafeguardStarlingJoin','Invoke-SafeguardStarlingJoinBrowser',
     'Get-SafeguardStarlingSetting','Set-SafeguardStarlingSetting',
     # managementShell.psm1
     'Get-SafeguardCommand', 'Get-SafeguardBanner',
@@ -323,7 +323,7 @@ PrivateData = @{
         IconUri = 'https://raw.githubusercontent.com/OneIdentity/safeguard-ps/master/SafeguardLogo.ico'
 
         # Pre-release tag
-        Prerelease = '-pre'
+        Prerelease = 'pre'
 
         # ReleaseNotes of this module
         ReleaseNotes = @"
