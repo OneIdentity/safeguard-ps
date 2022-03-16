@@ -27,7 +27,7 @@ Write-Host "Replacing CodeVersion: $CodeVersion with BuildVersion: $BuildVersion
 if (-not $IsPrerelease)
 {
     Write-Host "Removing the prerelease tag in the manifest"
-    (Get-Content $Module -Raw).replace("Prerelease = '-pre'", "#Prerelease = '-pre'") | Set-Content $Module
+    (Get-Content $Module -Raw).replace("Prerelease = 'pre'", "#Prerelease = 'pre'") | Set-Content $Module
 }
 else
 {
