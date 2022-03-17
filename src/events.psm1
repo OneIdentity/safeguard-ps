@@ -1,4 +1,4 @@
-#Helper
+# Helper
 function Resolve-Event
 {
     [CmdletBinding()]
@@ -10,7 +10,7 @@ function Resolve-Event
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
-        [object]$Event
+        [object]$EventObj
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -18,35 +18,35 @@ function Resolve-Event
 
     while (-not $local:FoundEvent)
     {
-        Write-Host "Searching for events with '$Event'"
+        Write-Host "Searching for events with '$EventObj'"
         try
         {
             $local:FoundEvent = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET `
-                                     "Events/$Event")
+                                     "Events/$EventObj")
         }
         catch {}
         if (-not $local:FoundEvent)
         {
             $local:Events = ((Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Events `
-                                  -Parameters @{ fields = "Name,Category,Description" }) | Where-Object { $_.Name -match "$Event" })
+                                  -Parameters @{ fields = "Name,Category,Description" }) | Where-Object { $_.Name -match "$EventObj" })
             if (($local:Events).Count -eq 0)
             {
                 $local:Events = ((Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Events `
-                                      -Parameters @{ fields = "Name,Category,Description" }) | Where-Object { $_.Category -match "$Event" })
+                                      -Parameters @{ fields = "Name,Category,Description" }) | Where-Object { $_.Category -match "$EventObj" })
             }
             if (($local:Events).Count -eq 0)
             {
                 try
                 {
                     $local:Events = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Events `
-                                        -Parameters @{ filter = "Description icontains '$Event'"; fields = "Name,Category,Description" })
+                                        -Parameters @{ filter = "Description icontains '$EventObj'"; fields = "Name,Category,Description" })
                 }
                 catch
                 {
                     Write-Verbose $_
                     Write-Verbose "Caught exception with icontains filter, trying with contains filter"
                     $local:Events = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Events `
-                                        -Parameters @{ filter = "Description contains '$Event'"; fields = "Name,Category,Description" })
+                                        -Parameters @{ filter = "Description contains '$EventObj'"; fields = "Name,Category,Description" })
                 }
             }
 
@@ -54,19 +54,19 @@ function Resolve-Event
 
             if (($local:Events).Count -eq 0)
             {
-                throw "Unable to find event matching '$Event'..."
+                throw "Unable to find event matching '$EventObj'..."
             }
 
             if (($local:Events).Count -ne 1)
             {
                 $local:Longest = (($local:Events).Name | Measure-Object -Maximum -Property Length).Maximum
-                Write-Host "Found $($local:Events.Count) events matching '$Event':"
+                Write-Host "Found $($local:Events.Count) events matching '$EventObj':"
                 Write-Host "["
                 $local:Events | ForEach-Object {
                     Write-Host ("    {0,$($local:Longest)} - {1}" -f $_.Name,$_.Description)
                 }
                 Write-Host "]"
-                $Event = (Read-Host "Enter event name or search string")
+                $EventObj = (Read-Host "Enter event name or search string")
             }
             else
             {
@@ -87,9 +87,9 @@ function Resolve-SubscriptionEvent
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true,Position=0)]
+        [Parameter(Mandatory=$false)]
         [object]$TypeOfEvent,
-        [Parameter(Mandatory=$true,Position=1)]
+        [Parameter(Mandatory=$true)]
         [string[]]$EventsToValidate
     )
 
@@ -98,7 +98,7 @@ function Resolve-SubscriptionEvent
 
     [string[]]$InvalidEvents = $null
     [object[]]$SubscriptionEvents = $null
-    [string[]]$EventNames = Get-SafeguardEventName -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -TypeOfEvent $TypeOfEvent
+    [string[]]$EventNames = (Get-SafeguardEventName -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -TypeOfEvent $TypeOfEvent)
 
     foreach ($IndividualEvent in $EventsToValidate)
     {
@@ -225,7 +225,7 @@ Get-SafeguardEventName AssetAccount
 #>
 function Get-SafeguardEventName
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Category")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -233,7 +233,9 @@ function Get-SafeguardEventName
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$false, Position=0)]
+        [Parameter(Mandatory=$false, ParameterSetName="Category")]
+        [string]$Category,
+        [Parameter(Mandatory=$false, ParameterSetName="TypeOfObject", Position=0)]
         [ValidateSet('A2AService','AccessPolicy','AccountDiscoverySchedule','AccountGroup','ArchiveServer',
         'Asset','AssetAccount','AssetGroup','AssetPartition','AuthenticationProvider','IdentityProvider',
         'PartitionProfile','PartitionProfileChangeSchedule','PartitionProfileCheckSchedule',
@@ -251,9 +253,16 @@ function Get-SafeguardEventName
                      Core GET Events -Parameters @{ fields = "Name,Category,ObjectType" })
     foreach ($local:IndividualEvent in $local:Events)
     {
-        if ($PSBoundParameters.ContainsKey("TypeofEvent"))
+        if ($PSBoundParameters.ContainsKey("TypeofEvent") -and $TypeofEvent)
         {
-            if (($local:IndividualEvent).ObjectType -eq $TypeofEvent)
+            if (($local:IndividualEvent).ObjectType -ieq $TypeofEvent)
+            {
+                $local:Names += $(($local:IndividualEvent).Name)
+            }
+        }
+        elseif ($PSBoundParameters.ContainsKey("Category") -and $Category)
+        {
+            if (($local:IndividualEvent).Category -ieq $Category)
             {
                 $local:Names += $(($local:IndividualEvent).Name)
             }
@@ -494,6 +503,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER SubscriptionId
 An integer containing ID of the event subscription to get.
 
+.PARAMETER ShowSystemOwned
+Whether to show system owned subscriptions or not (Default: false)
+
 .INPUTS
 None.
 
@@ -517,7 +529,9 @@ function Get-SafeguardEventSubscription
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false, Position=0)]
-        [string]$SubscriptionId
+        [string]$SubscriptionId,
+        [Parameter(Mandatory=$false)]
+        [switch]$ShowSystemOwned
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -529,7 +543,15 @@ function Get-SafeguardEventSubscription
     }
     else
     {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET EventSubscribers
+        if ($ShowSystemOwned)
+        {
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET EventSubscribers
+        }
+        else
+        {
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET EventSubscribers `
+                -Parameters @{ filter = "IsSystemOwned eq false" }
+        }
     }
 
 }
@@ -626,9 +648,14 @@ function Find-SafeguardEventSubscription
 Create a new event subscription in Safeguard via the Web API.
 
 .DESCRIPTION
-Event subscription is a subscription to receive notifications when an event occurs.
-Event subscription can be created for all type of users but can only be created by
-an administrative user. One event subscriber can subscribe to multiple events.
+An event subscription is a configuration to receive notifications via a subscriber
+mechanism when an event occurs.  The subscriber mechanisms are Email, Snmp, Signalr,
+and Syslog.
+
+
+
+Event subscriptions can be created for all types of users but can only be created by
+an administrative user.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -702,8 +729,6 @@ New-SafeguardEventSubscription  -ObjectTypeToSubscribe Asset -ObjectIdToSubscrib
 .EXAMPLE
 New-SafeguardEventSubscription  -ObjectTypeToSubscribe AssetAccount -ObjectIdToSubscribe 123 -SubscriptionEvent AssetAccountCreated -IsSyslogEvent -syslognetworkaddress "11.22.33.44"
 
-.EXAMPLE
-New-SafeguardEventSubscription  -ObjectTypeToSubscribe DirectoryAccount -ObjectIdToSubscribe 123 -SubscriptionEvent DirectoryAccountCreated -IsSnmpEvent -snmpnetworkaddress "11.22.33.44"
 #>
 function New-SafeguardEventSubscription
 {
@@ -715,13 +740,15 @@ function New-SafeguardEventSubscription
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+
         [Parameter(Mandatory=$true, Position=0)]
-        [ValidateSet('Asset','AssetAccount','DirectoryAccount',IgnoreCase=$true)]
+        [ValidateSet('Asset','AssetAccount',IgnoreCase=$true)]
         [string]$ObjectTypeToSubscribe,
         [Parameter(Mandatory=$true, Position=1)]
         [string]$ObjectIdToSubscribe,
         [Parameter(Mandatory=$true, Position=2)]
         [string[]]$SubscriptionEvent,
+
         [Parameter(Mandatory=$false)]
         [object]$UserToSubscribe,
         [Parameter(Mandatory=$false)]
@@ -750,14 +777,14 @@ function New-SafeguardEventSubscription
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     #Resolve events to be subscribed
-    [object[]]$SubscriptionEvents = Resolve-SubscriptionEvent -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -TypeOfEvent $ObjectTypeToSubscribe -EventsToValidate $SubscriptionEvent
+    [object[]]$SubscriptionEvents = (Resolve-SubscriptionEvent -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                         -TypeOfEvent $ObjectTypeToSubscribe -EventsToValidate $SubscriptionEvent)
 
     #Resolve the object to be subscribed
     switch ($ObjectTypeToSubscribe)
     {
         "Asset"{ $ObjectIdToSubscribe = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetToGet $ObjectIdToSubscribe).Id; break }
         "AssetAccount"{ $ObjectIdToSubscribe = (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AccountToGet $ObjectIdToSubscribe).Id;  break }
-        "DirectoryAccount"{ $ObjectIdToSubscribe = (Get-SafeguardDirectoryAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AccountToGet $ObjectIdToSubscribe).Id; break }
     }
 
     #Initialize the body of the API call. Default type of subscription is set as SignalR
@@ -904,8 +931,6 @@ Edit-SafeguardEventSubscription  -SubscriptionObject $obj
 .EXAMPLE
 Edit-SafeguardEventSubscription  -SubscriptionId 123 -IsEmailEvent -EmailAddress "name@company.com"
 
-.EXAMPLE
-Edit-SafeguardEventSubscription  -SubscriptionId 123 -ObjectType DirectoryAccount -SubscriptionEvent DirectoryAccountCreated
 #>
 function Edit-SafeguardEventSubscription
 {
@@ -920,7 +945,7 @@ function Edit-SafeguardEventSubscription
         [Parameter(Mandatory=$false, Position=0)]
         [Int]$SubscriptionId,
         [Parameter(Mandatory=$false, Position=1)]
-        [ValidateSet('Asset','AssetAccount','DirectoryAccount',IgnoreCase=$true)]
+        [ValidateSet('Asset','AssetAccount',IgnoreCase=$true)]
         [string]$ObjectTypeToSubscribe,
         [Parameter(Mandatory=$false, Position=2)]
         [string]$ObjectIdToSubscribe,
@@ -956,33 +981,35 @@ function Edit-SafeguardEventSubscription
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if($PSBoundParameters.ContainsKey("SubscriptionObject"))
+    if ($PSBoundParameters.ContainsKey("SubscriptionObject"))
     {
         #Resolve events contained in the SubscriptionObject
         ForEach($IndividualEvent in $SubscriptionObject.Subscriptions)
         {
             [string[]]$local:Events += $IndividualEvent.Name
         }
-        [object[]]$SubscriptionEvents = Resolve-SubscriptionEvent -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -TypeOfEvent $SubscriptionObject.ObjectType -EventsToValidate $Events
+        [object[]]$SubscriptionEvents = (Resolve-SubscriptionEvent -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                            -TypeOfEvent $SubscriptionObject.ObjectType -EventsToValidate $Events)
         $SubscriptionObject.Subscriptions = $SubscriptionEvents
 
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "EventSubscribers/$($SubscriptionObject.Id)" -Body $SubscriptionObject
         return
     }
 
-    if(-not $PSBoundParameters.ContainsKey("SubscriptionId"))
+    if (-not $PSBoundParameters.ContainsKey("SubscriptionId"))
     {
         $SubscriptionId = (Read-Host "SubscriptionId")
     }
 
     $local:Body = Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "EventSubscribers/$SubscriptionId"
 
-    if($PSBoundParameters.ContainsKey("ObjectTypeToSubscribe")) {$local:Body.ObjectType = $ObjectTypeToSubscribe}
+    if ($PSBoundParameters.ContainsKey("ObjectTypeToSubscribe")) {$local:Body.ObjectType = $ObjectTypeToSubscribe}
 
     #Resolve events to be subscribed
-    if($PSBoundParameters.ContainsKey("SubscriptionEvent"))
+    if ($PSBoundParameters.ContainsKey("SubscriptionEvent"))
     {
-        [object[]]$SubscriptionEvents = Resolve-SubscriptionEvent -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -TypeOfEvent $local:Body.ObjectType -EventsToValidate $SubscriptionEvent
+        [object[]]$SubscriptionEvents = (Resolve-SubscriptionEvent -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                             -TypeOfEvent $local:Body.ObjectType -EventsToValidate $SubscriptionEvent)
     }
     else
     {
@@ -990,18 +1017,18 @@ function Edit-SafeguardEventSubscription
         {
             [string[]]$local:Events += $IndividualEvent.Name
         }
-        [object[]]$SubscriptionEvents = Resolve-SubscriptionEvent -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -TypeOfEvent $local:Body.ObjectType -EventsToValidate $Events
+        [object[]]$SubscriptionEvents = (Resolve-SubscriptionEvent -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                             -TypeOfEvent $local:Body.ObjectType -EventsToValidate $Events)
     }
     $local:Body.Subscriptions = $SubscriptionEvents
 
     #Resolve the object to be subscribed
-    if($PSBoundParameters.ContainsKey("ObjectIdToSubscribe"))
+    if ($PSBoundParameters.ContainsKey("ObjectIdToSubscribe"))
     {
         switch ($local:Body.ObjectType)
         {
             "Asset"{ $ObjectIdToSubscribe = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetToGet $ObjectIdToSubscribe).Id; break }
             "AssetAccount"{ $ObjectIdToSubscribe = (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AccountToGet $ObjectIdToSubscribe).Id;  break }
-            "DirectoryAccount"{ $ObjectIdToSubscribe = (Get-SafeguardDirectoryAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AccountToGet $ObjectIdToSubscribe).Id; break }
         }
     }
 
