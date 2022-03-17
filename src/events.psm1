@@ -98,7 +98,14 @@ function Resolve-SubscriptionEvent
 
     [string[]]$InvalidEvents = $null
     [object[]]$SubscriptionEvents = $null
-    [string[]]$EventNames = (Get-SafeguardEventName -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -TypeOfEvent $TypeOfEvent)
+    if ($TypeOfEvent)
+    {
+        [string[]]$EventNames = (Get-SafeguardEventName -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -TypeOfEvent $TypeOfEvent)
+    }
+    else
+    {
+        [string[]]$EventNames = (Get-SafeguardEventName -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
+    }
 
     foreach ($IndividualEvent in $EventsToValidate)
     {
@@ -652,10 +659,20 @@ An event subscription is a configuration to receive notifications via a subscrib
 mechanism when an event occurs.  The subscriber mechanisms are Email, Snmp, Signalr,
 and Syslog.
 
+Snmp and Syslog subscriptions will send notifications using those protocols.
 
-
-Event subscriptions can be created for all types of users but can only be created by
+Email subscriptions can be created for all types of users but can only be created by
 an administrative user.
+
+Email subscriptions can be for a user or an email address.  Use an email address to
+send notifications to a distribution group.
+
+SignalR mechanisms only support a user.  The user must connect to SignalR to receive
+notifications.
+
+For certain subscriptions, you may specify an object type to subscribe, e.g. Asset or
+AssetAccount, and an object ID to only receive SignalR or Email notifications for that
+particular object.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -721,10 +738,10 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-New-SafeguardEventSubscription  -ObjectTypeToSubscribe Asset -ObjectIdToSubscribe 123 -SubscriptionEvent AssetCreated
+New-SafeguardEventSubscription -IsEmailEvent -EmailAddress "petrsnd@gmail.com" -SubscriptionEvent (Get-SafeguardEventName -Category UserAuthentication)
 
 .EXAMPLE
-New-SafeguardEventSubscription  -ObjectTypeToSubscribe Asset -ObjectIdToSubscribe 123 -SubscriptionEvent AssetCreated -IsEmailEvent -EmailAddress "name@company.com"
+New-SafeguardEventSubscription -ObjectTypeToSubscribe Asset -ObjectIdToSubscribe 123 -SubscriptionEvent AssetCreated
 
 .EXAMPLE
 New-SafeguardEventSubscription  -ObjectTypeToSubscribe AssetAccount -ObjectIdToSubscribe 123 -SubscriptionEvent AssetAccountCreated -IsSyslogEvent -syslognetworkaddress "11.22.33.44"
@@ -741,12 +758,12 @@ function New-SafeguardEventSubscription
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
 
-        [Parameter(Mandatory=$true, Position=0)]
+        [Parameter(Mandatory=$false, Position=0)]
         [ValidateSet('Asset','AssetAccount',IgnoreCase=$true)]
         [string]$ObjectTypeToSubscribe,
-        [Parameter(Mandatory=$true, Position=1)]
+        [Parameter(Mandatory=$false, Position=1)]
         [string]$ObjectIdToSubscribe,
-        [Parameter(Mandatory=$true, Position=2)]
+        [Parameter(Mandatory=$false, Position=2)]
         [string[]]$SubscriptionEvent,
 
         [Parameter(Mandatory=$false)]
@@ -798,7 +815,7 @@ function New-SafeguardEventSubscription
     #Common parameters
     if ($PSBoundParameters.ContainsKey("UserToSubscribe"))
     {
-        $local:User = Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $UserToSubscribe
+        $local:User = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $UserToSubscribe)
         $local:Body.UserId = $($local:User).Id
     }
     if ($PSBoundParameters.ContainsKey("Description")) {$local:Body.Description = $Description}
@@ -849,9 +866,24 @@ function New-SafeguardEventSubscription
 Update an existing event subscription in Safeguard via the Web API.
 
 .DESCRIPTION
-Event subscription is a subscription to receive notifications when an event occurs.
-Event subscription can be created for all type of users but can only be created by
-an administrative user. One event subscriber can subscribe to multiple events.
+An event subscription is a configuration to receive notifications via a subscriber
+mechanism when an event occurs.  The subscriber mechanisms are Email, Snmp, Signalr,
+and Syslog.
+
+Snmp and Syslog subscriptions will send notifications using those protocols.
+
+Email subscriptions can be created for all types of users but can only be created by
+an administrative user.
+
+Email subscriptions can be for a user or an email address.  Use an email address to
+send notifications to a distribution group.
+
+SignalR mechanisms only support a user.  The user must connect to SignalR to receive
+notifications.
+
+For certain subscriptions, you may specify an object type to subscribe, e.g. Asset or
+AssetAccount, and an object ID to only receive SignalR or Email notifications for that
+particular object.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -1095,9 +1127,24 @@ function Edit-SafeguardEventSubscription
 Remove an event subscription in Safeguard via the Web API.
 
 .DESCRIPTION
-Event subscription is a subscription to receive notifications when an event occurs.
-Event subscription can be created for all type of users but can only be created by
-an administrative user. One event subscriber can subscribe to multiple events.
+An event subscription is a configuration to receive notifications via a subscriber
+mechanism when an event occurs.  The subscriber mechanisms are Email, Snmp, Signalr,
+and Syslog.
+
+Snmp and Syslog subscriptions will send notifications using those protocols.
+
+Email subscriptions can be created for all types of users but can only be created by
+an administrative user.
+
+Email subscriptions can be for a user or an email address.  Use an email address to
+send notifications to a distribution group.
+
+SignalR mechanisms only support a user.  The user must connect to SignalR to receive
+notifications.
+
+For certain subscriptions, you may specify an object type to subscribe, e.g. Asset or
+AssetAccount, and an object ID to only receive SignalR or Email notifications for that
+particular object.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
