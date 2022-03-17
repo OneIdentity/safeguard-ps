@@ -122,7 +122,7 @@ function Resolve-SubscriptionEvent
     if ($null -ne $InvalidEvents)
     {
         $InvalidEventsList = $InvalidEvents -join ","
-        Write-Error -Message "The following are not valid $ObjectTypeToSubscribe events: $InvalidEventsList." -Category InvalidArgument -ErrorAction Stop
+        Write-Error -Message "The following are not valid $TypeOfEvent events: $InvalidEventsList." -Category InvalidArgument -ErrorAction Stop
     }
     return $SubscriptionEvents
 }
@@ -738,13 +738,16 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-New-SafeguardEventSubscription -IsEmailEvent -EmailAddress "petrsnd@gmail.com" -SubscriptionEvent (Get-SafeguardEventName -Category UserAuthentication)
+New-SafeguardEventSubscription -IsEmailEvent -EmailAddress "login-notification@work.domain" -SubscriptionEvent (Get-SafeguardEventName -Category UserAuthentication)
 
 .EXAMPLE
-New-SafeguardEventSubscription -ObjectTypeToSubscribe Asset -ObjectIdToSubscribe 123 -SubscriptionEvent AssetCreated
+New-SafeguardEventSubscription -ObjectTypeToSubscribe AssetAccount -ObjectIdToSubscribe 123 -SubscriptionEvent PasswordChangeFailed
 
 .EXAMPLE
-New-SafeguardEventSubscription  -ObjectTypeToSubscribe AssetAccount -ObjectIdToSubscribe 123 -SubscriptionEvent AssetAccountCreated -IsSyslogEvent -syslognetworkaddress "11.22.33.44"
+New-SafeguardEventSubscription -ObjectTypeToSubscribe AssetAccount -ObjectIdToSubscribe 1 -SubscriptionEvent PasswordChangeFailed -UserToSubscribe dan@petrsnd.org
+
+.EXAMPLE
+New-SafeguardEventSubscription -IsSyslogEvent -SyslogNetworkAddress "11.22.33.44" -SubscriptionEvent AssetAccountCreated
 
 #>
 function New-SafeguardEventSubscription
@@ -1033,7 +1036,7 @@ function Edit-SafeguardEventSubscription
         $SubscriptionId = (Read-Host "SubscriptionId")
     }
 
-    $local:Body = Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "EventSubscribers/$SubscriptionId"
+    $local:Body = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "EventSubscribers/$SubscriptionId")
 
     if ($PSBoundParameters.ContainsKey("ObjectTypeToSubscribe")) {$local:Body.ObjectType = $ObjectTypeToSubscribe}
 
