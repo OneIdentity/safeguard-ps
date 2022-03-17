@@ -329,7 +329,16 @@ PrivateData = @{
         ReleaseNotes = @"
 safeguard-ps Release Notes:
 
-- bug fixes
+- Launch sessions via SRA using Start-SafeguardAccessRequestWebSession
+- Cmdlets to set auth provider as default, Set/Clear-SafeguardAuthenticationProviderAsDefault
+- Starling join using external browser, Invoke-SafeguardStarlingJoinBrowser
+- Improved event subscription cmdlets, specifically to better support email distribution lists
+    - Get-SafeguardEventCategory
+    - Get-SafeguardEventName
+    - Get-SafeguardEvent
+    - Get-SafeguardEventProperty
+    - New-SafeguardEventSubscription
+    - Edit-SafeguardEventSubscription
 "@
 
     } # End of PSData hashtable
