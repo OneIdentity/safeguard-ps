@@ -409,7 +409,7 @@ function Get-SafeguardA2aPrivateKey
     if ($PsCmdlet.ParameterSetName -eq "CertStore")
     {
         Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
-            -Thumbprint $Thumbprint -CredentialType Key
+            -Thumbprint $Thumbprint -CredentialType PrivateKey
     }
     else
     {
