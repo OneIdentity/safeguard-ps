@@ -643,11 +643,10 @@ A string containing a work phone number for the user.
 A string containing a mobile phone number for the user.
 
 .PARAMETER AdminRoles
-An array of strings containing the permissions (admin roles) to assign to the user.  You may also specify
-'All' to grant all permissions. Other permissions are: 'GlobalAdmin', 'DirectoryAdmin', 'Auditor',
-'AssetAdmin', 'ApplianceAdmin', 'PolicyAdmin', 'UserAdmin', 'HelpdeskAdmin', 'OperationsAdmin'.
-'DirectoryAdmin' has been deprecated. 'All' does not grant 'DirectoryAdmin' permission.
-Add 'DirectoryAdmin' permission individually for older Safeguard appliance.
+An array of strings containing the permissions (admin roles) to assign to the members of this directory
+group.  You may also specify 'All' to grant all permissions. Other permissions are: 'GlobalAdmin',
+'ApplicationAuditor', 'SystemAuditor', 'Auditor', 'AssetAdmin', 'ApplianceAdmin', 'PolicyAdmin', 'UserAdmin',
+'HelpdeskAdmin', 'OperationsAdmin'.
 
 .PARAMETER Password
 SecureString containing the password.
@@ -699,7 +698,8 @@ function New-SafeguardUser
         [Parameter(Mandatory=$false)]
         [string]$MobilePhone = $null,
         [Parameter(Mandatory=$false)]
-        [ValidateSet('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin','All',IgnoreCase=$true)]
+        [ValidateSet('GlobalAdmin','DirectoryAdmin','Auditor','ApplicationAuditor','SystemAuditor','AssetAdmin','ApplianceAdmin',
+                     'PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin','All',IgnoreCase=$true)]
         [string[]]$AdminRoles = $null,
         [Parameter(Mandatory=$false)]
         [SecureString]$Password,
@@ -1008,11 +1008,10 @@ A string containing a work phone number for the user.
 A string containing a mobile phone number for the user.
 
 .PARAMETER AdminRoles
-An array of strings containing the permissions (admin roles) to assign to the user.  You may also specify
-'All' to grant all permissions. Other permissions are: 'GlobalAdmin', 'DirectoryAdmin','Auditor',
-'AssetAdmin', 'ApplianceAdmin', 'PolicyAdmin', 'UserAdmin', 'HelpdeskAdmin', 'OperationsAdmin'.
-'DirectoryAdmin' has been deprecated. 'All' does not grant 'DirectoryAdmin' permission.
-Add 'DirectoryAdmin' permission individually for older Safeguard appliance.
+An array of strings containing the permissions (admin roles) to assign to the members of this directory
+group.  You may also specify 'All' to grant all permissions. Other permissions are: 'GlobalAdmin',
+'ApplicationAuditor', 'SystemAuditor', 'Auditor', 'AssetAdmin', 'ApplianceAdmin', 'PolicyAdmin', 'UserAdmin',
+'HelpdeskAdmin', 'OperationsAdmin'.
 
 .PARAMETER UserObject
 An object containing the existing user with desired properties set.
@@ -1057,7 +1056,8 @@ function Edit-SafeguardUser
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$MobilePhone = $null,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
-        [ValidateSet('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin','All',IgnoreCase=$true)]
+        [ValidateSet('GlobalAdmin','DirectoryAdmin','Auditor','ApplicationAuditor','SystemAuditor','AssetAdmin','ApplianceAdmin',
+                     'PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin','All',IgnoreCase=$true)]
         [string[]]$AdminRoles = $null,
         [Parameter(ParameterSetName="Object",Mandatory=$false)]
         [object]$UserObject
