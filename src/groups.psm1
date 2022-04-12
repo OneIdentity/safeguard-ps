@@ -386,9 +386,8 @@ a single domain does not require this parameter.
 .PARAMETER AdminRoles
 An array of strings containing the permissions (admin roles) to assign to the members of this directory
 group.  You may also specify 'All' to grant all permissions. Other permissions are: 'GlobalAdmin',
-'DirectoryAdmin', 'Auditor', 'AssetAdmin', 'ApplianceAdmin', 'PolicyAdmin', 'UserAdmin', 'HelpdeskAdmin',
-'OperationsAdmin'. 'DirectoryAdmin' has been deprecated. 'All' does not grant 'DirectoryAdmin' permission.
-Add 'DirectoryAdmin' permission individually for older Safeguard appliance.
+'ApplicationAuditor', 'SystemAuditor', 'Auditor', 'AssetAdmin', 'ApplianceAdmin', 'PolicyAdmin', 'UserAdmin',
+'HelpdeskAdmin', 'OperationsAdmin'.
 
 .INPUTS
 None.
@@ -424,7 +423,8 @@ function New-SafeguardUserGroup
         [Parameter(ParameterSetName="Directory",Mandatory=$false,Position=2)]
         [string]$DomainName,
         [Parameter(Mandatory=$false)]
-        [ValidateSet('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin','All',IgnoreCase=$true)]
+        [ValidateSet('GlobalAdmin','DirectoryAdmin','Auditor','ApplicationAuditor','SystemAuditor','AssetAdmin','ApplianceAdmin',
+                     'PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin','All',IgnoreCase=$true)]
         [string[]]$AdminRoles
     )
 
@@ -558,9 +558,8 @@ A string containing the new description for the user group.
 .PARAMETER AdminRoles
 An array of strings containing the permissions (admin roles) to assign to the members of this directory
 group.  You may also specify 'All' to grant all permissions. Other permissions are: 'GlobalAdmin',
-'DirectoryAdmin', 'Auditor', 'AssetAdmin', 'ApplianceAdmin', 'PolicyAdmin', 'UserAdmin', 'HelpdeskAdmin',
-'OperationsAdmin'. 'DirectoryAdmin' has been deprecated. 'All' does not grant 'DirectoryAdmin' permission.
-Add 'DirectoryAdmin' permission individually for older Safeguard appliance.
+'ApplicationAuditor', 'SystemAuditor', 'Auditor', 'AssetAdmin', 'ApplianceAdmin', 'PolicyAdmin', 'UserAdmin',
+'HelpdeskAdmin', 'OperationsAdmin'.
 
 .PARAMETER Operation
 String of type of operation to be perfomed on the user group. 'Add' to add users to the user group
@@ -596,7 +595,8 @@ function Edit-SafeguardUserGroup
         [Parameter(Mandatory=$false, ParameterSetName="Attributes")]
         [string]$Description,
         [Parameter(Mandatory=$false, ParameterSetName="Attributes")]
-        [ValidateSet('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin','All',IgnoreCase=$true)]
+        [ValidateSet('GlobalAdmin','DirectoryAdmin','Auditor','ApplicationAuditor','SystemAuditor','AssetAdmin','ApplianceAdmin',
+                     'PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin','All',IgnoreCase=$true)]
         [string[]]$AdminRoles,
         [Parameter(Mandatory=$true, ParameterSetName="Operation", Position=1)]
         [ValidateSet("Add", "Remove", IgnoreCase=$true)]
