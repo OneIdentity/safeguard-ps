@@ -317,7 +317,7 @@ function Remove-SafeguardStarling2FA
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure,        
+        [switch]$Insecure  
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -327,26 +327,49 @@ function Remove-SafeguardStarling2FA
 	{
 		$local:UserIds = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
 										 -Parameters @{ filter = "SecondaryAuthenticationProviderTypeReferenceName in ['StarlingSubscription', 'StarlingTwoFactor']"; fields = "Id" })   
-		
+		$local:FailedIds =@()
+		$local:SucceededIds = @()
+
 		Foreach ($Id in $local:UserIds)
 		{
 			$UserObject = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Id)
 			
 			if($UserObject -ne $null)
-			{
-			
+			{				
 				$UserObject.SecondaryAuthenticationProviderId = $null
 				$UserObject.SecondaryAuthenticationProviderName = $null
 				$UserObject.SecondaryAuthenticationProviderTypeReferenceName = "Unknown"
 				$UserObject.SecondaryAuthenticationIdentity = $null
-				
-				Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$($UserObject.Id)" -Body $UserObject
+				try
+				{
+					Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$($UserObject.Id)" -Body $UserObject
+					$local:SucceededIds += $UserObject.Id
+				}
+				catch
+				{
+					$local:FailedIds += $UserObject.Id
+				}
 			}
+			else
+			{
+				$local:FailedIds += $UserObject.Id
+			}
+		}
+		
+		if ($local:FailedIds -ne $null)
+		{
+			$FIds = ($local:FailedIds -join ",")
+			Write-Host "Failed for users: $FIds"
+		}
+		if ($local:SucceededIds -ne $null)
+		{
+			$SIds = $local:SucceededIds -join ","           
+			Write-Host "Succeeded for users: $SIds"
 		}
 	}
 	catch
 	{
-		Write-Verbose "Error occured while removing Starling Two Factor authentication from user(s)."
+		Write-Host "Error occured while removing Starling Two Factor authentication from user(s)."
 	}
 }
 
