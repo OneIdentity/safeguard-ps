@@ -620,6 +620,7 @@ update this list.
 - Get-SafeguardStarlingSubscription
 - New-SafeguardStarlingSubscription
 - Remove-SafeguardStarlingSubscription
+- Remove-SafeguardStarling2FA
 - Get-SafeguardStarlingJoinUrl
 - Get-SafeguardStarlingSetting
 - Set-SafeguardStarlingSetting

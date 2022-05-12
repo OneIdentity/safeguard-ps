@@ -245,7 +245,7 @@ FunctionsToExport = @(
     # a2acallers.psm1
     'Get-SafeguardA2aRetrievableAccount','Get-SafeguardA2aPassword','Get-SafeguardA2aPrivateKey','New-SafeguardA2aAccessRequest',
     # starling.psm1
-    'Get-SafeguardStarlingSubscription','New-SafeguardStarlingSubscription','Remove-SafeguardStarlingSubscription',
+    'Get-SafeguardStarlingSubscription','New-SafeguardStarlingSubscription','Remove-SafeguardStarlingSubscription','Remove-SafeguardStarling2FA',
     'Get-SafeguardStarlingJoinUrl','Invoke-SafeguardStarlingJoin','Invoke-SafeguardStarlingJoinBrowser',
     'Get-SafeguardStarlingSetting','Set-SafeguardStarlingSetting',
     # managementShell.psm1
