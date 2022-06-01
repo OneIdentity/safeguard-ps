@@ -968,7 +968,7 @@ function Connect-Safeguard
         [Parameter(ParameterSetName="Username",Mandatory=$false)]
         [switch]$TwoFactor,
         [Parameter(Mandatory=$false)]
-        [int]$Version = 3,
+        [int]$Version = 4,
         [Parameter(Mandatory=$false)]
         [switch]$NoSessionVariable = $false,
         [Parameter(Mandatory=$false)]
