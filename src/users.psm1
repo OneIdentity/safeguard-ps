@@ -1056,6 +1056,8 @@ function Edit-SafeguardUser
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$MobilePhone = $null,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$AuthProvider = $null,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [ValidateSet('GlobalAdmin','DirectoryAdmin','Auditor','ApplicationAuditor','SystemAuditor','AssetAdmin','ApplianceAdmin',
                      'PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin','All',IgnoreCase=$true)]
         [string[]]$AdminRoles = $null,
@@ -1090,6 +1092,7 @@ function Edit-SafeguardUser
         if ($PSBoundParameters.ContainsKey("EmailAddress")) { $UserObject.EmailAddress = $EmailAddress }
         if ($PSBoundParameters.ContainsKey("WorkPhone")) { $UserObject.WorkPhone = $WorkPhone }
         if ($PSBoundParameters.ContainsKey("MobilePhone")) { $UserObject.MobilePhone = $MobilePhone }
+        if ($PSBoundParameters.ContainsKey("AuthProvider")) { $UserObject.PrimaryAuthenticationProviderId = $AuthProvider }
 
         if ($PSBoundParameters.ContainsKey("AdminRoles"))
         {
