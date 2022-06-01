@@ -1971,6 +1971,46 @@ function Get-SafeguardLoggedInUser
 
 <#
 .SYNOPSIS
+Accept the Safeguard Software Transaction Agreement (STA) via the Safeguard Web API.
+
+.DESCRIPTION
+All Safeguard customers must accept the STA before using the software.  This cmdlet
+provides a programmatic means for customers to accept the agreement as displayed on
+One Identity's website: https://www.oneidentity.com/legal/sta.aspx.  The agreement
+applies to customers based on their geographic region.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Confirm-SafeguardStaAcceptance
+#>
+function Confirm-SafeguardStaAcceptance
+{
+    [CmdletBinding()]
+    Param(
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:StaStatus = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Licenses/Sta")
+    if ($local:StaStatus.Accepted)
+    {
+        Write-Host "Safeguard STA agreement (https://www.oneidentity.com/legal/sta.aspx) already accepted."
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Licenses/Sta"
+        Write-Host "The Safeguard STA agreement (https://www.oneidentity.com/legal/sta.aspx) has been accepted."
+    }
+}
+
+<#
+.SYNOPSIS
 Simple utility for opening CSV files in Excel from the command line.
 
 .DESCRIPTION
