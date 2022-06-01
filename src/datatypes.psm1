@@ -27,14 +27,14 @@ function Resolve-SafeguardPlatform
         try
         {
             $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
-                                    -Parameters @{ Filter = "DisplayName icontains '$Platform'" })
+                                    -Parameters @{ Filter = "DisplayName icontains '$Platform' and Id ge 500" })
         }
         catch
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with icontains filter, trying with contains filter"
             $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
-                                    -Parameters @{ Filter = "DisplayName contains '$Platform'" })
+                                    -Parameters @{ Filter = "DisplayName contains '$Platform' and Id ge 500" })
         }
         if (-not $local:Platforms)
         {
@@ -214,10 +214,10 @@ function Get-SafeguardPlatform
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:Parameters = $null
+    $local:Parameters = @{ orderby = "Id" }
     if ($Fields)
     {
-        $local:Parameters = @{ fields = ($Fields -join ",")}
+        $local:Parameters.fields = ($Fields -join ",")
     }
 
     if ($PSBoundParameters.ContainsKey("Platform"))
@@ -308,7 +308,7 @@ function Find-SafeguardPlatform
         try
         {
             $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
-                                    -Parameters $local:Parameters -RetryVersion 2 -RetryUrl "Platforms")
+                                    -Parameters $local:Parameters)
         }
         catch
         {
@@ -324,7 +324,7 @@ function Find-SafeguardPlatform
             }
             Write-Verbose "No results yet, trying with q parameter"
             $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
-                                    -Parameters $local:Parameters -RetryVersion 2 -RetryUrl "Platforms")
+                                    -Parameters $local:Parameters)
         }
         $local:Platforms
     }
@@ -336,7 +336,7 @@ function Find-SafeguardPlatform
             $local:Parameters["fields"] = ($Fields -join ",")
         }
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
-            -Parameters $local:Parameters -RetryVersion 2 -RetryUrl "Platforms"
+            -Parameters $local:Parameters
     }
 }
 
