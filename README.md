@@ -269,6 +269,7 @@ update this list.
 - Get-SafeguardAccessTokenStatus
 - Update-SafeguardAccessToken
 - Get-SafeguardLoggedInUser
+- Confirm-SafeguardStaAcceptance
 
 ### Data Types
 

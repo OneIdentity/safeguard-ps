@@ -109,7 +109,7 @@ FunctionsToExport = @(
     # safeguard-ps.psm1
     'Connect-Safeguard','Disconnect-Safeguard','Invoke-SafeguardMethod',
     'Get-SafeguardAccessTokenStatus','Update-SafeguardAccessToken',
-    'Get-SafeguardLoggedInUser',
+    'Get-SafeguardLoggedInUser','Confirm-SafeguardStaAcceptance',
     # csv utility (also in safeguard-ps.psm1)
     'Open-CsvInExcel',
     # datatypes.psm1
