@@ -37,7 +37,7 @@ function Resolve-SafeguardGroupId
     if (-not ($Group -as [int]))
     {
         $local:Groups = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
-                                                -Parameters @{ filter = "Name ieq '$Group'" } -RetryVersion 2 -RetryUrl "$local:RelativeUrl")
+                                                -Parameters @{ filter = "Name ieq '$Group'" })
         if (-not $local:Groups)
         {
             throw "Unable to find $($GroupType.ToLower()) group matching '$Group'"
@@ -102,12 +102,12 @@ function Get-SafeguardGroup
     {
         $local:GroupId = Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $GroupType $GroupToGet
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$local:RelativeUrl/$($local:GroupId)" `
-            -RetryVersion 2 -RetryUrl "$local:RelativeUrl/$($local:GroupId)" -Parameters $local:Parameters
+            -Parameters $local:Parameters
     }
     else
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
-            -RetryVersion 2 -RetryUrl "$local:RelativeUrl" -Parameters $local:Parameters
+            -Parameters $local:Parameters
     }
 }
 function New-SafeguardGroup
@@ -145,7 +145,7 @@ function New-SafeguardGroup
     if ($PSBoundParameters.ContainsKey("Description")) { $local:Body.Description = $Description }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST $local:RelativeUrl `
-        -Body $local:Body -RetryVersion 2 -RetryUrl "$local:RelativeUrl"
+        -Body $local:Body
 }
 function Remove-SafeguardGroup
 {
@@ -178,7 +178,7 @@ function Remove-SafeguardGroup
     $local:GroupId = (Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $GroupType $GroupToDelete)
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "$($local:RelativeUrl)/$($local:GroupId)" `
-        -Body $local:Body -RetryVersion 2 -RetryUrl "$($local:RelativeUrl)/$($local:GroupId)"
+        -Body $local:Body
 }
 function Edit-SafeguardGroup
 {
@@ -218,8 +218,7 @@ function Edit-SafeguardGroup
 
     # Modify the group using add or remove endpoint
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST `
-        "$($local:RelativeUrl)/$($local:GroupId)/$($local:UrlPart)/$Operation" -Body $ObjectToOperate `
-        -RetryVersion 2 -RetryUrl "$($local:RelativeUrl)/$($local:GroupId)/$($local:UrlPart)/$Operation" | Out-Null
+        "$($local:RelativeUrl)/$($local:GroupId)/$($local:UrlPart)/$Operation" -Body $ObjectToOperate | Out-Null
 
     # Get the result by fetching the group
     Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -GroupType $GroupType -GroupToGet $local:GroupId
@@ -477,7 +476,7 @@ function New-SafeguardUserGroup
         }
     }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST UserGroups -Body $local:Body -RetryVersion 2 -RetryUrl "UserGroups"
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST UserGroups -Body $local:Body
 }
 
 <#
