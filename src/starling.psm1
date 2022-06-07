@@ -323,54 +323,54 @@ function Remove-SafeguardStarling2FA
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-	try
-	{
-		$local:UserIds = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
-										 -Parameters @{ filter = "SecondaryAuthenticationProviderTypeReferenceName in ['StarlingSubscription', 'StarlingTwoFactor']"; fields = "Id" })
-		$local:FailedIds =@()
-		$local:SucceededIds = @()
+    try
+    {
+        $local:UserIds = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
+                            -Parameters @{ filter = "SecondaryAuthenticationProviderTypeReferenceName in ['StarlingSubscription', 'StarlingTwoFactor']"; fields = "Id" })
+        $local:FailedIds =@()
+        $local:SucceededIds = @()
 
-		Foreach ($Id in $local:UserIds)
-		{
-			$UserObject = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Id)
+        Foreach ($Id in $local:UserIds)
+        {
+            $UserObject = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Id)
 
-			if ($null -ne $UserObject)
-			{
-				$UserObject.SecondaryAuthenticationProviderId = $null
-				$UserObject.SecondaryAuthenticationProviderName = $null
-				$UserObject.SecondaryAuthenticationProviderTypeReferenceName = "Unknown"
-				$UserObject.SecondaryAuthenticationIdentity = $null
-				try
-				{
-					Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$($UserObject.Id)" -Body $UserObject
-					$local:SucceededIds += $UserObject.Id
-				}
-				catch
-				{
-					$local:FailedIds += $UserObject.Id
-				}
-			}
-			else
-			{
-				$local:FailedIds += $UserObject.Id
-			}
-		}
+            if ($null -ne $UserObject)
+            {
+                $UserObject.SecondaryAuthenticationProviderId = $null
+                $UserObject.SecondaryAuthenticationProviderName = $null
+                $UserObject.SecondaryAuthenticationProviderTypeReferenceName = "Unknown"
+                $UserObject.SecondaryAuthenticationIdentity = $null
+                try
+                {
+                    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$($UserObject.Id)" -Body $UserObject
+                    $local:SucceededIds += $UserObject.Id
+                }
+                catch
+                {
+                    $local:FailedIds += $UserObject.Id
+                }
+            }
+            else
+            {
+                $local:FailedIds += $UserObject.Id
+            }
+        }
 
-		if ($null -ne $local:FailedIds)
-		{
-			$FIds = ($local:FailedIds -join ",")
-			Write-Host "Failed for users: $FIds"
-		}
-		if ($null -ne $local:SucceededIds)
-		{
-			$SIds = $local:SucceededIds -join ","
-			Write-Host "Succeeded for users: $SIds"
-		}
-	}
-	catch
-	{
-		Write-Host "Error occured while removing Starling Two Factor authentication from user(s)."
-	}
+        if ($null -ne $local:FailedIds)
+        {
+            $FIds = ($local:FailedIds -join ",")
+            Write-Host "Failed for users: $FIds"
+        }
+        if ($null -ne $local:SucceededIds)
+        {
+            $SIds = $local:SucceededIds -join ","
+            Write-Host "Succeeded for users: $SIds"
+        }
+    }
+    catch
+    {
+        Write-Host "Error occured while removing Starling Two Factor authentication from user(s)."
+    }
 }
 
 <#
