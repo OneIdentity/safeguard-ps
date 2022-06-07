@@ -851,8 +851,8 @@ function Get-SafeguardReportAssetGroupMembership
                 Disabled = $_.Disabled;
                 SupportsSessionManagement = $_.SupportsSessionManagement;
                 AllowSessionRequests = $_.AllowSessionRequests;
-                SshHostKeyFingerprint = $_.SshHostKeyFingerprint;
-                SshHostKeyFingerprintSha256 = $_.SshHostKeyFingerprintSha256;
+                SshHostKeyFingerprint = $_.SshHostKey.Fingerprint;
+                SshHostKeyFingerprintSha256 = $_.SshHostKey.FingerprintSha256;
                 SshSessionPort = $_.SessionAccessProperties.SshSessionPort;
                 RemoteDesktopSessionPort = $_.SessionAccessProperties.RemoteDesktopSessionPort;
                 TelnetSessionPort = $_.SessionAccessProperties.TelnetSessionPort
