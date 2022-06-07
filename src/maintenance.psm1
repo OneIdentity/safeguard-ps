@@ -900,10 +900,10 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardName
+Get-SafeguardApplianceName
 
 .EXAMPLE
-Get-SafeguardName -Appliance 10.5.32.54 -Insecure
+Get-SafeguardApplianceName -Appliance 10.5.32.54 -Insecure
 #>
 function Get-SafeguardApplianceName
 {
@@ -933,9 +933,6 @@ cluster can have a unique name.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
-
-.PARAMETER AccessToken
-A string containing the bearer token to be used with Safeguard Web API.
 
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate
@@ -970,6 +967,51 @@ function Set-SafeguardApplianceName
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance PUT ApplianceStatus/Name -Body $Name
+}
+
+<#
+.SYNOPSIS
+Get user-defined DNS suffix of a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Get user-defined name of a Safeguard appliance. This name can be specified
+using the Set-SafeguardName cmdlet. Each appliance in a cluster can have a
+unique name.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardApplianceDnsSuffix
+
+.EXAMPLE
+Get-SafeguardApplianceDnsSuffix -Appliance 10.5.32.54 -Insecure
+#>
+function Get-SafeguardApplianceDnsSuffix
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    (Invoke-SafeguardMethod -Anonymous -Appliance $Appliance -Insecure:$Insecure Notification GET Status).HostDnsSuffix
 }
 
 <#
