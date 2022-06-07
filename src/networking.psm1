@@ -211,17 +211,11 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
-.PARAMETER Interface
-A string containing the name of the network interface to get (e.g. X0, X1).
-
 .INPUTS
 None.
 
 .OUTPUTS
 JSON response from Safeguard Web API.
-
-.EXAMPLE
-Get-SafeguardNetworkInterface X0
 
 .EXAMPLE
 Get-SafeguardNetworkInterface
