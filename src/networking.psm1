@@ -279,7 +279,7 @@ function Set-SafeguardDnsSuffix
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true,Position=1)]
+        [Parameter(Mandatory=$true,Position=0)]
         [string[]]$DnsSuffixes
     )
 
