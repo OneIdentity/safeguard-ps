@@ -870,8 +870,7 @@ function Get-SafeguardHealth
 
     if ($ForceUpdate)
     {
-        (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members/Self" `
-            -RetryUrl "ClusterMembers/Self").Health
+        (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Cluster/Members/Self").Health
     }
     else
     {
@@ -1628,8 +1627,7 @@ function Clear-SafeguardPatch
 
     if (Test-SupportForClusterPatch -Appliance $Appliance -Insecure:$Insecure)
     {
-        if ((Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET "Cluster/Members" `
-            -RetryUrl "ClusterMembers").Count -gt 1)
+        if ((Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET "Cluster/Members").Count -gt 1)
         {
             Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance DELETE Patch/Distribute
         }

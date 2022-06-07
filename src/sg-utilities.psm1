@@ -414,7 +414,7 @@ function Wait-ForClusterOperation
         Write-Progress -Activity "Waiting for cluster operation to finish" -Status "Cluster Operation: $($local:Status)" -PercentComplete (($local:TimeElapsed / $Timeout) * 100)
         try
         {
-            $local:Status = (Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET Cluster/Status -RetryUrl "ClusterStatus").Operation
+            $local:Status = (Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET "Cluster/Status").Operation
         }
         catch {}
         Start-Sleep 2
@@ -447,8 +447,7 @@ function Wait-ForPatchDistribution
 
     $local:TimeElapsed = 0
 
-    if ((Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET "Cluster/Members" `
-        -RetryUrl "ClusterMembers").Count -gt 1)
+    if ((Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET "Cluster/Members").Count -gt 1)
     {
         $local:StartTime = (Get-Date)
         $local:Status = "Unknown"
@@ -457,7 +456,7 @@ function Wait-ForPatchDistribution
             Write-Progress -Activity "Waiting for patch distribution" -Status "Cluster Operation: $($local:Status)" -PercentComplete (($local:TimeElapsed / $Timeout) * 100)
             try
             {
-                $local:Members = (Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET Cluster/Status/PatchDistribution -RetryUrl "ClusterStatus/PatchDistribution").Members
+                $local:Members = (Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core GET "Cluster/Status/PatchDistribution").Members
                 $local:StagingStatuses = ($local:Members.StagingStatus | Sort-Object)
                 $local:Status = $local:StagingStatuses -join ","
             }

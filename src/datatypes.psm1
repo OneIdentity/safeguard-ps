@@ -27,18 +27,84 @@ function Resolve-SafeguardPlatform
         try
         {
             $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
-                                    -Parameters @{ Filter = "DisplayName icontains '$Platform'" })
+                                    -Parameters @{ Filter = "DisplayName icontains '$Platform' and Id ge 500" })
         }
         catch
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with icontains filter, trying with contains filter"
             $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
-                                    -Parameters @{ Filter = "DisplayName contains '$Platform'" })
+                                    -Parameters @{ Filter = "DisplayName contains '$Platform' and Id ge 500" })
         }
         if (-not $local:Platforms)
         {
             $local:Platforms = (Find-SafeguardPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure "$Platform")
+        }
+        if (-not $local:Platforms)
+        {
+            throw "Unable to find platform matching '$Platform'..."
+        }
+        if ($local:Platforms.Count -ne 1)
+        {
+            Write-Host "Found $($local:Platforms.Count) platforms matching '$Platform':"
+            Write-Host "["
+            $local:Platforms | ForEach-Object {
+                Write-Host ("    {0,3} - {1}" -f $_.Id,$_.DisplayName)
+            }
+            Write-Host "]"
+            $Platform = (Read-Host "Enter platform ID or search string")
+        }
+        else
+        {
+            $Platform = $local:Platforms[0].Id
+        }
+    }
+    $Platform
+}
+function Resolve-SafeguardLdapDirectoryPlatform
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$Platform
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($Platform.Id -as [int])
+    {
+        $Platform = $Platform.Id
+    }
+
+    while (-not $($Platform -as [int]))
+    {
+        Write-Host "Searching for LDAP platforms with '$Platform'"
+        try
+        {
+            $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
+                                    -Parameters @{ filter = "DisplayName icontains '$Platform' and DeviceClass eq 'Directory' and Id ne 522 and Id ge 500"; `
+                                                   fields = "Id,DisplayName"; orderby = "Id" })
+        }
+        catch
+        {
+            Write-Verbose $_
+            Write-Verbose "Caught exception with icontains filter, trying with contains filter"
+            $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
+                                    -Parameters @{ filter = "DisplayName contains '$Platform' and DeviceClass eq 'Directory' and Id ne 522 and Id ge 500"; `
+                                                   fields = "Id,DisplayName"; orderby = "Id" })
+        }
+        if (-not $local:Platforms)
+        {
+            $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
+                                    -Parameters @{ q = "$Platform"; filter = "Id ge 500 and Id ne 522 and DeviceClass eq 'Directory'"; `
+                                                   fields = "Id,DisplayName"; orderby = "Id" })
         }
         if (-not $local:Platforms)
         {
@@ -214,10 +280,10 @@ function Get-SafeguardPlatform
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:Parameters = $null
+    $local:Parameters = @{ orderby = "Id" }
     if ($Fields)
     {
-        $local:Parameters = @{ fields = ($Fields -join ",")}
+        $local:Parameters.fields = ($Fields -join ",")
     }
 
     if ($PSBoundParameters.ContainsKey("Platform"))
@@ -239,7 +305,8 @@ Search the platform types defined in Safeguard via the Web API.
 
 .DESCRIPTION
 Search the platform types defined in Safeguard for string fields containing
-the SearchString.
+the SearchString.  This cmdlet will still find the legacy platform definitions
+differentiated only by version and architecture (Id < 500).
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -300,7 +367,7 @@ function Find-SafeguardPlatform
 
     if ($PSCmdlet.ParameterSetName -eq "Search")
     {
-        $local:Parameters = @{ filter = "DisplayName icontains '$SearchString' or Name icontains '$SearchString'" }
+        $local:Parameters = @{ filter = "DisplayName icontains '$SearchString' or Name icontains '$SearchString'"; orderby = "Id" }
         if ($Fields)
         {
             $local:Parameters["fields"] = ($Fields -join ",")
@@ -308,7 +375,7 @@ function Find-SafeguardPlatform
         try
         {
             $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
-                                    -Parameters $local:Parameters -RetryVersion 2 -RetryUrl "Platforms")
+                                    -Parameters $local:Parameters)
         }
         catch
         {
@@ -317,26 +384,26 @@ function Find-SafeguardPlatform
         }
         if (-not $local:Platforms)
         {
-            $local:Parameters = @{ q = $SearchString }
+            $local:Parameters = @{ q = $SearchString; orderby = "Id" }
             if ($Fields)
             {
                 $local:Parameters["fields"] = ($Fields -join ",")
             }
             Write-Verbose "No results yet, trying with q parameter"
             $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
-                                    -Parameters $local:Parameters -RetryVersion 2 -RetryUrl "Platforms")
+                                    -Parameters $local:Parameters)
         }
         $local:Platforms
     }
     else
     {
-        $local:Parameters = @{ filter = $QueryFilter }
+        $local:Parameters = @{ filter = $QueryFilter; orderby = "Id" }
         if ($Fields)
         {
             $local:Parameters["fields"] = ($Fields -join ",")
         }
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
-            -Parameters $local:Parameters -RetryVersion 2 -RetryUrl "Platforms"
+            -Parameters $local:Parameters
     }
 }
 
