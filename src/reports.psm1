@@ -152,8 +152,8 @@ function Get-SafeguardReportAccountWithoutPassword
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "PolicyAccounts" -Accept "text/csv" -OutFile $local:OutFile -Parameters @{
         filter = "HasPassword eq false";
-        fields = ("SystemId,Id,SystemName,Name,DomainName,SystemNetworkAddress,HasPassword,Disabled,AllowPasswordRequest,AllowSessionRequest," + `
-            "PlatformDisplayName") }
+        fields = ("Asset.Id,Id,Asset.Name,Name,DomainName,Asset.NetworkAddress,HasPassword,Disabled,RequestProperties.AllowPasswordRequest,RequestProperties.AllowSessionRequest," `
+            + "Platform.DisplayName") }
 
     Out-FileAndExcel -OutFile $local:OutFile -Excel:$Excel
 }
