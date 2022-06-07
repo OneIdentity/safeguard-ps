@@ -235,10 +235,7 @@ function Get-SafeguardDnsSuffix
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure,
-        [Parameter(Mandatory=$true,Position=0)]
-        [ValidateSet("Mgmt", "X0", "X1", IgnoreCase=$true)]
-        [string]$Interface
+        [switch]$Insecure
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
