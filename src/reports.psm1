@@ -152,8 +152,8 @@ function Get-SafeguardReportAccountWithoutPassword
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "PolicyAccounts" -Accept "text/csv" -OutFile $local:OutFile -Parameters @{
         filter = "HasPassword eq false";
-        fields = ("SystemId,Id,SystemName,Name,DomainName,SystemNetworkAddress,HasPassword,Disabled,AllowPasswordRequest,AllowSessionRequest," + `
-            "PlatformDisplayName") }
+        fields = ("Asset.Id,Id,Asset.Name,Name,DomainName,Asset.NetworkAddress,HasPassword,Disabled,RequestProperties.AllowPasswordRequest,RequestProperties.AllowSessionRequest," `
+            + "Platform.DisplayName") }
 
     Out-FileAndExcel -OutFile $local:OutFile -Excel:$Excel
 }
@@ -235,7 +235,7 @@ function Get-SafeguardReportDailyAccessRequest
 
     Invoke-AuditLogMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure "AuditLog/AccessRequests/Activities" $local:DayOnly `
         "Action eq 'CheckOutPassword' or Action eq 'InitializeSession'" `
-        ("LogTime,RequestId,RequesterId,RequesterName,SystemId,AccountId,SystemName,AccountName,AccountDomainName,AccessRequestType,Action," + `
+        ("LogTime,RequestId,RequesterId,RequesterName,AssetId,AccountId,AssetName,AccountName,AccountDomainName,AccessRequestType,Action," + `
         "SessionId,ApplianceId,ApplianceName") `
         -OutFile $local:OutFile -Excel:$Excel
 }
@@ -317,7 +317,7 @@ function Get-SafeguardReportDailyPasswordCheckFail
 
     Invoke-AuditLogMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure "AuditLog/Passwords/CheckPassword" $local:DayOnly `
         "EventName eq 'PasswordCheckFailed'" `
-        ("LogTime,SystemId,AccountId,SystemName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
+        ("LogTime,AssetId,AccountId,AssetName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
         "RequestStatus.Message,AssetPartitionId,AssetPartitionName,ProfileId,ProfileName,SyncGroupId,SyncGroupName,ApplianceId,ApplianceName") `
         -OutFile $local:OutFile -Excel:$Excel
 }
@@ -399,7 +399,7 @@ function Get-SafeguardReportDailyPasswordCheckSuccess
 
     Invoke-AuditLogMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure "AuditLog/Passwords/CheckPassword" $local:DayOnly `
         "EventName eq 'PasswordCheckSucceeded'" `
-        ("LogTime,SystemId,AccountId,SystemName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
+        ("LogTime,AssetId,AccountId,AssetName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
         "AssetPartitionId,AssetPartitionName,ProfileId,ProfileName,SyncGroupId,SyncGroupName,ApplianceId,ApplianceName") `
         -OutFile $local:OutFile -Excel:$Excel
 }
@@ -481,7 +481,7 @@ function Get-SafeguardReportDailyPasswordChangeFail
 
     Invoke-AuditLogMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure "AuditLog/Passwords/ChangePassword" $local:DayOnly `
         "EventName eq 'PasswordChangeFailed'" `
-        ("LogTime,SystemId,AccountId,SystemName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
+        ("LogTime,AssetId,AccountId,AssetName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
         "RequestStatus.Message,AssetPartitionId,AssetPartitionName,ProfileId,ProfileName,SyncGroupId,SyncGroupName,ApplianceId,ApplianceName") `
         -OutFile $local:OutFile -Excel:$Excel
 }
@@ -563,7 +563,7 @@ function Get-SafeguardReportDailyPasswordChangeSuccess
 
     Invoke-AuditLogMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure "AuditLog/Passwords/ChangePassword" $local:DayOnly `
         "EventName eq 'PasswordChangeSucceeded'" `
-        ("LogTime,SystemId,AccountId,SystemName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
+        ("LogTime,AssetId,AccountId,AssetName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
         "AssetPartitionId,AssetPartitionName,ProfileId,ProfileName,SyncGroupId,SyncGroupName,ApplianceId,ApplianceName") `
         -OutFile $local:OutFile -Excel:$Excel
 }
