@@ -235,7 +235,7 @@ function Get-SafeguardReportDailyAccessRequest
 
     Invoke-AuditLogMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure "AuditLog/AccessRequests/Activities" $local:DayOnly `
         "Action eq 'CheckOutPassword' or Action eq 'InitializeSession'" `
-        ("LogTime,RequestId,RequesterId,RequesterName,SystemId,AccountId,SystemName,AccountName,AccountDomainName,AccessRequestType,Action," + `
+        ("LogTime,RequestId,RequesterId,RequesterName,AssetId,AccountId,AssetName,AccountName,AccountDomainName,AccessRequestType,Action," + `
         "SessionId,ApplianceId,ApplianceName") `
         -OutFile $local:OutFile -Excel:$Excel
 }
