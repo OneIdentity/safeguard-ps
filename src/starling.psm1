@@ -317,25 +317,25 @@ function Remove-SafeguardStarling2FA
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure  
+        [switch]$Insecure
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-	try 
+	try
 	{
 		$local:UserIds = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
-										 -Parameters @{ filter = "SecondaryAuthenticationProviderTypeReferenceName in ['StarlingSubscription', 'StarlingTwoFactor']"; fields = "Id" })   
+										 -Parameters @{ filter = "SecondaryAuthenticationProviderTypeReferenceName in ['StarlingSubscription', 'StarlingTwoFactor']"; fields = "Id" })
 		$local:FailedIds =@()
 		$local:SucceededIds = @()
 
 		Foreach ($Id in $local:UserIds)
 		{
 			$UserObject = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Id)
-			
+
 			if($UserObject -ne $null)
-			{				
+			{
 				$UserObject.SecondaryAuthenticationProviderId = $null
 				$UserObject.SecondaryAuthenticationProviderName = $null
 				$UserObject.SecondaryAuthenticationProviderTypeReferenceName = "Unknown"
@@ -355,7 +355,7 @@ function Remove-SafeguardStarling2FA
 				$local:FailedIds += $UserObject.Id
 			}
 		}
-		
+
 		if ($local:FailedIds -ne $null)
 		{
 			$FIds = ($local:FailedIds -join ",")
@@ -363,7 +363,7 @@ function Remove-SafeguardStarling2FA
 		}
 		if ($local:SucceededIds -ne $null)
 		{
-			$SIds = $local:SucceededIds -join ","           
+			$SIds = $local:SucceededIds -join ","
 			Write-Host "Succeeded for users: $SIds"
 		}
 	}
@@ -487,7 +487,7 @@ function Invoke-SafeguardStarlingJoinBrowser
         Start-Process $local:JoinUrl
 
         Write-Host "Following the successful join in the browser, provide the following:"
-        $local:Creds = (Read-Host "Credential String")
+        $local:Creds = (Read-Host "Credential String" -MaskInput)
         $local:Endpoint = (Read-Host "Token Endpoint")
 
         New-SafeguardStarlingSubscription -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
@@ -556,7 +556,8 @@ function Invoke-SafeguardStarlingJoin
     $local:JoinUrl = (Get-SafeguardStarlingJoinUrl -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
     if ($PSVersionTable.PSEdition -eq "Core")
     {
-        Write-Warning "This cmdlet cannot open a browser under PowerShell Core, use the following Starling join URL and call New-SafeguardStarlingSubscription"
+        Write-Warning "This cmdlet cannot open an embedded browser under PowerShell Core."
+        Write-Warning "Use Invoke-SafeguardStarlingJoinBrowser intead, or use the following Starling join URL and call New-SafeguardStarlingSubscription:"
         Write-Output $local:JoinUrl
     }
     else
