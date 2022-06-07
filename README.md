@@ -329,6 +329,9 @@ update this list.
 - Get-SafeguardHealth
 - Get-SafeguardApplianceName
 - Set-SafeguardApplianceName
+- Get-SafeguardApplianceDnsSuffix
+- Set-SafeguardApplianceDnsSuffix
+- Get-SafeguardApplianceDnsName
 - Invoke-SafeguardApplianceShutdown
 - Invoke-SafeguardApplianceReboot
 - Invoke-SafeguardApplianceFactoryReset

@@ -132,6 +132,7 @@ FunctionsToExport = @(
     'Get-SafeguardStatus','Get-SafeguardApplianceAvailability','Get-SafeguardApplianceState','Wait-SafeguardApplianceStateOnline',
     'Get-SafeguardVersion','Test-SafeguardVersion','Get-SafeguardApplianceVerification','Get-SafeguardTime','Set-SafeguardTime',
     'Get-SafeguardApplianceUptime','Get-SafeguardHealth','Get-SafeguardApplianceName','Set-SafeguardApplianceName',
+    'Get-SafeguardApplianceDnsSuffix','Set-SafeguardApplianceDnsSuffix','Get-SafeguardApplianceDnsName',
     'Invoke-SafeguardApplianceShutdown','Invoke-SafeguardApplianceReboot','Invoke-SafeguardApplianceFactoryReset',
     'Get-SafeguardSupportBundle','Get-SafeguardSupportBundleQuickGlance','Get-SafeguardPatch','Clear-SafeguardPatch','Install-SafeguardPatch', 'Set-SafeguardPatch',
     'New-SafeguardBackup','Remove-SafeguardBackup','Export-SafeguardBackup','Import-SafeguardBackup',

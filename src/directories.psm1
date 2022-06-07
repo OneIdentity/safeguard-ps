@@ -1420,12 +1420,6 @@ function Get-SafeguardDirectoryAccount
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:Parameters = $null
-    if ($Fields)
-    {
-        $local:Parameters = @{ fields = ($Fields -join ",")}
-    }
-
     if ($PSBoundParameters.ContainsKey("DirectoryToGet"))
     {
         if ($PSBoundParameters.ContainsKey("AccountToGet"))
