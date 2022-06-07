@@ -887,15 +887,9 @@ function Get-SafeguardDirectory
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:Parameters = $null
-    if ($Fields)
-    {
-        $local:Parameters = @{ fields = ($Fields -join ",")}
-    }
-
     if ($PSBoundParameters.ContainsKey("DirectoryToGet"))
     {
-        Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToGet -Parameters $local:Parameters
+        Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToGet -Fields $Fields
     }
     else
     {
