@@ -59,7 +59,8 @@ else
     Write-Host "Removing module directory '$ModuleDir' contents"
     (Get-ChildItem -Recurse $ModuleDir) | Sort-Object -Property FullName -Descending | ForEach-Object {
         Write-Verbose "Removing $_"
-        $_.Delete($true)
+        if ($_ -is [System.IO.DirectoryInfo]) { $_.Delete($true) }
+        else { $_.Delete() }
     }
 }
 $VersionDir = (Join-Path $ModuleDir $ModuleDef["ModuleVersion"])
