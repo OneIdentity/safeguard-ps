@@ -399,7 +399,7 @@ function Get-SafeguardReportDailyPasswordCheckSuccess
 
     Invoke-AuditLogMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure "AuditLog/Passwords/CheckPassword" $local:DayOnly `
         "EventName eq 'PasswordCheckSucceeded'" `
-        ("LogTime,SystemId,AccountId,SystemName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
+        ("LogTime,AssetId,AccountId,AssetName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
         "AssetPartitionId,AssetPartitionName,ProfileId,ProfileName,SyncGroupId,SyncGroupName,ApplianceId,ApplianceName") `
         -OutFile $local:OutFile -Excel:$Excel
 }
