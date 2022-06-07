@@ -4,15 +4,31 @@ Param(
 )
 
 if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+if ($Env:OS -eq "Windows_NT")
+{
+    $UserProf = $env:USERPROFILE
+    $Delim = ';'
+}
+else
+{
+    $UserProf = $HOME
+    $Delim = ':'
+}
 
 if (-not $TargetDir)
 {
-    $TargetDir = [array]($env:PSModulePath -split ';') | Where-Object { $_.StartsWith($env:UserProfile) }
-    if($TargetDir.Count -eq 0)
-    {
-        throw "Unable to find a PSModulePath in your user profile (" + $env:UserProfile + "), PSModulePath: " + $env:PSModulePath
+    $TargetDirs = [array]($env:PSModulePath -split $Delim)
+    $TargetDirs | ForEach-Object {
+        Write-Host "Potential target directory = '$_'"
     }
-    $TargetDir = $TargetDir[0]
+    $TargetDir = $TargetDirs | Where-Object { $_.StartsWith($UserProf) } | Select-Object -First 1
+    if (-not $TargetDir)
+    {
+        throw "Unable to find a PSModulePath in your user profile (" + $UserProf + "), PSModulePath: " + $env:PSModulePath
+    }
+    Write-Host "Selected target directory = '$TargetDir'"
 }
 
 if (-not (Test-Path $TargetDir))
