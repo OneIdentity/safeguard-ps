@@ -274,7 +274,7 @@ function Invoke-SafeguardAssetSshHostKeyDiscovery
     {
         throw "SshHostKey not found on asset: $($local:AssetObj.Name)"
     }
-    $local:AssetObj.SshHostKey = $local:SshHostKey.SshHostKey
+    $local:AssetObj.SshHostKey = @{ SshHostKey = $local:SshHostKey.SshHostKey }
     if ($AcceptSshHostKey)
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
