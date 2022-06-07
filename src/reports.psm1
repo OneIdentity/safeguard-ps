@@ -736,7 +736,7 @@ function Get-SafeguardReportUserGroupMembership
                 GroupDistinguishedName = $local:GroupInfo.GroupDistinguishedName;
                 GroupId = $local:GroupInfo.GroupId;
                 UserIdentityProvider = $_.PrimaryAuthenticationProviderName;
-                UserName = $_.UserName;
+                UserName = $_.Name;
                 UserDisplayName = $_.DisplayName;
                 UserDescription = $_.Description;
                 UserDistinguishedName = $_.DirectoryProperties.DistinguishedName;
