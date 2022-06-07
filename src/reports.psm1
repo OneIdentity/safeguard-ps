@@ -481,7 +481,7 @@ function Get-SafeguardReportDailyPasswordChangeFail
 
     Invoke-AuditLogMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure "AuditLog/Passwords/ChangePassword" $local:DayOnly `
         "EventName eq 'PasswordChangeFailed'" `
-        ("LogTime,SystemId,AccountId,SystemName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
+        ("LogTime,AssetId,AccountId,AssetName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
         "RequestStatus.Message,AssetPartitionId,AssetPartitionName,ProfileId,ProfileName,SyncGroupId,SyncGroupName,ApplianceId,ApplianceName") `
         -OutFile $local:OutFile -Excel:$Excel
 }
