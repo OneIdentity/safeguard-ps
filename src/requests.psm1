@@ -398,7 +398,7 @@ function New-SafeguardAccessRequest
 
     $local:AssetId = (Resolve-SafeguardRequestableAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToUse)
     $local:Body = @{
-        SystemId = $local:AssetId;
+        AssetId = $local:AssetId;
         AccessRequestType = "$AccessRequestType"
     }
 

@@ -71,7 +71,7 @@ function Resolve-SafeguardA2aAccountId
         [Parameter(Mandatory=$true,Position=1)]
         [object]$Account,
         [Parameter(Mandatory=$false)]
-        [object]$System
+        [object]$Asset
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -85,9 +85,9 @@ function Resolve-SafeguardA2aAccountId
     if (-not ($Account -as [int]))
     {
         $local:Filter = "AccountName ieq '$Account'"
-        if ($PSBoundParameters.ContainsKey("System") -and $System)
+        if ($PSBoundParameters.ContainsKey("Asset") -and $Asset)
         {
-            $local:Filter += "and SystemName ieq '$System'"
+            $local:Filter += "and AssetName ieq '$Asset'"
         }
         try
         {
@@ -589,8 +589,8 @@ An integer containing the ID of the A2A registration to get or a string containi
 .PARAMETER AccountObj
 An object representing the account to get the credential retrieval configuration for.
 
-.PARAMETER System
-An integer containing the ID of the system or a string containing the name.
+.PARAMETER Asset
+An integer containing the ID of the asset or a string containing the name.
 
 .PARAMETER Account
 An integer containing the ID of the account or a string containing the name.
@@ -620,7 +620,7 @@ function Get-SafeguardA2aCredentialRetrieval
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ParentA2a,
         [Parameter(ParameterSetName="Names",Mandatory=$false,Position=1)]
-        [object]$System,
+        [object]$Asset,
         [Parameter(ParameterSetName="Names",Mandatory=$true,Position=2)]
         [object]$Account,
         [Parameter(ParameterSetName="Object",Mandatory=$true)]
@@ -651,7 +651,7 @@ function Get-SafeguardA2aCredentialRetrieval
         else
         {
             $local:AccountId = (Resolve-SafeguardA2aAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                $local:A2aId $Account -System $System)
+                $local:A2aId $Account -Asset $Asset)
         }
 
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
@@ -684,8 +684,8 @@ An integer containing the ID of the A2A registration to get or a string containi
 .PARAMETER AccountObj
 An object representing the account to get the credential retrieval configuration for.
 
-.PARAMETER System
-An integer containing the ID of the system or a string containing the name.
+.PARAMETER Asset
+An integer containing the ID of the asset or a string containing the name.
 
 .PARAMETER Account
 An integer containing the ID of the account or a string containing the name.
@@ -718,7 +718,7 @@ function Add-SafeguardA2aCredentialRetrieval
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ParentA2a,
         [Parameter(ParameterSetName="Names",Mandatory=$false,Position=1)]
-        [object]$System,
+        [object]$Asset,
         [Parameter(ParameterSetName="Names",Mandatory=$true,Position=2)]
         [object]$Account,
         [Parameter(ParameterSetName="Object",Mandatory=$true)]
@@ -752,21 +752,21 @@ function Add-SafeguardA2aCredentialRetrieval
     if ($PsCmdlet.ParameterSetName -eq "Object")
     {
         $local:Body.AccountId = $AccountObj.Id
-        $local:Body.SystemId = $AccountObj.SystemId
+        $local:Body.AssetId = $AccountObj.AssetId
     }
     else
     {
         Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-        if ($System)
+        if ($Asset)
         {
-            $local:Body.SystemId = (Resolve-SafeguardSystemId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $System)
-            $local:Body.AccountId = (Resolve-SafeguardAccountIdWithSystemId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
-                $local:Body.SystemId $Account)
+            $local:Body.AssetId = (Resolve-SafeguardAssetId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $Asset)
+            $local:Body.AccountId = (Resolve-SafeguardAccountIdWithAssetId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                $local:Body.AssetId $Account)
         }
         else
         {
             Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
-            $local:Body.AccountId = (Resolve-SafeguardAccountIdWithoutSystemId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $Account)
+            $local:Body.AccountId = (Resolve-SafeguardAccountIdWithoutAssetId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $Account)
         }
     }
 
@@ -804,8 +804,8 @@ An integer containing the ID of the A2A registration to get or a string containi
 .PARAMETER AccountObj
 An object representing the account to get the credential retrieval configuration for.
 
-.PARAMETER System
-An integer containing the ID of the system or a string containing the name.
+.PARAMETER Asset
+An integer containing the ID of the asset or a string containing the name.
 
 .PARAMETER Account
 An integer containing the ID of the account or a string containing the name.
@@ -835,7 +835,7 @@ function Remove-SafeguardA2aCredentialRetrieval
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ParentA2a,
         [Parameter(ParameterSetName="Names",Mandatory=$false,Position=1)]
-        [object]$System,
+        [object]$Asset,
         [Parameter(ParameterSetName="Names",Mandatory=$true,Position=2)]
         [object]$Account,
         [Parameter(ParameterSetName="Object",Mandatory=$true)]
@@ -859,7 +859,7 @@ function Remove-SafeguardA2aCredentialRetrieval
     else
     {
         $local:AccountId = (Resolve-SafeguardA2aAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-            $local:A2aId $Account -System $System)
+            $local:A2aId $Account -Asset $Asset)
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
@@ -890,8 +890,8 @@ An integer containing the ID of the A2A registration to get or a string containi
 .PARAMETER AccountObj
 An object representing the account to get the credential retrieval configuration for.
 
-.PARAMETER System
-An integer containing the ID of the system or a string containing the name.
+.PARAMETER Asset
+An integer containing the ID of the asset or a string containing the name.
 
 .PARAMETER Account
 An integer containing the ID of the account or a string containing the name.
@@ -921,7 +921,7 @@ function Get-SafeguardA2aCredentialRetrievalIpRestriction
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ParentA2a,
         [Parameter(ParameterSetName="Names",Mandatory=$false,Position=1)]
-        [object]$System,
+        [object]$Asset,
         [Parameter(ParameterSetName="Names",Mandatory=$true,Position=2)]
         [object]$Account,
         [Parameter(ParameterSetName="Object",Mandatory=$true)]
@@ -944,7 +944,7 @@ function Get-SafeguardA2aCredentialRetrievalIpRestriction
     else
     {
         (Get-SafeguardA2aCredentialRetrieval -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-            $local:A2aId $System $Account).IpRestrictions
+            $local:A2aId $Asset $Account).IpRestrictions
     }
 }
 
@@ -972,8 +972,8 @@ An integer containing the ID of the A2A registration to get or a string containi
 .PARAMETER AccountObj
 An object representing the account to get the credential retrieval configuration for.
 
-.PARAMETER System
-An integer containing the ID of the system or a string containing the name.
+.PARAMETER Asset
+An integer containing the ID of the asset or a string containing the name.
 
 .PARAMETER Account
 An integer containing the ID of the account or a string containing the name.
@@ -1006,7 +1006,7 @@ function Set-SafeguardA2aCredentialRetrievalIpRestriction
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ParentA2a,
         [Parameter(ParameterSetName="Names",Mandatory=$false,Position=1)]
-        [object]$System,
+        [object]$Asset,
         [Parameter(ParameterSetName="Names",Mandatory=$true,Position=2)]
         [object]$Account,
         [Parameter(ParameterSetName="Object",Mandatory=$true)]
@@ -1044,7 +1044,7 @@ function Set-SafeguardA2aCredentialRetrievalIpRestriction
     else
     {
         $local:A2aCr = (Get-SafeguardA2aCredentialRetrieval -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                            $local:A2aId $System $Account)
+                            $local:A2aId $Asset $Account)
     }
 
     $local:A2aCr.IpRestrictions = $IpRestrictions
@@ -1077,8 +1077,8 @@ An integer containing the ID of the A2A registration to get or a string containi
 .PARAMETER AccountObj
 An object representing the account to get the credential retrieval configuration for.
 
-.PARAMETER System
-An integer containing the ID of the system or a string containing the name.
+.PARAMETER Asset
+An integer containing the ID of the asset or a string containing the name.
 
 .PARAMETER Account
 An integer containing the ID of the account or a string containing the name.
@@ -1108,7 +1108,7 @@ function Clear-SafeguardA2aCredentialRetrievalIpRestriction
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ParentA2a,
         [Parameter(ParameterSetName="Names",Mandatory=$false,Position=1)]
-        [object]$System,
+        [object]$Asset,
         [Parameter(ParameterSetName="Names",Mandatory=$true,Position=2)]
         [object]$Account,
         [Parameter(ParameterSetName="Object",Mandatory=$true)]
@@ -1131,7 +1131,7 @@ function Clear-SafeguardA2aCredentialRetrievalIpRestriction
     else
     {
         $local:A2aCr = (Get-SafeguardA2aCredentialRetrieval -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                            $local:A2aId $System $Account)
+                            $local:A2aId $Asset $Account)
     }
 
     $local:A2aCr.IpRestrictions = $null
@@ -1164,8 +1164,8 @@ An integer containing the ID of the A2A registration to get or a string containi
 .PARAMETER AccountObj
 An object representing the account to get the credential retrieval configuration for.
 
-.PARAMETER System
-An integer containing the ID of the system or a string containing the name.
+.PARAMETER Asset
+An integer containing the ID of the asset or a string containing the name.
 
 .PARAMETER Account
 An integer containing the ID of the account or a string containing the name.
@@ -1192,7 +1192,7 @@ function Reset-SafeguardA2aCredentialRetrievalApiKey
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ParentA2a,
         [Parameter(ParameterSetName="Names",Mandatory=$false,Position=1)]
-        [object]$System,
+        [object]$Asset,
         [Parameter(ParameterSetName="Names",Mandatory=$true,Position=2)]
         [object]$Account,
         [Parameter(ParameterSetName="Object",Mandatory=$true)]
@@ -1216,7 +1216,7 @@ function Reset-SafeguardA2aCredentialRetrievalApiKey
     else
     {
         $local:AccountId = (Resolve-SafeguardA2aAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-            $local:A2aId $Account -System $System)
+            $local:A2aId $Account -Asset $Asset)
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
@@ -1247,8 +1247,8 @@ An integer containing the ID of the A2A registration to get or a string containi
 .PARAMETER AccountObj
 An object representing the account to get the credential retrieval configuration for.
 
-.PARAMETER System
-An integer containing the ID of the system or a string containing the name.
+.PARAMETER Asset
+An integer containing the ID of the asset or a string containing the name.
 
 .PARAMETER Account
 An integer containing the ID of the account or a string containing the name.
@@ -1275,7 +1275,7 @@ function Get-SafeguardA2aCredentialRetrievalApiKey
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ParentA2a,
         [Parameter(ParameterSetName="Names",Mandatory=$false,Position=1)]
-        [object]$System,
+        [object]$Asset,
         [Parameter(ParameterSetName="Names",Mandatory=$true,Position=2)]
         [object]$Account,
         [Parameter(ParameterSetName="Object",Mandatory=$true)]
@@ -1299,7 +1299,7 @@ function Get-SafeguardA2aCredentialRetrievalApiKey
     else
     {
         $local:AccountId = (Resolve-SafeguardA2aAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-            $local:A2aId $Account -System $System)
+            $local:A2aId $Account -Asset $Asset)
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
@@ -1361,7 +1361,7 @@ function Get-SafeguardA2aCredentialRetrievalInformation
                 Description = $local:A2a.Description;
                 CertificateUserThumbPrint = $local:A2a.CertificateUserThumbPrint;
                 ApiKey = $_.ApiKey;
-                AssetName = $_.SystemName;
+                AssetName = $_.AssetName;
                 AccountName = $_.AccountName;
                 DomainName = $_.DomainName;
             }
