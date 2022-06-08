@@ -949,9 +949,9 @@ function Get-SafeguardReportAccountGroupMembership
                 AccountName = $_.Name;
                 AccountDescription = $_.Description;
                 AccountId = $_.AccountId;
-                AssetName = $_.SystemName;
-                NetworkAddress = $_.SystemNetworkAddress;
-                AssetId = $_.SystemId;
+                AssetName = $_.Asset.Name;
+                NetworkAddress = $_.Asset.NetworkAddress;
+                AssetId = $_.Asset.Id;
                 IsServiceAccount = $_.IsServiceAccount;
                 HasPassword = $_.HasPassword;
                 HasSshKey = $_.HasSshKey;
@@ -1168,9 +1168,9 @@ function Get-SafeguardReportA2aEntitlement
                 CertificateUserId = $local:A2a.CertificateUserId;
                 CertificateUser = $local:A2a.CertificateUser;
                 CertificateUserThumbprint = $local:A2a.CertificateUserThumbprint;
-                AssetId = $_.SystemId;
+                AssetId = $_.Asset.Id;
                 AccountId = $_.AccountId;
-                AssetName = $_.SystemName;
+                AssetName = $_.Asset.Name;
                 AccountName = $_.AccountName;
                 DomainName = $_.DomainName;
                 AccountType = $_.AccountType;

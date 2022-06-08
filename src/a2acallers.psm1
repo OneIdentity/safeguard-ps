@@ -253,8 +253,8 @@ function Get-SafeguardA2aRetrievableAccount
                 CertificateUser = $local:Reg.CertificateUser;
                 CertificateUserThumbprint = $local:Reg.CertificateUserThumbprint;
                 ApiKey = $_.ApiKey;
-                AssetId = $_.SystemId;
-                AssetName = $_.SystemName;
+                AssetId = $_.AssetId;
+                AssetName = $_.AssetName;
                 NetworkAddress = $_.NetworkAddress;
                 AccountId = $_.AccountId;
                 AccountName = $_.AccountName;
@@ -590,7 +590,7 @@ function New-SafeguardA2aAccessRequest
     {
         $local:Body = @{
             ForUser = $ForUserName;
-            SystemName = $AssetToUse;
+            AssetName = $AssetToUse;
             AccessRequestType = "$AccessRequestType"
         }
         if ($AccountToUse) { $local:Body["AccountName"] = $AccountToUse }
@@ -599,7 +599,7 @@ function New-SafeguardA2aAccessRequest
     {
         $local:Body = @{
             ForUserId = $ForUserId;
-            SystemId = $AssetIdToUse;
+            AssetId = $AssetIdToUse;
             AccessRequestType = "$AccessRequestType"
         }
         if ($AccountIdToUse) { $local:Body["AccountId"] = $AccountIdToUse }
