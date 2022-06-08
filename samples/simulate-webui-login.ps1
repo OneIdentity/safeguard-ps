@@ -1,4 +1,4 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 Param(
     [Parameter(Mandatory=$true)]
     [string]$Appliance,
@@ -105,7 +105,7 @@ $actionableRequests = Invoke-SafeguardMethod Core GET "Me/ActionableRequests"
 
 # GET core/v3/Me/RequestableAssets/<num>/Accounts/<num>/Policies
 Write-Host -ForegroundColor Yellow  "GET Policies"
-$Policies = Invoke-SafeguardMethod Core GET "Me/RequestableAssets/$($selectedAsset.Id)/Accounts/$($selectedAccount.Id)/Policies"
+$Policies = Invoke-SafeguardMethod -Version 3 Core GET "Me/RequestableAssets/$($selectedAsset.Id)/Accounts/$($selectedAccount.Id)/Policies"
 
 # POST core/v3/AccessRequests/<request_id>/CheckoutPassword
 Write-Host -ForegroundColor Yellow  "POST CheckoutPassword"
@@ -117,7 +117,7 @@ $actionableRequests = Invoke-SafeguardMethod Core GET "Me/ActionableRequests"
 
 # GET core/v3/Me/RequestableAssets/<num>/Accounts/<num>/Policies
 Write-Host -ForegroundColor Yellow  "GET Policies"
-$Policies = Invoke-SafeguardMethod Core GET "Me/RequestableAssets/$($selectedAsset.Id)/Accounts/$($selectedAccount.Id)/Policies"
+$Policies = Invoke-SafeguardMethod -Version 3 Core GET "Me/RequestableAssets/$($selectedAsset.Id)/Accounts/$($selectedAccount.Id)/Policies"
 
 # POST core/v3/AccessRequests/<request_id>/CheckIn
 Write-Host -ForegroundColor Yellow  "POST CheckIn"
