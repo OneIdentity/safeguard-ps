@@ -1279,7 +1279,7 @@ JSON response from Safeguard Web API.
 Get-SafeguardAssetAccount -AccessToken $token -Appliance 10.5.32.54 -Insecure windows.blah.corp administrator
 
 .EXAMPLE
-Get-SafeguardAssetAccount -AccountToGet oracle -Fields AssetId,Id,AssetName,Name
+Get-SafeguardAssetAccount -AccountToGet oracle -Fields Asset.Id,Id,Asset.Name,Name
 #>
 function Get-SafeguardAssetAccount
 {
