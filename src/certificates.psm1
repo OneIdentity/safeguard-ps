@@ -1195,7 +1195,7 @@ function New-SafeguardTestCertificatePki
     Write-Host "- Create a user with the PrimaryAuthenticationIdentity set to the thumbprint of UserCert"
     Write-Host "   - You can see your installed certificate thumbprints with: gci Cert:\CurrentUser\My\"
     Write-Host "   - The POST to create the user will need a body like this: -Body @{`n" `
-    "                `"PrimaryAuthenticationProviderId`" = -2;`n" `
+    "                `"PrimaryAuthenticationProvider`" = @{ Id = -2 };`n" `
     "                `"Name`" = `"CertBoy`";`n" `
     "                `"PrimaryAuthenticationIdentity`" = `"<thumbprint>`" }"
     Write-Host "- Test it by getting a token: Connect-Safeguard -Thumbprint `"<thumbprint>`""

@@ -739,7 +739,7 @@ function New-SafeguardUser
     }
     else
     {
-        $local:ProviderResolved = $Provider
+        $local:ProviderResolved = ([int]$Provider)
     }
 
     if ($local:ProviderResolved -eq $local:CertificateProviderId -and -not ($PSBoundParameters.ContainsKey("Thumbprint")))
@@ -780,7 +780,7 @@ function New-SafeguardUser
     if ($local:ProviderResolved -eq $local:LocalProviderId -or $local:ProviderResolved -eq $local:CertificateProviderId)
     {
         $local:Body = @{
-            PrimaryAuthenticationProviderId = $local:ProviderResolved;
+            PrimaryAuthenticationProvider = @{ Id = $local:ProviderResolved };
             Name = $NewUserName;
             AdminRoles = $AdminRoles
         }
@@ -825,7 +825,7 @@ function New-SafeguardUser
         }
         # For directory accounts, lots of attributes are mapped from the directory
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Users -Body @{
-            PrimaryAuthenticationProviderId = $local:ProviderResolved;
+            PrimaryAuthenticationProvider = @{ Id = $local:ProviderResolved };
             Name = $NewUserName;
             AdminRoles = $AdminRoles;
             DirectoryProperties = @{ DomainName = $DomainName }

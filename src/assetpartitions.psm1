@@ -561,7 +561,7 @@ function Add-SafeguardAssetPartitionOwner
     [object[]]$local:Users = $null
     foreach ($local:User in $UserList)
     {
-        $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User -Fields Id,Name,PrimaryAuthenticationProviderId)
+        $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User -Fields Id,Name,PrimaryAuthenticationProvider.Id)
         $local:Users += $($local:ResolvedUser)
     }
 
@@ -635,7 +635,7 @@ function Remove-SafeguardAssetPartitionOwner
     [object[]]$local:Users = $null
     foreach ($local:User in $UserList)
     {
-        $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User -Fields Id,Name,PrimaryAuthenticationProviderId)
+        $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User -Fields Id,Name,PrimaryAuthenticationProvider.Id)
         $local:Users += $($local:ResolvedUser)
     }
 
