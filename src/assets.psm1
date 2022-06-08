@@ -1536,7 +1536,7 @@ function New-SafeguardAssetAccount
                           -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $ParentAsset)
 
     $local:Body = @{
-        "AssetId" = $local:AssetId;
+        "Asset" = @{ "Id" = $local:AssetId };
         "Name" = $NewAccountName
     }
 
