@@ -735,12 +735,12 @@ function Get-SafeguardReportUserGroupMembership
                 GroupDescription = $local:GroupInfo.GroupDescription;
                 GroupDistinguishedName = $local:GroupInfo.GroupDistinguishedName;
                 GroupId = $local:GroupInfo.GroupId;
-                UserIdentityProvider = $_.PrimaryAuthenticationProviderName;
+                UserIdentityProvider = $_.PrimaryAuthenticationProvider.Name;
                 UserName = $_.Name;
                 UserDisplayName = $_.DisplayName;
                 UserDescription = $_.Description;
                 UserDistinguishedName = $_.DirectoryProperties.DistinguishedName;
-                UserIdentityProviderId = $_.PrimaryAuthenticationProviderId;
+                UserIdentityProviderId = $_.PrimaryAuthenticationProvider.Id;
                 UserId = $_.Id;
                 UserAdminRoles = ($_.AdminRoles -join ", ");
                 UserIsPartitionOwner = $_.IsPartitionOwner;

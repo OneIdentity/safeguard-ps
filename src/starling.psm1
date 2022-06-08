@@ -336,10 +336,7 @@ function Remove-SafeguardStarling2FA
 
             if ($null -ne $UserObject)
             {
-                $UserObject.SecondaryAuthenticationProviderId = $null
-                $UserObject.SecondaryAuthenticationProviderName = $null
-                $UserObject.SecondaryAuthenticationProviderTypeReferenceName = "Unknown"
-                $UserObject.SecondaryAuthenticationIdentity = $null
+                $UserObject.SecondaryAuthenticationProvider = $null
                 try
                 {
                     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$($UserObject.Id)" -Body $UserObject
