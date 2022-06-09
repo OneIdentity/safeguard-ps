@@ -1436,7 +1436,7 @@ function Get-SafeguardSupportBundle
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
-        [int]$Version = 3,
+        [int]$Version = 4,
         [Parameter(Mandatory=$false)]
         [int]$Timeout,
         [Parameter(Mandatory=$false)]
@@ -1594,7 +1594,7 @@ function Get-SafeguardSupportBundleQuickGlance
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
-        [int]$Version = 3,
+        [int]$Version = 4,
         [Parameter(Mandatory=$false)]
         [int]$Timeout
     )
@@ -2056,7 +2056,7 @@ function Set-SafeguardPatch
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
-        [int]$Version = 3,
+        [int]$Version = 4,
         [Parameter(ParameterSetName="NewPatch",Mandatory=$true,Position=0)]
         [string]$Patch,
         [Parameter(ParameterSetName="NewPatch",Mandatory=$false)]
@@ -2320,7 +2320,7 @@ function Export-SafeguardBackup
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
-        [int]$Version = 3,
+        [int]$Version = 4,
         [Parameter(Mandatory=$false,Position=0)]
         [string]$BackupId,
         [Parameter(Mandatory=$false,Position=1)]
@@ -2458,7 +2458,7 @@ function Import-SafeguardBackup
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
-        [int]$Version = 3,
+        [int]$Version = 4,
         [Parameter(Mandatory=$true,Position=0)]
         [string]$BackupFile,
         [Parameter(Mandatory=$false)]
