@@ -53,7 +53,7 @@ function Add-OneThousand
         foreach ($local:NewAssetId in $local:NewAssetIds)
         {
             $local:Body += @{
-                AssetId = $local:NewAssetId;
+                Asset = @{ Id = $local:NewAssetId };
                 Name = $AccountName
             }
         }
