@@ -44,7 +44,7 @@ function Resolve-SafeguardPlatform
         {
             throw "Unable to find platform matching '$Platform'..."
         }
-        if ($local:Platforms.Count -ne 1)
+        if ($local:Platforms -is [array] -and $local:Platforms.Count -ne 1)
         {
             Write-Host "Found $($local:Platforms.Count) platforms matching '$Platform':"
             Write-Host "["
