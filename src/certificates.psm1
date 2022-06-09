@@ -1192,7 +1192,7 @@ function New-SafeguardTestCertificatePki
     Write-Host -ForegroundColor Green "To setup client certificate user login:"
     Write-Host "- Upload both RootCA and IntermediateCA if you haven't already using Install-SafeguardTrustedCertificate cmdlet"
     Write-Host "- Import UserCert into your personal user store"
-    Write-Host "- Create a user with the PrimaryAuthenticationIdentity set to the thumbprint of UserCert"
+    Write-Host "- Create a user with the PrimaryAuthenticationProvider.Identity set to the thumbprint of UserCert"
     Write-Host "   - You can see your installed certificate thumbprints with: gci Cert:\CurrentUser\My\"
     Write-Host "   - The POST to create the user will need a body like this: -Body @{`n" `
     "                `"PrimaryAuthenticationProvider`" = @{ `"Id`" = -2; `"Identity`" = `"<thumbprint>`" };`n" `
