@@ -23,7 +23,7 @@ function Invoke-SafeguardA2aMethodWithCertificate
         [Parameter(Mandatory=$true)]
         [string]$RelativeUrl,
         [Parameter(Mandatory=$false)]
-        [int]$Version = 3,
+        [int]$Version = 4,
         [Parameter(Mandatory=$false)]
         [object]$Body
     )

@@ -880,7 +880,7 @@ Path to a PFX (PKCS12) file containing the client certificate to use to connect 
 Client certificate thumbprint to use to authenticate the connection to the RSTS.
 
 .PARAMETER Version
-Version of the Web API you are using (default: 3).
+Version of the Web API you are using (default: 4).
 
 .PARAMETER Gui
 Display redistributable STS login window in a browser.  Supports 2FA.
@@ -1337,7 +1337,7 @@ Invalidate specific access token rather than the session variable.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER Version
-Version of the Web API you are using (default: 3).
+Version of the Web API you are using (default: 4).
 
 .INPUTS
 None.
@@ -1362,7 +1362,7 @@ function Disconnect-Safeguard
         [Parameter(ParameterSetName="AccessToken",Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(ParameterSetName="AccessToken",Mandatory=$false)]
-        [int]$Version = 3
+        [int]$Version = 4
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -1480,7 +1480,7 @@ HTTP method verb you would like to use: GET, PUT, POST, DELETE.
 Relative portion of the Url you would like to call starting after the version.
 
 .PARAMETER Version
-Version of the Web API you are using (default: 3).
+Version of the Web API you are using (default: 4).
 
 .PARAMETER RetryUrl
 Relative portion of the Url to retry if the initial call returns 404 (for backwards compatibility).
@@ -1572,7 +1572,7 @@ function Invoke-SafeguardMethod
         [Parameter(Mandatory=$true,Position=2)]
         [string]$RelativeUrl,
         [Parameter(Mandatory=$false)]
-        [int]$Version = 3,
+        [int]$Version = 4,
         [Parameter(Mandatory=$false)]
         [string]$RetryUrl,
         [Parameter(Mandatory=$false)]

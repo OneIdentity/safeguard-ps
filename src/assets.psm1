@@ -1,4 +1,92 @@
 # Helper
+function Resolve-SafeguardAsset
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition = $null,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Asset
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($Asset.Id -as [int])
+    {
+        $Asset = $Asset.Id
+    }
+
+    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
+    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
+    if ($AssetPartitionId)
+    {
+        $local:RelPath = "AssetPartitions/$AssetPartitionId/Assets"
+        $local:ErrMsgSuffix = " in asset partition (Id=$AssetPartitionId)"
+    }
+    else
+    {
+        $local:RelPath = "Assets"
+        $local:ErrMsgSuffix = ""
+    }
+
+    if (-not ($Asset -as [int]))
+    {
+        try
+        {
+            $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
+                                 -Parameters @{ filter = "Name ieq '$Asset'" })
+            if (-not $local:Assets)
+            {
+                $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
+                                     -Parameters @{ filter = "NetworkAddress ieq '$Asset'" })
+            }
+        }
+        catch
+        {
+            Write-Verbose $_
+            Write-Verbose "Caught exception with ieq filter, trying with q parameter"
+            $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
+                                 -Parameters @{ q = $Asset })
+        }
+        if (-not $local:Assets)
+        {
+            throw "Unable to find asset matching '$Asset'$($local:ErrMsgSuffix)"
+        }
+        if ($local:Assets.Count -ne 1)
+        {
+            throw "Found $($local:Assets.Count) assets matching '$Asset'$($local:ErrMsgSuffix)"
+        }
+        $local:Assets[0]
+    }
+    else
+    {
+        if ($AssetPartitionId)
+        {
+            $local:Filter = "Id eq $Asset and AssetPartitionId eq $AssetPartitionId"
+        }
+        else
+        {
+            $local:Filter = "Id eq $Asset"
+        }
+        $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
+                                -Parameters @{ filter = $local:Filter })
+        if (-not $local:Assets)
+        {
+            throw "Unable to find asset matching '$Asset'$($local:ErrMsgSuffix)"
+        }
+        $local:Assets[0]
+    }
+}
 function Resolve-SafeguardAssetId
 {
     [CmdletBinding()]
@@ -1532,17 +1620,25 @@ function New-SafeguardAssetAccount
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+    $local:AssetObj = (Resolve-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
                           -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $ParentAsset)
 
     $local:Body = @{
-        "Asset" = @{ "Id" = $local:AssetId };
+        "Asset" = @{ "Id" = $local:AssetObj.Id };
         "Name" = $NewAccountName
     }
 
     if ($PSBoundParameters.ContainsKey("Description")) { $local:Body.Description = $Description }
     if ($PSBoundParameters.ContainsKey("DomainName")) { $local:Body.DomainName = $DomainName }
     if ($PSBoundParameters.ContainsKey("DistinguishedName")) { $local:Body.DistinguishedName = $DistinguishedName }
+
+    if ($local:AssetObj.IsDirectory -and $local:AssetObj.DirectoryAssetProperties.Domains[0])
+    {
+        if (-not $local:Body.DomainName)
+        {
+            $local:Body.DomainName = $local:AssetObj.DirectoryAssetProperties.Domains[0].DomainName
+        }
+    }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts" -Body $local:Body
 }

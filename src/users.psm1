@@ -792,7 +792,7 @@ function New-SafeguardUser
         if ($PSBoundParameters.ContainsKey("MobilePhone")) { $local:Body.MobilePhone = $MobilePhone }
         if ($local:ProviderResolved -eq $local:CertificateProviderId)
         {
-            $local:Body.PrimaryAuthenticationIdentity = $Thumbprint
+            $local:Body.PrimaryAuthenticationProvider.Identity = $Thumbprint
         }
         $local:NewUser = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Users -Body $local:Body)
         if ($local:ProviderResolved -eq $local:LocalProviderId)
