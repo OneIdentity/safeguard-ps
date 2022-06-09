@@ -1261,7 +1261,7 @@ function Edit-SafeguardDirectory
         {
             $DirectoryToEdit = (Read-Host "DirectoryToEdit")
         }
-        $local:DirectoryId = Resolve-SafeguardDirectoryId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToEdit
+        $local:DirectoryId = (Resolve-SafeguardDirectoryId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToEdit)
     }
 
     if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
@@ -1298,7 +1298,7 @@ function Edit-SafeguardDirectory
     # Get the directory object from Asset endpoint instead
     if(-not $DirectoryObject.AssetPartitionId)
     {
-        $AssetObject = Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryObject.Id
+        $AssetObject = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryObject.Id)
         $DirectoryObject | Add-Member -MemberType ScriptProperty -Name 'AssetPartitionId' -Value { $AssetObject.AssetPartitionId }
     }
 
