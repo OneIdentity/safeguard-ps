@@ -1092,7 +1092,11 @@ function Edit-SafeguardUser
         if ($PSBoundParameters.ContainsKey("EmailAddress")) { $UserObject.EmailAddress = $EmailAddress }
         if ($PSBoundParameters.ContainsKey("WorkPhone")) { $UserObject.WorkPhone = $WorkPhone }
         if ($PSBoundParameters.ContainsKey("MobilePhone")) { $UserObject.MobilePhone = $MobilePhone }
-        if ($PSBoundParameters.ContainsKey("AuthProvider")) { $UserObject.PrimaryAuthenticationProviderId = $AuthProvider }
+        if ($PSBoundParameters.ContainsKey("AuthProvider"))
+        {
+            $local:ResolvedProvider = (Get-SafeguardAuthenticationProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AuthProvider)[0]
+            $UserObject.PrimaryAuthenticationProvider = @{ Id = $local:ResolvedProvider.Id }
+        }
 
         if ($PSBoundParameters.ContainsKey("AdminRoles"))
         {
