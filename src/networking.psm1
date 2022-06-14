@@ -218,7 +218,7 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardNetworkInterface
+Get-SafeguardDnsSuffix
 #>
 function Get-SafeguardDnsSuffix
 {
@@ -264,10 +264,10 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardNetworkInterface X0 example.com
+Set-SafeguardDnsSuffix example.com
 
 .EXAMPLE
-Get-SafeguardNetworkInterface X1 "example.com","help.com"
+Set-SafeguardDnsSuffix "example.com","help.com"
 #>
 function Set-SafeguardDnsSuffix
 {
