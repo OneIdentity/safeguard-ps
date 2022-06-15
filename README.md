@@ -392,6 +392,16 @@ update this list.
 - Disable-SafeguardSessionClusterAuditStream
 - Get-SafeguardSessionClusterAuditStream
 
+### Safeguard SPS Web API
+
+- Connect-SafeguardSps
+- Disconnect-SafeguardSps
+- Invoke-SafeguardSpsMethod
+- Open-SafeguardSpsTransaction
+- Close-SafeguardSpsTransaction
+- Get-SafeguardSpsTransaction
+- Clear-SafeguardSpsTransaction
+
 ### Archive Servers
 
 - Get-SafeguardArchiveServer

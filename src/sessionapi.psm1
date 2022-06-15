@@ -286,6 +286,11 @@ will generate and store a variable in the session so that it doesn't need
 to be passed to each call to the API.  Call Disconnect-SafeguardSps when
 finished.
 
+Safeguard SPS Web API is implemented as HATEOAS. To get started crawling
+through the API, call Invoke-SafeguardSpsMethod GET / -JsonOutput.  Then,
+you can follow to the different API areas, such as configuration or
+health-status.
+
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
 
@@ -324,7 +329,7 @@ JSON response from Safeguard Web API.
 Invoke-SafeguardSpsMethod GET starling/join
 
 .EXAMPLE
-Invoke-SafeguardSpsMethod Get / -JsonOutput
+Invoke-SafeguardSpsMethod GET / -JsonOutput
 #>
 function Invoke-SafeguardSpsMethod
 {
@@ -401,4 +406,52 @@ function Invoke-SafeguardSpsMethod
             if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
     }
+}
+
+function Open-SafeguardSpsTransaction
+{
+    [CmdletBinding()]
+    Param(
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardSpsMethod POST transaction
+}
+
+function Close-SafeguardSpsTransaction
+{
+    [CmdletBinding()]
+    Param(
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardSpsMethod PUT transaction -Body @{ status = "commit" }
+}
+
+
+function Get-SafeguardSpsTransaction
+{
+    [CmdletBinding()]
+    Param(
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+}
+
+
+function Clear-SafeguardSpsTransaction
+{
+    [CmdletBinding()]
+    Param(
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardSpsMethod DELETE transaction
 }

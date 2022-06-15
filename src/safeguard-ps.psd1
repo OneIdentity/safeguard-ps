@@ -156,6 +156,7 @@ FunctionsToExport = @(
     'Disable-SafeguardSessionClusterAuditStream','Get-SafeguardSessionClusterAuditStream',
     # sessionapi.psm1
     'Connect-SafeguardSps','Disconnect-SafeguardSps','Invoke-SafeguardSpsMethod',
+    'Open-SafeguardSpsTransaction','Close-SafeguardSpsTransaction','Get-SafeguardSpsTransaction','Clear-SafeguardSpsTransaction',
     # archives.psm1
     'Get-SafeguardArchiveServer','New-SafeguardArchiveServer','Test-SafeguardArchiveServer',
     'Remove-SafeguardArchiveServer','Edit-SafeguardArchiveServer',
