@@ -76,6 +76,7 @@ NestedModules = @(
     'desktopclient.psm1',
     'maintenance.psm1',
     'diagnostics.psm1',
+    'sessionapi.psm1',
     'sessionjoin.psm1',
     'archives.psm1',
     'requests.psm1',
@@ -153,6 +154,8 @@ FunctionsToExport = @(
     'Enable-SafeguardSessionClusterAccessRequestBroker','Disable-SafeguardSessionClusterAccessRequestBroker',
     'Get-SafeguardSessionClusterAccessRequestBroker','Enable-SafeguardSessionClusterAuditStream',
     'Disable-SafeguardSessionClusterAuditStream','Get-SafeguardSessionClusterAuditStream',
+    # sessionapi.psm1
+    'Connect-SafeguardSps','Disconnect-SafeguardSps','Invoke-SafeguardSpsMethod',
     # archives.psm1
     'Get-SafeguardArchiveServer','New-SafeguardArchiveServer','Test-SafeguardArchiveServer',
     'Remove-SafeguardArchiveServer','Edit-SafeguardArchiveServer',
