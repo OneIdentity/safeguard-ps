@@ -153,8 +153,8 @@ function Invoke-SpsInternal
     }
     catch
     {
-        Write-Host -ForegroundColor Yellow "TODO: Interpret SPS API errors"
-        throw
+        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+        Out-SafeguardExceptionIfPossible $_
     }
 }
 
@@ -231,7 +231,26 @@ function Connect-SafeguardSps
     Write-Host "Login Successful."
 }
 
+<#
+.SYNOPSIS
+Log out of a Safeguard SPS appliance when finished using the SPS Web API.
 
+.DESCRIPTION
+This utility will remove the session variable
+that was created by the Connect-SafeguardSps cmdlet.
+
+.INPUTS
+None.
+
+.OUTPUTS
+None.
+
+.EXAMPLE
+Disconnect-SafeguardSps
+
+Log out Successful.
+
+#>
 function Disconnect-SafeguardSps
 {
     [CmdletBinding()]
@@ -252,6 +271,61 @@ function Disconnect-SafeguardSps
     }
 }
 
+<#
+.SYNOPSIS
+Call a method in the Safeguard SPS Web API.
+
+.DESCRIPTION
+This utility is useful for calling the Safeguard SPS Web API for testing or
+scripting purposes. It provides a couple benefits over using curl.exe or
+Invoke-RestMethod by generating or reusing a secure session and composing
+the Url, headers, parameters, and body for the request.
+
+This script is meant to be used with the Connect-SafeguardSps cmdlet which
+will generate and store a variable in the session so that it doesn't need
+to be passed to each call to the API.  Call Disconnect-SafeguardSps when
+finished.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER Method
+HTTP method verb you would like to use: GET, PUT, POST, DELETE.
+
+.PARAMETER RelativeUrl
+Relative portion of the Url you would like to call starting after the version.
+
+.PARAMETER Accept
+Specify the Accept header (default: application/json), Use text/csv to request CSV output.
+
+.PARAMETER ContentType
+Specify the Content-type header (default: application/json).
+
+.PARAMETER Body
+A hash table containing an object to PUT or POST to the Url.
+
+.PARAMETER JsonBody
+A pre-formatted JSON string to PUT or Post to the URl.  If -Body is also specified, this is ignored.
+It can sometimes be difficult to get arrays of objects to behave properly with hashtables in Powershell.
+
+.PARAMETER Parameters
+A hash table containing the HTTP query parameters to add to the Url.
+
+.PARAMETER JsonOutput
+A switch to return data as pretty JSON string.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Invoke-SafeguardSpsMethod GET starling/join
+
+.EXAMPLE
+Invoke-SafeguardSpsMethod Get / -JsonOutput
+#>
 function Invoke-SafeguardSpsMethod
 {
     [CmdletBinding()]
