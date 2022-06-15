@@ -319,6 +319,9 @@ A hash table containing the HTTP query parameters to add to the Url.
 .PARAMETER JsonOutput
 A switch to return data as pretty JSON string.
 
+.PARAMETER BodyOutput
+A switch to just return the body as a PowerShell object.
+
 .INPUTS
 None.
 
@@ -330,6 +333,13 @@ Invoke-SafeguardSpsMethod GET starling/join
 
 .EXAMPLE
 Invoke-SafeguardSpsMethod GET / -JsonOutput
+
+.EXAMPLE
+Open-SafeguardSpsTransaction
+$body = (Invoke-SafeguardSpsMethod GET configuration/management/email -BodyOutput)
+$body.admin_address = "admin@mycompany.corp"
+Invoke-SafeguardSpsMethod PUT configuration/management/email -Body $body
+Close-SafeguardSpsTransaction
 #>
 function Invoke-SafeguardSpsMethod
 {
@@ -352,7 +362,9 @@ function Invoke-SafeguardSpsMethod
         [Parameter(Mandatory=$false)]
         [HashTable]$ExtraHeaders,
         [Parameter(Mandatory=$false)]
-        [switch]$JsonOutput
+        [switch]$JsonOutput,
+        [Parameter(Mandatory=$false)]
+        [switch]$BodyOutput
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -392,6 +404,18 @@ function Invoke-SafeguardSpsMethod
         {
             (Invoke-SpsInternal $Method $RelativeUrl $local:Headers `
                                 -Body $Body -JsonBody $JsonBody -Parameters $Parameters) | ConvertTo-Json -Depth 100
+        }
+        elseif ($BodyOutput)
+        {
+            $local:Response = (Invoke-SpsInternal $Method $RelativeUrl $local:Headers -Body $Body -JsonBody $JsonBody -Parameters $Parameters)
+            if ($local:Response.body)
+            {
+                $local:Response.body
+            }
+            else
+            {
+                Write-Verbose "No body returned in response"
+            }
         }
         else
         {
@@ -441,6 +465,20 @@ function Get-SafeguardSpsTransaction
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:response = (Invoke-SafeguardSpsMethod GET transaction)
+    $local:TransactionInfo = [ordered]@{
+        Status = $local:response.body.status;
+        CommitMessage = $local:response.body.commit_message;
+        RemainingSeconds = $local:response.meta.remaining_seconds;
+        Changes = @()
+    }
+    if ($local:response.meta.changes)
+    {
+        $local:Changes = (Invoke-SafeguardSpsMethod GET transaction/changes).changes
+        if ($local:Changes) { $local:TransactionInfo.Changes = $local:Changes }
+    }
+    New-Object PSObject -Property $local:TransactionInfo
 }
 
 
