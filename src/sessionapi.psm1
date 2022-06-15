@@ -159,7 +159,47 @@ function Invoke-SpsInternal
 }
 
 
+<#
+.SYNOPSIS
+Log into a Safeguard SPS appliance in this Powershell session for the purposes
+of using the SPS Web API.
 
+.DESCRIPTION
+This utility can help you securely create a login session with a Safeguard SPS
+appliance and save it as a global variable.
+
+The password may be passed in as a SecureString.  By default, this
+script will securely prompt for the password.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard SPS appliance.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard SPS appliance SSL certificate--will be ignored for entire session.
+
+.PARAMETER Username
+The username to authenticate as.
+
+.PARAMETER Password
+SecureString containing the password.
+
+.INPUTS
+None.
+
+.OUTPUTS
+None (with session variable filled out for calling Sps Web API).
+
+
+.EXAMPLE
+Connect-SafeguardSps 10.5.32.54 admin -Insecure
+
+Login Successful.
+
+.EXAMPLE
+Connect-SafeguardSps sps1.mycompany.corp admin
+
+Login Successful.
+#>
 function Connect-SafeguardSps
 {
     [CmdletBinding()]
@@ -190,6 +230,7 @@ function Connect-SafeguardSps
     }
     Write-Host "Login Successful."
 }
+
 
 function Disconnect-SafeguardSps
 {
