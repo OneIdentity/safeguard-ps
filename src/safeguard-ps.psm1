@@ -1302,9 +1302,7 @@ function Connect-Safeguard
                 "Insecure" = $Insecure;
                 "Gui" = $Gui;
                 "NoWindowTitle" = $NoWindowTitle;
-                "AssetPartitionId" = $null;
-                "SpsAppliance" = $null;
-                "SpsSession" = $null
+                "AssetPartitionId" = $null
             }
             if (-not $NoWindowTitle)
             {

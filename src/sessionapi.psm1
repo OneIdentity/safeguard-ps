@@ -432,6 +432,33 @@ function Invoke-SafeguardSpsMethod
     }
 }
 
+<#
+.SYNOPSIS
+Open a transaction for making changes via the Safeguard SPS Web API.
+
+.DESCRIPTION
+This cmdlet is used to create a transaction necessary to make changes via
+the Safeguard SPS API.  Recent versions of SPS will open a transaction
+automatically, but this cmdlet may be used to open a transaction explicitly.
+
+In order to permanently save changes made via the Safeguard SPS API, you
+must also call Close-SafeguardSpsTransaction or its alias
+Save-SafeguardSpsTransaction.  Clear-SafeguardSpsTransaction can be used to
+cancel changes.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Open-SafeguardSpsTransaction
+$body = (Invoke-SafeguardSpsMethod GET configuration/management/email -BodyOutput)
+$body.admin_address = "admin@mycompany.corp"
+Invoke-SafeguardSpsMethod PUT configuration/management/email -Body $body
+Close-SafeguardSpsTransaction
+#>
 function Open-SafeguardSpsTransaction
 {
     [CmdletBinding()]
@@ -444,6 +471,33 @@ function Open-SafeguardSpsTransaction
     Invoke-SafeguardSpsMethod POST transaction
 }
 
+<#
+.SYNOPSIS
+Close a transaction and save changes made via the Safeguard SPS Web API.
+
+.DESCRIPTION
+This cmdlet is used to end a transaction and permanently save the changes
+made via the Safeguard SPS API.  This cmdlet is meant to be used with
+Open-SafeguardSpsTransaction.  Save-SafeguardSpsTransaction is an alias
+for this cmdlet.  Clear-SafeguardSpsTransaction can be used to cancel changes.
+
+To see the status of a transaction, use Get-SafeguardSpsTransaction.  To
+see only the changes that are about to be made via a transaction, use
+Show-SafeguardSpsTransactionChange.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Open-SafeguardSpsTransaction
+$body = (Invoke-SafeguardSpsMethod GET configuration/management/email -BodyOutput)
+$body.admin_address = "admin@mycompany.corp"
+Invoke-SafeguardSpsMethod PUT configuration/management/email -Body $body
+Close-SafeguardSpsTransaction
+#>
 function Close-SafeguardSpsTransaction
 {
     [CmdletBinding()]
@@ -455,8 +509,34 @@ function Close-SafeguardSpsTransaction
 
     Invoke-SafeguardSpsMethod PUT transaction -Body @{ status = "commit" }
 }
+New-Alias -Name Save-SafeguardSpsTransaction -Value Close-SafeguardSpsTransaction
 
+<#
+.SYNOPSIS
+Get the status of a transaction using the Safeguard SPS Web API.
 
+.DESCRIPTION
+This cmdlet will report the status of an SPS transaction.  The status 'closed'
+means no transaction is pending.  The status 'open' means the transaction is
+pending.  Close-SafeguardSpsTransaction can be used to permanently save changes.
+Clear-SafeguardSpsTransaction can be used to cancel changes.  The remaining
+seconds is the time before the transaction will cancel automatically and the
+login session will be terminated.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Open-SafeguardSpsTransaction
+$body = (Invoke-SafeguardSpsMethod GET configuration/management/email -BodyOutput)
+$body.admin_address = "admin@mycompany.corp"
+Invoke-SafeguardSpsMethod PUT configuration/management/email -Body $body
+Get-SafeguardSpsTransaction
+Clear-SafeguardSpsTransaction
+#>
 function Get-SafeguardSpsTransaction
 {
     [CmdletBinding()]
@@ -481,7 +561,63 @@ function Get-SafeguardSpsTransaction
     New-Object PSObject -Property $local:TransactionInfo
 }
 
+<#
+.SYNOPSIS
+Show the pending changes in a transaction using the Safeguard SPS Web API.
 
+.DESCRIPTION
+Transactions are required to make changes via the Safeguard SPS Web API.  The
+transaction must be closed or saved before changes become permanent.  This cmdlet
+will show what values will be permanently changed if the transaction is closed.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Open-SafeguardSpsTransaction
+$body = (Invoke-SafeguardSpsMethod GET configuration/management/email -BodyOutput)
+$body.admin_address = "admin@mycompany.corp"
+Invoke-SafeguardSpsMethod PUT configuration/management/email -Body $body
+Show-SafeguardSpsTransactionChange
+#>
+function Show-SafeguardSpsTransactionChange
+{
+    [CmdletBinding()]
+    Param(
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    (Get-SafeguardSpsTransaction).Changes | ConvertTo-Json -Depth 100
+}
+
+<#
+.SYNOPSIS
+Cancel a transaction using the Safeguard SPS Web API.
+
+.DESCRIPTION
+Transactions are required to make changes via the Safeguard SPS Web API.  The
+transaction must be closed or saved before changes become permanent.  This cmdlet
+may be used to cancel pending changes.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Open-SafeguardSpsTransaction
+$body = (Invoke-SafeguardSpsMethod GET configuration/management/email -BodyOutput)
+$body.admin_address = "admin@mycompany.corp"
+Invoke-SafeguardSpsMethod PUT configuration/management/email -Body $body
+Get-SafeguardSpsTransaction
+Clear-SafeguardSpsTransaction
+#>
 function Clear-SafeguardSpsTransaction
 {
     [CmdletBinding()]

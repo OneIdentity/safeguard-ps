@@ -157,6 +157,7 @@ FunctionsToExport = @(
     # sessionapi.psm1
     'Connect-SafeguardSps','Disconnect-SafeguardSps','Invoke-SafeguardSpsMethod',
     'Open-SafeguardSpsTransaction','Close-SafeguardSpsTransaction','Get-SafeguardSpsTransaction','Clear-SafeguardSpsTransaction',
+    'Show-SafeguardSpsTransactionChange',
     # archives.psm1
     'Get-SafeguardArchiveServer','New-SafeguardArchiveServer','Test-SafeguardArchiveServer',
     'Remove-SafeguardArchiveServer','Edit-SafeguardArchiveServer',
@@ -298,7 +299,9 @@ AliasesToExport = @(
     # clustering.psm1
     'Clear-SafeguardClusterOperation',
     # reports.psm1
-    'Get-SafeguardPasswordHistory'
+    'Get-SafeguardPasswordHistory',
+    # sessionapi.psm1
+    'Save-SafeguardSpsTransaction'
 )
 
 # DSC resources to export from this module
