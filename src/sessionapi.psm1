@@ -287,9 +287,8 @@ to be passed to each call to the API.  Call Disconnect-SafeguardSps when
 finished.
 
 Safeguard SPS Web API is implemented as HATEOAS. To get started crawling
-through the API, call Invoke-SafeguardSpsMethod GET / -JsonOutput.  Then,
-you can follow to the different API areas, such as configuration or
-health-status.
+through the API, call Show-SafeguardSpsEndpoint.  Then, you can follow to
+the different API areas, such as configuration or health-status.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -298,7 +297,7 @@ IP address or hostname of a Safeguard appliance.
 HTTP method verb you would like to use: GET, PUT, POST, DELETE.
 
 .PARAMETER RelativeUrl
-Relative portion of the Url you would like to call starting after the version.
+Relative portion of the Url you would like to call starting after /api.
 
 .PARAMETER Accept
 Specify the Accept header (default: application/json), Use text/csv to request CSV output.
@@ -628,4 +627,58 @@ function Clear-SafeguardSpsTransaction
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Invoke-SafeguardSpsMethod DELETE transaction
+}
+
+<#
+.SYNOPSIS
+Call a method in the Safeguard SPS Web API.
+
+.DESCRIPTION
+Safeguard SPS Web API is implemented as HATEOAS. This cmdlet is helpful for
+crawling through the API.  You can explore the different API areas, such as
+configuration or health-status.
+
+.PARAMETER RelativeUrl
+Relative portion of the Url you would like to call starting after /api.
+
+.PARAMETER JsonOutput
+A switch to return output as pretty JSON string.
+
+.EXAMPLE
+Show-SafeguardSpsEndpoint configuration
+
+.EXAMPLE
+Show-SafeguardSpsEndpoint configuration/ssh/connections -JsonOutput
+#>
+function Show-SafeguardSpsEndpoint
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false,Position=0)]
+        [string]$RelativeUrl,
+        [Parameter(Mandatory=$false)]
+        [switch]$JsonOutput
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not $RelativeUrl) { $RelativeUrl = "/" }
+
+    $local:Response = (Invoke-SafeguardSpsMethod GET $RelativeUrl)
+    if ($local:Response.items)
+    {
+        if ($JsonOutput)
+        {
+            $local:Response.items | ConvertTo-Json -Depth 100
+        }
+        else
+        {
+            $local:Response.items
+        }
+    }
+    else
+    {
+        $local:Response.meta.href
+    }
 }

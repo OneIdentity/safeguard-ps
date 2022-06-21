@@ -157,7 +157,7 @@ FunctionsToExport = @(
     # sessionapi.psm1
     'Connect-SafeguardSps','Disconnect-SafeguardSps','Invoke-SafeguardSpsMethod',
     'Open-SafeguardSpsTransaction','Close-SafeguardSpsTransaction','Get-SafeguardSpsTransaction','Clear-SafeguardSpsTransaction',
-    'Show-SafeguardSpsTransactionChange',
+    'Show-SafeguardSpsTransactionChange','Show-SafeguardSpsEndpoint',
     # archives.psm1
     'Get-SafeguardArchiveServer','New-SafeguardArchiveServer','Test-SafeguardArchiveServer',
     'Remove-SafeguardArchiveServer','Edit-SafeguardArchiveServer',
