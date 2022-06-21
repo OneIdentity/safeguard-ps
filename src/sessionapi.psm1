@@ -641,23 +641,18 @@ configuration or health-status.
 .PARAMETER RelativeUrl
 Relative portion of the Url you would like to call starting after /api.
 
-.PARAMETER JsonOutput
-A switch to return output as pretty JSON string.
-
 .EXAMPLE
 Show-SafeguardSpsEndpoint configuration
 
 .EXAMPLE
-Show-SafeguardSpsEndpoint configuration/ssh/connections -JsonOutput
+Show-SafeguardSpsEndpoint configuration/ssh/connections
 #>
 function Show-SafeguardSpsEndpoint
 {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false,Position=0)]
-        [string]$RelativeUrl,
-        [Parameter(Mandatory=$false)]
-        [switch]$JsonOutput
+        [string]$RelativeUrl
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -668,14 +663,7 @@ function Show-SafeguardSpsEndpoint
     $local:Response = (Invoke-SafeguardSpsMethod GET $RelativeUrl)
     if ($local:Response.items)
     {
-        if ($JsonOutput)
-        {
-            $local:Response.items | ConvertTo-Json -Depth 100
-        }
-        else
-        {
-            $local:Response.items
-        }
+        $local:Response.items | Select-Object key,meta
     }
     else
     {
