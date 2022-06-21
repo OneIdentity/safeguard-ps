@@ -58,42 +58,6 @@ function Get-SafeguardSessionClusterInternal
             -Parameters $local:Parameters
     }
 }
-function Connect-Sps
-{
-    [CmdletBinding()]
-    Param(
-        [Parameter(Mandatory=$true,Position=0)]
-        [string]$SessionMaster,
-        [Parameter(Mandatory=$true,Position=1)]
-        [string]$SessionUsername,
-        [Parameter(Mandatory=$true,Position=2)]
-        [SecureString]$SessionPassword,
-        [Parameter(Mandatory=$false)]
-        [switch]$Insecure
-    )
-
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
-    Edit-SslVersionSupport
-    if ($Insecure)
-    {
-        Disable-SslVerification
-        if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
-    }
-
-    $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $SessionPassword).Password
-
-    $local:BasicAuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $SessionUsername, $local:PasswordPlainText)))
-    Remove-Variable -Scope local PasswordPlainText
-
-    Invoke-RestMethod -Uri "https://$SessionMaster/api/authentication" -SessionVariable HttpSession `
-        -Headers @{ Authorization = ("Basic {0}" -f $local:BasicAuthInfo) } | Write-Verbose
-    Remove-Variable -Scope local BasicAuthInfo
-
-    $HttpSession
-}
 function Get-NicRefForIp
 {
     [CmdletBinding()]
@@ -134,6 +98,7 @@ function Get-NicRefForIp
         }
     }
 }
+
 
 <#
 .SYNOPSIS
@@ -402,6 +367,7 @@ function Join-SafeguardSessionCluster
     try
     {
         Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
+        Import-Module -Name "$PSScriptRoot\sessionapi.psm1" -Scope Local
         Edit-SslVersionSupport
         if ($Insecure)
         {

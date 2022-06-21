@@ -1,8 +1,11 @@
-# Global session variable for login information
+# Global session variable for login information, including SPS
 Remove-Variable -Name "SafeguardSession" -Scope Global -ErrorAction "SilentlyContinue"
 New-Variable -Name "SafeguardSession" -Scope Global -Value $null
+Remove-Variable -Name "SafeguardSpsSession" -Scope Global -ErrorAction "SilentlyContinue"
+New-Variable -Name "SafeguardSpsSession" -Scope Global -Value $null
 $MyInvocation.MyCommand.ScriptBlock.Module.OnRemove = {
     Set-Variable -Name "SafeguardSession" -Scope Global -Value $null -ErrorAction "SilentlyContinue"
+    Set-Variable -Name "SafeguardSpsSession" -Scope Global -Value $null -ErrorAction "SilentlyContinue"
 }
 Edit-SslVersionSupport
 

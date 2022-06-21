@@ -33,6 +33,14 @@ namespace Ex
             ErrorMessage = errorMessage;
             ErrorJson = errorJson;
         }
+        public SafeguardMethodException(int httpCode, string httpMessage, string errorMessage, string errorJson)
+            : base(httpCode + ": " + httpMessage + " -- " + errorMessage)
+        {
+            HttpStatusCode = httpCode;
+            ErrorCode = 0;
+            ErrorMessage = errorMessage;
+            ErrorJson = errorJson;
+        }
         public SafeguardMethodException(string message, Exception innerException)
             : base(message, innerException) {}
         protected SafeguardMethodException
@@ -105,18 +113,26 @@ namespace Ex
                     $local:ResponseObject.Code, $local:Message, $local:ResponseBody
                 ))
             }
+            elseif ($local:ResponseObject.error.type) # sps error
+            {
+                $local:Message = "$($local:ResponseObject.error.type): $($local:ResponseObject.error.message)"
+                $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
+                    [int]$local:ThrownException.Response.StatusCode, $local:StatusDescription,
+                    $local:Message, $local:ResponseBody
+                ))
+            }
             elseif ($local:ResponseObject.error_description) # rSTS error
             {
                 $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
                     [int]$local:ThrownException.Response.StatusCode, $local:StatusDescription,
-                    0, $local:ResponseObject.error_description, $local:ResponseBody
+                    $local:ResponseObject.error_description, $local:ResponseBody
                 ))
             }
             else # ??
             {
                 $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
                     [int]$local:ThrownException.Response.StatusCode, $local:StatusDescription,
-                    0, "<could not parse response content>", $local:ResponseBody
+                    "<could not parse response content>", $local:ResponseBody
                 ))
             }
         }
