@@ -401,6 +401,8 @@ update this list.
 - Close-SafeguardSpsTransaction
 - Get-SafeguardSpsTransaction
 - Clear-SafeguardSpsTransaction
+- Show-SafeguardSpsTransactionChange
+- Show-SafeguardSpsEndpoint
 
 ### Archive Servers
 
