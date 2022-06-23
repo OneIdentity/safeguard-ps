@@ -107,6 +107,9 @@ function Add-SendFileStreamCmdletType
             public string Version { get; set; }
 
             [Parameter(Mandatory = true, Position = 4)]
+            public string RelPath { get; set; }
+
+            [Parameter(Mandatory = true, Position = 5)]
             public bool Insecure { get; set; }
 
             private static readonly HttpClientHandler httpClientHandler = new HttpClientHandler() { ClientCertificateOptions = ClientCertificateOption.Manual };
@@ -218,7 +221,7 @@ function Add-SendFileStreamCmdletType
                     insecurePerRequest = Insecure;
 
                     using (FileStream stream = new FileStream(PathAndFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                    using (HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, string.Format("https://{0}/service/appliance/v{1}/Patch", Appliance, Version)))
+                    using (HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, string.Format("https://{0}/service/appliance/v{1}/{2}", Appliance, Version, RelPath)))
                     {
                         this.Host.UI.WriteLine("Uploading...");
 
@@ -275,7 +278,7 @@ function Send-PatchFile
         }
 
         Add-SendFileStreamCmdletType
-        $local:JsonData = Send-FileStream (Resolve-Path $Patch) $Appliance $AccessToken $Version $Insecure.IsPresent
+        $local:JsonData = Send-FileStream (Resolve-Path $Patch) $Appliance $AccessToken $Version "Patch" $Insecure.IsPresent
         try
         {
             $local:JsonData = (ConvertFrom-Json $local:JsonData)
@@ -1512,7 +1515,7 @@ function Get-SafeguardSupportBundle
             Disable-SslVerification
             if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
-        # Use the WebClient class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
+        # Use the  class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
         Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
         Add-ExWebClientExType
         $OutFile = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutFile)
@@ -2502,24 +2505,30 @@ function Import-SafeguardBackup
             Disable-SslVerification
             if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
-        # Use the WebClient class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
-        Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
-        Add-ExWebClientExType
 
-        $WebClient = (New-Object Ex.WebClientEx -ArgumentList @($Timeout))
-        $WebClient.Headers.Add("Accept", "application/json")
-        $WebClient.Headers.Add("Content-type", "application/octet-stream")
-        $WebClient.Headers.Add("Authorization", "Bearer $AccessToken")
         $BackupFile = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($BackupFile)
+
         Write-Host "Loading backup from $BackupFile"
         Write-Host "POSTing backup to Safeguard. This operation may take several minutes..."
 
-        $Bytes = [System.IO.File]::ReadAllBytes($BackupFile);
-        $ResponseBytes = $WebClient.UploadData("https://$Appliance/service/appliance/v$Version/Backups/Upload", "POST", $Bytes) | Out-Null
-        if ($ResponseBytes)
+        Add-SendFileStreamCmdletType
+        $local:JsonData = Send-FileStream (Resolve-Path $BackupFile) $Appliance $AccessToken $Version "Backups/Upload" $Insecure.IsPresent
+        try
         {
-            [System.Text.Encoding]::UTF8.GetString($ResponseBytes)
+            $local:JsonData = (ConvertFrom-Json $local:JsonData)
+            Write-Verbose (ConvertTo-Json $local:JsonData)
         }
+        catch
+        {
+            throw "Send-FileStream didn't return valid JSON. Cannot continue.`nOutput:`n$local:JsonData"
+        }
+        if ($local:JsonData.Code)
+        {
+            $local:ErrMsg = "$($local:JsonData.Code): $($local:JsonData.Message)"
+            throw $local:ErrMsg
+        }
+
+        $local:JsonData
     }
     catch [System.Net.WebException]
     {
