@@ -612,7 +612,7 @@ function Wait-LongRunningTask
 
     $local:StartTime = (Get-Date)
     $local:TaskResult = $null
-    $local:TaskToPoll = $Response.Headers.Location
+    $local:TaskToPoll = $($Response.Headers.Location)
     do {
         $local:TaskResponse = (Invoke-RestMethod -Method GET -Headers $Headers -Uri $local:TaskToPoll)
         Write-Verbose $local:TaskResponse
