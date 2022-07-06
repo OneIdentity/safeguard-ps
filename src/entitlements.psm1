@@ -212,7 +212,7 @@ function New-SafeguardEntitlement
 
 <#
 .SYNOPSIS
-Remove entitlements in Safeguard via the Web API.
+Remove an entitlement in Safeguard via the Web API.
 
 .DESCRIPTION
 Entitlement is a set of access request policies that restrict system access to authorized users

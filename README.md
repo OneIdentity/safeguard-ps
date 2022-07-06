@@ -24,6 +24,7 @@ This Powershell module is published to the
 [PowerShell Gallery](https://www.powershellgallery.com/packages/safeguard-ps)
 to make it as easy as possible to install using the built-in `Import-Module` cmdlet.
 It can also be updated using the `Update-Module` to get the latest functionality.
+The safeguard-ps module has been signed so that it may be trusted.
 
 By default Powershell modules are installed for all users, and you need to be
 running Powershell as an Administrator to install for all users.
