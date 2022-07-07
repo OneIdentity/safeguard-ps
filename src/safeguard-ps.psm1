@@ -1736,8 +1736,8 @@ function Invoke-SafeguardMethod
         }
         else
         {
-            Write-Verbose "NOT FOUND: YOU MAY BE USING AN OLDER VERSION OF SAFEGUARD API:"
-            Write-Verbose "    TRY CONNECTING WITH THE Version PARAMETER SET TO $($Version - 1), OR"
+            Write-Verbose "NOT FOUND: YOU MAY BE TRYING TO USE A DIFFERENT VERSION OF SAFEGUARD API:"
+            Write-Verbose "    TRY CONNECTING WITH THE Version PARAMETER SET SOMETHING OTHER THAN $Version, OR"
             Write-Verbose "    DOWNLOAD THE VERSION OF safeguard-ps MATCHING YOUR VERSION OF SAFEGUARD"
             throw
         }
