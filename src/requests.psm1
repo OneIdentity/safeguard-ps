@@ -133,14 +133,15 @@ function New-RequestableAccountObject
             PlatformId = $Asset.Platform.Id;
             PlatformType = $Asset.Platform.PlatformType;
             PlatformDisplayName = $Asset.Platform.DisplayName;
+            SshHostKey = $Asset.SshHostKey.SshHostKey;
+            SshHostKeyFingerprint = $Asset.SshHostKey.Fingerprint;
+            SshHostKeyFingerprintSha256 = $Asset.SshHostKey.FingerprintSha256;
             SshSessionPort = $Asset.SessionAccessProperties.SshSessionPort;
             RdpSessionPort = $Asset.SessionAccessProperties.RemoteDesktopSessionPort;
             AccountId = $Account.Id;
-            AccountNetBiosName = $Account.NetBiosName;
             AccountDomainName = $Account.DomainName;
             AccountName = $Account.Name;
             AccountDescription = $Account.Description;
-            SuspendAccountWhenCheckedIn = $Account.SuspendAccountWhenCheckedIn;
             AccountRequestType = $Policy.AccessRequestProperties.AccessRequestType;
             RequireReasonCode = $Policy.RequesterProperties.RequireReasonCode;
             RequireReasonComment = $Policy.RequesterProperties.RequireReasonComment;
