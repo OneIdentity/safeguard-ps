@@ -1306,7 +1306,7 @@ function Connect-Safeguard
             }
             if (-not $NoWindowTitle)
             {
-                $Host.UI.RawUI.WindowTitle = "Windows PowerShell -- Safeguard Connection: $(Get-SessionConnectionIdentifier)"
+                $Host.UI.RawUI.WindowTitle = "PowerShell -- Safeguard Connection: $(Get-SessionConnectionIdentifier)"
             }
             Write-Host "Login Successful."
         }
@@ -1435,7 +1435,7 @@ function Disconnect-Safeguard
             }
             if (-not $NoWindowTitle)
             {
-                $Host.UI.RawUI.WindowTitle = "Windows PowerShell"
+                $Host.UI.RawUI.WindowTitle = "PowerShell"
             }
             Write-Host "Log out Successful."
         }
