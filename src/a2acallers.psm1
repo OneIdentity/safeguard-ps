@@ -555,7 +555,7 @@ function New-SafeguardA2aAccessRequest
         [Parameter(ParameterSetName="CertStoreAndIds",Mandatory=$false,Position=4)]
         [int]$AccountIdToUse,
         [Parameter(Mandatory=$false,Position=5)]
-        [ValidateSet("Password", "SSHKey", "SSH", "RemoteDesktop", "RDP", "Telnet", IgnoreCase=$true)]
+        [ValidateSet("Password", "SSHKey", "SSH", "RemoteDesktop", "RDP", "RemoteDesktopApplication", "RDPApplication", "RDPApp", "Telnet", IgnoreCase=$true)]
         [string]$AccessRequestType,
         [Parameter(Mandatory=$false)]
         [switch]$Emergency = $false,
@@ -584,6 +584,10 @@ function New-SafeguardA2aAccessRequest
     if ($AccessRequestType -ieq "RDP")
     {
         $AccessRequestType = "RemoteDesktop"
+    }
+    elseif ($AccessRequestType -ieq "RDPApplication" -or $AccessRequestType -ieq "RDPApp")
+    {
+        $AccessRequestType = "RemoteDesktopApplication"
     }
 
     if ($PsCmdlet.ParameterSetName -eq "CertStoreAndNames" -or $PsCmdlet.ParameterSetName -eq "FileAndNames")
