@@ -944,8 +944,8 @@ function Find-SafeguardRequestableAccount
                 GET "Me/AccessRequestAssets") | ForEach-Object {
             $local:Asset = $_
             (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-                    GET "Me/RequestEntitlements" -Parameters @{ assetIds = "$($local:Asset.Id)"; q = $SearchString }).Account | ForEach-Object {
-                New-RequestableAccountObject $local:Asset $_ -AllFields:$AllFields
+                    GET "Me/RequestEntitlements" -Parameters @{ assetIds = "$($local:Asset.Id)"; q = $SearchString }) | ForEach-Object {
+                New-RequestableAccountObject $local:Asset $_.Account $_.Policy -AllFields:$AllFields
             }
         }
     }
@@ -959,8 +959,8 @@ function Find-SafeguardRequestableAccount
                         GET "Me/AccessRequestAssets" -Parameters @{ filter = $AssetQueryFilter }) | ForEach-Object {
                     $local:Asset = $_
                     (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-                            GET "Me/RequestEntitlements" -Parameters @{ assetIds = "$($local:Asset.Id)"; filter = $AccountQueryFilter }).Account | ForEach-Object {
-                        New-RequestableAccountObject $local:Asset $_ -AllFields:$AllFields
+                            GET "Me/RequestEntitlements" -Parameters @{ assetIds = "$($local:Asset.Id)"; filter = $AccountQueryFilter }) | ForEach-Object {
+                        New-RequestableAccountObject $local:Asset $_.Account $_.Policy -AllFields:$AllFields
                     }
                 }
             }
@@ -970,8 +970,8 @@ function Find-SafeguardRequestableAccount
                         GET "Me/AccessRequestAssets" -Parameters @{ filter = $AssetQueryFilter }) | ForEach-Object {
                     $local:Asset = $_
                     (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-                            GET "Me/RequestEntitlements" -Parameters @{ assetIds = "$($local:Asset.Id)" }).Account | ForEach-Object {
-                        New-RequestableAccountObject $local:Asset $_ -AllFields:$AllFields
+                            GET "Me/RequestEntitlements" -Parameters @{ assetIds = "$($local:Asset.Id)" }) | ForEach-Object {
+                        New-RequestableAccountObject $local:Asset $_.Account $_.Policy -AllFields:$AllFields
                     }
                 }
             }
@@ -982,8 +982,8 @@ function Find-SafeguardRequestableAccount
                     GET "Me/AccessRequestAssets") | ForEach-Object {
                 $local:Asset = $_
                 (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-                        GET "Me/RequestEntitlements" -Parameters @{ assetIds = "$($local:Asset.Id)"; filter = $AccountQueryFilter }).Account | ForEach-Object {
-                    New-RequestableAccountObject $local:Asset $_ -AllFields:$AllFields
+                        GET "Me/RequestEntitlements" -Parameters @{ assetIds = "$($local:Asset.Id)"; filter = $AccountQueryFilter }) | ForEach-Object {
+                    New-RequestableAccountObject $local:Asset $_.Account $_.Policy -AllFields:$AllFields
                 }
             }
         }
