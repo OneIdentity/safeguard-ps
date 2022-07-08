@@ -133,9 +133,6 @@ function New-RequestableAccountObject
             PlatformId = $Asset.Platform.Id;
             PlatformType = $Asset.Platform.PlatformType;
             PlatformDisplayName = $Asset.Platform.DisplayName;
-            SshHostKey = $Asset.SshHostKey.SshHostKey;
-            SshHostKeyFingerprint = $Asset.SshHostKey.Fingerprint;
-            SshHostKeyFingerprintSha256 = $Asset.SshHostKey.FingerprintSha256;
             SshSessionPort = $Asset.SessionAccessProperties.SshSessionPort;
             RdpSessionPort = $Asset.SessionAccessProperties.RemoteDesktopSessionPort;
             AccountId = $Account.Id;
