@@ -26,12 +26,22 @@ function Connect-Sps
 
     $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $SessionPassword).Password
 
-    $local:BasicAuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $SessionUsername, $local:PasswordPlainText)))
-    Remove-Variable -Scope local PasswordPlainText
-
-    Invoke-RestMethod -Uri "https://$SessionMaster/api/authentication" -SessionVariable HttpSession `
-        -Headers @{ Authorization = ("Basic {0}" -f $local:BasicAuthInfo) } | Write-Verbose
-    Remove-Variable -Scope local BasicAuthInfo
+    try
+    {
+        $local:BasicAuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $SessionUsername, $local:PasswordPlainText)))
+        Remove-Variable -Scope local PasswordPlainText
+        Invoke-RestMethod -Uri "https://$SessionMaster/api/authentication" -SessionVariable HttpSession `
+            -Headers @{ Authorization = ("Basic {0}" -f $local:BasicAuthInfo) } | Write-Verbose
+    }
+    catch
+    {
+        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+        Out-SafeguardExceptionIfPossible $_
+    }
+    finally
+    {
+        Remove-Variable -Scope local BasicAuthInfo
+    }
 
     $HttpSession
 }
