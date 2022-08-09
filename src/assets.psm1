@@ -1235,6 +1235,7 @@ function Edit-SafeguardAsset
         if ($PSBoundParameters.ContainsKey("AllowSessionRequests")) { $AssetObject.AllowSessionRequests = $AllowSessionRequests }
         if ($PSBoundParameters.ContainsKey("Platform"))
         {
+            Import-Module -Name "$PSScriptRoot\datatypes.psm1" -Scope Local
             $local:PlatformId = Resolve-SafeguardPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Platform
             $AssetObject.PlatformId = $local:PlatformId
         }
