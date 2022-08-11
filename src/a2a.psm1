@@ -263,6 +263,53 @@ function Disable-SafeguardA2aService
 
 <#
 .SYNOPSIS
+Get configuration of the A2A service on this Safeguard appliance via the Web API.
+
+.DESCRIPTION
+The A2A service can be configured to run behind a TLS termination reverse proxy. The A2A service can also be configured to run
+using an alternate port. This cmdlet gets the current configuration of the A2A service on this appliance.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardA2aServiceConfig -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardA2aServiceConfig
+#>
+function Get-SafeguardA2aServiceConfig
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET "A2AService/Config"
+}
+
+<#
+.SYNOPSIS
 Get A2A registrations managed by Safeguard via the Web API.
 
 .DESCRIPTION

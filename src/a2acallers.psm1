@@ -6,6 +6,8 @@ function Invoke-SafeguardA2aMethodWithCertificate
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Appliance,
         [Parameter(Mandatory=$false)]
+        [int]$Port = 443,
+        [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(ParameterSetName="File",Mandatory=$true)]
         [string]$CertificateFile,
@@ -73,12 +75,12 @@ function Invoke-SafeguardA2aMethodWithCertificate
         if (-not $Thumbprint)
         {
             Invoke-RestMethod -Certificate $local:Cert -Method $Method -Headers $local:Headers `
-                -Uri "https://$Appliance/service/$Service/v$Version/$RelativeUrl" -Body $local:BodyInternal
+                -Uri "https://${Appliance}:${Port}/service/$Service/v$Version/$RelativeUrl" -Body $local:BodyInternal
         }
         else
         {
             Invoke-RestMethod -CertificateThumbprint $Thumbprint -Method $Method -Headers $local:Headers `
-                -Uri "https://$Appliance/service/$Service/v$Version/$RelativeUrl" -Body $local:BodyInternal
+                -Uri "https://${Appliance}:${Port}/service/$Service/v$Version/$RelativeUrl" -Body $local:BodyInternal
         }
     }
     catch
@@ -106,6 +108,8 @@ function Invoke-SafeguardA2aCredentialRetrieval
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [string]$Port = 443,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
@@ -147,12 +151,12 @@ function Invoke-SafeguardA2aCredentialRetrieval
 
     if (-not $Thumbprint)
     {
-        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization $Authorization `
+        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Port $Port -Authorization $Authorization `
             -CertificateFile $CertificateFile -Password $Password -Service a2a -Method GET -RelativeUrl $local:RelativeUrl
     }
     else
     {
-        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization $Authorization `
+        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Port $Port -Authorization $Authorization `
             -Thumbprint $Thumbprint -Service a2a -Method GET -RelativeUrl $local:RelativeUrl
     }
 }
@@ -311,6 +315,8 @@ function Get-SafeguardA2aPassword
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Appliance,
         [Parameter(Mandatory=$false)]
+        [int]$Port = 443,
+        [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(ParameterSetName="File",Mandatory=$true)]
         [string]$CertificateFile,
@@ -327,12 +333,12 @@ function Get-SafeguardA2aPassword
 
     if ($PsCmdlet.ParameterSetName -eq "CertStore")
     {
-        Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+        Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Port $Port -Authorization "A2A $ApiKey" `
             -Thumbprint $Thumbprint -CredentialType Password
     }
     else
     {
-        Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+        Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Port $Port -Authorization "A2A $ApiKey" `
             -CertificateFile $CertificateFile -Password $Password -CredentialType Password
     }
 }
@@ -389,6 +395,8 @@ function Get-SafeguardA2aPrivateKey
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Appliance,
         [Parameter(Mandatory=$false)]
+        [int]$Port = 443,
+        [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(ParameterSetName="File",Mandatory=$true)]
         [string]$CertificateFile,
@@ -408,19 +416,19 @@ function Get-SafeguardA2aPrivateKey
 
     if ($PsCmdlet.ParameterSetName -eq "CertStore")
     {
-        Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+        Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Port $Port -Authorization "A2A $ApiKey" `
             -Thumbprint $Thumbprint -CredentialType PrivateKey
     }
     else
     {
         if ($KeyFormat)
         {
-            Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+            Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Port $Port -Authorization "A2A $ApiKey" `
                 -CertificateFile $CertificateFile -Password $Password -CredentialType PrivateKey -KeyFormat $KeyFormat
         }
         else
         {
-            Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+            Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Port $Port -Authorization "A2A $ApiKey" `
                 -CertificateFile $CertificateFile -Password $Password -CredentialType PrivateKey
         }
     }
@@ -521,6 +529,8 @@ function New-SafeguardA2aAccessRequest
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [int]$Port = 443,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(ParameterSetName="FileAndNames",Mandatory=$true)]
@@ -629,12 +639,12 @@ function New-SafeguardA2aAccessRequest
 
     if ($PsCmdlet.ParameterSetName -eq "CertStoreAndNames" -or $PsCmdlet.ParameterSetName -eq "CertStoreAndIds")
     {
-        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Port $Port -Authorization "A2A $ApiKey" `
             -Thumbprint $Thumbprint -Service a2a -Method POST -RelativeUrl AccessRequests -Body $local:Body
     }
     else
     {
-        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Port $Port -Authorization "A2A $ApiKey" `
             -CertificateFile $CertificateFile -Password $Password -Service a2a -Method POST -RelativeUrl AccessRequests -Body $local:Body
     }
 }

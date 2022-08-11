@@ -236,6 +236,7 @@ FunctionsToExport = @(
     'Get-SafeguardClusterPlatformTaskLoadStatus','Get-SafeguardClusterPlatformTaskQueueStatus','Get-SafeguardClusterVpnIpv6Address',
     # a2a.psm1
     'Get-SafeguardA2aServiceStatus','Enable-SafeguardA2aService','Disable-SafeguardA2aService',
+    'Get-SafeguardA2aServiceConfig',
     'Get-SafeguardA2a','New-SafeguardA2a','Remove-SafeguardA2a','Edit-SafeguardA2a',
     # a2a.psm1 -- credential retrieval
     'Get-SafeguardA2aCredentialRetrieval','Add-SafeguardA2aCredentialRetrieval','Remove-SafeguardA2aCredentialRetrieval',

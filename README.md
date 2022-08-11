@@ -597,6 +597,7 @@ update this list.
 - Get-SafeguardA2aServiceStatus
 - Enable-SafeguardA2aService
 - Disable-SafeguardA2aService
+- Get-SafeguardA2aServiceConfig
 - Get-SafeguardA2a
 - New-SafeguardA2a
 - Remove-SafeguardA2a
