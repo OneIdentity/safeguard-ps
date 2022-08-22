@@ -142,7 +142,7 @@ function New-RequestableAccountObject
             AccountDomainName = $Account.DomainName;
             AccountName = $Account.Name;
             AccountDescription = $Account.Description;
-            AccountRequestType = $Policy.AccessRequestProperties.AccessRequestType;
+            AccessRequestType = $Policy.AccessRequestProperties.AccessRequestType;
             RequireReasonCode = $Policy.RequesterProperties.RequireReasonCode;
             RequireReasonComment = $Policy.RequesterProperties.RequireReasonComment;
             RequireServiceTicket = $Policy.RequesterProperties.RequireServiceTicket;
@@ -158,7 +158,7 @@ function New-RequestableAccountObject
             AccountId = $Account.Id;
             AccountDomainName = $Account.DomainName;
             AccountName = $Account.Name;
-            AccountRequestType = $Policy.AccessRequestProperties.AccessRequestType;
+            AccessRequestType = $Policy.AccessRequestProperties.AccessRequestType;
         })
     }
 }
@@ -896,10 +896,10 @@ Ignore verification of Safeguard appliance SSL certificate.
 A string containing the ID of the access request.
 
 .PARAMETER AssetQueryFilter
-A string to pass to the -filter query parameter for Assets in the Safeguard Web API.
+A string to pass to the -filter query parameter for Me/AssetAccountAssets in the Safeguard Web API.
 
-.PARAMETER AccountQueryFilter
-A string to pass to the -filter query parameter for Accounts in the Safeguard Web API.
+.PARAMETER EntitlementQueryFilter
+A string to pass to the -filter query parameter for Me/RequestEntitlements in the Safeguard Web API.
 
 .PARAMETER AllFields
 Return all properties that can be displayed.
@@ -914,7 +914,7 @@ JSON response from Safeguard Web API.
 Find-SafeguardRequestableAccount -SearchString testString
 
 .EXAMPLE
-Find-SafeguardRequestableAccount -AssetQueryFilter "PlatformType eq 'Ubuntu'" -AccountQueryFilter "AccountRequestTypes contains 'LocalPassword'"
+Find-SafeguardRequestableAccount -AssetQueryFilter "Platform.PlatformType eq 'Ubuntu'" EntitlementQueryFilter "Policy.AccessRequestProperties.AccessRequestType eq 'Password'"
 #>
 function Find-SafeguardRequestableAccount
 {
@@ -931,7 +931,7 @@ function Find-SafeguardRequestableAccount
         [Parameter(Mandatory=$false,ParameterSetName="Query")]
         [string]$AssetQueryFilter,
         [Parameter(Mandatory=$false,ParameterSetName="Query")]
-        [string]$AccountQueryFilter,
+        [string]$EntitlementQueryFilter,
         [Parameter(Mandatory=$false)]
         [switch]$AllFields
     )
@@ -954,13 +954,13 @@ function Find-SafeguardRequestableAccount
     {
         if ($AssetQueryFilter)
         {
-            if ($AccountQueryFilter)
+            if ($EntitlementQueryFilter)
             {
                 (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
                         GET "Me/AccessRequestAssets" -Parameters @{ filter = $AssetQueryFilter }) | ForEach-Object {
                     $local:Asset = $_
                     (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-                            GET "Me/RequestEntitlements" -Parameters @{ assetIds = "$($local:Asset.Id)"; filter = $AccountQueryFilter }) | ForEach-Object {
+                            GET "Me/RequestEntitlements" -Parameters @{ assetIds = "$($local:Asset.Id)"; filter = $EntitlementQueryFilter }) | ForEach-Object {
                         New-RequestableAccountObject $local:Asset $_.Account $_.Policy -AllFields:$AllFields
                     }
                 }
@@ -983,7 +983,7 @@ function Find-SafeguardRequestableAccount
                     GET "Me/AccessRequestAssets") | ForEach-Object {
                 $local:Asset = $_
                 (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-                        GET "Me/RequestEntitlements" -Parameters @{ assetIds = "$($local:Asset.Id)"; filter = $AccountQueryFilter }) | ForEach-Object {
+                        GET "Me/RequestEntitlements" -Parameters @{ assetIds = "$($local:Asset.Id)"; filter = $EntitlementQueryFilter }) | ForEach-Object {
                     New-RequestableAccountObject $local:Asset $_.Account $_.Policy -AllFields:$AllFields
                 }
             }
