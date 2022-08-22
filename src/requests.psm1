@@ -908,7 +908,7 @@ Return all properties that can be displayed.
 None.
 
 .OUTPUTS
-JSON response from Safeguard Web API.
+Custom JSON objects built from Safeguard Web API response.
 
 .EXAMPLE
 Find-SafeguardRequestableAccount -SearchString testString
