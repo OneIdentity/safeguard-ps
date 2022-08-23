@@ -1530,3 +1530,251 @@ function Remove-SafeguardUserPreference
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Users/$($local:UserId)/Preferences/$($local:PreferenceName)"
 }
+
+<#
+.SYNOPSIS
+Creates a template file containing the headers for importing users.
+
+.DESCRIPTION
+Creates a template file containing the headers for importing users. Specify the optional columns with parameters.
+
+Default Columns
+
+-Provider : An integer containing an ID  or a string containing the name of the identity provider.
+
+-NewUserName : A string containing the name to give to the new user.  Names must be unique per identity provider.
+
+.PARAMETER Path
+A string containing the path of the template file.
+
+.PARAMETER FirstName
+Adds the FirstName header to the template file. 
+Value - A string containing the first name of the user.  Combined with last name to form a user's DisplayName.
+
+.PARAMETER LastName
+Adds the LastName header to the template file.
+Value - A string containing the last name of the user.  Combined with first name to form a user's DisplayName.
+
+.PARAMETER Description
+Adds the Description header to the template file.
+Value - A string containing a description for the user.
+
+.PARAMETER DomainName
+Adds the DomainName header to the template file.
+Value - A string containing the DNS name of the domain this user is in.
+
+.PARAMETER EmailAddress
+Adds the EmailAddress header to the template file.
+Value - A string containing a email address for the user.
+
+.PARAMETER WorkPhone
+Adds the WorkPhone header to the template file.
+Value - A string containing a work phone number for the user.
+
+.PARAMETER MobilePhone
+Adds the MobilePhone header to the template file.
+Value - A string containing a mobile phone number for the user.
+
+.PARAMETER AdminRoles
+An array of strings containing the permissions (admin roles) to assign to the user.  
+You may also specify 'All' to grant all permissions. Other permissions are: 'GlobalAdmin',
+'ApplicationAuditor', 'SystemAuditor', 'Auditor', 'AssetAdmin', 'ApplianceAdmin', 'PolicyAdmin', 'UserAdmin',
+'HelpdeskAdmin', 'OperationsAdmin'.
+
+.PARAMETER Password
+Adds the Password header to the template file.
+Value - A string containing the password.
+
+.PARAMETER Thumbprint
+Adds the Thumbprint header to the template file.
+Value - A string containing a SHA-1 thumbprint of certificate to use for authentication.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file with the headers.
+
+.EXAMPLE
+New-SafeguardUserImportTemplate -FirstName -LastName -Description
+
+.EXAMPLE
+New-SafeguardUserImportTemplate 'C:\tmp\template.csv' -FirstName -LastName -Description
+
+#>
+function New-SafeguardUserImportTemplate
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false, Position=0)]
+        [string]$Path = '.\SafeguardUserImportTemplate.csv',
+        [Parameter(Mandatory=$false)]
+        [switch]$FirstName,
+        [Parameter(Mandatory=$false)]
+        [switch]$LastName,
+        [Parameter(Mandatory=$false)]
+        [switch]$Description,
+        [Parameter(Mandatory=$false)]
+        [switch]$EmailAddress,
+        [Parameter(Mandatory=$false)]
+        [switch]$WorkPhone,
+        [Parameter(Mandatory=$false)]
+        [switch]$MobilePhone,
+        [Parameter(Mandatory=$false)]
+        [switch]$AdminRoles,
+        [Parameter(Mandatory=$false)]
+        [switch]$Password,
+        [Parameter(Mandatory=$false)]
+        [switch]$Thumbprint
+    )
+
+    $local:Headers = '"Provider","NewUserName"'
+
+    if ($PSBoundParameters.ContainsKey("FirstName")) { $local:Headers = $local:Headers + ',"FirstName"' }
+    if ($PSBoundParameters.ContainsKey("LastName")) { $local:Headers = $local:Headers + ',"LastName"' }
+    if ($PSBoundParameters.ContainsKey("Description")) { $local:Headers = $local:Headers + ',"Description"' }
+    if ($PSBoundParameters.ContainsKey("EmailAddress")) { $local:Headers = $local:Headers + ',"EmailAddress"' }
+    if ($PSBoundParameters.ContainsKey("WorkPhone")) { $local:Headers = $local:Headers + ',"WorkPhone"' }
+    if ($PSBoundParameters.ContainsKey("MobilePhone")) { $local:Headers = $local:Headers + ',"MobilePhone"' }
+    if ($PSBoundParameters.ContainsKey("AdminRoles")) { $local:Headers = $local:Headers + ',"AdminRoles"' }
+    if ($PSBoundParameters.ContainsKey("Password")) { $local:Headers = $local:Headers + ',"Password"' }
+    if ($PSBoundParameters.ContainsKey("Thumbprint")) { $local:Headers = $local:Headers + ',"Thumbprint"' }
+
+    Set-Content -Path $Path -Value $local:Headers -Force
+}
+
+<#
+.SYNOPSIS
+Imports safeguard users.
+
+.DESCRIPTION
+Imports users into safeguard from a csv file.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Path
+Specifies the path to the CSV file to import.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file with any imports that failed.  If there are no failures no output file will be generated.
+
+.EXAMPLE
+Import-SafeguardUser -Path '<path to csv file>'
+
+#>
+function Import-SafeguardUser
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true)]
+        [string]$Path
+    )
+
+    $local:Users = Import-Csv -Path $Path
+
+    $local:FailedImports = New-Object System.Collections.ArrayList
+
+    Write-Progress -Activity "Importing Users ..." -PercentComplete 0
+
+    $local:CurrUser = 1;
+    foreach($local:User in $local:Users)
+    {
+        try 
+        {
+            $local:Args = @{
+                AccessToken = $AccessToken
+                Appliance = $Appliance
+                Insecure = $true
+                Provider = $local:User.Provider
+                NewUserName = $local:User.NewUserName
+            }
+
+            if($null -ne $local:User.FirstName) 
+            {
+                $local:Args.Add("FirstName", $local:User.FirstName)
+            }
+
+            if($null -ne $local:User.LastName) 
+            {
+                $local:Args.Add("LastName", $local:User.LastName)
+            }
+
+            if($null -ne $local:User.Description) 
+            {
+                $local:Args.Add("Description", $local:User.Description)
+            }
+
+            if($null -ne $local:User.EmailAddress) 
+            {
+                $local:Args.Add("EmailAddress", $local:User.EmailAddress)
+            }
+
+            if($null -ne $local:User.WorkPhone) 
+            {
+                $local:Args.Add("WorkPhone", $local:User.WorkPhone)
+            }
+
+            if($null -ne $local:User.MobilePhone) 
+            {
+                $local:Args.Add("MobilePhone", $local:User.MobilePhone)
+            }
+
+            if($null -ne $local:User.AdminRoles) 
+            {
+                $local:Args.Add("AdminRoles", $local:User.AdminRoles)
+            }
+
+            if($null -ne $local:User.Password) 
+            {
+                $local:SecurePassword = $local:User.Password | ConvertTo-SecureString -AsPlainText -Force
+                $local:Args.Add("Password", $local:SecurePassword)
+            }
+
+            if($null -ne $local:User.Thumbprint) 
+            {
+                $local:Args.Add("Thumbprint", $local:User.Thumbprint)
+            }
+
+            New-SafeguardUser @local:Args
+        }
+        catch 
+        {
+            if ($local:User.PSobject.Properties.Name -contains "Error")
+            {
+                $local:User.Error = $_
+            }
+            else 
+            {
+                $local:User | Add-Member -MemberType NoteProperty -Name "Error" -Value  $_
+            }
+            $local:FailedImports.Add($local:User)
+        }
+        
+        Write-Progress -Activity "Importing Users ..." -PercentComplete (($local:CurrUser/$local:Users.Count)*100)
+        $local:CurrUser++
+    }
+
+    Write-Host ($local:Users.Count - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
+    
+    if ($local:FailedImports.Count -gt 0) 
+    {
+        Write-Host "Please refer to UserImportResults.csv for more information on failures."
+        $local:FailedImports | Export-Csv -Path ".\UserImportResults.csv" -NoTypeInformation -Force
+    }
+}
