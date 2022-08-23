@@ -557,7 +557,7 @@ function Invoke-SafeguardStarlingJoin
     if ($PSVersionTable.PSEdition -eq "Core")
     {
         Write-Warning "This cmdlet cannot open an embedded browser under PowerShell Core."
-        Write-Warning "Use Invoke-SafeguardStarlingJoinBrowser intead, or use the following Starling join URL and call New-SafeguardStarlingSubscription:"
+        Write-Warning "Use Invoke-SafeguardStarlingJoinBrowser instead, or use the following Starling join URL and call New-SafeguardStarlingSubscription:"
         Write-Output $local:JoinUrl
     }
     else
