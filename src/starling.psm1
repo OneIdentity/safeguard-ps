@@ -113,15 +113,51 @@ function Get-SafeguardStarlingSubscription
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($Name)
-    {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "StarlingSubscriptions" `
-            -Parameters @{ filter = "Name ieq '$Name'" }
-    }
-    else
-    {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "StarlingSubscriptions"
-    }
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "StarlingSubscriptions"
+}
+
+<#
+.SYNOPSIS
+Get Safeguard instance ID for current Starling Join.
+
+.DESCRIPTION
+Get the instance identifier for this Safeguard joined product in Starling.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardStarlingJoinInstance
+#>
+function Get-SafeguardStarlingJoinInstance
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:JoinUrl = (Get-SafeguardStarlingSubscription -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)[0].JoinUrl
+    ($local:JoinUrl -split "/")[5]
 }
 
 <#
@@ -193,13 +229,20 @@ function New-SafeguardStarlingSubscription
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "StarlingSubscriptions" `
+    $local:Response = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "StarlingSubscriptions" `
         -Body @{
             Name = $Name;
             ClientCredentials = $ClientCredentials;
             TokenEndpoint = $TokenEndpoint;
             JoinUrl = $JoinUrl
-        }
+        })
+    New-Object PSObject -Property ([ordered]@{
+        Id = $local:Response.Id;
+        Name = $local:Response.Name;
+        ClientCredentials = "<secret>";
+        TokenEndpoint = $local:Response.TokenEndpoint;
+        JoinUrl = $local:Response.JoinUrl;
+    })
 }
 
 <#
@@ -234,7 +277,7 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Remove-SafeguardStarlingSubscription default
+Remove-SafeguardStarlingSubscription
 
 .EXAMPLE
 Remove-SafeguardStarlingSubscription -Name Default
@@ -251,7 +294,7 @@ function Remove-SafeguardStarlingSubscription
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
         [switch]$Force,
-        [Parameter(Mandatory=$true,Position=0)]
+        [Parameter(Mandatory=$false,Position=0)]
         [string]$Name
     )
 
@@ -264,7 +307,7 @@ function Remove-SafeguardStarlingSubscription
     }
     else
     {
-        $local:Id = (Get-SafeguardStarlingSubscription -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Name $Name).Id
+        $local:Id = (Get-SafeguardStarlingSubscription -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)[0].Id
     }
 
     if ($Force)
@@ -323,54 +366,54 @@ function Remove-SafeguardStarling2FA
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-	try
-	{
-		$local:UserIds = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
-										 -Parameters @{ filter = "SecondaryAuthenticationProviderTypeReferenceName in ['StarlingSubscription', 'StarlingTwoFactor']"; fields = "Id" })
-		$local:FailedIds =@()
-		$local:SucceededIds = @()
+    try
+    {
+        $local:UserIds = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
+                                         -Parameters @{ filter = "SecondaryAuthenticationProviderTypeReferenceName in ['StarlingSubscription', 'StarlingTwoFactor']"; fields = "Id" })
+        $local:FailedIds =@()
+        $local:SucceededIds = @()
 
-		Foreach ($Id in $local:UserIds)
-		{
-			$UserObject = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Id)
+        Foreach ($Id in $local:UserIds)
+        {
+            $UserObject = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Id)
 
-			if($UserObject -ne $null)
-			{
-				$UserObject.SecondaryAuthenticationProviderId = $null
-				$UserObject.SecondaryAuthenticationProviderName = $null
-				$UserObject.SecondaryAuthenticationProviderTypeReferenceName = "Unknown"
-				$UserObject.SecondaryAuthenticationIdentity = $null
-				try
-				{
-					Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$($UserObject.Id)" -Body $UserObject
-					$local:SucceededIds += $UserObject.Id
-				}
-				catch
-				{
-					$local:FailedIds += $UserObject.Id
-				}
-			}
-			else
-			{
-				$local:FailedIds += $UserObject.Id
-			}
-		}
+            if($UserObject -ne $null)
+            {
+                $UserObject.SecondaryAuthenticationProviderId = $null
+                $UserObject.SecondaryAuthenticationProviderName = $null
+                $UserObject.SecondaryAuthenticationProviderTypeReferenceName = "Unknown"
+                $UserObject.SecondaryAuthenticationIdentity = $null
+                try
+                {
+                    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$($UserObject.Id)" -Body $UserObject
+                    $local:SucceededIds += $UserObject.Id
+                }
+                catch
+                {
+                    $local:FailedIds += $UserObject.Id
+                }
+            }
+            else
+            {
+                $local:FailedIds += $UserObject.Id
+            }
+        }
 
-		if ($local:FailedIds -ne $null)
-		{
-			$FIds = ($local:FailedIds -join ",")
-			Write-Host "Failed for users: $FIds"
-		}
-		if ($local:SucceededIds -ne $null)
-		{
-			$SIds = $local:SucceededIds -join ","
-			Write-Host "Succeeded for users: $SIds"
-		}
-	}
-	catch
-	{
-		Write-Host "Error occured while removing Starling Two Factor authentication from user(s)."
-	}
+        if ($local:FailedIds -ne $null)
+        {
+            $FIds = ($local:FailedIds -join ",")
+            Write-Host "Failed for users: $FIds"
+        }
+        if ($local:SucceededIds -ne $null)
+        {
+            $SIds = $local:SucceededIds -join ","
+            Write-Host "Succeeded for users: $SIds"
+        }
+    }
+    catch
+    {
+        Write-Host "Error occured while removing Starling Two Factor authentication from user(s)."
+    }
 }
 
 <#
