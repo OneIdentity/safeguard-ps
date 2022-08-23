@@ -1544,6 +1544,9 @@ Default Columns
 
 -NewUserName : A string containing the name to give to the new user.  Names must be unique per identity provider.
 
+.PARAMETER Path
+A string containing the path of the template file.
+
 .PARAMETER FirstName
 Adds the FirstName header to the template file. 
 Value - A string containing the first name of the user.  Combined with last name to form a user's DisplayName.
@@ -1595,11 +1598,16 @@ A CSV file with the headers.
 .EXAMPLE
 New-SafeguardUserImportTemplate -FirstName -LastName -Description
 
+.EXAMPLE
+New-SafeguardUserImportTemplate 'C:\tmp\template.csv' -FirstName -LastName -Description
+
 #>
 function New-SafeguardUserImportTemplate
 {
     [CmdletBinding()]
     Param(
+        [Parameter(Mandatory=$false, Position=0)]
+        [string]$Path = '.\SafeguardUserImportTemplate.csv',
         [Parameter(Mandatory=$false)]
         [switch]$FirstName,
         [Parameter(Mandatory=$false)]
@@ -1620,8 +1628,6 @@ function New-SafeguardUserImportTemplate
         [switch]$Thumbprint
     )
 
-    $local:Path = '.\SafeguardUserImportTemplate.csv';
-
     $local:Headers = '"Provider","NewUserName"'
 
     if ($PSBoundParameters.ContainsKey("FirstName")) { $local:Headers = $local:Headers + ',"FirstName"' }
@@ -1634,7 +1640,7 @@ function New-SafeguardUserImportTemplate
     if ($PSBoundParameters.ContainsKey("Password")) { $local:Headers = $local:Headers + ',"Password"' }
     if ($PSBoundParameters.ContainsKey("Thumbprint")) { $local:Headers = $local:Headers + ',"Thumbprint"' }
 
-    Set-Content -Path $local:Path -Value $local:Headers -Force
+    Set-Content -Path $Path -Value $local:Headers -Force
 }
 
 <#

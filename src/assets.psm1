@@ -2208,8 +2208,8 @@ function Set-SafeguardAssetAccountSshKey
                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToSet -Account $AccountToSet)
 
     $local:Body = @{
-        "Passphrase" = $local:Passphrase
-        "PrivateKey" = $local:PrivateKey
+        "Passphrase" = $Passphrase
+        "PrivateKey" = $PrivateKey
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AssetAccounts/$($local:AccountId)/SshKey" `
@@ -2229,6 +2229,9 @@ Default Columns
 -DisplayName : A string containing the display name for this asset. Optional, unlessNetworkAddress is an IP address rather than a DNS name.
 
 -Platform : A platform ID for a specific platform type or a string to search for desired platform type.
+
+.PARAMETER Path
+A string containing the path of the template file. 
 
 .PARAMETER Description
 Adds the Description header to the template file. 
@@ -2285,11 +2288,16 @@ A CSV file with the headers.
 .EXAMPLE
 New-SafeguardAssetImportTemplate -DisplayName -Description -AssetPartition
 
+.EXAMPLE
+New-SafeguardAssetImportTemplate 'C:\tmp\template.csv' -DisplayName -Description -AssetPartition
+
 #>
 function New-SafeguardAssetImportTemplate
 {
     [CmdletBinding()]
     Param(
+        [Parameter(Mandatory=$false, Position=0)]
+        [string]$Path = '.\SafeguardAssetImportTemplate.csv',
         [Parameter(Mandatory=$false)]
         [switch]$Description,
         [Parameter(Mandatory=$false)]
@@ -2314,8 +2322,6 @@ function New-SafeguardAssetImportTemplate
         [switch]$PrivilegeElevationCommand
     )
 
-    $local:Path = '.\SafeguardAssetImportTemplate.csv';
-
     $local:Headers = '"DisplayName","Platform"'
 
     if ($PSBoundParameters.ContainsKey("Description")) { $local:Headers = $local:Headers + ',"Description"' }
@@ -2330,7 +2336,7 @@ function New-SafeguardAssetImportTemplate
     if ($PSBoundParameters.ContainsKey("ServiceAccountDistinguishedName")) { $local:Headers = $local:Headers + ',"ServiceAccountDistinguishedName"' }
     if ($PSBoundParameters.ContainsKey("PrivilegeElevationCommand")) { $local:Headers = $local:Headers + ',"PrivilegeElevationCommand"' }
 
-    Set-Content -Path $local:Path -Value $local:Headers -Force
+    Set-Content -Path $Path -Value $local:Headers -Force
 }
 
 <#
@@ -2493,6 +2499,9 @@ Default Columns
 
 - NewAccountName : A string containing the name for the account.
 
+.PARAMETER Path
+A string containing the path of the template file.
+
 .PARAMETER Description
 Adds the Description header to the template file. 
 Value - A string containing the description for the account.
@@ -2519,11 +2528,16 @@ A CSV file with the headers.
 .EXAMPLE
 New-SafeguardAssetAccountImportTemplate -Description -AssetPartition
 
+.EXAMPLE
+New-SafeguardAssetAccountImportTemplate 'C:\tmp\template.csv' -Description -AssetPartition
+
 #>
 function New-SafeguardAssetAccountImportTemplate
 {
     [CmdletBinding()]
     Param(
+        [Parameter(Mandatory=$false, Position=0)]
+        [string]$Path = '.\SafeguardAssetAccountImportTemplate.csv',
         [Parameter(Mandatory=$false)]
         [switch]$Description,
         [Parameter(Mandatory=$false)]
@@ -2532,8 +2546,6 @@ function New-SafeguardAssetAccountImportTemplate
         [switch]$DomainName
     )
 
-    $local:Path = '.\SafeguardAssetAccountImportTemplate.csv';
-
     $local:Headers = '"ParentAsset","NewAccountName"'
 
     if ($PSBoundParameters.ContainsKey("Description")) { $local:Headers = $local:Headers + ',"Description"' }
@@ -2541,7 +2553,7 @@ function New-SafeguardAssetAccountImportTemplate
     if ($PSBoundParameters.ContainsKey("DomainName")) { $local:Headers = $local:Headers + ',"DomainName"' }
     if ($PSBoundParameters.ContainsKey("DistinguishedName")) { $local:Headers = $local:Headers + ',"DistinguishedName"' }
 
-    Set-Content -Path $local:Path -Value $local:Headers -Force
+    Set-Content -Path $Path -Value $local:Headers -Force
 }
 
 <#
@@ -2671,6 +2683,9 @@ Columns
 
 - NewPassword : A string containing the new password to set.
 
+.PARAMETER Path
+A string containing the path of the template file.
+
 .INPUTS
 None.
 
@@ -2680,14 +2695,21 @@ A CSV file with the headers.
 .EXAMPLE
 New-SafeguardAssetAccountPasswordImportTemplate
 
+.EXAMPLE
+New-SafeguardAssetAccountPasswordImportTemplate 'C:\tmp\template.csv'
+
 #>
 function New-SafeguardAssetAccountPasswordImportTemplate
 {
-    $local:Path = '.\SafeguardAssetAccountPasswordImportTemplate.csv';
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false, Position=0)]
+        [string]$Path = '.\SafeguardAssetAccountPasswordImportTemplate.csv'
+    )
 
     $local:Headers = '"AssetPartition","AssetToSet","AccountToSet","NewPassword"'
 
-    Set-Content -Path $local:Path -Value $local:Headers -Force
+    Set-Content -Path $Path -Value $local:Headers -Force
 }
 
 <#
@@ -2801,6 +2823,9 @@ Columns
 
 - PrivateKey : A string containing the private key to assign to the account.
 
+.PARAMETER Path
+A string containing the path of the template file.
+
 .PARAMETER Passphrase
 Adds the Passphrase header to the template file. 
 Value - A string containing the passphrase used to decrypt the private key.
@@ -2814,22 +2839,25 @@ A CSV file with the headers.
 .EXAMPLE
 New-SafeguardAssetAccountSshKeyImportTemplate
 
+.EXAMPLE
+New-SafeguardAssetAccountSshKeyImportTemplate 'C:\tmp\template.csv'
+
 #>
 function New-SafeguardAssetAccountSshKeyImportTemplate
 {
     [CmdletBinding()]
     Param(
+        [Parameter(Mandatory=$false, Position=0)]
+        [string]$Path = '.\SafeguardAssetAccountSshKeyImportTemplate.csv',
         [Parameter(Mandatory=$false)]
         [switch]$Passphrase
     )
-
-    $local:Path = '.\SafeguardAssetAccountSshKeyImportTemplate.csv';
 
     $local:Headers = '"AssetPartition","AssetToSet","AccountToSet","PrivateKey"'
 
     if ($PSBoundParameters.ContainsKey("Passphrase")) { $local:Headers = $local:Headers + ',"Passphrase"' }
 
-    Set-Content -Path $local:Path -Value $local:Headers -Force
+    Set-Content -Path $Path -Value $local:Headers -Force
 }
 
 <#
