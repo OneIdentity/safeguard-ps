@@ -229,9 +229,9 @@ function New-SafeguardAssetPartition
     if ($PSBoundParameters.ContainsKey("Owners"))
     {
         Import-Module -Name "$PSScriptRoot\users.psm1" -Scope Local
-        $local:Body.Owners = @()
+        $local:Body.ManagedBy = @()
         $Owners | ForEach-Object {
-            $local:Body.Owners += (Resolve-SafeguardUserObject -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $_)
+            $local:Body.ManagedBy += (Resolve-SafeguardUserObject -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $_)
         }
     }
 
@@ -410,9 +410,9 @@ function Edit-SafeguardAssetPartition
         if ($PSBoundParameters.ContainsKey("Owners"))
         {
             Import-Module -Name "$PSScriptRoot\users.psm1" -Scope Local
-            $AssetPartitionObject.Owners = @()
+            $AssetPartitionObject.ManagedBy = @()
             $Owners | ForEach-Object {
-                $AssetPartitionObject.Owners += (Resolve-SafeguardUserObject -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $_)
+                $AssetPartitionObject.ManagedBy += (Resolve-SafeguardUserObject -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $_)
             }
         }
     }
@@ -490,7 +490,8 @@ function Get-SafeguardAssetPartitionOwner
         $local:Parameters = @{ fields = ($Fields -join ",")}
     }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core GET "AssetPartitions/$($local:PartitionId)/Owners" -Parameters $local:Parameters
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core GET "AssetPartitions/$($local:PartitionId)/ManagedBy" `
+        -Parameters $local:Parameters
 }
 
 <#
@@ -560,11 +561,11 @@ function Add-SafeguardAssetPartitionOwner
     [object[]]$local:Users = $null
     foreach ($local:User in $UserList)
     {
-        $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User -Fields Id,UserName,PrimaryAuthenticationProviderId)
+        $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User -Fields Id,Name,PrimaryAuthenticationProvider.Id)
         $local:Users += $($local:ResolvedUser)
     }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core POST "AssetPartitions/$($local:PartitionId)/Owners/Add" -Body $local:Users
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core POST "AssetPartitions/$($local:PartitionId)/ManagedBy/Add" -Body $local:Users
 }
 
 <#
@@ -634,11 +635,11 @@ function Remove-SafeguardAssetPartitionOwner
     [object[]]$local:Users = $null
     foreach ($local:User in $UserList)
     {
-        $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User -Fields Id,UserName,PrimaryAuthenticationProviderId)
+        $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User -Fields Id,Name,PrimaryAuthenticationProvider.Id)
         $local:Users += $($local:ResolvedUser)
     }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core POST "AssetPartitions/$($local:PartitionId)/Owners/Remove" -Body $local:Users
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core POST "AssetPartitions/$($local:PartitionId)/ManagedBy/Remove" -Body $local:Users
 }
 
 <#

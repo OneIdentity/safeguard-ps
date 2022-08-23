@@ -26,11 +26,11 @@ function Resolve-SafeguardRequestableAssetId
     {
         try
         {
-            $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/RequestableAssets" `
+            $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/AccessRequestAssets" `
                                  -Parameters @{ filter = "Name ieq '$Asset'" })
             if (-not $local:Assets)
             {
-                $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/RequestableAssets" `
+                $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/AccessRequestAssets" `
                                      -Parameters @{ filter = "NetworkAddress ieq '$Asset'" })
             }
         }
@@ -38,7 +38,7 @@ function Resolve-SafeguardRequestableAssetId
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with ieq filter, trying with q parameter"
-            $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/RequestableAssets" `
+            $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/AccessRequestAssets" `
                                  -Parameters @{ q = $Asset })
         }
         if (-not $local:Assets)
@@ -82,18 +82,18 @@ function Resolve-SafeguardRequestableAccountId
 
     if (-not ($Account -as [int]))
     {
-        $local:RelativeUrl = "Me/RequestableAssets/$AssetId/Accounts"
+        $local:RelativeUrl = "Me/RequestEntitlements"
         try
         {
             $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
-                                   -Parameters @{ filter = "Name ieq '$Account'" })
+                                   -Parameters @{ assetIds = "$AssetId"; filter = "Name ieq '$Account'" }).Account
         }
         catch
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with ieq filter, trying with q parameter"
             $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
-                                   -Parameters @{ q = $Account })
+                                   -Parameters @{ assetIds = "$AssetId"; q = $Account }).Account
         }
         if (-not $local:Accounts)
         {
@@ -117,6 +117,8 @@ function New-RequestableAccountObject
         [object]$Asset,
         [Parameter(Mandatory=$true,Position=1)]
         [object]$Account,
+        [Parameter(Mandatory=$true,Position=2)]
+        [object]$Policy,
         [Parameter(Mandatory=$true)]
         [switch]$AllFields
     )
@@ -128,20 +130,22 @@ function New-RequestableAccountObject
             AssetName = $Asset.Name;
             NetworkAddress = $Asset.NetworkAddress;
             AssetDescription = $Asset.Description;
-            PlatformId = $Asset.PlatformId;
-            PlatformType = $Asset.PlatformType;
-            PlatformDisplayName = $Asset.PlatformDisplayName;
-            SshHostKey = $Asset.SshHostKey;
-            SshHostKeyFingerprint = $Asset.SshHostKeyFingerprint;
+            PlatformId = $Asset.Platform.Id;
+            PlatformType = $Asset.Platform.PlatformType;
+            PlatformDisplayName = $Asset.Platform.DisplayName;
+            SshHostKey = $Asset.SshHostKey.SshHostKey;
+            SshHostKeyFingerprint = $Asset.SshHostKey.Fingerprint;
+            SshHostKeyFingerprintSha256 = $Asset.SshHostKey.FingerprintSha256;
             SshSessionPort = $Asset.SessionAccessProperties.SshSessionPort;
             RdpSessionPort = $Asset.SessionAccessProperties.RemoteDesktopSessionPort;
             AccountId = $Account.Id;
-            AccountNetBiosName = $Account.NetBiosName;
             AccountDomainName = $Account.DomainName;
             AccountName = $Account.Name;
             AccountDescription = $Account.Description;
-            SuspendAccountWhenCheckedIn = $Account.SuspendAccountWhenCheckedIn;
-            AccountRequestTypes = $Account.AccountRequestTypes;
+            AccessRequestType = $Policy.AccessRequestProperties.AccessRequestType;
+            RequireReasonCode = $Policy.RequesterProperties.RequireReasonCode;
+            RequireReasonComment = $Policy.RequesterProperties.RequireReasonComment;
+            RequireServiceTicket = $Policy.RequesterProperties.RequireServiceTicket;
         })
     }
     else
@@ -150,11 +154,11 @@ function New-RequestableAccountObject
             AssetId = $Asset.Id;
             AssetName = $Asset.Name;
             NetworkAddress = $Asset.NetworkAddress;
-            PlatformDisplayName = $Asset.PlatformDisplayName;
+            PlatformDisplayName = $Asset.Platform.DisplayName;
             AccountId = $Account.Id;
             AccountDomainName = $Account.DomainName;
             AccountName = $Account.Name;
-            AccountRequestTypes = $Account.AccountRequestTypes;
+            AccessRequestType = $Policy.AccessRequestProperties.AccessRequestType;
         })
     }
 }
@@ -364,7 +368,7 @@ function New-SafeguardAccessRequest
         [Parameter(Mandatory=$false, Position=1)]
         [object]$AccountToUse,
         [Parameter(Mandatory=$true, Position=2)]
-        [ValidateSet("Password", "SSHKey", "SSH", "RemoteDesktop", "RDP", "Telnet", IgnoreCase=$true)]
+        [ValidateSet("Password", "SSHKey", "SSH", "RemoteDesktop", "RDP", "RemoteDesktopApplication", "RDPApplication", "RDPApp", "Telnet", IgnoreCase=$true)]
         [string]$AccessRequestType,
         [Parameter(Mandatory=$false)]
         [switch]$Emergency = $false,
@@ -394,10 +398,14 @@ function New-SafeguardAccessRequest
     {
         $AccessRequestType = "RemoteDesktop"
     }
+    elseif ($AccessRequestType -ieq "RDPApplication" -or $AccessRequestType -ieq "RDPApp")
+    {
+        $AccessRequestType = "RemoteDesktopApplication"
+    }
 
     $local:AssetId = (Resolve-SafeguardRequestableAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToUse)
     $local:Body = @{
-        SystemId = $local:AssetId;
+        AssetId = $local:AssetId;
         AccessRequestType = "$AccessRequestType"
     }
 
@@ -858,11 +866,11 @@ function Get-SafeguardRequestableAccount
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-            GET "Me/RequestableAssets") | ForEach-Object {
+            GET "Me/AccessRequestAssets") | ForEach-Object {
         $local:Asset = $_
         (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                Core GET "Me/RequestableAssets/$($local:Asset.Id)/Accounts") | ForEach-Object {
-            New-RequestableAccountObject $local:Asset $_ -AllFields:$AllFields
+                Core GET "Me/RequestEntitlements" -Parameters @{ assetIds = "$($local:Asset.Id)" }) | ForEach-Object {
+            New-RequestableAccountObject $local:Asset $_.Account $_.Policy -AllFields:$AllFields
         }
     }
 }
@@ -888,10 +896,10 @@ Ignore verification of Safeguard appliance SSL certificate.
 A string containing the ID of the access request.
 
 .PARAMETER AssetQueryFilter
-A string to pass to the -filter query parameter for Assets in the Safeguard Web API.
+A string to pass to the -filter query parameter for Me/AssetAccountAssets in the Safeguard Web API.
 
-.PARAMETER AccountQueryFilter
-A string to pass to the -filter query parameter for Accounts in the Safeguard Web API.
+.PARAMETER EntitlementQueryFilter
+A string to pass to the -filter query parameter for Me/RequestEntitlements in the Safeguard Web API.
 
 .PARAMETER AllFields
 Return all properties that can be displayed.
@@ -900,13 +908,13 @@ Return all properties that can be displayed.
 None.
 
 .OUTPUTS
-JSON response from Safeguard Web API.
+Custom JSON objects built from Safeguard Web API response.
 
 .EXAMPLE
 Find-SafeguardRequestableAccount -SearchString testString
 
 .EXAMPLE
-Find-SafeguardRequestableAccount -AssetQueryFilter "PlatformType eq 'Ubuntu'" -AccountQueryFilter "AccountRequestTypes contains 'LocalPassword'"
+Find-SafeguardRequestableAccount -AssetQueryFilter "Platform.PlatformType eq 'Ubuntu'" EntitlementQueryFilter "Policy.AccessRequestProperties.AccessRequestType eq 'Password'"
 #>
 function Find-SafeguardRequestableAccount
 {
@@ -923,7 +931,7 @@ function Find-SafeguardRequestableAccount
         [Parameter(Mandatory=$false,ParameterSetName="Query")]
         [string]$AssetQueryFilter,
         [Parameter(Mandatory=$false,ParameterSetName="Query")]
-        [string]$AccountQueryFilter,
+        [string]$EntitlementQueryFilter,
         [Parameter(Mandatory=$false)]
         [switch]$AllFields
     )
@@ -934,11 +942,11 @@ function Find-SafeguardRequestableAccount
     if ($PSCmdlet.ParameterSetName -eq "Search")
     {
         (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-                GET "Me/RequestableAssets") | ForEach-Object {
+                GET "Me/AccessRequestAssets") | ForEach-Object {
             $local:Asset = $_
             (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-                    GET "Me/RequestableAssets/$($local:Asset.Id)/Accounts" -Parameters @{ q = $SearchString }) | ForEach-Object {
-                New-RequestableAccountObject $local:Asset $_ -AllFields:$AllFields
+                    GET "Me/RequestEntitlements" -Parameters @{ assetIds = "$($local:Asset.Id)"; q = $SearchString }) | ForEach-Object {
+                New-RequestableAccountObject $local:Asset $_.Account $_.Policy -AllFields:$AllFields
             }
         }
     }
@@ -946,25 +954,25 @@ function Find-SafeguardRequestableAccount
     {
         if ($AssetQueryFilter)
         {
-            if ($AccountQueryFilter)
+            if ($EntitlementQueryFilter)
             {
                 (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-                        GET "Me/RequestableAssets" -Parameters @{ filter = $AssetQueryFilter }) | ForEach-Object {
+                        GET "Me/AccessRequestAssets" -Parameters @{ filter = $AssetQueryFilter }) | ForEach-Object {
                     $local:Asset = $_
                     (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-                            GET "Me/RequestableAssets/$($local:Asset.Id)/Accounts" -Parameters @{ filter = $AccountQueryFilter }) | ForEach-Object {
-                        New-RequestableAccountObject $local:Asset $_ -AllFields:$AllFields
+                            GET "Me/RequestEntitlements" -Parameters @{ assetIds = "$($local:Asset.Id)"; filter = $EntitlementQueryFilter }) | ForEach-Object {
+                        New-RequestableAccountObject $local:Asset $_.Account $_.Policy -AllFields:$AllFields
                     }
                 }
             }
             else
             {
                 (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-                        GET "Me/RequestableAssets" -Parameters @{ filter = $AssetQueryFilter }) | ForEach-Object {
+                        GET "Me/AccessRequestAssets" -Parameters @{ filter = $AssetQueryFilter }) | ForEach-Object {
                     $local:Asset = $_
                     (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-                            GET "Me/RequestableAssets/$($local:Asset.Id)/Accounts" ) | ForEach-Object {
-                        New-RequestableAccountObject $local:Asset $_ -AllFields:$AllFields
+                            GET "Me/RequestEntitlements" -Parameters @{ assetIds = "$($local:Asset.Id)" }) | ForEach-Object {
+                        New-RequestableAccountObject $local:Asset $_.Account $_.Policy -AllFields:$AllFields
                     }
                 }
             }
@@ -972,11 +980,11 @@ function Find-SafeguardRequestableAccount
         else
         {
             (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-                    GET "Me/RequestableAssets") | ForEach-Object {
+                    GET "Me/AccessRequestAssets") | ForEach-Object {
                 $local:Asset = $_
                 (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-                        GET "Me/RequestableAssets/$($local:Asset.Id)/Accounts" -Parameters @{ filter = $AccountQueryFilter }) | ForEach-Object {
-                    New-RequestableAccountObject $local:Asset $_ -AllFields:$AllFields
+                        GET "Me/RequestEntitlements" -Parameters @{ assetIds = "$($local:Asset.Id)"; filter = $EntitlementQueryFilter }) | ForEach-Object {
+                    New-RequestableAccountObject $local:Asset $_.Account $_.Policy -AllFields:$AllFields
                 }
             }
         }

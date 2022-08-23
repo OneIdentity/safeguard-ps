@@ -211,9 +211,6 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
-.PARAMETER Interface
-A string containing the name of the network interface to get (e.g. X0, X1).
-
 .INPUTS
 None.
 
@@ -221,10 +218,7 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardNetworkInterface X0
-
-.EXAMPLE
-Get-SafeguardNetworkInterface
+Get-SafeguardDnsSuffix
 #>
 function Get-SafeguardDnsSuffix
 {
@@ -235,16 +229,13 @@ function Get-SafeguardDnsSuffix
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure,
-        [Parameter(Mandatory=$true,Position=0)]
-        [ValidateSet("Mgmt", "X0", "X1", IgnoreCase=$true)]
-        [string]$Interface
+        [switch]$Insecure
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET "NetworkDnsSuffixConfig/$($Interface.ToUpper())"
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET "NetworkDnsSuffixConfig"
 }
 
 <#
@@ -263,9 +254,6 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
-.PARAMETER Interface
-A string containing the name of the network interface to set DNS suffixes for (e.g. X0, X1).
-
 .PARAMETER DnsSuffixes
 An array of strings containing the DNS suffixes to set.
 
@@ -276,10 +264,10 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardNetworkInterface X0 example.com
+Set-SafeguardDnsSuffix example.com
 
 .EXAMPLE
-Get-SafeguardNetworkInterface X1 "example.com","help.com"
+Set-SafeguardDnsSuffix "example.com","help.com"
 #>
 function Set-SafeguardDnsSuffix
 {
@@ -292,16 +280,13 @@ function Set-SafeguardDnsSuffix
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
-        [ValidateSet("Mgmt", "X0", "X1", IgnoreCase=$true)]
-        [string]$Interface,
-        [Parameter(Mandatory=$true,Position=1)]
         [string[]]$DnsSuffixes
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance PUT "NetworkDnsSuffixConfig/$($Interface.ToUpper())" -Body @{
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance PUT "NetworkDnsSuffixConfig" -Body @{
         DomainNames = $DnsSuffixes
     }
 }

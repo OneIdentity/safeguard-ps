@@ -1,8 +1,11 @@
-# Global session variable for login information
+# Global session variable for login information, including SPS
 Remove-Variable -Name "SafeguardSession" -Scope Global -ErrorAction "SilentlyContinue"
 New-Variable -Name "SafeguardSession" -Scope Global -Value $null
+Remove-Variable -Name "SafeguardSpsSession" -Scope Global -ErrorAction "SilentlyContinue"
+New-Variable -Name "SafeguardSpsSession" -Scope Global -Value $null
 $MyInvocation.MyCommand.ScriptBlock.Module.OnRemove = {
     Set-Variable -Name "SafeguardSession" -Scope Global -Value $null -ErrorAction "SilentlyContinue"
+    Set-Variable -Name "SafeguardSpsSession" -Scope Global -Value $null -ErrorAction "SilentlyContinue"
 }
 Edit-SslVersionSupport
 
@@ -880,7 +883,7 @@ Path to a PFX (PKCS12) file containing the client certificate to use to connect 
 Client certificate thumbprint to use to authenticate the connection to the RSTS.
 
 .PARAMETER Version
-Version of the Web API you are using (default: 3).
+Version of the Web API you are using (default: 4).
 
 .PARAMETER Gui
 Display redistributable STS login window in a browser.  Supports 2FA.
@@ -1303,7 +1306,7 @@ function Connect-Safeguard
             }
             if (-not $NoWindowTitle)
             {
-                $Host.UI.RawUI.WindowTitle = "Windows PowerShell -- Safeguard Connection: $(Get-SessionConnectionIdentifier)"
+                $Host.UI.RawUI.WindowTitle = "PowerShell -- Safeguard Connection: $(Get-SessionConnectionIdentifier)"
             }
             Write-Host "Login Successful."
         }
@@ -1337,7 +1340,7 @@ Invalidate specific access token rather than the session variable.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER Version
-Version of the Web API you are using (default: 3).
+Version of the Web API you are using (default: 4).
 
 .INPUTS
 None.
@@ -1362,7 +1365,7 @@ function Disconnect-Safeguard
         [Parameter(ParameterSetName="AccessToken",Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(ParameterSetName="AccessToken",Mandatory=$false)]
-        [int]$Version = 3
+        [int]$Version = 4
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -1432,7 +1435,7 @@ function Disconnect-Safeguard
             }
             if (-not $NoWindowTitle)
             {
-                $Host.UI.RawUI.WindowTitle = "Windows PowerShell"
+                $Host.UI.RawUI.WindowTitle = "PowerShell"
             }
             Write-Host "Log out Successful."
         }
@@ -1480,7 +1483,7 @@ HTTP method verb you would like to use: GET, PUT, POST, DELETE.
 Relative portion of the Url you would like to call starting after the version.
 
 .PARAMETER Version
-Version of the Web API you are using (default: 3).
+Version of the Web API you are using (default: 4).
 
 .PARAMETER RetryUrl
 Relative portion of the Url to retry if the initial call returns 404 (for backwards compatibility).
@@ -1572,7 +1575,7 @@ function Invoke-SafeguardMethod
         [Parameter(Mandatory=$true,Position=2)]
         [string]$RelativeUrl,
         [Parameter(Mandatory=$false)]
-        [int]$Version = 3,
+        [int]$Version = 4,
         [Parameter(Mandatory=$false)]
         [string]$RetryUrl,
         [Parameter(Mandatory=$false)]
@@ -1733,8 +1736,8 @@ function Invoke-SafeguardMethod
         }
         else
         {
-            Write-Verbose "NOT FOUND: YOU MAY BE USING AN OLDER VERSION OF SAFEGUARD API:"
-            Write-Verbose "    TRY CONNECTING WITH THE Version PARAMETER SET TO $($Version - 1), OR"
+            Write-Verbose "NOT FOUND: YOU MAY BE TRYING TO USE A DIFFERENT VERSION OF SAFEGUARD API:"
+            Write-Verbose "    TRY CONNECTING WITH THE Version PARAMETER SET SOMETHING OTHER THAN $Version, OR"
             Write-Verbose "    DOWNLOAD THE VERSION OF safeguard-ps MATCHING YOUR VERSION OF SAFEGUARD"
             throw
         }

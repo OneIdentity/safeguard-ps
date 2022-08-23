@@ -152,8 +152,8 @@ function Get-SafeguardReportAccountWithoutPassword
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "PolicyAccounts" -Accept "text/csv" -OutFile $local:OutFile -Parameters @{
         filter = "HasPassword eq false";
-        fields = ("SystemId,Id,SystemName,Name,DomainName,SystemNetworkAddress,HasPassword,Disabled,AllowPasswordRequest,AllowSessionRequest," + `
-            "PlatformDisplayName") }
+        fields = ("Asset.Id,Id,Asset.Name,Name,DomainName,Asset.NetworkAddress,HasPassword,Disabled,RequestProperties.AllowPasswordRequest,RequestProperties.AllowSessionRequest," `
+            + "Platform.DisplayName") }
 
     Out-FileAndExcel -OutFile $local:OutFile -Excel:$Excel
 }
@@ -235,7 +235,7 @@ function Get-SafeguardReportDailyAccessRequest
 
     Invoke-AuditLogMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure "AuditLog/AccessRequests/Activities" $local:DayOnly `
         "Action eq 'CheckOutPassword' or Action eq 'InitializeSession'" `
-        ("LogTime,RequestId,RequesterId,RequesterName,SystemId,AccountId,SystemName,AccountName,AccountDomainName,AccessRequestType,Action," + `
+        ("LogTime,RequestId,RequesterId,RequesterName,AssetId,AccountId,AssetName,AccountName,AccountDomainName,AccessRequestType,Action," + `
         "SessionId,ApplianceId,ApplianceName") `
         -OutFile $local:OutFile -Excel:$Excel
 }
@@ -317,7 +317,7 @@ function Get-SafeguardReportDailyPasswordCheckFail
 
     Invoke-AuditLogMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure "AuditLog/Passwords/CheckPassword" $local:DayOnly `
         "EventName eq 'PasswordCheckFailed'" `
-        ("LogTime,SystemId,AccountId,SystemName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
+        ("LogTime,AssetId,AccountId,AssetName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
         "RequestStatus.Message,AssetPartitionId,AssetPartitionName,ProfileId,ProfileName,SyncGroupId,SyncGroupName,ApplianceId,ApplianceName") `
         -OutFile $local:OutFile -Excel:$Excel
 }
@@ -399,7 +399,7 @@ function Get-SafeguardReportDailyPasswordCheckSuccess
 
     Invoke-AuditLogMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure "AuditLog/Passwords/CheckPassword" $local:DayOnly `
         "EventName eq 'PasswordCheckSucceeded'" `
-        ("LogTime,SystemId,AccountId,SystemName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
+        ("LogTime,AssetId,AccountId,AssetName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
         "AssetPartitionId,AssetPartitionName,ProfileId,ProfileName,SyncGroupId,SyncGroupName,ApplianceId,ApplianceName") `
         -OutFile $local:OutFile -Excel:$Excel
 }
@@ -481,7 +481,7 @@ function Get-SafeguardReportDailyPasswordChangeFail
 
     Invoke-AuditLogMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure "AuditLog/Passwords/ChangePassword" $local:DayOnly `
         "EventName eq 'PasswordChangeFailed'" `
-        ("LogTime,SystemId,AccountId,SystemName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
+        ("LogTime,AssetId,AccountId,AssetName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
         "RequestStatus.Message,AssetPartitionId,AssetPartitionName,ProfileId,ProfileName,SyncGroupId,SyncGroupName,ApplianceId,ApplianceName") `
         -OutFile $local:OutFile -Excel:$Excel
 }
@@ -563,7 +563,7 @@ function Get-SafeguardReportDailyPasswordChangeSuccess
 
     Invoke-AuditLogMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure "AuditLog/Passwords/ChangePassword" $local:DayOnly `
         "EventName eq 'PasswordChangeSucceeded'" `
-        ("LogTime,SystemId,AccountId,SystemName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
+        ("LogTime,AssetId,AccountId,AssetName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
         "AssetPartitionId,AssetPartitionName,ProfileId,ProfileName,SyncGroupId,SyncGroupName,ApplianceId,ApplianceName") `
         -OutFile $local:OutFile -Excel:$Excel
 }
@@ -735,12 +735,12 @@ function Get-SafeguardReportUserGroupMembership
                 GroupDescription = $local:GroupInfo.GroupDescription;
                 GroupDistinguishedName = $local:GroupInfo.GroupDistinguishedName;
                 GroupId = $local:GroupInfo.GroupId;
-                UserIdentityProvider = $_.PrimaryAuthenticationProviderName;
-                UserName = $_.UserName;
+                UserIdentityProvider = $_.PrimaryAuthenticationProvider.Name;
+                UserName = $_.Name;
                 UserDisplayName = $_.DisplayName;
                 UserDescription = $_.Description;
                 UserDistinguishedName = $_.DirectoryProperties.DistinguishedName;
-                UserIdentityProviderId = $_.PrimaryAuthenticationProviderId;
+                UserIdentityProviderId = $_.PrimaryAuthenticationProvider.Id;
                 UserId = $_.Id;
                 UserAdminRoles = ($_.AdminRoles -join ", ");
                 UserIsPartitionOwner = $_.IsPartitionOwner;
@@ -851,8 +851,8 @@ function Get-SafeguardReportAssetGroupMembership
                 Disabled = $_.Disabled;
                 SupportsSessionManagement = $_.SupportsSessionManagement;
                 AllowSessionRequests = $_.AllowSessionRequests;
-                SshHostKeyFingerprint = $_.SshHostKeyFingerprint;
-                SshHostKeyFingerprintSha256 = $_.SshHostKeyFingerprintSha256;
+                SshHostKeyFingerprint = $_.SshHostKey.Fingerprint;
+                SshHostKeyFingerprintSha256 = $_.SshHostKey.FingerprintSha256;
                 SshSessionPort = $_.SessionAccessProperties.SshSessionPort;
                 RemoteDesktopSessionPort = $_.SessionAccessProperties.RemoteDesktopSessionPort;
                 TelnetSessionPort = $_.SessionAccessProperties.TelnetSessionPort
@@ -949,9 +949,9 @@ function Get-SafeguardReportAccountGroupMembership
                 AccountName = $_.Name;
                 AccountDescription = $_.Description;
                 AccountId = $_.AccountId;
-                AssetName = $_.SystemName;
-                NetworkAddress = $_.SystemNetworkAddress;
-                AssetId = $_.SystemId;
+                AssetName = $_.Asset.Name;
+                NetworkAddress = $_.Asset.NetworkAddress;
+                AssetId = $_.Asset.Id;
                 IsServiceAccount = $_.IsServiceAccount;
                 HasPassword = $_.HasPassword;
                 HasSshKey = $_.HasSshKey;
@@ -1168,9 +1168,9 @@ function Get-SafeguardReportA2aEntitlement
                 CertificateUserId = $local:A2a.CertificateUserId;
                 CertificateUser = $local:A2a.CertificateUser;
                 CertificateUserThumbprint = $local:A2a.CertificateUserThumbprint;
-                AssetId = $_.SystemId;
+                AssetId = $_.Asset.Id;
                 AccountId = $_.AccountId;
-                AssetName = $_.SystemName;
+                AssetName = $_.Asset.Name;
                 AccountName = $_.AccountName;
                 DomainName = $_.DomainName;
                 AccountType = $_.AccountType;

@@ -369,7 +369,7 @@ function Remove-SafeguardStarling2FA
     try
     {
         $local:UserIds = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
-                                         -Parameters @{ filter = "SecondaryAuthenticationProviderTypeReferenceName in ['StarlingSubscription', 'StarlingTwoFactor']"; fields = "Id" })
+                            -Parameters @{ filter = "SecondaryAuthenticationProviderTypeReferenceName in ['StarlingSubscription', 'StarlingTwoFactor']"; fields = "Id" })
         $local:FailedIds =@()
         $local:SucceededIds = @()
 
@@ -377,12 +377,10 @@ function Remove-SafeguardStarling2FA
         {
             $UserObject = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Id)
 
-            if($UserObject -ne $null)
+
+            if ($null -ne $UserObject)
             {
-                $UserObject.SecondaryAuthenticationProviderId = $null
-                $UserObject.SecondaryAuthenticationProviderName = $null
-                $UserObject.SecondaryAuthenticationProviderTypeReferenceName = "Unknown"
-                $UserObject.SecondaryAuthenticationIdentity = $null
+                $UserObject.SecondaryAuthenticationProvider = $null
                 try
                 {
                     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$($UserObject.Id)" -Body $UserObject
@@ -399,12 +397,13 @@ function Remove-SafeguardStarling2FA
             }
         }
 
-        if ($local:FailedIds -ne $null)
+        if ($null -ne $local:FailedIds)
         {
             $FIds = ($local:FailedIds -join ",")
             Write-Host "Failed for users: $FIds"
         }
-        if ($local:SucceededIds -ne $null)
+
+        if ($null -ne $local:SucceededIds)
         {
             $SIds = $local:SucceededIds -join ","
             Write-Host "Succeeded for users: $SIds"

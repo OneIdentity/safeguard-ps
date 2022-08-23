@@ -634,7 +634,7 @@ function Edit-SafeguardUserGroup
         [object[]]$local:Users = $null
         foreach ($local:User in $UserList)
         {
-            $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User -Fields Id,UserName,PrimaryAuthenticationProviderId)
+            $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User -Fields Id,Name,PrimaryAuthenticationProvider.Id)
             $local:Users += $($local:ResolvedUser)
         }
 
@@ -1476,7 +1476,7 @@ function Edit-SafeguardAccountGroup
             throw "Unable to parse '$($local:AccountPair)' using expected format of 'asset\account'."
         }
         $local:ResolvedAccount = (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-            -AssetToGet $local:Pair[0] -AccountToGet $local:Pair[1] -Fields AssetId,Id,AssetName,Name)
+            -AssetToGet $local:Pair[0] -AccountToGet $local:Pair[1] -Fields Asset.Id,Id,Asset.Name,Name)
         $local:Accounts += $($local:ResolvedAccount)
     }
 

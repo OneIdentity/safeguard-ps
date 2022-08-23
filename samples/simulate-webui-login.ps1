@@ -1,4 +1,4 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 Param(
     [Parameter(Mandatory=$true)]
     [string]$Appliance,
@@ -35,15 +35,15 @@ Write-Host -ForegroundColor Yellow  "GET Cluster Status:"
 $status = Invoke-SafeguardMethod Core GET "Cluster/Status"
 
 # GET core/v3/Me
-Write-Host -ForegroundColor Yellow  "GET Me" 
+Write-Host -ForegroundColor Yellow  "GET Me"
 $me = Invoke-SafeguardMethod Core GET "Me"
 
 # GET core/v3/DailyMessage
-Write-Host -ForegroundColor Yellow  "GET Daily Message:" 
+Write-Host -ForegroundColor Yellow  "GET Daily Message:"
 $dm = Invoke-SafeguardMethod Core GET "DailyMessage"
 
 # GET core/v3/LoginMessage
-Write-Host -ForegroundColor Yellow  "GET Login Message:" 
+Write-Host -ForegroundColor Yellow  "GET Login Message:"
 $lm = Invoke-SafeguardMethod Core GET "LoginMessage"
 
 # GET core/v3/RequestFavorites
@@ -55,7 +55,7 @@ Write-Host -ForegroundColor Yellow  "GET Actionable Requests:"
 $actionableRequests = Invoke-SafeguardMethod Core GET "Me/ActionableRequests"
 
 # GET core/v3/Me?fields=Id
-Write-Host -ForegroundColor Yellow  "GET Me.Id" 
+Write-Host -ForegroundColor Yellow  "GET Me.Id"
 $userId = Invoke-SafeguardMethod Core GET "Me?fields=Id"
 
 # GET core/v3/Me/AccessRequestAssets?filter=Disabled%20eq%20false&fields=Id,Name,NetworkAddress,PlatformDisplayName&orderby=Name
@@ -91,7 +91,7 @@ $body = @( @{
     RequestedDurationDays = 0
     RequestedDurationHours = 10
     RequestedDurationMinutes = 0
-    SystemId = $($selectedAsset.Id)
+    AssetId = $($selectedAsset.Id)
     AccountId = $($selectedAccount.Id)
     AccessRequestType = "Password"
     })
@@ -105,7 +105,7 @@ $actionableRequests = Invoke-SafeguardMethod Core GET "Me/ActionableRequests"
 
 # GET core/v3/Me/RequestableAssets/<num>/Accounts/<num>/Policies
 Write-Host -ForegroundColor Yellow  "GET Policies"
-$Policies = Invoke-SafeguardMethod Core GET "Me/RequestableAssets/$($selectedAsset.Id)/Accounts/$($selectedAccount.Id)/Policies"
+$Policies = Invoke-SafeguardMethod -Version 3 Core GET "Me/RequestableAssets/$($selectedAsset.Id)/Accounts/$($selectedAccount.Id)/Policies"
 
 # POST core/v3/AccessRequests/<request_id>/CheckoutPassword
 Write-Host -ForegroundColor Yellow  "POST CheckoutPassword"
@@ -117,14 +117,14 @@ $actionableRequests = Invoke-SafeguardMethod Core GET "Me/ActionableRequests"
 
 # GET core/v3/Me/RequestableAssets/<num>/Accounts/<num>/Policies
 Write-Host -ForegroundColor Yellow  "GET Policies"
-$Policies = Invoke-SafeguardMethod Core GET "Me/RequestableAssets/$($selectedAsset.Id)/Accounts/$($selectedAccount.Id)/Policies"
+$Policies = Invoke-SafeguardMethod -Version 3 Core GET "Me/RequestableAssets/$($selectedAsset.Id)/Accounts/$($selectedAccount.Id)/Policies"
 
 # POST core/v3/AccessRequests/<request_id>/CheckIn
 Write-Host -ForegroundColor Yellow  "POST CheckIn"
 $checkInResponse = Invoke-SafeguardMethod Core POST "AccessRequests/$($batchCreateResponse.Response.Id)/CheckIn"
 
 # GET core/v3/Me/ActionableRequests
-Write-Host -ForegroundColor Yellow  "GET Actionable Request" 
+Write-Host -ForegroundColor Yellow  "GET Actionable Request"
 $actionableRequests = Invoke-SafeguardMethod Core GET "Me/ActionableRequests"
 
 # -- Logout --

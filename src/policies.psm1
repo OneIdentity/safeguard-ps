@@ -84,7 +84,7 @@ function Resolve-SafeguardPolicyAccountId
         $local:RelativeUrl = "PolicyAccounts"
         if ($PSBoundParameters.ContainsKey("AssetId"))
         {
-            $local:PreFilter = "SystemId eq $AssetId and "
+            $local:PreFilter = "Asset.Id eq $AssetId and "
         }
         else
         {
@@ -390,7 +390,7 @@ function Get-SafeguardPolicyAccount
         else
         {
             Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "PolicyAccounts" `
-                -Parameters @{ Filter = "SystemId eq $($local:AssetId)"}
+                -Parameters @{ Filter = "Asset.Id eq $($local:AssetId)"}
         }
     }
     else
@@ -951,7 +951,7 @@ function Remove-SafeguardUserLinkedAccount
 
     $local:LinkedAccountsToSet = @()
     $local:LinkedAccounts | ForEach-Object {
-        if (-not ($_.SystemId -eq $local:PolicyAccount.SystemId -and $_.Id -eq $local:PolicyAccount.Id))
+        if (-not ($_.Asset.Id -eq $local:PolicyAccount.Asset.Id -and $_.Id -eq $local:PolicyAccount.Id))
         {
             $local:LinkedAccountsToSet += $_
         }

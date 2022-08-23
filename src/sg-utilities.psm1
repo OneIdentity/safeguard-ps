@@ -33,6 +33,14 @@ namespace Ex
             ErrorMessage = errorMessage;
             ErrorJson = errorJson;
         }
+        public SafeguardMethodException(int httpCode, string httpMessage, string errorMessage, string errorJson)
+            : base(httpCode + ": " + httpMessage + " -- " + errorMessage)
+        {
+            HttpStatusCode = httpCode;
+            ErrorCode = 0;
+            ErrorMessage = errorMessage;
+            ErrorJson = errorJson;
+        }
         public SafeguardMethodException(string message, Exception innerException)
             : base(message, innerException) {}
         protected SafeguardMethodException
@@ -105,18 +113,26 @@ namespace Ex
                     $local:ResponseObject.Code, $local:Message, $local:ResponseBody
                 ))
             }
+            elseif ($local:ResponseObject.error.type) # sps error
+            {
+                $local:Message = "$($local:ResponseObject.error.type): $($local:ResponseObject.error.message)"
+                $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
+                    [int]$local:ThrownException.Response.StatusCode, $local:StatusDescription,
+                    $local:Message, $local:ResponseBody
+                ))
+            }
             elseif ($local:ResponseObject.error_description) # rSTS error
             {
                 $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
                     [int]$local:ThrownException.Response.StatusCode, $local:StatusDescription,
-                    0, $local:ResponseObject.error_description, $local:ResponseBody
+                    $local:ResponseObject.error_description, $local:ResponseBody
                 ))
             }
             else # ??
             {
                 $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
                     [int]$local:ThrownException.Response.StatusCode, $local:StatusDescription,
-                    0, "<could not parse response content>", $local:ResponseBody
+                    "<could not parse response content>", $local:ResponseBody
                 ))
             }
         }
@@ -473,7 +489,7 @@ function Wait-ForPatchDistribution
     Write-Host "Safeguard patch distribution completed...~$($local:TimeElapsed) seconds"
 }
 
-function Resolve-SafeguardSystemId
+function Resolve-SafeguardAssetId
 {
     [CmdletBinding()]
     Param(
@@ -484,7 +500,7 @@ function Resolve-SafeguardSystemId
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
-        [object]$System
+        [object]$Asset
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -493,7 +509,7 @@ function Resolve-SafeguardSystemId
     try
     {
         Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
-        Resolve-SafeguardAssetId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $System
+        Resolve-SafeguardAssetId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $Asset
     }
     catch
     {
@@ -501,17 +517,17 @@ function Resolve-SafeguardSystemId
         try
         {
             Import-Module -Name "$PSScriptRoot\directories.psm1" -Scope Local
-            Resolve-SafeguardDirectoryId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $System
+            Resolve-SafeguardDirectoryId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $Asset
         }
         catch
         {
             Write-Verbose "Unable to resolve to directory ID"
-            throw "Cannot determine system ID for '$System'"
+            throw "Cannot determine asset ID for '$Asset'"
         }
     }
 }
 
-function Resolve-SafeguardAccountIdWithoutSystemId
+function Resolve-SafeguardAccountIdWithoutAssetId
 {
     [CmdletBinding()]
     Param(
@@ -549,7 +565,7 @@ function Resolve-SafeguardAccountIdWithoutSystemId
     }
 }
 
-function Resolve-SafeguardAccountIdWithSystemId
+function Resolve-SafeguardAccountIdWithAssetId
 {
     [CmdletBinding()]
     Param(
@@ -560,7 +576,7 @@ function Resolve-SafeguardAccountIdWithSystemId
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
-        [int]$SystemId,
+        [int]$AssetId,
         [Parameter(Mandatory=$true,Position=1)]
         [object]$Account
     )
@@ -571,7 +587,7 @@ function Resolve-SafeguardAccountIdWithSystemId
     try
     {
         Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
-        Resolve-SafeguardAssetAccountId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetId $SystemId $Account
+        Resolve-SafeguardAssetAccountId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetId $AssetId $Account
     }
     catch
     {
@@ -579,12 +595,12 @@ function Resolve-SafeguardAccountIdWithSystemId
         try
         {
             Import-Module -Name "$PSScriptRoot\directories.psm1" -Scope Local
-            Resolve-SafeguardDirectoryAccountId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -DirectoryId $SystemId $Account
+            Resolve-SafeguardDirectoryAccountId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -DirectoryId $AssetId $Account
         }
         catch
         {
             Write-Verbose "Unable to resolve to directory account ID"
-            throw "Cannot determine system ID for '$System'"
+            throw "Cannot determine asset ID for '$Asset'"
         }
     }
 }

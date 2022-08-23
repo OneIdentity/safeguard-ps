@@ -76,6 +76,7 @@ NestedModules = @(
     'desktopclient.psm1',
     'maintenance.psm1',
     'diagnostics.psm1',
+    'sessionapi.psm1',
     'sessionjoin.psm1',
     'archives.psm1',
     'requests.psm1',
@@ -132,6 +133,7 @@ FunctionsToExport = @(
     'Get-SafeguardStatus','Get-SafeguardApplianceAvailability','Get-SafeguardApplianceState','Wait-SafeguardApplianceStateOnline',
     'Get-SafeguardVersion','Test-SafeguardVersion','Get-SafeguardApplianceVerification','Get-SafeguardTime','Set-SafeguardTime',
     'Get-SafeguardApplianceUptime','Get-SafeguardHealth','Get-SafeguardApplianceName','Set-SafeguardApplianceName',
+    'Get-SafeguardApplianceDnsSuffix','Set-SafeguardApplianceDnsSuffix','Get-SafeguardApplianceDnsName',
     'Invoke-SafeguardApplianceShutdown','Invoke-SafeguardApplianceReboot','Invoke-SafeguardApplianceFactoryReset',
     'Get-SafeguardSupportBundle','Get-SafeguardSupportBundleQuickGlance','Get-SafeguardPatch','Clear-SafeguardPatch','Install-SafeguardPatch', 'Set-SafeguardPatch',
     'New-SafeguardBackup','Remove-SafeguardBackup','Export-SafeguardBackup','Import-SafeguardBackup',
@@ -152,6 +154,10 @@ FunctionsToExport = @(
     'Enable-SafeguardSessionClusterAccessRequestBroker','Disable-SafeguardSessionClusterAccessRequestBroker',
     'Get-SafeguardSessionClusterAccessRequestBroker','Enable-SafeguardSessionClusterAuditStream',
     'Disable-SafeguardSessionClusterAuditStream','Get-SafeguardSessionClusterAuditStream',
+    # sessionapi.psm1
+    'Connect-SafeguardSps','Disconnect-SafeguardSps','Invoke-SafeguardSpsMethod',
+    'Open-SafeguardSpsTransaction','Close-SafeguardSpsTransaction','Get-SafeguardSpsTransaction','Clear-SafeguardSpsTransaction',
+    'Show-SafeguardSpsTransactionChange','Show-SafeguardSpsEndpoint',
     # archives.psm1
     'Get-SafeguardArchiveServer','New-SafeguardArchiveServer','Test-SafeguardArchiveServer',
     'Remove-SafeguardArchiveServer','Edit-SafeguardArchiveServer',
@@ -293,7 +299,9 @@ AliasesToExport = @(
     # clustering.psm1
     'Clear-SafeguardClusterOperation',
     # reports.psm1
-    'Get-SafeguardPasswordHistory'
+    'Get-SafeguardPasswordHistory',
+    # sessionapi.psm1
+    'Save-SafeguardSpsTransaction'
 )
 
 # DSC resources to export from this module

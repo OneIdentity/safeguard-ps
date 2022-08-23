@@ -1107,7 +1107,7 @@ function Edit-SafeguardEventSubscription
             $local:Body.UserId = $null
         }
 
-        if ($local:Body.UserId -ne $null)
+        if ($null -ne $local:Body.UserId)
         {
             $local:UserEmailAddress = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:Body.UserId).EmailAddress
             If([string]::IsNullOrWhitespace($local:UserEmailAddress))
@@ -1116,7 +1116,7 @@ function Edit-SafeguardEventSubscription
             }
         }
 
-        if(($local:Body.UserId -ne $null) -and $PSBoundParameters.ContainsKey("EmailAddress"))
+        if (($null -ne $local:Body.UserId) -and $PSBoundParameters.ContainsKey("EmailAddress"))
         {
             Write-Error -Message "You cannot specify both the UserID and an EmailAddress properties simultaneously." -Category InvalidArgument -ErrorAction Stop
         }

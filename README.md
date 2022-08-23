@@ -329,6 +329,9 @@ update this list.
 - Get-SafeguardHealth
 - Get-SafeguardApplianceName
 - Set-SafeguardApplianceName
+- Get-SafeguardApplianceDnsSuffix
+- Set-SafeguardApplianceDnsSuffix
+- Get-SafeguardApplianceDnsName
 - Invoke-SafeguardApplianceShutdown
 - Invoke-SafeguardApplianceReboot
 - Invoke-SafeguardApplianceFactoryReset
@@ -388,6 +391,18 @@ update this list.
 - Enable-SafeguardSessionClusterAuditStream
 - Disable-SafeguardSessionClusterAuditStream
 - Get-SafeguardSessionClusterAuditStream
+
+### Safeguard SPS Web API
+
+- Connect-SafeguardSps
+- Disconnect-SafeguardSps
+- Invoke-SafeguardSpsMethod
+- Open-SafeguardSpsTransaction
+- Close-SafeguardSpsTransaction
+- Get-SafeguardSpsTransaction
+- Clear-SafeguardSpsTransaction
+- Show-SafeguardSpsTransactionChange
+- Show-SafeguardSpsEndpoint
 
 ### Archive Servers
 

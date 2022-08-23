@@ -884,7 +884,7 @@ Get user-defined name of a Safeguard appliance via the Web API.
 
 .DESCRIPTION
 Get user-defined name of a Safeguard appliance. This name can be specified
-using the Set-SafeguardName cmdlet. Each appliance in a cluster can have a
+using the Set-SafeguardApplianceName cmdlet. Each appliance in a cluster can have a
 unique name.
 
 .PARAMETER Appliance
@@ -900,10 +900,10 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardName
+Get-SafeguardApplianceName
 
 .EXAMPLE
-Get-SafeguardName -Appliance 10.5.32.54 -Insecure
+Get-SafeguardApplianceName -Appliance 10.5.32.54 -Insecure
 #>
 function Get-SafeguardApplianceName
 {
@@ -970,6 +970,153 @@ function Set-SafeguardApplianceName
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance PUT ApplianceStatus/Name -Body $Name
+}
+
+<#
+.SYNOPSIS
+Get user-defined DNS suffix of a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Get user-defined DNS suffix of a Safeguard appliance. This value can be specified
+using the Set-SafeguardApplianceDnsSuffix cmdlet. Each appliance in a cluster can have a
+unique name.  The appliance name and appliance DNS suffix can be combined to get the full
+DNS name of the appliance.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardApplianceDnsSuffix
+
+.EXAMPLE
+Get-SafeguardApplianceDnsSuffix -Appliance 10.5.32.54 -Insecure
+#>
+function Get-SafeguardApplianceDnsSuffix
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    (Invoke-SafeguardMethod -Anonymous -Appliance $Appliance -Insecure:$Insecure Notification GET Status).HostDnsSuffix
+}
+
+<#
+.SYNOPSIS
+Set user-defined DNS suffx of a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Set user-defined DNS suffx of a Safeguard appliance. Each appliance in a
+cluster can have a unique name and a DNS suffix.  Together they specify the
+full DNS name of the appliance.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.PARAMETER Name
+A string containing the name to give the appliance.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Set-SafeguardApplianceDnsSuffix mycompany.corp
+#>
+function Set-SafeguardApplianceDnsSuffix
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$DnsSuffix
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance PUT ApplianceStatus/HostDnsSuffix -Body $DnsSuffix
+}
+
+<#
+.SYNOPSIS
+Get user-defined DNS name of a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Get user-defined DNS name of a Safeguard appliance. Each appliance in a cluster can have a
+unique DNS name.  The appliance name and appliance DNS suffix are combined to get the full
+DNS name of the appliance.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardApplianceDnsName
+
+.EXAMPLE
+Get-SafeguardApplianceDnsName -Appliance 10.5.32.54 -Insecure
+#>
+function Get-SafeguardApplianceDnsName
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    $local:Status = (Invoke-SafeguardMethod -Anonymous -Appliance $Appliance -Insecure:$Insecure Notification GET Status)
+    if ($local:Status.HostDnsSuffix)
+    {
+        "$($local:Status.ApplianceName).$($local:Status.HostDnsSuffix)"
+    }
+    else
+    {
+        Write-Host -ForegroundColor Yellow "Appliance DNS suffix is not set, use Set-SafeguardApplianceDnsSuffix"
+        $local:Status.ApplianceName
+    }
 }
 
 <#
@@ -1289,7 +1436,7 @@ function Get-SafeguardSupportBundle
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
-        [int]$Version = 3,
+        [int]$Version = 4,
         [Parameter(Mandatory=$false)]
         [int]$Timeout,
         [Parameter(Mandatory=$false)]
@@ -1447,7 +1594,7 @@ function Get-SafeguardSupportBundleQuickGlance
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
-        [int]$Version = 3,
+        [int]$Version = 4,
         [Parameter(Mandatory=$false)]
         [int]$Timeout
     )
@@ -1693,7 +1840,7 @@ function Install-SafeguardPatch
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
-        [int]$Version = 3,
+        [int]$Version = 4,
         [Parameter(ParameterSetName="NewPatch",Mandatory=$true,Position=0)]
         [string]$Patch,
         [Parameter(ParameterSetName="NewPatch",Mandatory=$false)]
@@ -1909,7 +2056,7 @@ function Set-SafeguardPatch
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
-        [int]$Version = 3,
+        [int]$Version = 4,
         [Parameter(ParameterSetName="NewPatch",Mandatory=$true,Position=0)]
         [string]$Patch,
         [Parameter(ParameterSetName="NewPatch",Mandatory=$false)]
@@ -2173,7 +2320,7 @@ function Export-SafeguardBackup
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
-        [int]$Version = 3,
+        [int]$Version = 4,
         [Parameter(Mandatory=$false,Position=0)]
         [string]$BackupId,
         [Parameter(Mandatory=$false,Position=1)]
@@ -2311,7 +2458,7 @@ function Import-SafeguardBackup
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
-        [int]$Version = 3,
+        [int]$Version = 4,
         [Parameter(Mandatory=$true,Position=0)]
         [string]$BackupFile,
         [Parameter(Mandatory=$false)]

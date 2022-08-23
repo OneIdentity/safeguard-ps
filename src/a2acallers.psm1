@@ -23,7 +23,7 @@ function Invoke-SafeguardA2aMethodWithCertificate
         [Parameter(Mandatory=$true)]
         [string]$RelativeUrl,
         [Parameter(Mandatory=$false)]
-        [int]$Version = 3,
+        [int]$Version = 4,
         [Parameter(Mandatory=$false)]
         [object]$Body
     )
@@ -253,8 +253,8 @@ function Get-SafeguardA2aRetrievableAccount
                 CertificateUser = $local:Reg.CertificateUser;
                 CertificateUserThumbprint = $local:Reg.CertificateUserThumbprint;
                 ApiKey = $_.ApiKey;
-                AssetId = $_.SystemId;
-                AssetName = $_.SystemName;
+                AssetId = $_.AssetId;
+                AssetName = $_.AssetName;
                 NetworkAddress = $_.NetworkAddress;
                 AccountId = $_.AccountId;
                 AccountName = $_.AccountName;
@@ -555,7 +555,7 @@ function New-SafeguardA2aAccessRequest
         [Parameter(ParameterSetName="CertStoreAndIds",Mandatory=$false,Position=4)]
         [int]$AccountIdToUse,
         [Parameter(Mandatory=$false,Position=5)]
-        [ValidateSet("Password", "SSHKey", "SSH", "RemoteDesktop", "RDP", "Telnet", IgnoreCase=$true)]
+        [ValidateSet("Password", "SSHKey", "SSH", "RemoteDesktop", "RDP", "RemoteDesktopApplication", "RDPApplication", "RDPApp", "Telnet", IgnoreCase=$true)]
         [string]$AccessRequestType,
         [Parameter(Mandatory=$false)]
         [switch]$Emergency = $false,
@@ -585,12 +585,16 @@ function New-SafeguardA2aAccessRequest
     {
         $AccessRequestType = "RemoteDesktop"
     }
+    elseif ($AccessRequestType -ieq "RDPApplication" -or $AccessRequestType -ieq "RDPApp")
+    {
+        $AccessRequestType = "RemoteDesktopApplication"
+    }
 
     if ($PsCmdlet.ParameterSetName -eq "CertStoreAndNames" -or $PsCmdlet.ParameterSetName -eq "FileAndNames")
     {
         $local:Body = @{
             ForUser = $ForUserName;
-            SystemName = $AssetToUse;
+            AssetName = $AssetToUse;
             AccessRequestType = "$AccessRequestType"
         }
         if ($AccountToUse) { $local:Body["AccountName"] = $AccountToUse }
@@ -599,7 +603,7 @@ function New-SafeguardA2aAccessRequest
     {
         $local:Body = @{
             ForUserId = $ForUserId;
-            SystemId = $AssetIdToUse;
+            AssetId = $AssetIdToUse;
             AccessRequestType = "$AccessRequestType"
         }
         if ($AccountIdToUse) { $local:Body["AccountId"] = $AccountIdToUse }

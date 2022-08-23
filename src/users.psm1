@@ -23,11 +23,11 @@ function Resolve-SafeguardUserObject
 
     if (-not ($User -as [int]))
     {
-        $local:Filter = "UserName ieq '$User'"
+        $local:Filter = "Name ieq '$User'"
         $local:Pair = ($User -split "\\")
         if ($local:Pair.Length -eq 2)
         {
-            $local:Filter = "IdentityProviderName ieq '$($local:Pair[0])' and UserName ieq '$($local:Pair[1])'"
+            $local:Filter = "IdentityProviderName ieq '$($local:Pair[0])' and Name ieq '$($local:Pair[1])'"
         }
         try
         {
@@ -80,11 +80,11 @@ function Resolve-SafeguardUserId
 
     if (-not ($User -as [int]))
     {
-        $local:Filter = "UserName ieq '$User'"
+        $local:Filter = "Name ieq '$User'"
         $local:Pair = ($User -split "\\")
         if ($local:Pair.Length -eq 2)
         {
-            $local:Filter = "IdentityProviderName ieq '$($local:Pair[0])' and UserName ieq '$($local:Pair[1])'"
+            $local:Filter = "IdentityProviderName ieq '$($local:Pair[0])' and Name ieq '$($local:Pair[1])'"
         }
         try
         {
@@ -465,7 +465,7 @@ JSON response from Safeguard Web API.
 Get-SafeguardUser -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
-Get-SafeguardUser petrsnd -Fields IdentityProviderId,Id,UserName
+Get-SafeguardUser petrsnd -Fields IdentityProviderId,Id,Name
 
 .EXAMPLE
 Get-SafeguardUser 123
@@ -550,7 +550,7 @@ Find-SafeguardUser -AccessToken $token -Appliance 10.5.32.54 -Insecure
 Find-SafeguardUser "Peterson"
 
 .EXAMPLE
-Find-SafeguardUser -QueryFilter "SecondaryAuthenticationProviderId eq null" | ft Id,PrimaryAuthenticationProviderName,UserName,EmailAddress
+Find-SafeguardUser -QueryFilter "SecondaryAuthenticationProviderId eq null" | ft Id,PrimaryAuthenticationProviderName,Name,EmailAddress
 #>
 function Find-SafeguardUser
 {
@@ -739,7 +739,7 @@ function New-SafeguardUser
     }
     else
     {
-        $local:ProviderResolved = $Provider
+        $local:ProviderResolved = ([int]$Provider)
     }
 
     if ($local:ProviderResolved -eq $local:CertificateProviderId -and -not ($PSBoundParameters.ContainsKey("Thumbprint")))
@@ -780,8 +780,8 @@ function New-SafeguardUser
     if ($local:ProviderResolved -eq $local:LocalProviderId -or $local:ProviderResolved -eq $local:CertificateProviderId)
     {
         $local:Body = @{
-            PrimaryAuthenticationProviderId = $local:ProviderResolved;
-            UserName = $NewUserName;
+            PrimaryAuthenticationProvider = @{ Id = $local:ProviderResolved };
+            Name = $NewUserName;
             AdminRoles = $AdminRoles
         }
         if ($PSBoundParameters.ContainsKey("FirstName")) { $local:Body.FirstName = $FirstName }
@@ -792,7 +792,7 @@ function New-SafeguardUser
         if ($PSBoundParameters.ContainsKey("MobilePhone")) { $local:Body.MobilePhone = $MobilePhone }
         if ($local:ProviderResolved -eq $local:CertificateProviderId)
         {
-            $local:Body.PrimaryAuthenticationIdentity = $Thumbprint
+            $local:Body.PrimaryAuthenticationProvider.Identity = $Thumbprint
         }
         $local:NewUser = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Users -Body $local:Body)
         if ($local:ProviderResolved -eq $local:LocalProviderId)
@@ -825,8 +825,8 @@ function New-SafeguardUser
         }
         # For directory accounts, lots of attributes are mapped from the directory
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Users -Body @{
-            PrimaryAuthenticationProviderId = $local:ProviderResolved;
-            UserName = $NewUserName;
+            PrimaryAuthenticationProvider = @{ Id = $local:ProviderResolved };
+            Name = $NewUserName;
             AdminRoles = $AdminRoles;
             DirectoryProperties = @{ DomainName = $DomainName }
         }
@@ -1092,7 +1092,11 @@ function Edit-SafeguardUser
         if ($PSBoundParameters.ContainsKey("EmailAddress")) { $UserObject.EmailAddress = $EmailAddress }
         if ($PSBoundParameters.ContainsKey("WorkPhone")) { $UserObject.WorkPhone = $WorkPhone }
         if ($PSBoundParameters.ContainsKey("MobilePhone")) { $UserObject.MobilePhone = $MobilePhone }
-        if ($PSBoundParameters.ContainsKey("AuthProvider")) { $UserObject.PrimaryAuthenticationProviderId = $AuthProvider }
+        if ($PSBoundParameters.ContainsKey("AuthProvider"))
+        {
+            $local:ResolvedProvider = (Get-SafeguardAuthenticationProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AuthProvider)[0]
+            $UserObject.PrimaryAuthenticationProvider = @{ Id = $local:ResolvedProvider.Id }
+        }
 
         if ($PSBoundParameters.ContainsKey("AdminRoles"))
         {
@@ -1299,7 +1303,7 @@ function Rename-SafeguardUser
     }
 
     $local:UserObject = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:UserId)
-    $local:UserObject.UserName = $NewUserName
+    $local:UserObject.Name = $NewUserName
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$($local:UserObject.Id)" -Body $local:UserObject
 }
 
