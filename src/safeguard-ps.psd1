@@ -253,7 +253,7 @@ FunctionsToExport = @(
     # starling.psm1
     'Get-SafeguardStarlingSubscription','New-SafeguardStarlingSubscription','Remove-SafeguardStarlingSubscription','Remove-SafeguardStarling2FA',
     'Get-SafeguardStarlingJoinUrl','Invoke-SafeguardStarlingJoin','Invoke-SafeguardStarlingJoinBrowser',
-    'Get-SafeguardStarlingSetting','Set-SafeguardStarlingSetting',
+    'Get-SafeguardStarlingSetting','Set-SafeguardStarlingSetting','Get-SafeguardStarlingJoinInstance',
     # managementShell.psm1
     'Get-SafeguardCommand', 'Get-SafeguardBanner',
     # entitlements.psm1
