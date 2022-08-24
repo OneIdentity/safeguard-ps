@@ -1682,7 +1682,7 @@ function Import-SafeguardUser
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true, Position=0)]
         [string]$Path
     )
 

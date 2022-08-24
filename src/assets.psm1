@@ -2378,7 +2378,7 @@ function Import-SafeguardAsset
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true, Position=0)]
         [string]$Path
     )
 
@@ -2595,7 +2595,7 @@ function Import-SafeguardAssetAccount
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true, Position=0)]
         [string]$Path
     )
 
@@ -2751,7 +2751,7 @@ function Import-SafeguardAssetAccountPassword
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true, Position=0)]
         [string]$Path
     )
 
@@ -2899,7 +2899,7 @@ function Import-SafeguardAssetAccountSshKey
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true, Position=0)]
         [string]$Path
     )
 
