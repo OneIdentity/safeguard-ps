@@ -635,8 +635,8 @@ update this list.
 - Invoke-SafeguardStarlingJoin
 - Get-SafeguardStarlingSubscription
 - New-SafeguardStarlingSubscription
+- Get-SafeguardStarlingJoinInstance
 - Remove-SafeguardStarlingSubscription
-- Remove-SafeguardStarling2FA
 - Get-SafeguardStarlingJoinUrl
 - Get-SafeguardStarlingSetting
 - Set-SafeguardStarlingSetting
