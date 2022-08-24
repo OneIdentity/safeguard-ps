@@ -680,3 +680,175 @@ function Show-SafeguardSpsEndpoint
         $local:Response.meta.href
     }
 }
+
+<#
+.SYNOPSIS
+Gather join information from Safeguard SPS and open a browser to Starling to
+complete the join via the Safeguard SPS Web API.
+
+.DESCRIPTION
+This cmdlet with call the Safeguard SPS API to determine the join status, and
+if not joined, it will gather the information necessary to start the join
+process using the system browser. The join process requires copying and pasting
+credentials and token endpoint back from the browser to complete the join.
+Credentials will not be echoed to the screen.
+
+.PARAMETER Environment
+Which Starling environment to join (default: prod)
+
+.EXAMPLE
+Invoke-SafeguardSpsStarlingJoinBrowser
+#>
+function Invoke-SafeguardSpsStarlingJoinBrowser
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false,Position=0)]
+        [ValidateSet("dev", "devtest", "stage", "prod", IgnoreCase=$true)]
+        [string]$Environment = "prod"
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Info = (Invoke-SafeguardSpsMethod GET configuration/starling).body
+    if ($local:Info.join_info)
+    {
+        Write-Host -ForegroundColor Yellow "Safeguard SPS is already joined to Starling"
+        $local:Info.join_info
+        Write-Host -ForegroundColor Yellow "You must unjoin before you can rejoin Starling"
+    }
+    else
+    {
+        $local:JoinBody = (Invoke-SafeguardSpsMethod GET starling/join).body
+        $local:InstanceName = $local:JoinBody.product_instance
+        $local:TimsLicense = $local:JoinBody.product_tims
+        switch ($Environment)
+        {
+            "dev" { $local:Suffix = "-dev"; $Environment = "dev"; break }
+            "devtest" { $local:Suffix = "-devtest"; $Environment = "devtest"; break }
+            "stage" { $local:Suffix = "-stage"; $Environment = "stage"; break }
+            "prod" { $local:Suffix = ""; $Environment = "prod"; break }
+        }
+        $local:JoinUrl = "https://account$($local:Suffix).cloud.oneidentity.com/join/Safeguard/$($local:InstanceName)/$($local:TimsLicense)"
+
+        Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+
+        Write-Host -ForegroundColor Yellow "This command will use an external browser to join Safeguard SPS ($($local:InstanceName)) to Starling ($Environment)."
+        Write-host "You will be required to copy and paste interactively from the browser to answer prompts for join information."
+        $local:Confirmed = (Get-Confirmation "Join to Starling" "Are you sure you want to use an external browser to join to Starling?" `
+                                            "Show the browser." "Cancels this operation.")
+
+        if ($local:Confirmed)
+        {
+            Start-Process $local:JoinUrl
+
+            Write-Host "Following the successful join in the browser, provide the following:"
+            $local:Creds = (Read-Host "Credential String" -MaskInput)
+            $local:Endpoint = (Read-Host "Token Endpoint")
+            $local:Body = [ordered]@{
+                environment = $Environment;
+                token_endpoint = $local:Endpoint;
+                credential_string = $local:Creds;
+            }
+            $local:JoinBody | Add-Member -NotePropertyMembers $local:Body -TypeName PSCustomObject
+
+            Invoke-SafeguardSpsMethod POST "starling/join" -Body $local:JoinBody
+
+            Write-Host -ForegroundColor Yellow "You may close the external browser."
+        }
+    }
+}
+
+<#
+.SYNOPSIS
+Remove the Starling join via the Safeguard SPS Web API.
+
+.DESCRIPTION
+This cmdlet with call the Safeguard SPS API to remove a Starling join. You
+cannot unjoin if SRA is enabled.
+
+.EXAMPLE
+Remove-SafeguardSpsStarlingJoin
+#>
+function Remove-SafeguardSpsStarlingJoin
+{
+    [CmdletBinding()]
+    Param(
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardSpsMethod DELETE starling/join
+}
+
+<#
+.SYNOPSIS
+Enable Safeguard Remote Access in Starling via the Safeguard SPS Web API.
+
+.DESCRIPTION
+This cmdlet will enable Safeguard Remote Access in Starling if this Safeguard SPS
+is joined to Starling.
+
+.EXAMPLE
+Enable-SafeguardSpsStarlingJoin
+#>
+function Enable-SafeguardSpsRemoteAccess
+{
+    [CmdletBinding()]
+    Param(
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Info = (Invoke-SafeguardSpsMethod GET configuration/starling).Body
+    if ($local:Info.remote_access.enabled)
+    {
+        Write-Warning "Safeguard Remote Access is already enabled"
+    }
+    else
+    {
+        $local:Info.remote_access.enabled = $true
+        Open-SafeguardSpsTransaction
+        Invoke-SafeguardSpsMethod PUT configuration/starling -Body $local:Info
+        Save-SafeguardSpsTransaction
+    }
+}
+New-Alias -Name Enable-SafeguardSpsSra -Value Enable-SafeguardSpsRemoteAccess
+
+<#
+.SYNOPSIS
+Disable Safeguard Remote Access in Starling via the Safeguard SPS Web API.
+
+.DESCRIPTION
+This cmdlet will disable Safeguard Remote Access in Starling if this Safeguard SPS
+is joined to Starling.
+
+.EXAMPLE
+Disable-SafeguardSpsStarlingJoin
+#>
+function Disable-SafeguardSpsRemoteAccess
+{
+    [CmdletBinding()]
+    Param(
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Info = (Invoke-SafeguardSpsMethod GET configuration/starling).Body
+    if ($local:Info.remote_access.enabled)
+    {
+        $local:Info.remote_access.enabled = $false
+        Open-SafeguardSpsTransaction
+        Invoke-SafeguardSpsMethod PUT configuration/starling -Body $local:Info
+        Save-SafeguardSpsTransaction
+    }
+    else
+    {
+        Write-Warning "Safeguard Remote Access is already disabled"
+    }
+}
+New-Alias -Name Disable-SafeguardSpsSra -Value Disable-SafeguardSpsRemoteAccess
