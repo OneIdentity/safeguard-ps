@@ -1689,6 +1689,11 @@ function Import-SafeguardUser
         [string]$Path
     )
 
+	# Intercept Read-Host and return an empty string
+	function Read-Host {
+		return ""
+	}
+
     $local:Users = Import-Csv -Path $Path
 
     $local:FailedImports = New-Object System.Collections.ArrayList
@@ -1748,7 +1753,7 @@ function Import-SafeguardUser
                 $local:Args.Add("AdminRoles", $local:User.AdminRoles)
             }
 
-            if($null -ne $local:User.Password) 
+            if(![string]::IsNullOrEmpty($local:User.Password))
             {
                 $local:SecurePassword = $local:User.Password | ConvertTo-SecureString -AsPlainText -Force
                 $local:Args.Add("Password", $local:SecurePassword)
