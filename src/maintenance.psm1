@@ -1,4 +1,4 @@
-# Helper
+# Helpers
 function Test-SupportForClusterPatch
 {
     [CmdletBinding()]
@@ -30,6 +30,7 @@ function Test-SupportForClusterPatch
         $false
     }
 }
+# send file stream cmdlet
 function Add-SendFileStreamCmdletType
 {
     [CmdletBinding()]
@@ -59,192 +60,332 @@ function Add-SendFileStreamCmdletType
         # a variable and access it next in order to load/import it, making it available directly in
         # the PowerShell script, usable/callable like any other Cmdlet.
         $cls = Add-Type -PassThru -ReferencedAssemblies $referenceAssemblies -TypeDefinition  @"
-        using System;
-        using System.IO;
-        using System.Management.Automation;
-        using System.Net;
-        using System.Net.Http;
-        using System.Net.Security;
-        using System.Security.Cryptography.X509Certificates;
-        using System.Threading.Tasks;
+using System;
+using System.IO;
+using System.Management.Automation;
+using System.Net;
+using System.Net.Http;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks;
 
-        // Implement a Cmdlet type so we can utilize the WriteProgress() method and get PowerShell's native
-        // progress bar overlayed while uploading. Using Console.Write() and trying to manually move/set
-        // the cursor position doesn't work in the PowerShell ISE, nor on Linux.
-        //
-        // Also unfortunate is the fact that on Linux, the HttpWebRequest.AllowWriteStreamBuffering cannot
-        // be set to false. https://github.com/dotnet/runtime/issues/18632
-        // With .NET Core (whoes source code is now under .NET Rumtime) on Linux, the HttpWebRequest actually
-        // uses the HttpClient under the hood (with the .NET Framewrok it's the other way around).
-        // https://github.com/dotnet/runtime/blob/master/src/libraries/System.Net.Requests/src/System/Net/HttpWebRequest.cs
-        // And when getting the request stream (see the InternalGetRequestStream() method), it simply creates
-        // a new instance of the RequestStream object
-        // https://github.com/dotnet/runtime/blob/b783c5b42b3d35ef793a9d7aa8c06bcc27567e8d/src/libraries/System.Net.Requests/src/System/Net/RequestStream.cs
-        // Which states in the comments the use of a MemoryStream and it being inefficient for uploading
-        // large amounts of data. There is no way to change this or override it.
-        //
-        // Therefore, we'd be back to the same original problem that made us switch to this embedded code
-        // in the first place, namely, uploading a patch file would use as much memory as the size of the file.
-        //
-        // So the next hurdle is switching to use the HttpClient class. But with that, there was no native
-        // support for being able to compute the progress while uploading. So we had to implement another
-        // custom class. Then, there was a problem with trying to use the WriteProgress() method from outside
-        // the ProcessRecord() method of the Cmdlet and making any async calls synchronous to ensure that we
-        // stay on the same thread.
-        [Cmdlet("Send", "FileStream")]
-        public class SendFileStreamCmdlet : PSCmdlet
+// Implement a Cmdlet type so we can utilize the WriteProgress() method and get PowerShell's native
+// progress bar overlayed while uploading. Using Console.Write() and trying to manually move/set
+// the cursor position doesn't work in the PowerShell ISE, nor on Linux.
+//
+// Also unfortunate is the fact that on Linux, the HttpWebRequest.AllowWriteStreamBuffering cannot
+// be set to false. https://github.com/dotnet/runtime/issues/18632
+// With .NET Core (whoes source code is now under .NET Rumtime) on Linux, the HttpWebRequest actually
+// uses the HttpClient under the hood (with the .NET Framewrok it's the other way around).
+// https://github.com/dotnet/runtime/blob/master/src/libraries/System.Net.Requests/src/System/Net/HttpWebRequest.cs
+// And when getting the request stream (see the InternalGetRequestStream() method), it simply creates
+// a new instance of the RequestStream object
+// https://github.com/dotnet/runtime/blob/b783c5b42b3d35ef793a9d7aa8c06bcc27567e8d/src/libraries/System.Net.Requests/src/System/Net/RequestStream.cs
+// Which states in the comments the use of a MemoryStream and it being inefficient for uploading
+// large amounts of data. There is no way to change this or override it.
+//
+// Therefore, we'd be back to the same original problem that made us switch to this embedded code
+// in the first place, namely, uploading a patch file would use as much memory as the size of the file.
+//
+// So the next hurdle is switching to use the HttpClient class. But with that, there was no native
+// support for being able to compute the progress while uploading. So we had to implement another
+// custom class. Then, there was a problem with trying to use the WriteProgress() method from outside
+// the ProcessRecord() method of the Cmdlet and making any async calls synchronous to ensure that we
+// stay on the same thread.
+[Cmdlet("Send", "FileStream")]
+public class SendFileStreamCmdlet : PSCmdlet
+{
+    [Parameter(Mandatory = true, Position = 0)]
+    public string PathAndFilename { get; set; }
+
+    [Parameter(Mandatory = true, Position = 1)]
+    public string Appliance { get; set; }
+
+    [Parameter(Mandatory = true, Position = 2)]
+    public string AuthorizationToken { get; set; }
+
+    [Parameter(Mandatory = true, Position = 3)]
+    public string Version { get; set; }
+
+    [Parameter(Mandatory = true, Position = 4)]
+    public string RelPath { get; set; }
+
+    [Parameter(Mandatory = true, Position = 5)]
+    public bool Insecure { get; set; }
+
+    private static readonly HttpClientHandler httpClientHandler = new HttpClientHandler() { ClientCertificateOptions = ClientCertificateOption.Manual };
+
+    private static readonly HttpClient httpClient = new HttpClient(httpClientHandler);
+
+    private static bool insecurePerRequest = false;
+
+    private class ProgressStreamContent : HttpContent
+    {
+        private FileStream content = null;
+        private PSCmdlet cmdlet = null;
+
+        private readonly byte[] UploadBuffer = new byte[80 * 1024];
+
+        public ProgressStreamContent(FileStream content, PSCmdlet cmdlet)
         {
-            [Parameter(Mandatory = true, Position = 0)]
-            public string PathAndFilename { get; set; }
+            this.content = content;
+            this.cmdlet = cmdlet;
+        }
 
-            [Parameter(Mandatory = true, Position = 1)]
-            public string Appliance { get; set; }
+        protected override Task SerializeToStreamAsync(Stream stream, TransportContext context)
+        {
+            ProgressRecord progressRecord = new ProgressRecord(1, "Uploading", "0% Complete");
+            cmdlet.Host.UI.WriteProgress(1, progressRecord);
+            long bytesLeft = this.content.Length;
+            System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-            [Parameter(Mandatory = true, Position = 2)]
-            public string AuthorizationToken { get; set; }
-
-            [Parameter(Mandatory = true, Position = 3)]
-            public string Version { get; set; }
-
-            [Parameter(Mandatory = true, Position = 4)]
-            public bool Insecure { get; set; }
-
-            private static readonly HttpClientHandler httpClientHandler = new HttpClientHandler() { ClientCertificateOptions = ClientCertificateOption.Manual };
-
-            private static readonly HttpClient httpClient = new HttpClient(httpClientHandler);
-
-            private static bool insecurePerRequest = false;
-
-            private class ProgressStreamContent : HttpContent
+            while (bytesLeft > 0)
             {
-                private FileStream content = null;
-                private PSCmdlet cmdlet = null;
+                int bytesRead = this.content.Read(UploadBuffer, 0, UploadBuffer.Length);
+                stream.Write(UploadBuffer, 0, bytesRead);
+                bytesLeft -= bytesRead;
 
-                private readonly byte[] UploadBuffer = new byte[80 * 1024];
-
-                public ProgressStreamContent(FileStream content, PSCmdlet cmdlet)
+                if (stopwatch.ElapsedMilliseconds > 1000)
                 {
-                    this.content = content;
-                    this.cmdlet = cmdlet;
-                }
-
-                protected override Task SerializeToStreamAsync(Stream stream, TransportContext context)
-                {
-                    ProgressRecord progressRecord = new ProgressRecord(1, "Uploading Patch", "0% Complete");
-
+                    int percentDone = (int)((this.content.Length - bytesLeft) / (double)this.content.Length * 100);
+                    progressRecord.StatusDescription = string.Format("{0}% Complete", percentDone);
+                    progressRecord.PercentComplete = percentDone;
                     cmdlet.Host.UI.WriteProgress(1, progressRecord);
 
-                    long bytesLeft = this.content.Length;
+                    stopwatch.Restart();
+                }
+            }
 
-                    System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            progressRecord.StatusDescription = "100% Complete";
+            progressRecord.PercentComplete = 100;
+            progressRecord.RecordType = ProgressRecordType.Completed;
+            cmdlet.Host.UI.WriteProgress(1, progressRecord);
 
-                    while (bytesLeft > 0)
+            cmdlet.Host.UI.WriteLine("Upload complete. Server is processing data. Waiting for response...");
+
+            return Task.WhenAll(); // Returns a completed task. Compatible with .NET < 4.6.
+        }
+
+        protected override bool TryComputeLength(out long length)
+        {
+            length = this.content.Length;
+            return true;
+        }
+    }
+
+    private static bool ServerCertificateCustomValidation(HttpRequestMessage requestMessage, X509Certificate2 certificate, X509Chain chain, SslPolicyErrors sslErrors)
+    {
+        if (insecurePerRequest)
+        {
+            return true;
+        }
+
+        return sslErrors == SslPolicyErrors.None;
+    }
+
+    protected override void ProcessRecord()
+    {
+        try
+        {
+            // The SSL and Timeout are not per-request settings. Fortunately, this will most likely
+            // only be used in a single threaded environment. The Timeout property can only be set
+            // before a request is made. Once a request is made, we can't attempt to set it again.
+            // Because we have a static instance, it means we can only set it once.
+            if (httpClient.Timeout != System.Threading.Timeout.InfiniteTimeSpan)
+            {
+                httpClient.Timeout = System.Threading.Timeout.InfiniteTimeSpan;
+            }
+
+            // These SSL settings also can't be changed after a request is made. Therefore, we will
+            // always configure it for manual validation and provide our own callback handler so that
+            // we can dynamically decide what to do. Problem is, we have a static instance and static
+            // callback method, but need to access the Insecure instance parameter for each call.
+            //
+            // We need to handle the use case of connecting to 2 different servers, over the course
+            // of 2 sessions (Connect-Safeguard/Disconnect-Safeguard), where one connection is made
+            // securely and the other is not. Noting the fact that this embedded type is only loaded
+            // once and that the 'httpClientHandler' is a static instance. So this lambda is only
+            // assigned once, but we need to account for the Insecure parameter on a call-by-call
+            // basis. So again, this is a bit of a hack and we rely upon the fact that this will most
+            // likely only be used in a single threaded environment. Therefore, we will set a static
+            // variable on each request that can then be accessed by our static callback method.
+            if (httpClientHandler.ServerCertificateCustomValidationCallback == null)
+            {
+                httpClientHandler.ServerCertificateCustomValidationCallback = ServerCertificateCustomValidation;
+            }
+            insecurePerRequest = Insecure;
+
+            using (FileStream stream = new FileStream(PathAndFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, string.Format("https://{0}/service/appliance/v{1}/{2}", Appliance, Version, RelPath)))
+            {
+                this.Host.UI.WriteLine("Uploading...");
+
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", AuthorizationToken);
+                request.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+                request.Content = new ProgressStreamContent(stream, this);
+                var response = httpClient.SendAsync(request).GetAwaiter().GetResult();
+
+                // Any response we get back, we will attempt to parse as Json. So we're not concerned with
+                // the HTTP status code. If the response cannot be parsed as Json, the script will fail and
+                // output the raw response for debugging purposes.
+                WriteObject(response.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+            }
+        }
+        catch (Exception ex)
+        {
+            WriteObject(ex.ToString());
+        }
+    }
+}
+"@
+        # Import the dynamically generated assembly like it were any other PowerShell script and
+        # we'll be able to call it like regular PowerShell too.
+        Import-Module $cls.Assembly
+    }
+}
+# receive file stream cmdlet
+function Add-ReceiveFileStreamCmdletType
+{
+    [CmdletBinding()]
+    Param(
+    )
+
+    # This is all patterned after Send-FileStream cmdlet that Kevin wrote.  See his comments above.
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not ([System.Management.Automation.PSTypeName]"ReceiveFileStreamCmdlet").Type)
+    {
+        Write-Verbose "Adding the PSType for downloading a file stream"
+
+        $referenceAssemblies = ("System.dll", "System.Management.Automation.dll", "System.Net.Http.dll", "System.Net.Primitives", "System.Security.Cryptography.X509Certificates.dll")
+
+        $cls = Add-Type -PassThru -ReferencedAssemblies $referenceAssemblies -TypeDefinition  @"
+using System;
+using System.IO;
+using System.Management.Automation;
+using System.Net.Http;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
+
+[Cmdlet("Receive", "FileStream")]
+public class ReceiveFileStreamCmdlet : PSCmdlet
+{
+    [Parameter(Mandatory = true, Position = 0)]
+    public string PathAndFilename { get; set; }
+
+    [Parameter(Mandatory = true, Position = 1)]
+    public string Appliance { get; set; }
+
+    [Parameter(Mandatory = true, Position = 2)]
+    public string AuthorizationToken { get; set; }
+
+    [Parameter(Mandatory = true, Position = 3)]
+    public string Version { get; set; }
+
+    [Parameter(Mandatory = true, Position = 4)]
+    public string RelPath { get; set; }
+
+    [Parameter(Mandatory = true, Position = 5)]
+    public bool Insecure { get; set; }
+
+    private static readonly HttpClientHandler httpClientHandler = new HttpClientHandler() { ClientCertificateOptions = ClientCertificateOption.Manual };
+
+    private static readonly HttpClient httpClient = new HttpClient(httpClientHandler);
+
+    private static bool insecurePerRequest = false;
+
+    private static bool ServerCertificateCustomValidation(HttpRequestMessage requestMessage, X509Certificate2 certificate, X509Chain chain, SslPolicyErrors sslErrors)
+    {
+        if (insecurePerRequest)
+        {
+            return true;
+        }
+
+        return sslErrors == SslPolicyErrors.None;
+    }
+
+    protected override void ProcessRecord()
+    {
+        try
+        {
+            if (httpClient.Timeout != System.Threading.Timeout.InfiniteTimeSpan)
+            {
+                httpClient.Timeout = System.Threading.Timeout.InfiniteTimeSpan;
+            }
+
+            if (httpClientHandler.ServerCertificateCustomValidationCallback == null)
+            {
+                httpClientHandler.ServerCertificateCustomValidationCallback = ServerCertificateCustomValidation;
+            }
+            insecurePerRequest = Insecure;
+
+            var url = string.Format("https://{0}/service/appliance/v{1}/{2}", Appliance, Version, RelPath);
+            using (var request = new HttpRequestMessage(HttpMethod.Get, url))
+            {
+                Host.UI.WriteLine("Sending request to server...");
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", AuthorizationToken);
+                request.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/octet-stream"));
+
+                using (var response = httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead).GetAwaiter().GetResult())
+                {
+                    if (response.IsSuccessStatusCode)
                     {
-                        int bytesRead = this.content.Read(UploadBuffer, 0, UploadBuffer.Length);
-
-                        stream.Write(UploadBuffer, 0, bytesRead);
-
-                        bytesLeft -= bytesRead;
-
-                        if (stopwatch.ElapsedMilliseconds > 1000)
+                        var progressRecord = new ProgressRecord(1, "Downloading", "0% Complete");
+                        Host.UI.WriteProgress(1, progressRecord);
+                        var totalBytes = response.Content.Headers.ContentLength;
+                        using (var fileStream = new FileStream(PathAndFilename, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
+                        using (var contentStream = response.Content.ReadAsStream())
                         {
-                            int percentDone = (int)((this.content.Length - bytesLeft) / (double)this.content.Length * 100);
+                            var downloadBuffer = new byte[80 * 1024];
+                            var bytesLeft = totalBytes;
 
-                            progressRecord.StatusDescription = string.Format("{0}% Complete", percentDone);
-                            progressRecord.PercentComplete = percentDone;
-                            cmdlet.Host.UI.WriteProgress(1, progressRecord);
+                            System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-                            stopwatch.Restart();
+                            while (bytesLeft > 0)
+                            {
+                                var bytesRead = contentStream.Read(downloadBuffer, 0, downloadBuffer.Length);
+                                fileStream.Write(downloadBuffer, 0, bytesRead);
+                                bytesLeft -= bytesRead;
+
+                                if (stopwatch.ElapsedMilliseconds > 1000)
+                                {
+                                    int percentDone = (int)((totalBytes - bytesLeft) / (double)totalBytes * 100);
+
+                                    progressRecord.StatusDescription = string.Format("{0}% Complete", percentDone);
+                                    progressRecord.PercentComplete = percentDone;
+                                    Host.UI.WriteProgress(1, progressRecord);
+
+                                    stopwatch.Restart();
+                                }
+                            }
+
+                            progressRecord.StatusDescription = "100% Complete";
+                            progressRecord.PercentComplete = 100;
+                            progressRecord.RecordType = ProgressRecordType.Completed;
+                            Host.UI.WriteProgress(1, progressRecord);
+
+                            Host.UI.WriteLine(string.Format("Download complete. File is saved at {0}...", PathAndFilename));
                         }
                     }
-
-                    progressRecord.StatusDescription = "100% Complete";
-                    progressRecord.PercentComplete = 100;
-                    progressRecord.RecordType = ProgressRecordType.Completed;
-                    cmdlet.Host.UI.WriteProgress(1, progressRecord);
-
-                    cmdlet.Host.UI.WriteLine("Upload complete. Server is processing data. Waiting for response...");
-
-                    return Task.WhenAll(); // Returns a completed task. Compatible with .NET < 4.6.
-                }
-
-                protected override bool TryComputeLength(out long length)
-                {
-                    length = this.content.Length;
-                    return true;
-                }
-            }
-
-            private static bool ServerCertificateCustomValidation(HttpRequestMessage requestMessage, X509Certificate2 certificate, X509Chain chain, SslPolicyErrors sslErrors)
-            {
-                if (insecurePerRequest)
-                {
-                    return true;
-                }
-
-                return sslErrors == SslPolicyErrors.None;
-            }
-
-            protected override void ProcessRecord()
-            {
-                try
-                {
-                    // The SSL and Timeout are not per-request settings. Fortunately, this will most likely
-                    // only be used in a single threaded environment. The Timeout property can only be set
-                    // before a request is made. Once a request is made, we can't attempt to set it again.
-                    // Because we have a static instance, it means we can only set it once.
-                    if (httpClient.Timeout != System.Threading.Timeout.InfiniteTimeSpan)
+                    else
                     {
-                        httpClient.Timeout = System.Threading.Timeout.InfiniteTimeSpan;
+                        var message = string.Format("Http Response: {0} - {1}, ", (int)response.StatusCode, response.StatusCode);
+                        message += (response.Content.Headers.ContentLength > 0) ?
+                            response.Content.ReadAsStringAsync().GetAwaiter().GetResult() : "<no content>";
+                        var ex = new HttpRequestException(message, null, response.StatusCode);
+                        WriteError(new ErrorRecord(ex, "HttpResponseError", ErrorCategory.InvalidResult, request));
                     }
-
-                    // These SSL settings also can't be changed after a request is made. Therefore, we will
-                    // always configure it for manual validation and provide our own callback handler so that
-                    // we can dynamically decide what to do. Problem is, we have a static instance and static
-                    // callback method, but need to access the Insecure instance parameter for each call.
-                    //
-                    // We need to handle the use case of connecting to 2 different servers, over the course
-                    // of 2 sessions (Connect-Safeguard/Disconnect-Safeguard), where one connection is made
-                    // securely and the other is not. Noting the fact that this embedded type is only loaded
-                    // once and that the 'httpClientHandler' is a static instance. So this lambda is only
-                    // assigned once, but we need to account for the Insecure parameter on a call-by-call
-                    // basis. So again, this is a bit of a hack and we rely upon the fact that this will most
-                    // likely only be used in a single threaded environment. Therefore, we will set a static
-                    // variable on each request that can then be accessed by our static callback method.
-                    if (httpClientHandler.ServerCertificateCustomValidationCallback == null)
-                    {
-                        httpClientHandler.ServerCertificateCustomValidationCallback = ServerCertificateCustomValidation;
-                    }
-                    insecurePerRequest = Insecure;
-
-                    using (FileStream stream = new FileStream(PathAndFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                    using (HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, string.Format("https://{0}/service/appliance/v{1}/Patch", Appliance, Version)))
-                    {
-                        this.Host.UI.WriteLine("Uploading...");
-
-                        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", AuthorizationToken);
-                        request.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
-
-                        request.Content = new ProgressStreamContent(stream, this);
-
-                        var response = httpClient.SendAsync(request).GetAwaiter().GetResult();
-
-                        // Any response we get back, we will attempt to parse as Json. So we're not concerned with
-                        // the HTTP status code. If the response cannot be parsed as Json, the script will fail and
-                        // output the raw response for debugging purposes.
-                        WriteObject(response.Content.ReadAsStringAsync().GetAwaiter().GetResult());
-                    }
-                }
-                catch (Exception ex)
-                {
-                    WriteObject(ex.ToString());
                 }
             }
         }
+        catch (Exception ex)
+        {
+            WriteObject(ex.ToString());
+        }
+    }
+}
 "@
-
-        # Import the dynamically generated assembly like it were any other PowerShell script and
-        # we'll be able to call it like regular PowerShell too.
         Import-Module $cls.Assembly
     }
 }
@@ -275,7 +416,7 @@ function Send-PatchFile
         }
 
         Add-SendFileStreamCmdletType
-        $local:JsonData = Send-FileStream (Resolve-Path $Patch) $Appliance $AccessToken $Version $Insecure.IsPresent
+        $local:JsonData = Send-FileStream (Resolve-Path $Patch) $Appliance $AccessToken $Version "Patch" $Insecure.IsPresent
         try
         {
             $local:JsonData = (ConvertFrom-Json $local:JsonData)
@@ -1414,6 +1555,9 @@ Whether to include extended event logs (increases size and generation time).
 .PARAMETER IncludeExtendedSessionsLog
 Whether to include extended sessions logs (dramatically increases generation time).
 
+.PARAMETER LogDays
+How many days of logs to retrieve; 0 = just today, 1 = include yesterday, up to 30 (default: 1)
+
 .INPUTS
 None.
 
@@ -1442,7 +1586,9 @@ function Get-SafeguardSupportBundle
         [Parameter(Mandatory=$false)]
         [switch]$IncludeExtendedEventLog,
         [Parameter(Mandatory=$false)]
-        [switch]$IncludeExtendedSessionsLog
+        [switch]$IncludeExtendedSessionsLog,
+        [Parameter(Mandatory=$false)]
+        [int]$LogDays = 1
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -1480,25 +1626,26 @@ function Get-SafeguardSupportBundle
 
     # Handle options and timeout
     $DefaultTimeout = 1200
-    $Url = "https://$Appliance/service/appliance/v$Version/SupportBundle"
+    $RelUrl = "SupportBundle"
     if ($IncludeExtendedEventLog)
     {
         $DefaultTimeout = 1800
-        $Url += "?includeEventLogs=true"
+        $RelUrl += "?includeEventLogs=true"
     }
     else
     {
-        $Url += "?includeEventLogs=false"
+        $RelUrl += "?includeEventLogs=false"
     }
     if ($IncludeExtendedSessionsLog)
     {
         $DefaultTimeout = 3600
-        $Url += "&IncludeSessions=true"
+        $RelUrl += "&IncludeSessions=true"
     }
     else
     {
-        $Url += "&IncludeSessions=false"
+        $RelUrl += "&IncludeSessions=false"
     }
+    $RelUrl += "&logRetentionDays=$LogDays"
     if (-not $Timeout)
     {
         $Timeout = $DefaultTimeout
@@ -1512,18 +1659,10 @@ function Get-SafeguardSupportBundle
             Disable-SslVerification
             if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
-        # Use the WebClient class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
-        Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
-        Add-ExWebClientExType
-        $OutFile = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutFile)
-
-        $WebClient = (New-Object Ex.WebClientEx -ArgumentList @($Timeout))
-        $WebClient.Headers.Add("Accept", "application/octet-stream")
-        $WebClient.Headers.Add("Content-type", "application/json")
-        $WebClient.Headers.Add("Authorization", "Bearer $AccessToken")
-        Write-Host "This operation may take several minutes..."
-        Write-Host "Downloading support bundle to: $OutFile"
-        $WebClient.DownloadFile($Url, $OutFile)
+        # Use the new receive file stream cmdlet to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
+        Write-Host "Please be patient. Support bundle generation can take several minutes before the response is returned."
+        Add-ReceiveFileStreamCmdletType
+        Receive-FileStream $OutFile $Appliance $AccessToken $Version $RelUrl $Insecure.IsPresent
     }
     catch [System.Net.WebException]
     {
@@ -1628,12 +1767,12 @@ function Get-SafeguardSupportBundleQuickGlance
     }
     if (-not $OutFile)
     {
-        $OutFile = (Join-Path (Get-Location) "SG-GC-$Appliance-$((Get-Date).ToString("MMddTHHmmssZz")).txt")
+        $OutFile = (Join-Path (Get-Location) "SG-QG-$Appliance-$((Get-Date).ToString("MMddTHHmmssZz")).txt")
     }
 
     # Handle options and timeout
     $DefaultTimeout = 1200
-    $Url = "https://$Appliance/service/appliance/v$Version/SupportBundle/QuickGlance"
+    $RelUrl = "SupportBundle/QuickGlance"
 
     if (-not $Timeout)
     {
@@ -1648,18 +1787,10 @@ function Get-SafeguardSupportBundleQuickGlance
             Disable-SslVerification
             if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
-        # Use the WebClient class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
-        Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
-        Add-ExWebClientExType
-        $OutFile = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutFile)
-
-        $WebClient = (New-Object Ex.WebClientEx -ArgumentList @($Timeout))
-        $WebClient.Headers.Add("Accept", "application/octet-stream")
-        $WebClient.Headers.Add("Content-type", "application/json")
-        $WebClient.Headers.Add("Authorization", "Bearer $AccessToken")
-        Write-Host "This operation may take few minutes..."
-        Write-Host "Downloading Safeguard quick glance file to: $OutFile"
-        $WebClient.DownloadFile($Url, $OutFile)
+        # Use the new receive file stream cmdlet avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
+        Write-Host "Please be patient. Quick glance generation can take several minutes before the response is returned."
+        Add-ReceiveFileStreamCmdletType
+        Receive-FileStream $OutFile $Appliance $AccessToken $Version $RelUrl $Insecure.IsPresent
     }
     catch [System.Net.WebException]
     {
@@ -2379,17 +2510,10 @@ function Export-SafeguardBackup
             Disable-SslVerification
             if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
-        # Use the WebClient class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
-        Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
-        Add-ExWebClientExType
-
-        $WebClient = (New-Object Ex.WebClientEx -ArgumentList @($Timeout))
-        $WebClient.Headers.Add("Accept", "application/octet-stream")
-        $WebClient.Headers.Add("Content-type", "application/json")
-        $WebClient.Headers.Add("Authorization", "Bearer $AccessToken")
-        Write-Host "This operation may take several minutes..."
-        Write-Host "Downloading Safeguard backup to: $OutFile"
-        $WebClient.DownloadFile("https://$Appliance/service/appliance/v$Version/Backups/$BackupId/Download", $OutFile)
+        # Use the new receive file stream cmdlet to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
+        $RelUrl = "Backups/$BackupId/Download"
+        Add-ReceiveFileStreamCmdletType
+        Receive-FileStream $OutFile $Appliance $AccessToken $Version $RelUrl $Insecure.IsPresent
     }
     catch [System.Net.WebException]
     {
@@ -2502,24 +2626,30 @@ function Import-SafeguardBackup
             Disable-SslVerification
             if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
-        # Use the WebClient class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
-        Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
-        Add-ExWebClientExType
 
-        $WebClient = (New-Object Ex.WebClientEx -ArgumentList @($Timeout))
-        $WebClient.Headers.Add("Accept", "application/json")
-        $WebClient.Headers.Add("Content-type", "application/octet-stream")
-        $WebClient.Headers.Add("Authorization", "Bearer $AccessToken")
         $BackupFile = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($BackupFile)
+
         Write-Host "Loading backup from $BackupFile"
         Write-Host "POSTing backup to Safeguard. This operation may take several minutes..."
 
-        $Bytes = [System.IO.File]::ReadAllBytes($BackupFile);
-        $ResponseBytes = $WebClient.UploadData("https://$Appliance/service/appliance/v$Version/Backups/Upload", "POST", $Bytes) | Out-Null
-        if ($ResponseBytes)
+        Add-SendFileStreamCmdletType
+        $local:JsonData = Send-FileStream (Resolve-Path $BackupFile) $Appliance $AccessToken $Version "Backups/Upload" $Insecure.IsPresent
+        try
         {
-            [System.Text.Encoding]::UTF8.GetString($ResponseBytes)
+            $local:JsonData = (ConvertFrom-Json $local:JsonData)
+            Write-Verbose (ConvertTo-Json $local:JsonData)
         }
+        catch
+        {
+            throw "Send-FileStream didn't return valid JSON. Cannot continue.`nOutput:`n$local:JsonData"
+        }
+        if ($local:JsonData.Code)
+        {
+            $local:ErrMsg = "$($local:JsonData.Code): $($local:JsonData.Message)"
+            throw $local:ErrMsg
+        }
+
+        $local:JsonData
     }
     catch [System.Net.WebException]
     {

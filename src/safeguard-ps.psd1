@@ -73,7 +73,6 @@ NestedModules = @(
     'licensing.psm1',
     'certificates.psm1',
     'networking.psm1',
-    'desktopclient.psm1',
     'maintenance.psm1',
     'diagnostics.psm1',
     'sessionapi.psm1',
@@ -127,8 +126,6 @@ FunctionsToExport = @(
     'New-SafeguardTestCertificatePki',
     # networking.psm1
     'Get-SafeguardNetworkInterface','Set-SafeguardNetworkInterface','Get-SafeguardDnsSuffix','Set-SafeguardDnsSuffix',
-    # desktopclient.psm1
-    'Install-SafeguardDesktopClient',
     # maintenance.psm1
     'Get-SafeguardStatus','Get-SafeguardApplianceAvailability','Get-SafeguardApplianceState','Wait-SafeguardApplianceStateOnline',
     'Get-SafeguardVersion','Test-SafeguardVersion','Get-SafeguardApplianceVerification','Get-SafeguardTime','Set-SafeguardTime',
