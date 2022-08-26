@@ -1615,6 +1615,8 @@ function New-SafeguardUserImportTemplate
         [Parameter(Mandatory=$false)]
         [switch]$Description,
         [Parameter(Mandatory=$false)]
+        [switch]$DomainName,
+        [Parameter(Mandatory=$false)]
         [switch]$EmailAddress,
         [Parameter(Mandatory=$false)]
         [switch]$WorkPhone,
@@ -1633,6 +1635,7 @@ function New-SafeguardUserImportTemplate
     if ($PSBoundParameters.ContainsKey("FirstName")) { $local:Headers = $local:Headers + ',"FirstName"' }
     if ($PSBoundParameters.ContainsKey("LastName")) { $local:Headers = $local:Headers + ',"LastName"' }
     if ($PSBoundParameters.ContainsKey("Description")) { $local:Headers = $local:Headers + ',"Description"' }
+    if ($PSBoundParameters.ContainsKey("DomainName")) { $local:Headers = $local:Headers + ',"DomainName"' }
     if ($PSBoundParameters.ContainsKey("EmailAddress")) { $local:Headers = $local:Headers + ',"EmailAddress"' }
     if ($PSBoundParameters.ContainsKey("WorkPhone")) { $local:Headers = $local:Headers + ',"WorkPhone"' }
     if ($PSBoundParameters.ContainsKey("MobilePhone")) { $local:Headers = $local:Headers + ',"MobilePhone"' }
@@ -1718,6 +1721,11 @@ function Import-SafeguardUser
             if($null -ne $local:User.Description) 
             {
                 $local:Args.Add("Description", $local:User.Description)
+            }
+
+            if($null -ne $local:User.DomainName) 
+            {
+                $local:Args.Add("DomainName", $local:User.DomainName)
             }
 
             if($null -ne $local:User.EmailAddress) 

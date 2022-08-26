@@ -2543,7 +2543,9 @@ function New-SafeguardAssetAccountImportTemplate
         [Parameter(Mandatory=$false)]
         [switch]$AssetPartition,
         [Parameter(Mandatory=$false)]
-        [switch]$DomainName
+        [switch]$DomainName,
+        [Parameter(Mandatory=$false)]
+        [switch]$DistinguishedName
     )
 
     $local:Headers = '"ParentAsset","NewAccountName"'
