@@ -43,40 +43,6 @@ function Show-SshHostKeyPrompt
     Get-Confirmation "SSH Host Key" "Would you like to accept this SSH host key?" `
         "Accept SSH host key and add complete operation." "Deny SSH host key and revert operation."
 }
-# Add web client type with controllable timeout
-function Add-ExWebClientExType
-{
-    [CmdletBinding()]
-    Param(
-    )
-
-    if (-not ([System.Management.Automation.PSTypeName]"Ex.WebClientEx").Type)
-    {
-        Add-Type -WarningAction SilentlyContinue -TypeDefinition @"
-using System;
-using System.Net;
-
-namespace Ex
-{
-    public class WebClientEx : WebClient
-    {
-        int _timeoutSeconds;
-
-        public WebClientEx(int timeoutSeconds)
-        {
-            _timeoutSeconds = timeoutSeconds;
-        }
-        protected override WebRequest GetWebRequest(Uri uri)
-        {
-            var webRequest = base.GetWebRequest(uri);
-            webRequest.Timeout = (int)TimeSpan.FromSeconds(_timeoutSeconds).TotalMilliseconds;
-            return webRequest;
-        }
-    }
-}
-"@
-    }
-}
 # Test whether a string is an IP address
 function Test-IpAddress
 {
