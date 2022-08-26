@@ -135,25 +135,19 @@ public class SendFileStreamCmdlet : PSCmdlet
         protected override Task SerializeToStreamAsync(Stream stream, TransportContext context)
         {
             ProgressRecord progressRecord = new ProgressRecord(1, "Uploading", "0% Complete");
-
             cmdlet.Host.UI.WriteProgress(1, progressRecord);
-
             long bytesLeft = this.content.Length;
-
             System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
             while (bytesLeft > 0)
             {
                 int bytesRead = this.content.Read(UploadBuffer, 0, UploadBuffer.Length);
-
                 stream.Write(UploadBuffer, 0, bytesRead);
-
                 bytesLeft -= bytesRead;
 
                 if (stopwatch.ElapsedMilliseconds > 1000)
                 {
                     int percentDone = (int)((this.content.Length - bytesLeft) / (double)this.content.Length * 100);
-
                     progressRecord.StatusDescription = string.Format("{0}% Complete", percentDone);
                     progressRecord.PercentComplete = percentDone;
                     cmdlet.Host.UI.WriteProgress(1, progressRecord);
@@ -228,9 +222,7 @@ public class SendFileStreamCmdlet : PSCmdlet
 
                 request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", AuthorizationToken);
                 request.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
-
                 request.Content = new ProgressStreamContent(stream, this);
-
                 var response = httpClient.SendAsync(request).GetAwaiter().GetResult();
 
                 // Any response we get back, we will attempt to parse as Json. So we're not concerned with
