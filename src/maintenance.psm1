@@ -1659,7 +1659,7 @@ function Get-SafeguardSupportBundle
             Disable-SslVerification
             if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
-        # Use the  class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
+        # Use the new receive file stream cmdlet to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
         Write-Host "Please be patient. Support bundle generation can take several minutes before the response is returned."
         Add-ReceiveFileStreamCmdletType
         Receive-FileStream $OutFile $Appliance $AccessToken $Version $RelUrl $Insecure.IsPresent
@@ -1787,7 +1787,7 @@ function Get-SafeguardSupportBundleQuickGlance
             Disable-SslVerification
             if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
-        # Use the WebClient class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
+        # Use the new receive file stream cmdlet avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
         Write-Host "Please be patient. Quick glance generation can take several minutes before the response is returned."
         Add-ReceiveFileStreamCmdletType
         Receive-FileStream $OutFile $Appliance $AccessToken $Version $RelUrl $Insecure.IsPresent
@@ -2510,17 +2510,10 @@ function Export-SafeguardBackup
             Disable-SslVerification
             if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
-        # Use the WebClient class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
-        Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
-        Add-ExWebClientExType
-
-        $WebClient = (New-Object Ex.WebClientEx -ArgumentList @($Timeout))
-        $WebClient.Headers.Add("Accept", "application/octet-stream")
-        $WebClient.Headers.Add("Content-type", "application/json")
-        $WebClient.Headers.Add("Authorization", "Bearer $AccessToken")
-        Write-Host "This operation may take several minutes..."
-        Write-Host "Downloading Safeguard backup to: $OutFile"
-        $WebClient.DownloadFile("https://$Appliance/service/appliance/v$Version/Backups/$BackupId/Download", $OutFile)
+        # Use the new receive file stream cmdlet to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
+        $RelUrl = "Backups/$BackupId/Download"
+        Add-ReceiveFileStreamCmdletType
+        Receive-FileStream $OutFile $Appliance $AccessToken $Version $RelUrl $Insecure.IsPresent
     }
     catch [System.Net.WebException]
     {
