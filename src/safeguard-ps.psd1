@@ -335,7 +335,24 @@ PrivateData = @{
         ReleaseNotes = @"
 safeguard-ps Release Notes:
 
-- bug fixes
+- Update default API version to v4
+- Basic support for SPS scripting --
+    - Connect/Disconnect-SafeguardSps
+    - Invoke-SafeguardSpsMethod
+    - Open/Close/Get/Clear-SafeguardSpsTransaction
+    - Show-SafeguardSpsTransactionChange
+    - Show-SafeguardSpsEndpoint
+    - Invoke-SafeguardSpsStarlingJoinBrowser
+    - Remove-SafeguardSpsStarlingJoin
+    - Enable/Disable-SafeguardSpsRemoteAccess
+- Accept STA programmatically -- Confirm-SafeguardStaAcceptance
+- Support for SystemAuditor and ApplicationAuditor permissions
+- Edit-SafeguardUser to modify PrimaryAuthenticationId
+- Configure appliance DNS suffix -- Get/Set-SafeguardApplianceDnsSuffix, Get-SafeguardApplianceDnsName
+- Added Starling join via browser for PSCore -- Get-SafeguardStarlingJoinInstance, Invoke-SafeguardStarlingJoinBrowser
+- Support for RDP application sessions in access requests
+- Better support for PSCore
+- Fixed various bugs
 "@
 
     } # End of PSData hashtable
