@@ -1767,12 +1767,12 @@ function Get-SafeguardSupportBundleQuickGlance
     }
     if (-not $OutFile)
     {
-        $OutFile = (Join-Path (Get-Location) "SG-GC-$Appliance-$((Get-Date).ToString("MMddTHHmmssZz")).txt")
+        $OutFile = (Join-Path (Get-Location) "SG-QG-$Appliance-$((Get-Date).ToString("MMddTHHmmssZz")).txt")
     }
 
     # Handle options and timeout
     $DefaultTimeout = 1200
-    $Url = "https://$Appliance/service/appliance/v$Version/SupportBundle/QuickGlance"
+    $RelUrl = "SupportBundle/QuickGlance"
 
     if (-not $Timeout)
     {
@@ -1788,17 +1788,9 @@ function Get-SafeguardSupportBundleQuickGlance
             if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
         # Use the WebClient class to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
-        Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
-        Add-ExWebClientExType
-        $OutFile = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutFile)
-
-        $WebClient = (New-Object Ex.WebClientEx -ArgumentList @($Timeout))
-        $WebClient.Headers.Add("Accept", "application/octet-stream")
-        $WebClient.Headers.Add("Content-type", "application/json")
-        $WebClient.Headers.Add("Authorization", "Bearer $AccessToken")
-        Write-Host "This operation may take few minutes..."
-        Write-Host "Downloading Safeguard quick glance file to: $OutFile"
-        $WebClient.DownloadFile($Url, $OutFile)
+        Write-Host "Please be patient. Quick glance generation can take several minutes before the response is returned."
+        Add-ReceiveFileStreamCmdletType
+        Receive-FileStream $OutFile $Appliance $AccessToken $Version $RelUrl $Insecure.IsPresent
     }
     catch [System.Net.WebException]
     {
