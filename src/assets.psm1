@@ -2382,6 +2382,11 @@ function Import-SafeguardAsset
         [string]$Path
     )
 
+	# Intercept Read-Host and return an empty string
+	function Read-Host {
+		return ""
+	}
+
     $local:Assets = Import-Csv -Path $Path
 
     $local:FailedImports = New-Object System.Collections.ArrayList
@@ -2432,7 +2437,7 @@ function Import-SafeguardAsset
                 $local:Args.Add("ServiceAccountName", $local:Asset.ServiceAccountName)
             }
 
-            if($null -ne $local:Asset.ServiceAccountPassword) 
+            if(![string]::IsNullOrEmpty($local:Asset.ServiceAccountPassword))
             {
                 $local:SecureServiceAccountPassword = $local:Asset.ServiceAccountPassword | ConvertTo-SecureString -AsPlainText -Force
                 $local:Args.Add("ServiceAccountPassword", $local:SecureServiceAccountPassword)
@@ -2601,6 +2606,11 @@ function Import-SafeguardAssetAccount
         [string]$Path
     )
 
+	# Intercept Read-Host and return an empty string
+	function Read-Host {
+		return ""
+	}
+
     $local:Accounts = Import-Csv -Path $Path
 
     $local:FailedImports = New-Object System.Collections.ArrayList
@@ -2757,6 +2767,11 @@ function Import-SafeguardAssetAccountPassword
         [string]$Path
     )
 
+	# Intercept Read-Host and return an empty string
+	function Read-Host {
+		return ""
+	}
+
     $local:Passwords = Import-Csv -Path $Path
 
     $local:FailedImports = New-Object System.Collections.ArrayList
@@ -2768,8 +2783,6 @@ function Import-SafeguardAssetAccountPassword
     {
         try 
         {
-            $local:NewSecurePassword = $local:Password.NewPassword | ConvertTo-SecureString -AsPlainText -Force
-
             $local:Args = @{
                 AccessToken = $AccessToken
                 Appliance = $Appliance
@@ -2777,7 +2790,12 @@ function Import-SafeguardAssetAccountPassword
                 AssetPartition = $local:Password.AssetPartition
                 AssetToSet = $local:Password.AssetToSet
                 AccountToSet = $local:Password.AccountToSet
-                NewPassword = $local:NewSecurePassword
+            }
+
+            if(![string]::IsNullOrEmpty($local:Password.NewPassword))
+            {
+                $local:NewSecurePassword = $local:Password.NewPassword | ConvertTo-SecureString -AsPlainText -Force
+                $local:Args.Add("NewPassword", $local:NewSecurePassword)
             }
         
             Set-SafeguardAssetAccountPassword @local:Args
@@ -2905,6 +2923,11 @@ function Import-SafeguardAssetAccountSshKey
         [string]$Path
     )
 
+	# Intercept Read-Host and return an empty string
+	function Read-Host {
+		return ""
+	}
+
     $local:SshKeys = Import-Csv -Path $Path
 
     $local:FailedImports = New-Object System.Collections.ArrayList
@@ -2926,7 +2949,7 @@ function Import-SafeguardAssetAccountSshKey
                 PrivateKey = $local:SshKey.PrivateKey
             }
 
-            if($null -ne $local:SshKey.Passphrase) 
+            if(![string]::IsNullOrEmpty($local:SshKey.Passphrase))
             {
                 $local:NewSecurePassphrase = $local:SshKey.Passphrase | ConvertTo-SecureString -AsPlainText -Force
                 $local:Args.Add("Passphrase", $local:NewSecurePassphrase)
