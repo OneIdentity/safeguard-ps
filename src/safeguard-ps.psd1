@@ -110,6 +110,7 @@ FunctionsToExport = @(
     'Connect-Safeguard','Disconnect-Safeguard','Invoke-SafeguardMethod',
     'Get-SafeguardAccessTokenStatus','Update-SafeguardAccessToken',
     'Get-SafeguardLoggedInUser','Confirm-SafeguardStaAcceptance',
+    'Switch-SafeguardConnectionVersion'
     # csv utility (also in safeguard-ps.psm1)
     'Open-CsvInExcel',
     # datatypes.psm1
