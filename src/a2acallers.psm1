@@ -121,7 +121,9 @@ function Invoke-SafeguardA2aCredentialRetrieval
         [string]$CredentialType,
         [Parameter(Mandatory=$false)]
         [ValidateSet("OpenSsh","Ssh2","Putty",IgnoreCase=$true)]
-        [string]$KeyFormat = $null
+        [string]$KeyFormat = $null,
+        [Parameter(Mandatory=$false)]
+        [int]$Version = 4
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -148,12 +150,12 @@ function Invoke-SafeguardA2aCredentialRetrieval
     if (-not $Thumbprint)
     {
         Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization $Authorization `
-            -CertificateFile $CertificateFile -Password $Password -Service a2a -Method GET -RelativeUrl $local:RelativeUrl
+            -CertificateFile $CertificateFile -Password $Password -Service a2a -Method GET -RelativeUrl $local:RelativeUrl -Version $Version
     }
     else
     {
         Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization $Authorization `
-            -Thumbprint $Thumbprint -Service a2a -Method GET -RelativeUrl $local:RelativeUrl
+            -Thumbprint $Thumbprint -Service a2a -Method GET -RelativeUrl $local:RelativeUrl -Version $Version
     }
 }
 
@@ -182,6 +184,9 @@ A secure string containing the password for decrypting the certificate file.
 .PARAMETER Thumbprint
 A string containing the thumbprint of a certificate the system certificate store.
 
+.PARAMETER Version
+Version of the Web API you are using (default: 4).
+
 .INPUTS
 None.
 
@@ -207,7 +212,9 @@ function Get-SafeguardA2aRetrievableAccount
         [Parameter(ParameterSetName="File",Mandatory=$false)]
         [SecureString]$Password,
         [Parameter(ParameterSetName="CertStore",Mandatory=$true)]
-        [string]$Thumbprint
+        [string]$Thumbprint,
+        [Parameter(Mandatory=$false)]
+        [int]$Version = 4
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -219,24 +226,24 @@ function Get-SafeguardA2aRetrievableAccount
         {
             $Password = (Read-Host "Password" -AsSecureString)
         }
-        $local:Registrations = (Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance `
+        $local:Registrations = (Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Version $Version `
             -CertificateFile $CertificateFile -Password $Password -Service core -Method GET -RelativeUrl "A2ARegistrations")
     }
     else
     {
-        $local:Registrations = (Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance  `
+        $local:Registrations = (Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Version $Version `
             -Thumbprint $Thumbprint -Service core -Method GET -RelativeUrl "A2ARegistrations")
     }
     $local:Registrations | ForEach-Object {
         $local:Reg = $_
         if (-not $Thumbprint)
         {
-            $local:Accounts = (Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance  `
+            $local:Accounts = (Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Version $Version `
                 -CertificateFile $CertificateFile -Password $Password -Service core -Method GET -RelativeUrl "A2ARegistrations/$($local:Reg.Id)/RetrievableAccounts")
         }
         else
         {
-            $local:Accounts = (Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance `
+            $local:Accounts = (Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Version $Version `
                 -Thumbprint $Thumbprint -Service core -Method GET -RelativeUrl "A2ARegistrations/$($local:Reg.Id)/RetrievableAccounts")
         }
         $local:Accounts | ForEach-Object {
@@ -292,6 +299,9 @@ A string containing the thumbprint of a certificate the system certificate store
 .PARAMETER ApiKey
 A string containing the API key that identifies the account being requested.
 
+.PARAMETER Version
+Version of the Web API you are using (default: 4).
+
 .INPUTS
 None.
 
@@ -319,7 +329,9 @@ function Get-SafeguardA2aPassword
         [Parameter(ParameterSetName="CertStore",Mandatory=$true)]
         [string]$Thumbprint,
         [Parameter(Mandatory=$true,Position=1)]
-        [string]$ApiKey
+        [string]$ApiKey,
+        [Parameter(Mandatory=$false)]
+        [int]$Version = 4
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -328,12 +340,12 @@ function Get-SafeguardA2aPassword
     if ($PsCmdlet.ParameterSetName -eq "CertStore")
     {
         Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
-            -Thumbprint $Thumbprint -CredentialType Password
+            -Thumbprint $Thumbprint -CredentialType Password -Version $Version
     }
     else
     {
         Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
-            -CertificateFile $CertificateFile -Password $Password -CredentialType Password
+            -CertificateFile $CertificateFile -Password $Password -CredentialType Password -Version $Version
     }
 }
 
@@ -370,6 +382,9 @@ A string containing which format to use for the private key.  The options are:
   - Ssh2: Tectia format for use with tools from SSH.com
   - Putty: Putty format for use with PuTTY tools
 
+.PARAMETER Version
+Version of the Web API you are using (default: 4).
+
 .INPUTS
 None.
 
@@ -400,7 +415,9 @@ function Get-SafeguardA2aPrivateKey
         [string]$ApiKey,
         [Parameter(Mandatory=$false)]
         [ValidateSet("OpenSsh","Ssh2","Putty",IgnoreCase=$true)]
-        [string]$KeyFormat = $null
+        [string]$KeyFormat = $null,
+        [Parameter(Mandatory=$false)]
+        [int]$Version = 4
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -409,19 +426,19 @@ function Get-SafeguardA2aPrivateKey
     if ($PsCmdlet.ParameterSetName -eq "CertStore")
     {
         Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
-            -Thumbprint $Thumbprint -CredentialType PrivateKey
+            -Thumbprint $Thumbprint -CredentialType PrivateKey -Version $Version
     }
     else
     {
         if ($KeyFormat)
         {
             Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
-                -CertificateFile $CertificateFile -Password $Password -CredentialType PrivateKey -KeyFormat $KeyFormat
+                -CertificateFile $CertificateFile -Password $Password -CredentialType PrivateKey -KeyFormat $KeyFormat -Version $Version
         }
         else
         {
             Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
-                -CertificateFile $CertificateFile -Password $Password -CredentialType PrivateKey
+                -CertificateFile $CertificateFile -Password $Password -CredentialType PrivateKey -Version $Version
         }
     }
 }
@@ -503,6 +520,9 @@ An integer containing the number of hours for the request duration (0-23).
 .PARAMETER RequestedDurationMinutes
 An integer containing the number of minutes for the request duration (0-59).
 
+.PARAMETER Version
+Version of the Web API you are using (default: 4).
+
 .INPUTS
 None.
 
@@ -575,7 +595,9 @@ function New-SafeguardA2aAccessRequest
         [int]$RequestedDurationHours,
         [Parameter(Mandatory=$false)]
         [ValidateRange(0, 59)]
-        [int]$RequestedDurationMinutes
+        [int]$RequestedDurationMinutes,
+        [Parameter(Mandatory=$false)]
+        [int]$Version = 4
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -630,11 +652,11 @@ function New-SafeguardA2aAccessRequest
     if ($PsCmdlet.ParameterSetName -eq "CertStoreAndNames" -or $PsCmdlet.ParameterSetName -eq "CertStoreAndIds")
     {
         Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
-            -Thumbprint $Thumbprint -Service a2a -Method POST -RelativeUrl AccessRequests -Body $local:Body
+            -Thumbprint $Thumbprint -Service a2a -Method POST -RelativeUrl AccessRequests -Body $local:Body -Version $Version
     }
     else
     {
-        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey"  -Version $Version `
             -CertificateFile $CertificateFile -Password $Password -Service a2a -Method POST -RelativeUrl AccessRequests -Body $local:Body
     }
 }
