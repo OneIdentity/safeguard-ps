@@ -38,9 +38,14 @@ Password: *********
 Login Successful.
 # All subsequent commands will use v3, use -Verbose to see URL details
 
-# Override version for Invoke-SafeguardMethod
+# Override version for Invoke-SafeguardMethod and A2A cmdlets
 > Invoke-SafeguardMethod Core GET Users -Version 3
-# Most cmdlets don't allow a Version parameter, but the generic method does.
+> Get-SafeguardA2aPassword 192.168.123.123 -Thumbprint 42F9C3D01608604DB7065B86F306BED1D396B90B -ApiKey MP03DQ3hOCYZeOgCGXGQ1Cilwf1S8QYbdWvg2O7i14A=
+# Most cmdlets don't allow a Version parameter, but the generic invoke method and A2A cmdlets do.
+# You can switch API versions after connection using this cmdlet
+> Switch-SafeguardConnectionVersion -Version 3
+# Then, switch back
+> Switch-SafeguardConnectionVersion
 ```
 
 ## Installation
@@ -295,6 +300,7 @@ update this list.
 - Update-SafeguardAccessToken
 - Get-SafeguardLoggedInUser
 - Confirm-SafeguardStaAcceptance
+- Switch-SafeguardConnectionVersion
 
 ### Data Types
 

@@ -1995,6 +1995,12 @@ function Confirm-SafeguardStaAcceptance
 {
     [CmdletBinding()]
     Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -2010,6 +2016,51 @@ function Confirm-SafeguardStaAcceptance
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Licenses/Sta"
         Write-Host "The Safeguard STA agreement (https://www.oneidentity.com/legal/sta.aspx) has been accepted."
     }
+}
+
+<#
+.SYNOPSIS
+Simple utility to switch the API version in your connected session.
+
+.DESCRIPTION
+Connect-Safeguard stores version information in your connected session.  By default
+this will be API version 4.  If you want to call a version 3 API for certain cmdlets,
+then you can use this cmdlet to switch the API version stored in your connect session.
+Just remember to switch it back!
+
+.PARAMETER Version
+Version of the Web API you are using (default: 4).
+
+.INPUTS
+None.
+
+.OUTPUTS
+None.
+
+.EXAMPLE
+Switch-SafeguardConnectionVersion -Version 3
+
+.EXAMPLE
+Switch-SafeguardConnectionVersion
+#>
+function Switch-SafeguardConnectionVersion
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false, Position=0)]
+        [int]$Version = 4
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not $SafeguardSession)
+    {
+        throw "This cmdlet requires that you log in with the Connect-Safeguard cmdlet"
+    }
+
+    $SafeguardSession.Version = $Version
+    Write-Host "API Version set to v$Version"
 }
 
 <#
