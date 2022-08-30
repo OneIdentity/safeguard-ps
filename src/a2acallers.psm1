@@ -212,7 +212,9 @@ function Get-SafeguardA2aRetrievableAccount
         [Parameter(ParameterSetName="File",Mandatory=$false)]
         [SecureString]$Password,
         [Parameter(ParameterSetName="CertStore",Mandatory=$true)]
-        [string]$Thumbprint
+        [string]$Thumbprint,
+        [Parameter(Mandatory=$false)]
+        [int]$Version = 4
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -224,24 +226,24 @@ function Get-SafeguardA2aRetrievableAccount
         {
             $Password = (Read-Host "Password" -AsSecureString)
         }
-        $local:Registrations = (Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance `
+        $local:Registrations = (Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Version $Version `
             -CertificateFile $CertificateFile -Password $Password -Service core -Method GET -RelativeUrl "A2ARegistrations")
     }
     else
     {
-        $local:Registrations = (Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance  `
+        $local:Registrations = (Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Version $Version `
             -Thumbprint $Thumbprint -Service core -Method GET -RelativeUrl "A2ARegistrations")
     }
     $local:Registrations | ForEach-Object {
         $local:Reg = $_
         if (-not $Thumbprint)
         {
-            $local:Accounts = (Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance  `
+            $local:Accounts = (Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Version $Version `
                 -CertificateFile $CertificateFile -Password $Password -Service core -Method GET -RelativeUrl "A2ARegistrations/$($local:Reg.Id)/RetrievableAccounts")
         }
         else
         {
-            $local:Accounts = (Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance `
+            $local:Accounts = (Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Version $Version `
                 -Thumbprint $Thumbprint -Service core -Method GET -RelativeUrl "A2ARegistrations/$($local:Reg.Id)/RetrievableAccounts")
         }
         $local:Accounts | ForEach-Object {
