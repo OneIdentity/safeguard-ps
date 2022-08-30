@@ -21,7 +21,7 @@ One Identity open source projects are supported through [One Identity GitHub iss
 ## Default API Update
 
 safeguard-ps will use v4 API by default starting with version 7.0. It is
-possible to continue using the v3 API by passing in the -Version parameter
+possible to continue using the v3 API by passing in the `-Version` parameter
 when creating a connection or calling A2A. There is also a new cmdlet
 `Switch-SafeguardConnectionVersion` for changing API version after connection.
 
