@@ -18,6 +18,36 @@ One Identity Safeguard Powershell module and scripting resources.
 
 One Identity open source projects are supported through [One Identity GitHub issues](https://github.com/OneIdentity/safeguard-ps/issues) and the [One Identity Community](https://www.oneidentity.com/community/). This includes all scripts, plugins, SDKs, modules, code snippets or other solutions. For assistance with any One Identity GitHub project, please raise a new Issue on the [One Identity GitHub project](https://github.com/OneIdentity/safeguard-ps/issues) page. You may also visit the [One Identity Community](https://www.oneidentity.com/community/) to ask questions.  Requests for assistance made through official One Identity Support will be referred back to GitHub and the One Identity Community forums where those requests can benefit all users.
 
+## Default API Update
+
+safeguard-ps will use v4 API by default starting with version 7.0. It is
+possible to continue using the v3 API by passing in the -Version parameter
+when creating a connection or calling A2A.
+
+Safeguard for Privileged Passwords 7.X hosts both the v3 and v4 APIs. New coding
+projects should target the v4 API, and existing projects can be migrated over time.
+Notification will be given to customers many releases in advance of any plans to
+remove the v3 API. There are currently no plans to remove the v3 API.
+
+```PowerShell
+# Use v3 instead of v4 when connecting
+# Existing scripts can be updated to work with safeguard-ps 7.0 just by adding -Version 3
+# to the Connect-Safeguard command line.
+> Connect-Safeguard 192.168.123.123 local Admin -Version 3
+Password: *********
+Login Successful.
+# All subsequent commands will use v3, use -Verbose to see URL details
+
+# Override version for Invoke-SafeguardMethod and A2A cmdlets
+> Invoke-SafeguardMethod Core GET Users -Version 3
+> Get-SafeguardA2aPassword 192.168.123.123 -Thumbprint 42F9C3D01608604DB7065B86F306BED1D396B90B -ApiKey MP03DQ3hOCYZeOgCGXGQ1Cilwf1S8QYbdWvg2O7i14A=
+# Most cmdlets don't allow a Version parameter, but the generic invoke method and A2A cmdlets do.
+# You can switch API versions after connection using this cmdlet
+> Switch-SafeguardConnectionVersion -Version 3
+# Then, switch back
+> Switch-SafeguardConnectionVersion
+```
+
 ## Installation
 
 This Powershell module is published to the
@@ -270,6 +300,7 @@ update this list.
 - Update-SafeguardAccessToken
 - Get-SafeguardLoggedInUser
 - Confirm-SafeguardStaAcceptance
+- Switch-SafeguardConnectionVersion
 
 ### Data Types
 
