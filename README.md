@@ -21,8 +21,9 @@ One Identity open source projects are supported through [One Identity GitHub iss
 ## Default API Update
 
 safeguard-ps will use v4 API by default starting with version 7.0. It is
-possible to continue using the v3 API by passing in the -Version parameter
-when creating a connection or calling A2A.
+possible to continue using the v3 API by passing in the `-Version` parameter
+when creating a connection or calling A2A. There is also a new cmdlet
+`Switch-SafeguardConnectionVersion` for changing API version after connection.
 
 Safeguard for Privileged Passwords 7.X hosts both the v3 and v4 APIs. New coding
 projects should target the v4 API, and existing projects can be migrated over time.
@@ -36,12 +37,13 @@ remove the v3 API. There are currently no plans to remove the v3 API.
 > Connect-Safeguard 192.168.123.123 local Admin -Version 3
 Password: *********
 Login Successful.
-# All subsequent commands will use v3, use -Verbose to see URL details
+# All subsequent commands will use v3, use -Verbose for any cmdlet to see URL details
 
 # Override version for Invoke-SafeguardMethod and A2A cmdlets
-> Invoke-SafeguardMethod Core GET Users -Version 3
-> Get-SafeguardA2aPassword 192.168.123.123 -Thumbprint 42F9C3D01608604DB7065B86F306BED1D396B90B -ApiKey MP03DQ3hOCYZeOgCGXGQ1Cilwf1S8QYbdWvg2O7i14A=
 # Most cmdlets don't allow a Version parameter, but the generic invoke method and A2A cmdlets do.
+> Invoke-SafeguardMethod Core GET Users -Version 3
+> Get-SafeguardA2aPassword 192.168.123.123 -Version 3 -Thumbprint 42F9C3D01608604DB7065B86F306BED1D396B90B -ApiKey MP03DQ3hOCYZeOgCGXGQ1Cilwf1S8QYbdWvg2O7i14A=
+
 # You can switch API versions after connection using this cmdlet
 > Switch-SafeguardConnectionVersion -Version 3
 # Then, switch back
