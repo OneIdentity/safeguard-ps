@@ -2226,12 +2226,16 @@ Creates a template file containing the headers for importing assets. Specify the
 
 Default Columns
 
--DisplayName : A string containing the display name for this asset. Optional, unlessNetworkAddress is an IP address rather than a DNS name.
+-DisplayName : A string containing the display name for this asset. Optional, unless NetworkAddress is an IP address rather than a DNS name.
 
 -Platform : A platform ID for a specific platform type or a string to search for desired platform type.
+            For more information on Platforms run Get-SafeguardPlatform -Fields ID,PlatformType,DisplayName
 
 .PARAMETER Path
-A string containing the path of the template file. 
+A string containing the path of the template file.
+
+.PARAMETER All
+Adds all headers to the template file.
 
 .PARAMETER Description
 Adds the Description header to the template file. 
@@ -2294,47 +2298,49 @@ New-SafeguardAssetImportTemplate 'C:\tmp\template.csv' -DisplayName -Description
 #>
 function New-SafeguardAssetImportTemplate
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Specific")]
     Param(
         [Parameter(Mandatory=$false, Position=0)]
         [string]$Path = '.\SafeguardAssetImportTemplate.csv',
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="All")]
+        [switch]$All,
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$Description,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$AssetPartition,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$NetworkAddress,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$Port,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$ServiceAccountDomainName,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$ServiceAccountName,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$ServiceAccountPassword,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$ServiceAccountCredentialType,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$ServiceAccountSecretKey,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$ServiceAccountDistinguishedName,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$PrivilegeElevationCommand
     )
 
     $local:Headers = '"DisplayName","Platform"'
 
-    if ($PSBoundParameters.ContainsKey("Description")) { $local:Headers = $local:Headers + ',"Description"' }
-    if ($PSBoundParameters.ContainsKey("AssetPartition")) { $local:Headers = $local:Headers + ',"AssetPartition"' }
-    if ($PSBoundParameters.ContainsKey("NetworkAddress")) { $local:Headers = $local:Headers + ',"NetworkAddress"' }
-    if ($PSBoundParameters.ContainsKey("Port")) { $local:Headers = $local:Headers + ',"Port"' }
-    if ($PSBoundParameters.ContainsKey("ServiceAccountDomainName")) { $local:Headers = $local:Headers + ',"ServiceAccountDomainName"' }
-    if ($PSBoundParameters.ContainsKey("ServiceAccountName")) { $local:Headers = $local:Headers + ',"ServiceAccountName"' }
-    if ($PSBoundParameters.ContainsKey("ServiceAccountPassword")) { $local:Headers = $local:Headers + ',"ServiceAccountPassword"' }
-    if ($PSBoundParameters.ContainsKey("ServiceAccountCredentialType")) { $local:Headers = $local:Headers + ',"ServiceAccountCredentialType"' }
-    if ($PSBoundParameters.ContainsKey("ServiceAccountSecretKey")) { $local:Headers = $local:Headers + ',"ServiceAccountSecretKey"' }
-    if ($PSBoundParameters.ContainsKey("ServiceAccountDistinguishedName")) { $local:Headers = $local:Headers + ',"ServiceAccountDistinguishedName"' }
-    if ($PSBoundParameters.ContainsKey("PrivilegeElevationCommand")) { $local:Headers = $local:Headers + ',"PrivilegeElevationCommand"' }
+    if ($PSBoundParameters.ContainsKey("Description") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"Description"' }
+    if ($PSBoundParameters.ContainsKey("AssetPartition") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"AssetPartition"' }
+    if ($PSBoundParameters.ContainsKey("NetworkAddress") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"NetworkAddress"' }
+    if ($PSBoundParameters.ContainsKey("Port") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"Port"' }
+    if ($PSBoundParameters.ContainsKey("ServiceAccountDomainName") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"ServiceAccountDomainName"' }
+    if ($PSBoundParameters.ContainsKey("ServiceAccountName") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"ServiceAccountName"' }
+    if ($PSBoundParameters.ContainsKey("ServiceAccountPassword") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"ServiceAccountPassword"' }
+    if ($PSBoundParameters.ContainsKey("ServiceAccountCredentialType") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"ServiceAccountCredentialType"' }
+    if ($PSBoundParameters.ContainsKey("ServiceAccountSecretKey") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"ServiceAccountSecretKey"' }
+    if ($PSBoundParameters.ContainsKey("ServiceAccountDistinguishedName") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"ServiceAccountDistinguishedName"' }
+    if ($PSBoundParameters.ContainsKey("PrivilegeElevationCommand") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"PrivilegeElevationCommand"' }
 
     Set-Content -Path $Path -Value $local:Headers -Force
 }
@@ -2507,6 +2513,9 @@ Default Columns
 .PARAMETER Path
 A string containing the path of the template file.
 
+.PARAMETER All
+Adds all headers to the template file.
+
 .PARAMETER Description
 Adds the Description header to the template file. 
 Value - A string containing the description for the account.
@@ -2539,26 +2548,28 @@ New-SafeguardAssetAccountImportTemplate 'C:\tmp\template.csv' -Description -Asse
 #>
 function New-SafeguardAssetAccountImportTemplate
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Specific")]
     Param(
         [Parameter(Mandatory=$false, Position=0)]
         [string]$Path = '.\SafeguardAssetAccountImportTemplate.csv',
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="All")]
+        [switch]$All,
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$Description,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$AssetPartition,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$DomainName,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$DistinguishedName
     )
 
     $local:Headers = '"ParentAsset","NewAccountName"'
 
-    if ($PSBoundParameters.ContainsKey("Description")) { $local:Headers = $local:Headers + ',"Description"' }
-    if ($PSBoundParameters.ContainsKey("AssetPartition")) { $local:Headers = $local:Headers + ',"AssetPartition"' }
-    if ($PSBoundParameters.ContainsKey("DomainName")) { $local:Headers = $local:Headers + ',"DomainName"' }
-    if ($PSBoundParameters.ContainsKey("DistinguishedName")) { $local:Headers = $local:Headers + ',"DistinguishedName"' }
+    if ($PSBoundParameters.ContainsKey("Description") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"Description"' }
+    if ($PSBoundParameters.ContainsKey("AssetPartition") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"AssetPartition"' }
+    if ($PSBoundParameters.ContainsKey("DomainName") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"DomainName"' }
+    if ($PSBoundParameters.ContainsKey("DistinguishedName") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"DistinguishedName"' }
 
     Set-Content -Path $Path -Value $local:Headers -Force
 }

@@ -1547,6 +1547,9 @@ Default Columns
 .PARAMETER Path
 A string containing the path of the template file.
 
+.PARAMETER All
+Adds all headers to the template file.
+
 .PARAMETER FirstName
 Adds the FirstName header to the template file. 
 Value - A string containing the first name of the user.  Combined with last name to form a user's DisplayName.
@@ -1604,44 +1607,46 @@ New-SafeguardUserImportTemplate 'C:\tmp\template.csv' -FirstName -LastName -Desc
 #>
 function New-SafeguardUserImportTemplate
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Specific")]
     Param(
         [Parameter(Mandatory=$false, Position=0)]
         [string]$Path = '.\SafeguardUserImportTemplate.csv',
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="All")]
+        [switch]$All,
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$FirstName,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$LastName,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$Description,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$DomainName,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$EmailAddress,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$WorkPhone,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$MobilePhone,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$AdminRoles,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$Password,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$Thumbprint
     )
 
     $local:Headers = '"Provider","NewUserName"'
 
-    if ($PSBoundParameters.ContainsKey("FirstName")) { $local:Headers = $local:Headers + ',"FirstName"' }
-    if ($PSBoundParameters.ContainsKey("LastName")) { $local:Headers = $local:Headers + ',"LastName"' }
-    if ($PSBoundParameters.ContainsKey("Description")) { $local:Headers = $local:Headers + ',"Description"' }
-    if ($PSBoundParameters.ContainsKey("DomainName")) { $local:Headers = $local:Headers + ',"DomainName"' }
-    if ($PSBoundParameters.ContainsKey("EmailAddress")) { $local:Headers = $local:Headers + ',"EmailAddress"' }
-    if ($PSBoundParameters.ContainsKey("WorkPhone")) { $local:Headers = $local:Headers + ',"WorkPhone"' }
-    if ($PSBoundParameters.ContainsKey("MobilePhone")) { $local:Headers = $local:Headers + ',"MobilePhone"' }
-    if ($PSBoundParameters.ContainsKey("AdminRoles")) { $local:Headers = $local:Headers + ',"AdminRoles"' }
-    if ($PSBoundParameters.ContainsKey("Password")) { $local:Headers = $local:Headers + ',"Password"' }
-    if ($PSBoundParameters.ContainsKey("Thumbprint")) { $local:Headers = $local:Headers + ',"Thumbprint"' }
+    if ($PSBoundParameters.ContainsKey("FirstName") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"FirstName"' }
+    if ($PSBoundParameters.ContainsKey("LastName") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"LastName"' }
+    if ($PSBoundParameters.ContainsKey("Description") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"Description"' }
+    if ($PSBoundParameters.ContainsKey("DomainName") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"DomainName"' }
+    if ($PSBoundParameters.ContainsKey("EmailAddress") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"EmailAddress"' }
+    if ($PSBoundParameters.ContainsKey("WorkPhone") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"WorkPhone"' }
+    if ($PSBoundParameters.ContainsKey("MobilePhone") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"MobilePhone"' }
+    if ($PSBoundParameters.ContainsKey("AdminRoles") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"AdminRoles"' }
+    if ($PSBoundParameters.ContainsKey("Password") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"Password"' }
+    if ($PSBoundParameters.ContainsKey("Thumbprint") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"Thumbprint"' }
 
     Set-Content -Path $Path -Value $local:Headers -Force
 }
