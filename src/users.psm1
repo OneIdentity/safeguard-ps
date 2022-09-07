@@ -1700,6 +1700,11 @@ function Import-SafeguardUser
 	}
 
     $local:Users = Import-Csv -Path $Path
+    $local:UsersCount = 1;
+    if($null -ne $local:Users.Count) 
+    {
+        $local:UsersCount = $local:Users.Count
+    }
 
     $local:FailedImports = New-Object System.Collections.ArrayList
 
@@ -1718,53 +1723,56 @@ function Import-SafeguardUser
                 NewUserName = $local:User.NewUserName
             }
 
-            if($null -ne $local:User.FirstName) 
+            if(![string]::IsNullOrEmpty($local:User.FirstName)) 
             {
                 $local:Args.Add("FirstName", $local:User.FirstName)
             }
 
-            if($null -ne $local:User.LastName) 
+            if(![string]::IsNullOrEmpty($local:User.LastName)) 
             {
                 $local:Args.Add("LastName", $local:User.LastName)
             }
 
-            if($null -ne $local:User.Description) 
+            if(![string]::IsNullOrEmpty($local:User.Description))
             {
                 $local:Args.Add("Description", $local:User.Description)
             }
 
-            if($null -ne $local:User.DomainName) 
+            if(![string]::IsNullOrEmpty($local:User.DomainName))
             {
                 $local:Args.Add("DomainName", $local:User.DomainName)
             }
 
-            if($null -ne $local:User.EmailAddress) 
+            if(![string]::IsNullOrEmpty($local:User.EmailAddress))
             {
                 $local:Args.Add("EmailAddress", $local:User.EmailAddress)
             }
 
-            if($null -ne $local:User.WorkPhone) 
+            if(![string]::IsNullOrEmpty($local:User.WorkPhone)) 
             {
                 $local:Args.Add("WorkPhone", $local:User.WorkPhone)
             }
 
-            if($null -ne $local:User.MobilePhone) 
+            if(![string]::IsNullOrEmpty($local:User.MobilePhone)) 
             {
                 $local:Args.Add("MobilePhone", $local:User.MobilePhone)
             }
 
-            if($null -ne $local:User.AdminRoles) 
+            if(![string]::IsNullOrEmpty($local:User.AdminRoles)) 
             {
                 $local:Args.Add("AdminRoles", $local:User.AdminRoles)
             }
 
-            if(![string]::IsNullOrEmpty($local:User.Password))
+            if([string]::IsNullOrEmpty($local:User.Password)) {
+                $local:Args.Add("NoPassword", $true)
+            }
+            else
             {
                 $local:SecurePassword = $local:User.Password | ConvertTo-SecureString -AsPlainText -Force
                 $local:Args.Add("Password", $local:SecurePassword)
             }
 
-            if($null -ne $local:User.Thumbprint) 
+            if(![string]::IsNullOrEmpty($local:User.Thumbprint)) 
             {
                 $local:Args.Add("Thumbprint", $local:User.Thumbprint)
             }
@@ -1784,11 +1792,11 @@ function Import-SafeguardUser
             $local:FailedImports.Add($local:User)
         }
         
-        Write-Progress -Activity "Importing Users ..." -PercentComplete (($local:CurrUser/$local:Users.Count)*100)
+        Write-Progress -Activity "Importing Users ..." -PercentComplete (($local:CurrUser/$local:UsersCount)*100)
         $local:CurrUser++
     }
 
-    Write-Host ($local:Users.Count - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
+    Write-Host ($local:UsersCount - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
     
     if ($local:FailedImports.Count -gt 0) 
     {

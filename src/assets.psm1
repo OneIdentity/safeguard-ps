@@ -2394,6 +2394,11 @@ function Import-SafeguardAsset
 	}
 
     $local:Assets = Import-Csv -Path $Path
+    $local:AssetsCount = 1;
+    if($null -ne $local:Assets.Count) 
+    {
+        $local:AssetsCount = $local:Assets.Count
+    }
 
     $local:FailedImports = New-Object System.Collections.ArrayList
 
@@ -2413,32 +2418,32 @@ function Import-SafeguardAsset
                 NoSshHostKeyDiscovery = $true
             }
 
-            if($null -ne $local:Asset.Description) 
+            if(![string]::IsNullOrEmpty($local:Asset.Description)) 
             {
                 $local:Args.Add("Description", $local:Asset.Description)
             }
 
-            if($null -ne $local:Asset.AssetPartition) 
+            if(![string]::IsNullOrEmpty($local:Asset.AssetPartition)) 
             {
                 $local:Args.Add("AssetPartition", $local:Asset.AssetPartition)
             }
 
-            if($null -ne $local:Asset.NetworkAddress) 
+            if(![string]::IsNullOrEmpty($local:Asset.NetworkAddress)) 
             {
                 $local:Args.Add("NetworkAddress", $local:Asset.NetworkAddress)
             }
 
-            if($null -ne $local:Asset.Port) 
+            if(![string]::IsNullOrEmpty($local:Asset.Port)) 
             {
                 $local:Args.Add("Port", $local:Asset.Port)
             }
 
-            if($null -ne $local:Asset.ServiceAccountDomainName) 
+            if(![string]::IsNullOrEmpty($local:Asset.ServiceAccountDomainName)) 
             {
                 $local:Args.Add("ServiceAccountDomainName", $local:Asset.ServiceAccountDomainName)
             }
 
-            if($null -ne $local:Asset.ServiceAccountName) 
+            if(![string]::IsNullOrEmpty($local:Asset.ServiceAccountName)) 
             {
                 $local:Args.Add("ServiceAccountName", $local:Asset.ServiceAccountName)
             }
@@ -2449,22 +2454,22 @@ function Import-SafeguardAsset
                 $local:Args.Add("ServiceAccountPassword", $local:SecureServiceAccountPassword)
             }
 
-            if($null -ne $local:Asset.ServiceAccountCredentialType) 
+            if(![string]::IsNullOrEmpty($local:Asset.ServiceAccountCredentialType)) 
             {
                 $local:Args.Add("ServiceAccountCredentialType", $local:Asset.ServiceAccountCredentialType)
             }
 
-            if($null -ne $local:Asset.ServiceAccountSecretKey) 
+            if(![string]::IsNullOrEmpty($local:Asset.ServiceAccountSecretKey)) 
             {
                 $local:Args.Add("ServiceAccountSecretKey", $local:Asset.ServiceAccountSecretKey)
             }
 
-            if($null -ne $local:Asset.ServiceAccountDistinguishedName) 
+            if(![string]::IsNullOrEmpty($local:Asset.ServiceAccountDistinguishedName)) 
             {
                 $local:Args.Add("ServiceAccountDistinguishedName", $local:Asset.ServiceAccountDistinguishedName)
             }
 
-            if($null -ne $local:Asset.PrivilegeElevationCommand) 
+            if(![string]::IsNullOrEmpty($local:Asset.PrivilegeElevationCommand)) 
             {
                 $local:Args.Add("PrivilegeElevationCommand", $local:Asset.PrivilegeElevationCommand)
             }
@@ -2484,11 +2489,11 @@ function Import-SafeguardAsset
             $local:FailedImports.Add($local:Asset)
         }
         
-        Write-Progress -Activity "Importing Assets ..." -PercentComplete (($local:CurrAsset/$local:Assets.Count)*100)
+        Write-Progress -Activity "Importing Assets ..." -PercentComplete (($local:CurrAsset/$local:AssetsCount)*100)
         $local:CurrAsset++
     }
 
-    Write-Host ($local:Assets.Count - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
+    Write-Host ($local:AssetsCount - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
     
     if ($local:FailedImports.Count -gt 0) 
     {
@@ -2623,6 +2628,11 @@ function Import-SafeguardAssetAccount
 	}
 
     $local:Accounts = Import-Csv -Path $Path
+    $local:AccountsCount = 1;
+    if($null -ne $local:Accounts.Count) 
+    {
+        $local:AccountsCount = $local:Accounts.Count
+    }
 
     $local:FailedImports = New-Object System.Collections.ArrayList
 
@@ -2641,22 +2651,22 @@ function Import-SafeguardAssetAccount
                 NewAccountName = $local:Account.NewAccountName
             }
 
-            if($null -ne $local:Account.Description) 
+            if(![string]::IsNullOrEmpty($local:Account.Description)) 
             {
                 $local:Args.Add("Description", $local:Account.Description)
             }
 
-            if($null -ne $local:Account.AssetPartition) 
+            if(![string]::IsNullOrEmpty($local:Account.AssetPartition)) 
             {
                 $local:Args.Add("AssetPartition", $local:Account.AssetPartition)
             }
 
-            if($null -ne $local:Account.DomainName) 
+            if(![string]::IsNullOrEmpty($local:Account.DomainName)) 
             {
                 $local:Args.Add("DomainName", $local:Account.DomainName)
             }
             
-            if($null -ne $local:Account.DistinguishedName) 
+            if(![string]::IsNullOrEmpty($local:Account.DistinguishedName)) 
             {
                 $local:Args.Add("DistinguishedName", $local:Account.DistinguishedName)
             }
@@ -2676,11 +2686,11 @@ function Import-SafeguardAssetAccount
             $local:FailedImports.Add($local:Account)
         }
         
-        Write-Progress -Activity "Importing Asset Accounts ..." -PercentComplete (($local:CurrAccount/$local:Accounts.Count)*100)
+        Write-Progress -Activity "Importing Asset Accounts ..." -PercentComplete (($local:CurrAccount/$local:AccountsCount)*100)
         $local:CurrAccount++
     }
 
-    Write-Host ($local:Accounts.Count - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
+    Write-Host ($local:AccountsCount - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
     
     if ($local:FailedImports.Count -gt 0) 
     {
@@ -2784,6 +2794,11 @@ function Import-SafeguardAssetAccountPassword
 	}
 
     $local:Passwords = Import-Csv -Path $Path
+    $local:PasswordsCount = 1;
+    if($null -ne $local:Passwords.Count) 
+    {
+        $local:PasswordsCount = $local:Passwords.Count
+    }
 
     $local:FailedImports = New-Object System.Collections.ArrayList
 
@@ -2824,11 +2839,11 @@ function Import-SafeguardAssetAccountPassword
             $local:FailedImports.Add($local:Password)
         }
         
-        Write-Progress -Activity "Importing Asset Account Passwords ..." -PercentComplete (($local:CurrPassword/$local:Passwords.Count)*100)
+        Write-Progress -Activity "Importing Asset Account Passwords ..." -PercentComplete (($local:CurrPassword/$local:PasswordsCount)*100)
         $local:CurrPassword++
     }
 
-    Write-Host ($local:Passwords.Count - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
+    Write-Host ($local:PasswordsCount - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
     
     if ($local:FailedImports.Count -gt 0) 
     {
@@ -2940,6 +2955,11 @@ function Import-SafeguardAssetAccountSshKey
 	}
 
     $local:SshKeys = Import-Csv -Path $Path
+    $local:SshKeysCount = 1;
+    if($null -ne $local:SshKeys.Count) 
+    {
+        $local:SshKeysCount = $local:SshKeys.Count
+    }
 
     $local:FailedImports = New-Object System.Collections.ArrayList
 
@@ -2982,11 +3002,11 @@ function Import-SafeguardAssetAccountSshKey
             $local:FailedImports.Add($local:SshKey)
         }
         
-        Write-Progress -Activity "Importing Asset Account SSH Keys ..." -PercentComplete (($local:CurrSshKey/$local:SshKeys.Count)*100)
+        Write-Progress -Activity "Importing Asset Account SSH Keys ..." -PercentComplete (($local:CurrSshKey/$local:SshKeysCount)*100)
         $local:CurrSshKey++
     }
 
-    Write-Host ($local:SshKeys.Count - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
+    Write-Host ($local:SshKeysCount - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
     
     if ($local:FailedImports.Count -gt 0) 
     {
