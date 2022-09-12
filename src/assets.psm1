@@ -865,6 +865,14 @@ function New-SafeguardAsset
         }
     }
 
+    $local:DirectoryAssetProperties = @{ }
+    if ($PSBoundParameters.ContainsKey("ServiceAccountDomainName"))
+    { 
+        $local:DirectoryAssetProperties.DomainName = $ServiceAccountDomainName
+        $local:Domain = @{ DomainName =  $ServiceAccountDomainName }
+        $local:DirectoryAssetProperties.Domains = @($local:Domain)
+    }
+
     Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
     $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -UseDefault)
@@ -875,7 +883,8 @@ function New-SafeguardAsset
         NetworkAddress = "$NetworkAddress";
         PlatformId = $local:PlatformId;
         AssetPartitionId = $AssetPartitionId;
-        ConnectionProperties = $local:ConnectionProperties
+        ConnectionProperties = $local:ConnectionProperties;
+        DirectoryAssetProperties = $local:DirectoryAssetProperties
     }
 
     $local:NewAsset = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
