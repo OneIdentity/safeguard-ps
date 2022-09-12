@@ -865,6 +865,14 @@ function New-SafeguardAsset
         }
     }
 
+    $local:DirectoryAssetProperties = @{ }
+    if ($PSBoundParameters.ContainsKey("ServiceAccountDomainName"))
+    { 
+        $local:DirectoryAssetProperties.DomainName = $ServiceAccountDomainName
+        $local:Domain = @{ DomainName =  $ServiceAccountDomainName }
+        $local:DirectoryAssetProperties.Domains = @($local:Domain)
+    }
+
     Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
     $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -UseDefault)
@@ -875,7 +883,8 @@ function New-SafeguardAsset
         NetworkAddress = "$NetworkAddress";
         PlatformId = $local:PlatformId;
         AssetPartitionId = $AssetPartitionId;
-        ConnectionProperties = $local:ConnectionProperties
+        ConnectionProperties = $local:ConnectionProperties;
+        DirectoryAssetProperties = $local:DirectoryAssetProperties
     }
 
     $local:NewAsset = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
@@ -2226,12 +2235,16 @@ Creates a template file containing the headers for importing assets. Specify the
 
 Default Columns
 
--DisplayName : A string containing the display name for this asset. Optional, unlessNetworkAddress is an IP address rather than a DNS name.
+-DisplayName : A string containing the display name for this asset. Optional, unless NetworkAddress is an IP address rather than a DNS name.
 
 -Platform : A platform ID for a specific platform type or a string to search for desired platform type.
+            For more information on Platforms run Get-SafeguardPlatform -Fields ID,PlatformType,DisplayName
 
 .PARAMETER Path
-A string containing the path of the template file. 
+A string containing the path of the template file.
+
+.PARAMETER All
+Adds all headers to the template file.
 
 .PARAMETER Description
 Adds the Description header to the template file. 
@@ -2294,47 +2307,49 @@ New-SafeguardAssetImportTemplate 'C:\tmp\template.csv' -DisplayName -Description
 #>
 function New-SafeguardAssetImportTemplate
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Specific")]
     Param(
         [Parameter(Mandatory=$false, Position=0)]
         [string]$Path = '.\SafeguardAssetImportTemplate.csv',
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="All")]
+        [switch]$All,
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$Description,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$AssetPartition,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$NetworkAddress,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$Port,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$ServiceAccountDomainName,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$ServiceAccountName,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$ServiceAccountPassword,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$ServiceAccountCredentialType,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$ServiceAccountSecretKey,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$ServiceAccountDistinguishedName,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$PrivilegeElevationCommand
     )
 
     $local:Headers = '"DisplayName","Platform"'
 
-    if ($PSBoundParameters.ContainsKey("Description")) { $local:Headers = $local:Headers + ',"Description"' }
-    if ($PSBoundParameters.ContainsKey("AssetPartition")) { $local:Headers = $local:Headers + ',"AssetPartition"' }
-    if ($PSBoundParameters.ContainsKey("NetworkAddress")) { $local:Headers = $local:Headers + ',"NetworkAddress"' }
-    if ($PSBoundParameters.ContainsKey("Port")) { $local:Headers = $local:Headers + ',"Port"' }
-    if ($PSBoundParameters.ContainsKey("ServiceAccountDomainName")) { $local:Headers = $local:Headers + ',"ServiceAccountDomainName"' }
-    if ($PSBoundParameters.ContainsKey("ServiceAccountName")) { $local:Headers = $local:Headers + ',"ServiceAccountName"' }
-    if ($PSBoundParameters.ContainsKey("ServiceAccountPassword")) { $local:Headers = $local:Headers + ',"ServiceAccountPassword"' }
-    if ($PSBoundParameters.ContainsKey("ServiceAccountCredentialType")) { $local:Headers = $local:Headers + ',"ServiceAccountCredentialType"' }
-    if ($PSBoundParameters.ContainsKey("ServiceAccountSecretKey")) { $local:Headers = $local:Headers + ',"ServiceAccountSecretKey"' }
-    if ($PSBoundParameters.ContainsKey("ServiceAccountDistinguishedName")) { $local:Headers = $local:Headers + ',"ServiceAccountDistinguishedName"' }
-    if ($PSBoundParameters.ContainsKey("PrivilegeElevationCommand")) { $local:Headers = $local:Headers + ',"PrivilegeElevationCommand"' }
+    if ($PSBoundParameters.ContainsKey("Description") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"Description"' }
+    if ($PSBoundParameters.ContainsKey("AssetPartition") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"AssetPartition"' }
+    if ($PSBoundParameters.ContainsKey("NetworkAddress") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"NetworkAddress"' }
+    if ($PSBoundParameters.ContainsKey("Port") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"Port"' }
+    if ($PSBoundParameters.ContainsKey("ServiceAccountDomainName") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"ServiceAccountDomainName"' }
+    if ($PSBoundParameters.ContainsKey("ServiceAccountName") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"ServiceAccountName"' }
+    if ($PSBoundParameters.ContainsKey("ServiceAccountPassword") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"ServiceAccountPassword"' }
+    if ($PSBoundParameters.ContainsKey("ServiceAccountCredentialType") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"ServiceAccountCredentialType"' }
+    if ($PSBoundParameters.ContainsKey("ServiceAccountSecretKey") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"ServiceAccountSecretKey"' }
+    if ($PSBoundParameters.ContainsKey("ServiceAccountDistinguishedName") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"ServiceAccountDistinguishedName"' }
+    if ($PSBoundParameters.ContainsKey("PrivilegeElevationCommand") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"PrivilegeElevationCommand"' }
 
     Set-Content -Path $Path -Value $local:Headers -Force
 }
@@ -2388,6 +2403,11 @@ function Import-SafeguardAsset
 	}
 
     $local:Assets = Import-Csv -Path $Path
+    $local:AssetsCount = 1;
+    if($null -ne $local:Assets.Count) 
+    {
+        $local:AssetsCount = $local:Assets.Count
+    }
 
     $local:FailedImports = New-Object System.Collections.ArrayList
 
@@ -2407,32 +2427,32 @@ function Import-SafeguardAsset
                 NoSshHostKeyDiscovery = $true
             }
 
-            if($null -ne $local:Asset.Description) 
+            if(![string]::IsNullOrEmpty($local:Asset.Description)) 
             {
                 $local:Args.Add("Description", $local:Asset.Description)
             }
 
-            if($null -ne $local:Asset.AssetPartition) 
+            if(![string]::IsNullOrEmpty($local:Asset.AssetPartition)) 
             {
                 $local:Args.Add("AssetPartition", $local:Asset.AssetPartition)
             }
 
-            if($null -ne $local:Asset.NetworkAddress) 
+            if(![string]::IsNullOrEmpty($local:Asset.NetworkAddress)) 
             {
                 $local:Args.Add("NetworkAddress", $local:Asset.NetworkAddress)
             }
 
-            if($null -ne $local:Asset.Port) 
+            if(![string]::IsNullOrEmpty($local:Asset.Port)) 
             {
                 $local:Args.Add("Port", $local:Asset.Port)
             }
 
-            if($null -ne $local:Asset.ServiceAccountDomainName) 
+            if(![string]::IsNullOrEmpty($local:Asset.ServiceAccountDomainName)) 
             {
                 $local:Args.Add("ServiceAccountDomainName", $local:Asset.ServiceAccountDomainName)
             }
 
-            if($null -ne $local:Asset.ServiceAccountName) 
+            if(![string]::IsNullOrEmpty($local:Asset.ServiceAccountName)) 
             {
                 $local:Args.Add("ServiceAccountName", $local:Asset.ServiceAccountName)
             }
@@ -2443,22 +2463,22 @@ function Import-SafeguardAsset
                 $local:Args.Add("ServiceAccountPassword", $local:SecureServiceAccountPassword)
             }
 
-            if($null -ne $local:Asset.ServiceAccountCredentialType) 
+            if(![string]::IsNullOrEmpty($local:Asset.ServiceAccountCredentialType)) 
             {
                 $local:Args.Add("ServiceAccountCredentialType", $local:Asset.ServiceAccountCredentialType)
             }
 
-            if($null -ne $local:Asset.ServiceAccountSecretKey) 
+            if(![string]::IsNullOrEmpty($local:Asset.ServiceAccountSecretKey)) 
             {
                 $local:Args.Add("ServiceAccountSecretKey", $local:Asset.ServiceAccountSecretKey)
             }
 
-            if($null -ne $local:Asset.ServiceAccountDistinguishedName) 
+            if(![string]::IsNullOrEmpty($local:Asset.ServiceAccountDistinguishedName)) 
             {
                 $local:Args.Add("ServiceAccountDistinguishedName", $local:Asset.ServiceAccountDistinguishedName)
             }
 
-            if($null -ne $local:Asset.PrivilegeElevationCommand) 
+            if(![string]::IsNullOrEmpty($local:Asset.PrivilegeElevationCommand)) 
             {
                 $local:Args.Add("PrivilegeElevationCommand", $local:Asset.PrivilegeElevationCommand)
             }
@@ -2478,11 +2498,11 @@ function Import-SafeguardAsset
             $local:FailedImports.Add($local:Asset)
         }
         
-        Write-Progress -Activity "Importing Assets ..." -PercentComplete (($local:CurrAsset/$local:Assets.Count)*100)
+        Write-Progress -Activity "Importing Assets ..." -PercentComplete (($local:CurrAsset/$local:AssetsCount)*100)
         $local:CurrAsset++
     }
 
-    Write-Host ($local:Assets.Count - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
+    Write-Host ($local:AssetsCount - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
     
     if ($local:FailedImports.Count -gt 0) 
     {
@@ -2506,6 +2526,9 @@ Default Columns
 
 .PARAMETER Path
 A string containing the path of the template file.
+
+.PARAMETER All
+Adds all headers to the template file.
 
 .PARAMETER Description
 Adds the Description header to the template file. 
@@ -2539,26 +2562,28 @@ New-SafeguardAssetAccountImportTemplate 'C:\tmp\template.csv' -Description -Asse
 #>
 function New-SafeguardAssetAccountImportTemplate
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Specific")]
     Param(
         [Parameter(Mandatory=$false, Position=0)]
         [string]$Path = '.\SafeguardAssetAccountImportTemplate.csv',
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="All")]
+        [switch]$All,
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$Description,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$AssetPartition,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$DomainName,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$DistinguishedName
     )
 
     $local:Headers = '"ParentAsset","NewAccountName"'
 
-    if ($PSBoundParameters.ContainsKey("Description")) { $local:Headers = $local:Headers + ',"Description"' }
-    if ($PSBoundParameters.ContainsKey("AssetPartition")) { $local:Headers = $local:Headers + ',"AssetPartition"' }
-    if ($PSBoundParameters.ContainsKey("DomainName")) { $local:Headers = $local:Headers + ',"DomainName"' }
-    if ($PSBoundParameters.ContainsKey("DistinguishedName")) { $local:Headers = $local:Headers + ',"DistinguishedName"' }
+    if ($PSBoundParameters.ContainsKey("Description") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"Description"' }
+    if ($PSBoundParameters.ContainsKey("AssetPartition") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"AssetPartition"' }
+    if ($PSBoundParameters.ContainsKey("DomainName") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"DomainName"' }
+    if ($PSBoundParameters.ContainsKey("DistinguishedName") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"DistinguishedName"' }
 
     Set-Content -Path $Path -Value $local:Headers -Force
 }
@@ -2612,6 +2637,11 @@ function Import-SafeguardAssetAccount
 	}
 
     $local:Accounts = Import-Csv -Path $Path
+    $local:AccountsCount = 1;
+    if($null -ne $local:Accounts.Count) 
+    {
+        $local:AccountsCount = $local:Accounts.Count
+    }
 
     $local:FailedImports = New-Object System.Collections.ArrayList
 
@@ -2630,22 +2660,22 @@ function Import-SafeguardAssetAccount
                 NewAccountName = $local:Account.NewAccountName
             }
 
-            if($null -ne $local:Account.Description) 
+            if(![string]::IsNullOrEmpty($local:Account.Description)) 
             {
                 $local:Args.Add("Description", $local:Account.Description)
             }
 
-            if($null -ne $local:Account.AssetPartition) 
+            if(![string]::IsNullOrEmpty($local:Account.AssetPartition)) 
             {
                 $local:Args.Add("AssetPartition", $local:Account.AssetPartition)
             }
 
-            if($null -ne $local:Account.DomainName) 
+            if(![string]::IsNullOrEmpty($local:Account.DomainName)) 
             {
                 $local:Args.Add("DomainName", $local:Account.DomainName)
             }
             
-            if($null -ne $local:Account.DistinguishedName) 
+            if(![string]::IsNullOrEmpty($local:Account.DistinguishedName)) 
             {
                 $local:Args.Add("DistinguishedName", $local:Account.DistinguishedName)
             }
@@ -2665,11 +2695,11 @@ function Import-SafeguardAssetAccount
             $local:FailedImports.Add($local:Account)
         }
         
-        Write-Progress -Activity "Importing Asset Accounts ..." -PercentComplete (($local:CurrAccount/$local:Accounts.Count)*100)
+        Write-Progress -Activity "Importing Asset Accounts ..." -PercentComplete (($local:CurrAccount/$local:AccountsCount)*100)
         $local:CurrAccount++
     }
 
-    Write-Host ($local:Accounts.Count - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
+    Write-Host ($local:AccountsCount - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
     
     if ($local:FailedImports.Count -gt 0) 
     {
@@ -2773,6 +2803,11 @@ function Import-SafeguardAssetAccountPassword
 	}
 
     $local:Passwords = Import-Csv -Path $Path
+    $local:PasswordsCount = 1;
+    if($null -ne $local:Passwords.Count) 
+    {
+        $local:PasswordsCount = $local:Passwords.Count
+    }
 
     $local:FailedImports = New-Object System.Collections.ArrayList
 
@@ -2813,11 +2848,11 @@ function Import-SafeguardAssetAccountPassword
             $local:FailedImports.Add($local:Password)
         }
         
-        Write-Progress -Activity "Importing Asset Account Passwords ..." -PercentComplete (($local:CurrPassword/$local:Passwords.Count)*100)
+        Write-Progress -Activity "Importing Asset Account Passwords ..." -PercentComplete (($local:CurrPassword/$local:PasswordsCount)*100)
         $local:CurrPassword++
     }
 
-    Write-Host ($local:Passwords.Count - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
+    Write-Host ($local:PasswordsCount - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
     
     if ($local:FailedImports.Count -gt 0) 
     {
@@ -2929,6 +2964,11 @@ function Import-SafeguardAssetAccountSshKey
 	}
 
     $local:SshKeys = Import-Csv -Path $Path
+    $local:SshKeysCount = 1;
+    if($null -ne $local:SshKeys.Count) 
+    {
+        $local:SshKeysCount = $local:SshKeys.Count
+    }
 
     $local:FailedImports = New-Object System.Collections.ArrayList
 
@@ -2971,11 +3011,11 @@ function Import-SafeguardAssetAccountSshKey
             $local:FailedImports.Add($local:SshKey)
         }
         
-        Write-Progress -Activity "Importing Asset Account SSH Keys ..." -PercentComplete (($local:CurrSshKey/$local:SshKeys.Count)*100)
+        Write-Progress -Activity "Importing Asset Account SSH Keys ..." -PercentComplete (($local:CurrSshKey/$local:SshKeysCount)*100)
         $local:CurrSshKey++
     }
 
-    Write-Host ($local:SshKeys.Count - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
+    Write-Host ($local:SshKeysCount - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
     
     if ($local:FailedImports.Count -gt 0) 
     {

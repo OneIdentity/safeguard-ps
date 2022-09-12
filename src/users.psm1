@@ -1547,6 +1547,9 @@ Default Columns
 .PARAMETER Path
 A string containing the path of the template file.
 
+.PARAMETER All
+Adds all headers to the template file.
+
 .PARAMETER FirstName
 Adds the FirstName header to the template file. 
 Value - A string containing the first name of the user.  Combined with last name to form a user's DisplayName.
@@ -1604,44 +1607,46 @@ New-SafeguardUserImportTemplate 'C:\tmp\template.csv' -FirstName -LastName -Desc
 #>
 function New-SafeguardUserImportTemplate
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Specific")]
     Param(
         [Parameter(Mandatory=$false, Position=0)]
         [string]$Path = '.\SafeguardUserImportTemplate.csv',
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="All")]
+        [switch]$All,
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$FirstName,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$LastName,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$Description,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$DomainName,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$EmailAddress,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$WorkPhone,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$MobilePhone,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$AdminRoles,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$Password,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$Thumbprint
     )
 
     $local:Headers = '"Provider","NewUserName"'
 
-    if ($PSBoundParameters.ContainsKey("FirstName")) { $local:Headers = $local:Headers + ',"FirstName"' }
-    if ($PSBoundParameters.ContainsKey("LastName")) { $local:Headers = $local:Headers + ',"LastName"' }
-    if ($PSBoundParameters.ContainsKey("Description")) { $local:Headers = $local:Headers + ',"Description"' }
-    if ($PSBoundParameters.ContainsKey("DomainName")) { $local:Headers = $local:Headers + ',"DomainName"' }
-    if ($PSBoundParameters.ContainsKey("EmailAddress")) { $local:Headers = $local:Headers + ',"EmailAddress"' }
-    if ($PSBoundParameters.ContainsKey("WorkPhone")) { $local:Headers = $local:Headers + ',"WorkPhone"' }
-    if ($PSBoundParameters.ContainsKey("MobilePhone")) { $local:Headers = $local:Headers + ',"MobilePhone"' }
-    if ($PSBoundParameters.ContainsKey("AdminRoles")) { $local:Headers = $local:Headers + ',"AdminRoles"' }
-    if ($PSBoundParameters.ContainsKey("Password")) { $local:Headers = $local:Headers + ',"Password"' }
-    if ($PSBoundParameters.ContainsKey("Thumbprint")) { $local:Headers = $local:Headers + ',"Thumbprint"' }
+    if ($PSBoundParameters.ContainsKey("FirstName") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"FirstName"' }
+    if ($PSBoundParameters.ContainsKey("LastName") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"LastName"' }
+    if ($PSBoundParameters.ContainsKey("Description") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"Description"' }
+    if ($PSBoundParameters.ContainsKey("DomainName") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"DomainName"' }
+    if ($PSBoundParameters.ContainsKey("EmailAddress") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"EmailAddress"' }
+    if ($PSBoundParameters.ContainsKey("WorkPhone") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"WorkPhone"' }
+    if ($PSBoundParameters.ContainsKey("MobilePhone") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"MobilePhone"' }
+    if ($PSBoundParameters.ContainsKey("AdminRoles") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"AdminRoles"' }
+    if ($PSBoundParameters.ContainsKey("Password") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"Password"' }
+    if ($PSBoundParameters.ContainsKey("Thumbprint") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"Thumbprint"' }
 
     Set-Content -Path $Path -Value $local:Headers -Force
 }
@@ -1695,6 +1700,11 @@ function Import-SafeguardUser
 	}
 
     $local:Users = Import-Csv -Path $Path
+    $local:UsersCount = 1;
+    if($null -ne $local:Users.Count) 
+    {
+        $local:UsersCount = $local:Users.Count
+    }
 
     $local:FailedImports = New-Object System.Collections.ArrayList
 
@@ -1713,53 +1723,56 @@ function Import-SafeguardUser
                 NewUserName = $local:User.NewUserName
             }
 
-            if($null -ne $local:User.FirstName) 
+            if(![string]::IsNullOrEmpty($local:User.FirstName)) 
             {
                 $local:Args.Add("FirstName", $local:User.FirstName)
             }
 
-            if($null -ne $local:User.LastName) 
+            if(![string]::IsNullOrEmpty($local:User.LastName)) 
             {
                 $local:Args.Add("LastName", $local:User.LastName)
             }
 
-            if($null -ne $local:User.Description) 
+            if(![string]::IsNullOrEmpty($local:User.Description))
             {
                 $local:Args.Add("Description", $local:User.Description)
             }
 
-            if($null -ne $local:User.DomainName) 
+            if(![string]::IsNullOrEmpty($local:User.DomainName))
             {
                 $local:Args.Add("DomainName", $local:User.DomainName)
             }
 
-            if($null -ne $local:User.EmailAddress) 
+            if(![string]::IsNullOrEmpty($local:User.EmailAddress))
             {
                 $local:Args.Add("EmailAddress", $local:User.EmailAddress)
             }
 
-            if($null -ne $local:User.WorkPhone) 
+            if(![string]::IsNullOrEmpty($local:User.WorkPhone)) 
             {
                 $local:Args.Add("WorkPhone", $local:User.WorkPhone)
             }
 
-            if($null -ne $local:User.MobilePhone) 
+            if(![string]::IsNullOrEmpty($local:User.MobilePhone)) 
             {
                 $local:Args.Add("MobilePhone", $local:User.MobilePhone)
             }
 
-            if($null -ne $local:User.AdminRoles) 
+            if(![string]::IsNullOrEmpty($local:User.AdminRoles)) 
             {
                 $local:Args.Add("AdminRoles", $local:User.AdminRoles)
             }
 
-            if(![string]::IsNullOrEmpty($local:User.Password))
+            if([string]::IsNullOrEmpty($local:User.Password)) {
+                $local:Args.Add("NoPassword", $true)
+            }
+            else
             {
                 $local:SecurePassword = $local:User.Password | ConvertTo-SecureString -AsPlainText -Force
                 $local:Args.Add("Password", $local:SecurePassword)
             }
 
-            if($null -ne $local:User.Thumbprint) 
+            if(![string]::IsNullOrEmpty($local:User.Thumbprint)) 
             {
                 $local:Args.Add("Thumbprint", $local:User.Thumbprint)
             }
@@ -1779,11 +1792,11 @@ function Import-SafeguardUser
             $local:FailedImports.Add($local:User)
         }
         
-        Write-Progress -Activity "Importing Users ..." -PercentComplete (($local:CurrUser/$local:Users.Count)*100)
+        Write-Progress -Activity "Importing Users ..." -PercentComplete (($local:CurrUser/$local:UsersCount)*100)
         $local:CurrUser++
     }
 
-    Write-Host ($local:Users.Count - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
+    Write-Host ($local:UsersCount - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
     
     if ($local:FailedImports.Count -gt 0) 
     {
