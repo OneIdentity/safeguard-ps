@@ -2476,6 +2476,7 @@ function Import-SafeguardAsset
             if(![string]::IsNullOrEmpty($local:Asset.ServiceAccountDistinguishedName)) 
             {
                 $local:Args.Add("ServiceAccountDistinguishedName", $local:Asset.ServiceAccountDistinguishedName)
+                $local:Args.Add("NoSslEncryption", $true)
             }
 
             if(![string]::IsNullOrEmpty($local:Asset.PrivilegeElevationCommand)) 
