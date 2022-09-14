@@ -2288,6 +2288,14 @@ Adds the ServuceAccountDistinguishedName header to the template file.
 Value - A string containing the LDAP distinguished name of a service account.  This is used for
 creating LDAP directories.
 
+.PARAMETER NoSslEncryption
+Adds the NoSslEncryption header to the template file. 
+Value - Do not use SSL encryption for LDAP directory, valid values are true, false, or leave it empty.
+
+.PARAMETER DoNotVerifyServerSslCertificate
+Adds the DoNotVerifyServerSslCertificate header to the template file. 
+Value - Do not verify Server SSL certificate of LDAP directory, valid values are true, false, or leave it empty.
+
 .PARAMETER PrivilegeElevationCommand
 Adds the PrivilegeElevationCommand header to the template file. 
 Value - A string containing the privilege elevation command, ex. sudo.
@@ -2334,6 +2342,10 @@ function New-SafeguardAssetImportTemplate
         [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$ServiceAccountDistinguishedName,
         [Parameter(Mandatory=$false,ParameterSetName="Specific")]
+        [switch]$NoSslEncryption,
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
+        [switch]$DoNotVerifyServerSslCertificate,
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
         [switch]$PrivilegeElevationCommand
     )
 
@@ -2349,6 +2361,8 @@ function New-SafeguardAssetImportTemplate
     if ($PSBoundParameters.ContainsKey("ServiceAccountCredentialType") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"ServiceAccountCredentialType"' }
     if ($PSBoundParameters.ContainsKey("ServiceAccountSecretKey") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"ServiceAccountSecretKey"' }
     if ($PSBoundParameters.ContainsKey("ServiceAccountDistinguishedName") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"ServiceAccountDistinguishedName"' }
+    if ($PSBoundParameters.ContainsKey("NoSslEncryption") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"NoSslEncryption"' }
+    if ($PSBoundParameters.ContainsKey("DoNotVerifyServerSslCertificate") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"DoNotVerifyServerSslCertificate"' }
     if ($PSBoundParameters.ContainsKey("PrivilegeElevationCommand") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"PrivilegeElevationCommand"' }
 
     Set-Content -Path $Path -Value $local:Headers -Force
@@ -2476,7 +2490,22 @@ function Import-SafeguardAsset
             if(![string]::IsNullOrEmpty($local:Asset.ServiceAccountDistinguishedName)) 
             {
                 $local:Args.Add("ServiceAccountDistinguishedName", $local:Asset.ServiceAccountDistinguishedName)
-                $local:Args.Add("NoSslEncryption", $true)
+            }
+
+            if(![string]::IsNullOrEmpty($local:Asset.NoSslEncryption)) 
+            {
+                if([System.Convert]::ToBoolean($local:Asset.NoSslEncryption))
+                {
+                    $local:Args.Add("NoSslEncryption", $true)
+                }
+            }
+
+            if(![string]::IsNullOrEmpty($local:Asset.DoNotVerifyServerSslCertificate)) 
+            {
+                if([System.Convert]::ToBoolean($local:Asset.DoNotVerifyServerSslCertificate))
+                {
+                    $local:Args.Add("DoNotVerifyServerSslCertificate", $true)
+                }
             }
 
             if(![string]::IsNullOrEmpty($local:Asset.PrivilegeElevationCommand)) 
