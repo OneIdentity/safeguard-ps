@@ -865,6 +865,14 @@ function New-SafeguardAsset
         }
     }
 
+    $local:DirectoryAssetProperties = @{ }
+    if ($PSBoundParameters.ContainsKey("ServiceAccountDomainName"))
+    { 
+        $local:DirectoryAssetProperties.DomainName = $ServiceAccountDomainName
+        $local:Domain = @{ DomainName =  $ServiceAccountDomainName }
+        $local:DirectoryAssetProperties.Domains = @($local:Domain)
+    }
+
     Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
     $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -UseDefault)
@@ -875,7 +883,8 @@ function New-SafeguardAsset
         NetworkAddress = "$NetworkAddress";
         PlatformId = $local:PlatformId;
         AssetPartitionId = $AssetPartitionId;
-        ConnectionProperties = $local:ConnectionProperties
+        ConnectionProperties = $local:ConnectionProperties;
+        DirectoryAssetProperties = $local:DirectoryAssetProperties
     }
 
     $local:NewAsset = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
@@ -2125,4 +2134,922 @@ function Remove-SafeguardAssetAccount
     $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToUse -Account $AccountToDelete)
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "AssetAccounts/$($local:AccountId)"
+}
+
+<#
+.SYNOPSIS
+Set account SSH Key inside Safeguard for assets under management via the Web API.
+
+.DESCRIPTION
+Set the SSH Key in Safeguard for an account on an asset under management.  This
+just modifies what is stored in Safeguard.  It does not change the actual SSH Key
+of the account.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to set the asset account SSH Key in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to set the asset account SSH Key in.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER AssetToSet
+An integer containing the ID of the asset to set account SSH Key on or a string containing the name.
+
+.PARAMETER AccountToSet
+An integer containing the ID of the account to set SSH Key on or a string containing the name.
+
+.PARAMETER Passphrase
+A SecureString containing the passphrase used to decrypt the private key.
+
+.PARAMETER PrivateKey
+A SecureString containing the SSH Key to assign to the account.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Set-SafeguardAssetAccountSshKey -AccessToken $token -Appliance 10.5.32.54 -Insecure windows.blah.corp administrator
+
+.EXAMPLE
+Set-SafeguardAssetAccountSshKey -AccountToSet oracle -NewSshKey $sshkey
+#>
+function Set-SafeguardAssetAccountSshKey
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true)]
+        [object]$AssetToSet,
+        [Parameter(Mandatory=$true)]
+        [object]$AccountToSet,
+        [Parameter(Mandatory=$false)]
+        [string]$Passphrase,
+        [Parameter(Mandatory=$true)]
+        [string]$PrivateKey
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                           -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToSet -Account $AccountToSet)
+
+    $local:Body = @{
+        "Passphrase" = $Passphrase
+        "PrivateKey" = $PrivateKey
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AssetAccounts/$($local:AccountId)/SshKey" `
+        -Parameters @{ keyFormat="OpenSsh" } -Body $local:Body
+}
+
+
+<#
+.SYNOPSIS
+Creates a template file containing the headers for importing assets.
+
+.DESCRIPTION
+Creates a template file containing the headers for importing assets. Specify the optional columns with parameters.
+
+Default Columns
+
+-DisplayName : A string containing the display name for this asset. Optional, unless NetworkAddress is an IP address rather than a DNS name.
+
+-Platform : A platform ID for a specific platform type or a string to search for desired platform type.
+            For more information on Platforms run Get-SafeguardPlatform -Fields ID,PlatformType,DisplayName
+
+.PARAMETER Path
+A string containing the path of the template file.
+
+.PARAMETER All
+Adds all headers to the template file.
+
+.PARAMETER Description
+Adds the Description header to the template file. 
+Value - A string containing a description for this asset.
+
+.PARAMETER AssetPartition
+Adds the AssetPartition header to the template file. 
+Value - An integer containing an ID  or a string containing the name of the asset partition
+where this asset should be created.
+
+.PARAMETER NetworkAddress
+Adds the NetworkAddress header to the template file. 
+Value - A string containing the network address for this asset.
+
+.PARAMETER Port
+Adds the Port header to the template file. 
+Value - An integer containing the port for this asset.
+
+.PARAMETER ServiceAccountDomainName
+Adds the ServiceAccountDomainName header to the template file. 
+Value - A string containing the service account domain name if it has one.
+
+.PARAMETER ServiceAccountName
+Adds the ServiceAccountName header to the template file. 
+Value - A string containing the service account name.
+
+.PARAMETER ServiceAccountPassword
+Adds the ServiceAccountPassword header to the template file. 
+Value - A string containing the password to use for the service account.
+
+.PARAMETER ServiceAccountCredentialType
+Adds the ServiceAccountCredentialType header to the template file. 
+Value - Type of credential to use to authenticate the asset.
+
+.PARAMETER ServiceAccountSecretKey
+Adds the ServiceAccountSecretKey header to the template file. 
+Value - A string containing an API access key for the service account.
+
+.PARAMETER ServiceAccountDistinguishedName
+Adds the ServuceAccountDistinguishedName header to the template file. 
+Value - A string containing the LDAP distinguished name of a service account.  This is used for
+creating LDAP directories.
+
+.PARAMETER NoSslEncryption
+Adds the NoSslEncryption header to the template file. 
+Value - Do not use SSL encryption for LDAP directory, valid values are true, false, or leave it empty.
+
+.PARAMETER DoNotVerifyServerSslCertificate
+Adds the DoNotVerifyServerSslCertificate header to the template file. 
+Value - Do not verify Server SSL certificate of LDAP directory, valid values are true, false, or leave it empty.
+
+.PARAMETER PrivilegeElevationCommand
+Adds the PrivilegeElevationCommand header to the template file. 
+Value - A string containing the privilege elevation command, ex. sudo.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file with the headers.
+
+.EXAMPLE
+New-SafeguardAssetImportTemplate -DisplayName -Description -AssetPartition
+
+.EXAMPLE
+New-SafeguardAssetImportTemplate 'C:\tmp\template.csv' -DisplayName -Description -AssetPartition
+
+#>
+function New-SafeguardAssetImportTemplate
+{
+    [CmdletBinding(DefaultParameterSetName="Specific")]
+    Param(
+        [Parameter(Mandatory=$false, Position=0)]
+        [string]$Path = '.\SafeguardAssetImportTemplate.csv',
+        [Parameter(Mandatory=$false,ParameterSetName="All")]
+        [switch]$All,
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
+        [switch]$Description,
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
+        [switch]$AssetPartition,
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
+        [switch]$NetworkAddress,
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
+        [switch]$Port,
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
+        [switch]$ServiceAccountDomainName,
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
+        [switch]$ServiceAccountName,
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
+        [switch]$ServiceAccountPassword,
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
+        [switch]$ServiceAccountCredentialType,
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
+        [switch]$ServiceAccountSecretKey,
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
+        [switch]$ServiceAccountDistinguishedName,
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
+        [switch]$NoSslEncryption,
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
+        [switch]$DoNotVerifyServerSslCertificate,
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
+        [switch]$PrivilegeElevationCommand
+    )
+
+    $local:Headers = '"DisplayName","Platform"'
+
+    if ($PSBoundParameters.ContainsKey("Description") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"Description"' }
+    if ($PSBoundParameters.ContainsKey("AssetPartition") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"AssetPartition"' }
+    if ($PSBoundParameters.ContainsKey("NetworkAddress") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"NetworkAddress"' }
+    if ($PSBoundParameters.ContainsKey("Port") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"Port"' }
+    if ($PSBoundParameters.ContainsKey("ServiceAccountDomainName") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"ServiceAccountDomainName"' }
+    if ($PSBoundParameters.ContainsKey("ServiceAccountName") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"ServiceAccountName"' }
+    if ($PSBoundParameters.ContainsKey("ServiceAccountPassword") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"ServiceAccountPassword"' }
+    if ($PSBoundParameters.ContainsKey("ServiceAccountCredentialType") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"ServiceAccountCredentialType"' }
+    if ($PSBoundParameters.ContainsKey("ServiceAccountSecretKey") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"ServiceAccountSecretKey"' }
+    if ($PSBoundParameters.ContainsKey("ServiceAccountDistinguishedName") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"ServiceAccountDistinguishedName"' }
+    if ($PSBoundParameters.ContainsKey("NoSslEncryption") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"NoSslEncryption"' }
+    if ($PSBoundParameters.ContainsKey("DoNotVerifyServerSslCertificate") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"DoNotVerifyServerSslCertificate"' }
+    if ($PSBoundParameters.ContainsKey("PrivilegeElevationCommand") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"PrivilegeElevationCommand"' }
+
+    Set-Content -Path $Path -Value $local:Headers -Force
+}
+
+<#
+.SYNOPSIS
+Imports safeguard assets.
+
+.DESCRIPTION
+Imports assets into safeguard from a csv file.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Path
+Specifies the path to the CSV file to import.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file with any imports that failed.  If there are no failures no output file will be generated.
+
+.EXAMPLE
+Import-SafeguardAsset -Path '<path to csv file>'
+
+#>
+function Import-SafeguardAsset
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]$Path
+    )
+
+	# Intercept Read-Host and return an empty string
+	function Read-Host {
+		return ""
+	}
+
+    $local:Assets = Import-Csv -Path $Path
+    $local:AssetsCount = 1;
+    if($null -ne $local:Assets.Count) 
+    {
+        $local:AssetsCount = $local:Assets.Count
+    }
+
+    $local:FailedImports = New-Object System.Collections.ArrayList
+
+    Write-Progress -Activity "Importing Assets ..." -PercentComplete 0
+
+    $local:CurrAsset = 1;
+    foreach($local:Asset in $local:Assets)
+    {
+        try 
+        {
+            $local:Args = @{
+                AccessToken = $AccessToken
+                Appliance = $Appliance
+                Insecure = $true
+                DisplayName = $local:Asset.DisplayName
+                Platform = $local:Asset.Platform
+                NoSshHostKeyDiscovery = $true
+            }
+
+            if(![string]::IsNullOrEmpty($local:Asset.Description)) 
+            {
+                $local:Args.Add("Description", $local:Asset.Description)
+            }
+
+            if(![string]::IsNullOrEmpty($local:Asset.AssetPartition)) 
+            {
+                $local:Args.Add("AssetPartition", $local:Asset.AssetPartition)
+            }
+
+            if(![string]::IsNullOrEmpty($local:Asset.NetworkAddress)) 
+            {
+                $local:Args.Add("NetworkAddress", $local:Asset.NetworkAddress)
+            }
+
+            if(![string]::IsNullOrEmpty($local:Asset.Port)) 
+            {
+                $local:Args.Add("Port", $local:Asset.Port)
+            }
+
+            if(![string]::IsNullOrEmpty($local:Asset.ServiceAccountDomainName)) 
+            {
+                $local:Args.Add("ServiceAccountDomainName", $local:Asset.ServiceAccountDomainName)
+            }
+
+            if(![string]::IsNullOrEmpty($local:Asset.ServiceAccountName)) 
+            {
+                $local:Args.Add("ServiceAccountName", $local:Asset.ServiceAccountName)
+            }
+
+            if(![string]::IsNullOrEmpty($local:Asset.ServiceAccountPassword))
+            {
+                $local:SecureServiceAccountPassword = $local:Asset.ServiceAccountPassword | ConvertTo-SecureString -AsPlainText -Force
+                $local:Args.Add("ServiceAccountPassword", $local:SecureServiceAccountPassword)
+            }
+
+            if(![string]::IsNullOrEmpty($local:Asset.ServiceAccountCredentialType)) 
+            {
+                $local:Args.Add("ServiceAccountCredentialType", $local:Asset.ServiceAccountCredentialType)
+            }
+
+            if(![string]::IsNullOrEmpty($local:Asset.ServiceAccountSecretKey)) 
+            {
+                $local:Args.Add("ServiceAccountSecretKey", $local:Asset.ServiceAccountSecretKey)
+            }
+
+            if(![string]::IsNullOrEmpty($local:Asset.ServiceAccountDistinguishedName)) 
+            {
+                $local:Args.Add("ServiceAccountDistinguishedName", $local:Asset.ServiceAccountDistinguishedName)
+            }
+
+            if(![string]::IsNullOrEmpty($local:Asset.NoSslEncryption)) 
+            {
+                if([System.Convert]::ToBoolean($local:Asset.NoSslEncryption))
+                {
+                    $local:Args.Add("NoSslEncryption", $true)
+                }
+            }
+
+            if(![string]::IsNullOrEmpty($local:Asset.DoNotVerifyServerSslCertificate)) 
+            {
+                if([System.Convert]::ToBoolean($local:Asset.DoNotVerifyServerSslCertificate))
+                {
+                    $local:Args.Add("DoNotVerifyServerSslCertificate", $true)
+                }
+            }
+
+            if(![string]::IsNullOrEmpty($local:Asset.PrivilegeElevationCommand)) 
+            {
+                $local:Args.Add("PrivilegeElevationCommand", $local:Asset.PrivilegeElevationCommand)
+            }
+
+            New-SafeguardAsset @local:Args
+        }
+        catch 
+        {
+            if ($local:Asset.PSobject.Properties.Name -contains "Error")
+            {
+                $local:Asset.Error = $_
+            }
+            else 
+            {
+                $local:Asset | Add-Member -MemberType NoteProperty -Name "Error" -Value  $_
+            }
+            $local:FailedImports.Add($local:Asset)
+        }
+        
+        Write-Progress -Activity "Importing Assets ..." -PercentComplete (($local:CurrAsset/$local:AssetsCount)*100)
+        $local:CurrAsset++
+    }
+
+    Write-Host ($local:AssetsCount - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
+    
+    if ($local:FailedImports.Count -gt 0) 
+    {
+        Write-Host "Please refer to AssetImportResults.csv for more information on failures."
+        $local:FailedImports | Export-Csv -Path ".\AssetImportResults.csv" -NoTypeInformation -Force
+    }
+}
+
+<#
+.SYNOPSIS
+Creates a template file containing the headers for importing assets.
+
+.DESCRIPTION
+Creates a template file containing the headers for importing assets. Specify the optional columns with parameters.
+
+Default Columns
+
+- ParentAsset : An integer containing the ID of the asset to get accounts from or a string containing the name.
+
+- NewAccountName : A string containing the name for the account.
+
+.PARAMETER Path
+A string containing the path of the template file.
+
+.PARAMETER All
+Adds all headers to the template file.
+
+.PARAMETER Description
+Adds the Description header to the template file. 
+Value - A string containing the description for the account.
+
+.PARAMETER DomainName
+Adds the DomainName header to the template file. 
+Value - A string containing the domain name for the account.
+
+.PARAMETER DistinguishedName
+Adds the DistinguishedName header to the template file. 
+Value - A string containing the distinguished name for the account.
+
+.PARAMETER AssetPartition
+Adds the AssetPartition header to the template file. 
+Value - An integer containing an ID or a string containing the name of the asset partition
+to create the new asset account in.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file with the headers.
+
+.EXAMPLE
+New-SafeguardAssetAccountImportTemplate -Description -AssetPartition
+
+.EXAMPLE
+New-SafeguardAssetAccountImportTemplate 'C:\tmp\template.csv' -Description -AssetPartition
+
+#>
+function New-SafeguardAssetAccountImportTemplate
+{
+    [CmdletBinding(DefaultParameterSetName="Specific")]
+    Param(
+        [Parameter(Mandatory=$false, Position=0)]
+        [string]$Path = '.\SafeguardAssetAccountImportTemplate.csv',
+        [Parameter(Mandatory=$false,ParameterSetName="All")]
+        [switch]$All,
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
+        [switch]$Description,
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
+        [switch]$AssetPartition,
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
+        [switch]$DomainName,
+        [Parameter(Mandatory=$false,ParameterSetName="Specific")]
+        [switch]$DistinguishedName
+    )
+
+    $local:Headers = '"ParentAsset","NewAccountName"'
+
+    if ($PSBoundParameters.ContainsKey("Description") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"Description"' }
+    if ($PSBoundParameters.ContainsKey("AssetPartition") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"AssetPartition"' }
+    if ($PSBoundParameters.ContainsKey("DomainName") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"DomainName"' }
+    if ($PSBoundParameters.ContainsKey("DistinguishedName") -or $PSBoundParameters.ContainsKey("All")) { $local:Headers = $local:Headers + ',"DistinguishedName"' }
+
+    Set-Content -Path $Path -Value $local:Headers -Force
+}
+
+<#
+.SYNOPSIS
+Imports safeguard asset accounts.
+
+.DESCRIPTION
+Imports asset accounts into safeguard from a csv file.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Path
+Specifies the path to the CSV file to import.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file with any imports that failed.  If there are no failures no output file will be generated.
+
+.EXAMPLE
+Import-SafeguardAssetAccount -Path '<path to csv file>'
+
+#>
+function Import-SafeguardAssetAccount
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]$Path
+    )
+
+	# Intercept Read-Host and return an empty string
+	function Read-Host {
+		return ""
+	}
+
+    $local:Accounts = Import-Csv -Path $Path
+    $local:AccountsCount = 1;
+    if($null -ne $local:Accounts.Count) 
+    {
+        $local:AccountsCount = $local:Accounts.Count
+    }
+
+    $local:FailedImports = New-Object System.Collections.ArrayList
+
+    Write-Progress -Activity "Importing Accounts ..." -PercentComplete 0
+
+    $local:CurrAccount = 1;
+    foreach($local:Account in $local:Accounts)
+    {
+        try 
+        {
+            $local:Args = @{
+                AccessToken = $AccessToken
+                Appliance = $Appliance
+                Insecure = $true
+                ParentAsset = $local:Account.ParentAsset
+                NewAccountName = $local:Account.NewAccountName
+            }
+
+            if(![string]::IsNullOrEmpty($local:Account.Description)) 
+            {
+                $local:Args.Add("Description", $local:Account.Description)
+            }
+
+            if(![string]::IsNullOrEmpty($local:Account.AssetPartition)) 
+            {
+                $local:Args.Add("AssetPartition", $local:Account.AssetPartition)
+            }
+
+            if(![string]::IsNullOrEmpty($local:Account.DomainName)) 
+            {
+                $local:Args.Add("DomainName", $local:Account.DomainName)
+            }
+            
+            if(![string]::IsNullOrEmpty($local:Account.DistinguishedName)) 
+            {
+                $local:Args.Add("DistinguishedName", $local:Account.DistinguishedName)
+            }
+
+            New-SafeguardAssetAccount @local:Args
+        }
+        catch 
+        {
+            if ($local:Account.PSobject.Properties.Name -contains "Error")
+            {
+                $local:Account.Error = $_
+            }
+            else 
+            {
+                $local:Account | Add-Member -MemberType NoteProperty -Name "Error" -Value  $_
+            }
+            $local:FailedImports.Add($local:Account)
+        }
+        
+        Write-Progress -Activity "Importing Asset Accounts ..." -PercentComplete (($local:CurrAccount/$local:AccountsCount)*100)
+        $local:CurrAccount++
+    }
+
+    Write-Host ($local:AccountsCount - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
+    
+    if ($local:FailedImports.Count -gt 0) 
+    {
+        Write-Host "Please refer to AssetAccountImportResults.csv for more information on failures."
+        $local:FailedImports | Export-Csv -Path ".\AssetAccountImportResults.csv" -NoTypeInformation -Force
+    }
+}
+
+<#
+.SYNOPSIS
+Creates a template file containing the headers for importing assets.
+
+.DESCRIPTION
+Creates a template file containing the headers for importing assets.
+
+Columns
+
+- AssetPartition : An integer containing an ID or a string containing the name of the asset partition to set the asset account password in.
+
+- AssetToSet : An integer containing the ID of the asset to set account password on or a string containing the name.
+
+- AccountToSet : An integer containing the ID of the account to set password on or a string containing the name.
+
+- NewPassword : A string containing the new password to set.
+
+.PARAMETER Path
+A string containing the path of the template file.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file with the headers.
+
+.EXAMPLE
+New-SafeguardAssetAccountPasswordImportTemplate
+
+.EXAMPLE
+New-SafeguardAssetAccountPasswordImportTemplate 'C:\tmp\template.csv'
+
+#>
+function New-SafeguardAssetAccountPasswordImportTemplate
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false, Position=0)]
+        [string]$Path = '.\SafeguardAssetAccountPasswordImportTemplate.csv'
+    )
+
+    $local:Headers = '"AssetPartition","AssetToSet","AccountToSet","NewPassword"'
+
+    Set-Content -Path $Path -Value $local:Headers -Force
+}
+
+<#
+.SYNOPSIS
+Imports safeguard asset account passwords.
+
+.DESCRIPTION
+Imports asset account passwords into safeguard from a csv file.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Path
+Specifies the path to the CSV file to import.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file with any imports that failed.  If there are no failures no output file will be generated.
+
+.EXAMPLE
+Import-SafeguardAssetAccountPassword -Path '<path to csv file>'
+
+#>
+function Import-SafeguardAssetAccountPassword
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]$Path
+    )
+
+	# Intercept Read-Host and return an empty string
+	function Read-Host {
+		return ""
+	}
+
+    $local:Passwords = Import-Csv -Path $Path
+    $local:PasswordsCount = 1;
+    if($null -ne $local:Passwords.Count) 
+    {
+        $local:PasswordsCount = $local:Passwords.Count
+    }
+
+    $local:FailedImports = New-Object System.Collections.ArrayList
+
+    Write-Progress -Activity "Importing Asset Account Passwords ..." -PercentComplete 0
+
+    $local:CurrPassword = 1;
+    foreach($local:Password in $local:Passwords)
+    {
+        try 
+        {
+            $local:Args = @{
+                AccessToken = $AccessToken
+                Appliance = $Appliance
+                Insecure = $true
+                AssetPartition = $local:Password.AssetPartition
+                AssetToSet = $local:Password.AssetToSet
+                AccountToSet = $local:Password.AccountToSet
+            }
+
+            if(![string]::IsNullOrEmpty($local:Password.NewPassword))
+            {
+                $local:NewSecurePassword = $local:Password.NewPassword | ConvertTo-SecureString -AsPlainText -Force
+                $local:Args.Add("NewPassword", $local:NewSecurePassword)
+            }
+        
+            Set-SafeguardAssetAccountPassword @local:Args
+        }
+        catch 
+        {
+            if ($local:Password.PSobject.Properties.Name -contains "Error")
+            {
+                $local:Password.Error = $_
+            }
+            else 
+            {
+                $local:Password | Add-Member -MemberType NoteProperty -Name "Error" -Value  $_
+            }
+            $local:FailedImports.Add($local:Password)
+        }
+        
+        Write-Progress -Activity "Importing Asset Account Passwords ..." -PercentComplete (($local:CurrPassword/$local:PasswordsCount)*100)
+        $local:CurrPassword++
+    }
+
+    Write-Host ($local:PasswordsCount - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
+    
+    if ($local:FailedImports.Count -gt 0) 
+    {
+        Write-Host "Please refer to AssetAccountPasswordImportResults.csv for more information on failures."
+        $local:FailedImports | Export-Csv -Path ".\AssetAccountPasswordImportResults.csv" -NoTypeInformation -Force
+    }
+}
+
+<#
+.SYNOPSIS
+Creates a template file containing the headers for importing assets.
+
+.DESCRIPTION
+Creates a template file containing the headers for importing assets.
+
+Columns
+
+- AssetPartition : An integer containing an ID or a string containing the name of the asset partition to set the asset account password in.
+
+- AssetToSet : An integer containing the ID of the asset to set account password on or a string containing the name.
+
+- AccountToSet : An integer containing the ID of the account to set password on or a string containing the name.
+
+- PrivateKey : A string containing the private key to assign to the account.
+
+.PARAMETER Path
+A string containing the path of the template file.
+
+.PARAMETER Passphrase
+Adds the Passphrase header to the template file. 
+Value - A string containing the passphrase used to decrypt the private key.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file with the headers.
+
+.EXAMPLE
+New-SafeguardAssetAccountSshKeyImportTemplate
+
+.EXAMPLE
+New-SafeguardAssetAccountSshKeyImportTemplate 'C:\tmp\template.csv'
+
+#>
+function New-SafeguardAssetAccountSshKeyImportTemplate
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false, Position=0)]
+        [string]$Path = '.\SafeguardAssetAccountSshKeyImportTemplate.csv',
+        [Parameter(Mandatory=$false)]
+        [switch]$Passphrase
+    )
+
+    $local:Headers = '"AssetPartition","AssetToSet","AccountToSet","PrivateKey"'
+
+    if ($PSBoundParameters.ContainsKey("Passphrase")) { $local:Headers = $local:Headers + ',"Passphrase"' }
+
+    Set-Content -Path $Path -Value $local:Headers -Force
+}
+
+<#
+.SYNOPSIS
+Imports safeguard asset account SSH Keys.
+
+.DESCRIPTION
+Imports asset account SSH Keys into safeguard from a csv file.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Path
+Specifies the path to the CSV file to import.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A CSV file with any imports that failed.  If there are no failures no output file will be generated.
+
+.EXAMPLE
+Import-SafeguardAssetAccountSshKey -Path '<path to csv file>'
+
+#>
+function Import-SafeguardAssetAccountSshKey
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]$Path
+    )
+
+	# Intercept Read-Host and return an empty string
+	function Read-Host {
+		return ""
+	}
+
+    $local:SshKeys = Import-Csv -Path $Path
+    $local:SshKeysCount = 1;
+    if($null -ne $local:SshKeys.Count) 
+    {
+        $local:SshKeysCount = $local:SshKeys.Count
+    }
+
+    $local:FailedImports = New-Object System.Collections.ArrayList
+
+    Write-Progress -Activity "Importing Asset Account SSH Keys ..." -PercentComplete 0
+
+    $local:CurrSshKey = 1;
+    foreach($local:SshKey in $local:SshKeys)
+    {
+        try 
+        {
+            $local:Args = @{
+                AccessToken = $AccessToken
+                Appliance = $Appliance
+                Insecure = $true
+                AssetPartition = $local:SshKey.AssetPartition
+                AssetToSet = $local:SshKey.AssetToSet
+                AccountToSet = $local:SshKey.AccountToSet
+                PrivateKey = $local:SshKey.PrivateKey
+            }
+
+            if(![string]::IsNullOrEmpty($local:SshKey.Passphrase))
+            {
+                $local:NewSecurePassphrase = $local:SshKey.Passphrase | ConvertTo-SecureString -AsPlainText -Force
+                $local:Args.Add("Passphrase", $local:NewSecurePassphrase)
+            }
+
+        
+            Set-SafeguardAssetAccountSshKey @local:Args
+        }
+        catch 
+        {
+            if ($local:SshKey.PSobject.Properties.Name -contains "Error")
+            {
+                $local:SshKey.Error = $_
+            }
+            else 
+            {
+                $local:SshKey | Add-Member -MemberType NoteProperty -Name "Error" -Value  $_
+            }
+            $local:FailedImports.Add($local:SshKey)
+        }
+        
+        Write-Progress -Activity "Importing Asset Account SSH Keys ..." -PercentComplete (($local:CurrSshKey/$local:SshKeysCount)*100)
+        $local:CurrSshKey++
+    }
+
+    Write-Host ($local:SshKeysCount - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
+    
+    if ($local:FailedImports.Count -gt 0) 
+    {
+        Write-Host "Please refer to AssetAccountSshKeyImportResults.csv for more information on failures."
+        $local:FailedImports | Export-Csv -Path ".\AssetAccountSshKeyImportResults.csv" -NoTypeInformation -Force
+    }
 }
