@@ -153,6 +153,7 @@ FunctionsToExport = @(
     'Get-SafeguardSessionClusterAccessRequestBroker','Enable-SafeguardSessionClusterAuditStream',
     'Disable-SafeguardSessionClusterAuditStream','Get-SafeguardSessionClusterAuditStream',
     # sessionapi.psm1
+    'Get-SafeguardSpsWelcomeWizardStatus','Complete-SafeguardSpsWelcomeWizard',
     'Connect-SafeguardSps','Disconnect-SafeguardSps','Invoke-SafeguardSpsMethod',
     'Open-SafeguardSpsTransaction','Close-SafeguardSpsTransaction','Get-SafeguardSpsTransaction','Clear-SafeguardSpsTransaction',
     'Show-SafeguardSpsTransactionChange','Show-SafeguardSpsEndpoint','Invoke-SafeguardSpsStarlingJoinBrowser',

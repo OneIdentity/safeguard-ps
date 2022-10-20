@@ -168,6 +168,280 @@ function Invoke-SpsInternal
     }
 }
 
+<#
+.SYNOPSIS
+Get the welcome wizard status for a newly deployed SPS.
+
+.DESCRIPTION
+When SPS first deploys it boots with a DHCP address and needs to be initialized for
+secure use.  In the UI, an administrator can go through the welcome wizard experience
+to provide the necessary information.  This cmdlet provides a method to determine
+whether the welcome wizard has been completed or not.
+
+.PARAMETER Appliance
+DHCP address of newly deployed Safeguard SPS appliance.
+
+.INPUTS
+None.
+
+.OUTPUTS
+None
+
+.EXAMPLE
+Get-SafeguardSpsWelcomeWizardStatus -Appliance 10.5.37.96
+
+#>
+function Get-SafeguardSpsWelcomeWizardStatus
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    (Invoke-RestMethod -Method GET -Headers @{'Accept' = 'application/json'} -Uri "https://$($Appliance)/api/setup" -SkipCertificateCheck).status
+}
+
+<#
+.SYNOPSIS
+Complete the welcome wizard on a newly deployed SPS so that you can begin using it
+via the UI or API.
+
+.DESCRIPTION
+When SPS first deploys it boots with a DHCP address and needs to be initialized for
+secure use.  In the UI, an administrator can go through the welcome wizard experience
+to provide the necessary information.  This cmdlet provides a programmatic interface
+to complete the same task.
+
+.PARAMETER Appliance
+DHCP address of newly deployed Safeguard SPS appliance.
+
+.PARAMETER LicenseFile
+A string containing the path to a Safeguard license file.
+
+.PARAMETER RootPassword
+A secure string containing the desired root password.  Default: <will prompt>.
+
+.PARAMETER AdminPassword
+A secure string containing the desired admin password.  Default: <will prompt>.
+
+.PARAMETER CaCertificateFile
+A string containing the path to a CA certificate file in PEM format.
+
+.PARAMETER WebServerCertificateFile
+A string containing the path to a web server certificate file in PEM format.
+
+.PARAMETER WebServerPrivateKeyFile
+A string containing the path to a web server private key file in PEM format.
+
+.PARAMETER TimeStampingCertificateFile
+A string containing the path to a timestamp authority certificate file in PEM format.
+
+.PARAMETER TimeStampingPrivateKeyFile
+A string containing the path to a timestamp authority private key file in PEM format.
+
+.PARAMETER HostName
+A string containing the desired hostname for SPS.
+
+.PARAMETER DomainName
+A string containing the desired DNS suffix for SPS.
+
+.PARAMETER IpAddressWithNetMask
+A string containing the desired IP address for SPS with netmask in CIDR format.
+
+.PARAMETER Gateway
+A string containing the desired gateway IP address for SPS.
+
+.PARAMETER PrimaryDns
+A string containing the desired primary DNS server IP address for SPS.
+
+.PARAMETER SmtpServer
+A string containing the desired SMTP server.
+
+.PARAMETER AdminEmail
+A string containing the administrator's email.
+
+.PARAMETER TimeZone
+A string containing the IANA time zone for SPS.
+
+.PARAMETER PrimaryNtpServer
+A string containing the desired primary NTP server.
+
+.PARAMETER Timeout
+A timeout value in seconds to wait for SPS to complete (default: 600 seconds or 10 minutes).
+
+.INPUTS
+None.
+
+.OUTPUTS
+None
+
+.EXAMPLE
+Complete-SafeguardSpsWelcomeWizard -Appliance 10.5.37.96 -LicenseFile License.txt -CaCertificateFile CA.cert.pem -WebServerCertificateFile server.cert.pem -WebServerPrivateKeyFile server.key.pem -TimeStampingCertificateFile TSA.cert.pem -TimeStampingPrivateKeyFile TSA.key.pem -HostName sps -DomainName example.corp -IpAddressWithNetMask 10.5.32.205/24 -Gateway 10.5.32.1 -PrimaryDns 10.5.32.37 -SmtpServer mail.example.corp -AdminEmail admin@example.corp -TimeZone "America/Denver" -PrimaryNtpServer time.windows.com
+
+#>
+function Complete-SafeguardSpsWelcomeWizard
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$true)]
+        [string]$LicenseFile,
+        [Parameter(Mandatory=$false)]
+        [SecureString]$RootPassword,
+        [Parameter(Mandatory=$false)]
+        [SecureString]$AdminPassword,
+        [Parameter(Mandatory=$true)]
+        [string]$CaCertificateFile,
+        [Parameter(Mandatory=$true)]
+        [string]$WebServerCertificateFile,
+        [Parameter(Mandatory=$true)]
+        [string]$WebServerPrivateKeyFile,
+        [Parameter(Mandatory=$true)]
+        [string]$TimeStampingCertificateFile,
+        [Parameter(Mandatory=$true)]
+        [string]$TimeStampingPrivateKeyFile,
+        [Parameter(Mandatory=$true)]
+        [string]$HostName,
+        [Parameter(Mandatory=$true)]
+        [string]$DomainName,
+        [Parameter(Mandatory=$true)]
+        [string]$IpAddressWithNetMask,
+        [Parameter(Mandatory=$true)]
+        [string]$Gateway,
+        [Parameter(Mandatory=$true)]
+        [string]$PrimaryDns,
+        [Parameter(Mandatory=$true)]
+        [string]$SmtpServer,
+        [Parameter(Mandatory=$true)]
+        [string]$AdminEmail,
+        [Parameter(Mandatory=$true)]
+        [string]$TimeZone,
+        [Parameter(Mandatory=$true)]
+        [string]$PrimaryNtpServer,
+        [Parameter(Mandatory=$false)]
+        [int]$Timeout = 600
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Response = (Invoke-RestMethod -Method GET -Headers @{'Accept' = 'application/json'} -Uri "https://$($Appliance)/api/setup" -SkipCertificateCheck)
+    if ($local:Response.status -ine "uninitialized")
+    {
+        Write-Host -ForegroundColor "Configuration Status: $($local:Response.status)"
+        throw "Configuration is not uninitialized"
+    }
+
+    # Validate files and convert to strings ready for JSON
+    $local:LicenseContents = ((Get-Content $LicenseFile -Raw) -replace "`r","") -replace "`n","\n"
+    $local:Ca = ((Get-Content $CaCertificateFile -Raw) -replace "`r","") -replace "`n","\n"
+    $local:WebServer = ((Get-Content $WebServerCertificateFile -Raw) -replace "`r","") -replace "`n","\n"
+    $local:WebServerKey = ((Get-Content $WebServerPrivateKeyFile -Raw) -replace "`r","") -replace "`n","\n"
+    $local:TimeStamping = ((Get-Content $TimeStampingCertificateFile -Raw) -replace "`r","") -replace "`n","\n"
+    $local:TimeStampingKey = ((Get-Content $TimeStampingPrivateKeyFile -Raw) -replace "`r","") -replace "`n","\n"
+
+    # Prompt for / convert passwords
+    if (-not $RootPassword)
+    {
+        $RootPassword = (Read-Host "SPS Root Password" -AsSecureString)
+    }
+    if (-not $AdminPassword)
+    {
+        $AdminPassword = (Read-Host "SPS Admin Password" -AsSecureString)
+    }
+    $local:RootPasswordPlainText = [System.Net.NetworkCredential]::new("", $RootPassword).Password
+    $local:AdminPasswordPlainText = [System.Net.NetworkCredential]::new("", $AdminPassword).Password
+
+    # Validate other inputs
+    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+    if (-not (Test-IpAddress $Gateway))
+    {
+        throw "Gateway `"$Gateway`" is not an IP address"
+    }
+    $local:Parts = ($IpAddressWithNetMask -split '/')
+    if ($local:Parts.Count -ne 2 -or -not (Test-IpAddress $local:Parts[0]) -or $local:Parts[1] -lt 0 -or $local:Parts[1] -gt 31)
+    {
+        throw "IpAddressWithNetMask `"$IpAddressWithNetMask`" must be CIDR format"
+    }
+    if (-not (Test-IpAddress $PrimaryDns))
+    {
+        throw "PrimaryDns `"$PrimaryDns` is not an IP address"
+    }
+
+    $local:JsonBody = @"
+{
+    "accept_eula": true,
+    "license": "$local:LicenseContents",
+    "administration": {
+        "root_password": "$local:RootPasswordPlainText",
+        "admin_password": "$local:AdminPasswordPlainText"
+    },
+    "certificates": {
+        "ca": {
+            "certificate": "$local:Ca"
+        },
+        "webserver": {
+            "certificate": "$local:WebServer",
+            "private_key": "$local:WebServerKey"
+        },
+        "tsa": {
+            "certificate": "$local:TimeStamping",
+            "private_key": "$local:TimeStampingKey"
+        }
+    },
+    "network": {
+        "hostname": "$HostName",
+        "domainname": "$DomainName",
+        "initial_address": "$IpAddressWithNetMask",
+        "gateway": "$Gateway",
+        "vlantag": null,
+        "primary_dns": "$PrimaryDns"
+    },
+    "email": {
+        "smtp_server": "$SmtpServer",
+        "admin_email": "$AdminEmail"
+    },
+    "datetime": {
+        "timezone": "$TimeZone",
+        "primary_ntp_server": "$PrimaryNtpServer"
+    }
+}
+"@
+    Write-Host "Posting configuration data..."
+    $local:NewAddress = $local:Parts[0]
+    # On an address change SPS does not return a response, and Invoke-RestMethod errors out
+    try { Invoke-RestMethod -Method POST -Headers @{'Content-type' = 'application/json'} -Timeout $Timeout `
+            -Uri "https://$($Appliance)/api/setup" -Body $local:JsonBody -SkipCertificateCheck }
+    catch {}
+
+    Start-Sleep 5 # up front wait to solve new transition timing issues
+
+    $local:StartTime = (Get-Date)
+    $local:Status = "unknown"
+    $local:TimeElapsed = 10
+    if ($Timeout -lt 10) { $Timeout = 10 }
+    do {
+        Write-Progress -Activity "Waiting for completed status" -Status "Current: $($local:Status)" -PercentComplete (($local:TimeElapsed / $Timeout) * 100)
+        try
+        {
+            $local:Status = (Invoke-RestMethod -Method Get -Headers @{'Accept'='application/json'} -Uri "https://$($local:NewAddress)/api/setup" `
+                                -SkipCertificateCheck -timeout $Timeout).status
+        }
+        catch {}
+        Start-Sleep 2
+        $local:TimeElapsed = (((Get-Date) - $local:StartTime).TotalSeconds)
+        if ($local:TimeElapsed -gt $Timeout)
+        {
+            throw "Timed out waiting for completed status, timeout was $Timeout seconds"
+        }
+    } until ($local:Status -ieq "completed")
+    Write-Progress -Activity "Waiting for completed status" -Status "Current: $($local:Status)" -PercentComplete 100
+}
 
 <#
 .SYNOPSIS
