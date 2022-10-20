@@ -1611,10 +1611,9 @@ function Invoke-SafeguardMethod
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if (-not ($PSBoundParameters.ContainsKey("Version")) -and $SafeguardSession)
+    if ((-not ($PSBoundParameters.ContainsKey("Version")) -or $Version -eq 0) -and $SafeguardSession)
     {
         # Use version from the connection if included in the session
-        # Connect-Safeguard will automatically downgrade if v2 was required to call LoginResponse
         $Version = $SafeguardSession["Version"]
         if (-not ($PSBoundParameters.ContainsKey("RetryVersion")))
         {
