@@ -153,10 +153,12 @@ FunctionsToExport = @(
     'Get-SafeguardSessionClusterAccessRequestBroker','Enable-SafeguardSessionClusterAuditStream',
     'Disable-SafeguardSessionClusterAuditStream','Get-SafeguardSessionClusterAuditStream',
     # sessionapi.psm1
+    'Get-SafeguardSpsWelcomeWizardStatus','Complete-SafeguardSpsWelcomeWizard',
     'Connect-SafeguardSps','Disconnect-SafeguardSps','Invoke-SafeguardSpsMethod',
     'Open-SafeguardSpsTransaction','Close-SafeguardSpsTransaction','Get-SafeguardSpsTransaction','Clear-SafeguardSpsTransaction',
     'Show-SafeguardSpsTransactionChange','Show-SafeguardSpsEndpoint','Invoke-SafeguardSpsStarlingJoinBrowser',
     'Remove-SafeguardSpsStarlingJoin','Enable-SafeguardSpsRemoteAccess','Disable-SafeguardSpsRemoteAccess',
+    'Get-SafeguardSpsInfo','Get-SafeguardSpsVersion',
     # archives.psm1
     'Get-SafeguardArchiveServer','New-SafeguardArchiveServer','Test-SafeguardArchiveServer',
     'Remove-SafeguardArchiveServer','Edit-SafeguardArchiveServer',

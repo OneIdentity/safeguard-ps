@@ -279,6 +279,8 @@ function Wait-ForSafeguardStatus
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
+        [int]$Version,
+        [Parameter(Mandatory=$false)]
         [int]$Timeout = 600,
         [Parameter(Mandatory=$true)]
         [string]$DesiredStatus
@@ -297,7 +299,7 @@ function Wait-ForSafeguardStatus
         Write-Progress -Activity "Waiting for $DesiredStatus Status" -Status "Current: $($local:Status)" -PercentComplete (($local:TimeElapsed / $Timeout) * 100)
         try
         {
-            $local:Status = (Get-SafeguardStatus -Appliance $Appliance -Insecure:$Insecure).ApplianceCurrentState
+            $local:Status = (Get-SafeguardStatus -Appliance $Appliance -Insecure:$Insecure -Version $Version).ApplianceCurrentState
         }
         catch {}
         Start-Sleep 2
@@ -318,13 +320,15 @@ function Wait-ForSafeguardOnlineStatus
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
+        [int]$Version,
+        [Parameter(Mandatory=$false)]
         [int]$Timeout = 600
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Wait-ForSafeguardStatus -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout -DesiredStatus "Online"
+    Wait-ForSafeguardStatus -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout -DesiredStatus "Online" -Version $Version
     Write-Host "Safeguard is back online."
 }
 
