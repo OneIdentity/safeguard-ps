@@ -499,14 +499,16 @@ function Get-SafeguardStatus
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [int]$Version
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     # Remove the IsClustered property since it is deprecated and inaccurate
-    Invoke-SafeguardMethod -Anonymous -Appliance $Appliance -Insecure:$Insecure Notification GET Status | Select-Object -Property * -ExcludeProperty IsClustered
+    Invoke-SafeguardMethod -Anonymous -Appliance $Appliance -Insecure:$Insecure Notification -Version $Version GET Status | Select-Object -Property * -ExcludeProperty IsClustered
 }
 
 <#
@@ -594,6 +596,8 @@ function Wait-SafeguardApplianceStateOnline
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
+        [int]$Version,
+        [Parameter(Mandatory=$false)]
         [int]$Timeout = 1800
     )
 
@@ -601,7 +605,7 @@ function Wait-SafeguardApplianceStateOnline
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-    Wait-ForSafeguardOnlineStatus -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout
+    Wait-ForSafeguardOnlineStatus -Appliance $Appliance -Insecure:$Insecure -Version $Version -Timeout $Timeout
     Get-SafeguardApplianceAvailability -Appliance $Appliance -Insecure:$Insecure
 }
 
