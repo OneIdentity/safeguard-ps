@@ -114,7 +114,9 @@ function Invoke-SpsWithoutBody
         [Parameter(Mandatory=$true,Position=2)]
         [object]$Headers,
         [Parameter(Mandatory=$false)]
-        [object]$Parameters
+        [object]$Parameters,
+        [Parameter(Mandatory=$false)]
+        [string]$InFile
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -123,7 +125,18 @@ function Invoke-SpsWithoutBody
     $local:Url = (New-SpsUrl $RelativeUrl -Parameters $Parameters)
     Write-Verbose "Url=$($local:Url)"
     Write-Verbose "Parameters=$(ConvertTo-Json -InputObject $Parameters)"
-    Invoke-RestMethod -WebSession $SafeguardSpsSession.Session -Method $Method -Headers $Headers -Uri $local:Url
+    $arguments = @{
+        WebSession = $SafeguardSpsSession.Session;
+        Method = $Method;
+        Headers = $Headers;
+        Uri = $local:Url;
+    }
+    if ($InFile)
+    {
+        $arguments = $arguments + @{ InFile = $InFile }
+    }
+
+    Invoke-RestMethod @arguments
 }
 function Invoke-SpsInternal
 {
@@ -140,7 +153,9 @@ function Invoke-SpsInternal
         [Parameter(Mandatory=$false)]
         [string]$JsonBody,
         [Parameter(Mandatory=$false)]
-        [HashTable]$Parameters
+        [HashTable]$Parameters,
+        [Parameter(Mandatory=$false)]
+        [string]$InFile
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -155,8 +170,15 @@ function Invoke-SpsInternal
                 break
             }
             {$_ -in "put","post"} {
-                Invoke-SpsWithBody $Method $RelativeUrl $Headers `
-                    -Body $Body -JsonBody $JsonBody -Parameters $Parameters
+                if($InFile)
+                {
+                    Invoke-SpsWithoutBody $Method $RelativeUrl $Headers -Parameters $Parameters -InFile $InFile
+                }
+                else
+                {
+                    Invoke-SpsWithBody $Method $RelativeUrl $Headers `
+                        -Body $Body -JsonBody $JsonBody -Parameters $Parameters
+                }
                 break
             }
         }
@@ -647,7 +669,9 @@ function Invoke-SafeguardSpsMethod
         [Parameter(Mandatory=$false)]
         [switch]$JsonOutput,
         [Parameter(Mandatory=$false)]
-        [switch]$BodyOutput
+        [switch]$BodyOutput,
+        [Parameter(Mandatory=$false)]
+        [string]$InFile
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -683,14 +707,22 @@ function Invoke-SafeguardSpsMethod
 
     try
     {
+        $arguments = @{
+            Method = $Method;
+            RelativeUrl = $RelativeUrl;
+            Headers = $local:Headers;
+            Body = $Body;
+            JsonBody = $JsonBody;
+            Parameters = $Parameters;
+            InFile = $InFile;
+        }
         if ($JsonOutput)
         {
-            (Invoke-SpsInternal $Method $RelativeUrl $local:Headers `
-                                -Body $Body -JsonBody $JsonBody -Parameters $Parameters) | ConvertTo-Json -Depth 100
+            (Invoke-SpsInternal @arguments) | ConvertTo-Json -Depth 100
         }
         elseif ($BodyOutput)
         {
-            $local:Response = (Invoke-SpsInternal $Method $RelativeUrl $local:Headers -Body $Body -JsonBody $JsonBody -Parameters $Parameters)
+            $local:Response = (Invoke-SpsInternal @arguments)
             if ($local:Response.body)
             {
                 $local:Response.body
@@ -702,7 +734,7 @@ function Invoke-SafeguardSpsMethod
         }
         else
         {
-            Invoke-SpsInternal $Method $RelativeUrl $local:Headers -Body $Body -JsonBody $JsonBody -Parameters $Parameters
+            Invoke-SpsInternal @arguments
         }
     }
     finally
@@ -1101,7 +1133,7 @@ This cmdlet will disable Safeguard Remote Access in Starling if this Safeguard S
 is joined to Starling.
 
 .EXAMPLE
-Disable-SafeguardSpsStarlingJoin
+Disable-SafeguardSpsRemoteAccess
 #>
 function Disable-SafeguardSpsRemoteAccess
 {
@@ -1128,7 +1160,6 @@ function Disable-SafeguardSpsRemoteAccess
 New-Alias -Name Disable-SafeguardSpsSra -Value Disable-SafeguardSpsRemoteAccess
 
 <#
-.SYNOPSIS
 Get Safeguard SPS appliance information via the Web API.
 
 .DESCRIPTION
@@ -1141,12 +1172,41 @@ function Get-SafeguardSpsInfo
 {
     [CmdletBinding()]
     Param(
+        [parameter(Mandatory, Position = 0)]
+        [string]
+        $FilePath
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     (Invoke-SafeguardSpsMethod GET info).body
+}
+
+<#
+.SYNOPSIS
+Uploads a new firmware to SPS.
+
+.DESCRIPTION
+This command takes a path to an SPS firmware and uploads it to an open firmware slot.
+
+.EXAMPLE
+Import-SafeguardSpsFirmware -FilePath <path to sps .iso>
+#>
+function Import-SafeguardSpsFirmware
+{
+    [CmdletBinding()]
+    Param(
+        [parameter(Mandatory, Position = 0)]
+        [string]
+        $FilePath
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardSpsMethod POST upload/firmware -InFile $FilePath -ContentType 'application/x-iso9660-image'
+
 }
 
 <#
@@ -1181,4 +1241,139 @@ function Get-SafeguardSpsVersion
     {
         (Get-SafeguardSpsInfo).firmware_version
     }
+}
+
+<#
+.SYNOPSIS
+Returns the SPS firmware slot information.
+
+.DESCRIPTION
+Returns the SPS firmware slot information.
+
+.EXAMPLE
+Get-SafeguardSpsFirmwareSlot
+#>
+function Get-SafeguardSpsFirmwareSlot
+{
+    [CmdletBinding()]
+    Param(
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardSpsMethod GET firmware/slots
+}
+
+<#
+.SYNOPSIS
+Tests a firmware slot.
+
+.DESCRIPTION
+This command tests that the firmware slot contains valid firmware that can be installed and returns a boolean result.
+
+.EXAMPLE
+Test-SafeguardSpsFirmware -Slot 3
+#>
+function Test-SafeguardSpsFirmware
+{
+    [CmdletBinding()]
+    Param(
+        [parameter(Mandatory)]
+        [int]$Slot
+    )
+
+    $Body = @{
+        slot_id = $Slot
+    }
+
+    $summary = (Invoke-SafeguardSpsMethod POST firmware/test -Body $Body).body.test_summary
+    Write-Verbose $summary
+    return $summary.StartsWith("Upgrade is allowed;")
+}
+
+<#
+.SYNOPSIS
+Starts a firmware upgrade.
+
+.DESCRIPTION
+This command upgrades SPS with the firmware installed into the indicated slot.
+
+.EXAMPLE
+Install-SafeguardSpsFirmware -Slot 3 -Message "Upgrading SPS firmware..."
+#>
+function Install-SafeguardSpsFirmware
+{
+    [CmdletBinding()]
+    Param(
+        [parameter(Mandatory)]
+        [int]$Slot,
+        [parameter(Mandatory)]
+        [string]$Message
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if(-not $Message)
+    {
+        $Message = "Upgrading SPS firmware..."
+    }
+    $Body = @{
+        slot_id = $Slot
+        message = $Message
+    }
+
+    Invoke-SafeguardSpsMethod POST firmware/upgrade -Body $Body
+}
+
+<#
+.SYNOPSIS
+Install-SafeguardSpsUpgrade
+
+.DESCRIPTION
+This command automates the steps for uploading and installing an SPS firmware upgrade.
+
+.EXAMPLE
+Install-SafeguardSpsPatch -FilePath <path to SPS .iso>
+#>
+function Install-SafeguardSpsUpgrade
+{
+    [CmdletBinding()]
+    Param(
+        [parameter(Mandatory, Position = 0)]
+        [string]
+        $FilePath,
+        [parameter(Mandatory, Position = 1)]
+        [string]
+        $TargetVersion
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $activity = "Installing SPS upgrade"
+    Write-Progress -Activity $activity -Status 'Importing firmware' -PercentComplete 15
+    Import-SafeguardSpsFirmware $FilePath
+    $slots = (Get-SafeguardSpsFirmwareSlot).items.body
+    for($i = 0; $i -lt $slots.count; $i++)
+    {
+        if($slots[$i].version -ieq $TargetVersion)
+        {
+            Write-Progress -Activity $activity -Status "Testing firmware in slot $i" -PercentComplete 65
+            if( Test-SafeguardSpsFirmware -Slot $i )
+            {
+                Write-Progress -Activity $activity -Status "Installing $TargetVersion from slot $i" -PercentComplete 75
+                Install-SafeguardSpsFirmware -Slot $i -Message "Upgrading SPS firmware to $TargetVersion"
+                Write-Progress -Activity $activity -Status "Finished" -PercentComplete 100
+                Start-Sleep 1
+                return
+            }
+            else 
+            {
+                throw "Firmware at slot $i failed upgrade test. For details run: Test-SafeguardSpsFirmware -Slot $i"
+            }
+        }
+    }
+    throw "Firmware with version $TargetVersion could not be found in any firmware slot."
 }
