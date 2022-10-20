@@ -1126,3 +1126,59 @@ function Disable-SafeguardSpsRemoteAccess
     }
 }
 New-Alias -Name Disable-SafeguardSpsSra -Value Disable-SafeguardSpsRemoteAccess
+
+<#
+.SYNOPSIS
+Get Safeguard SPS appliance information via the Web API.
+
+.DESCRIPTION
+This cmdlet will display basic information about Safeguard SPS.
+
+.EXAMPLE
+Get-SafeguardSpsInfo
+#>
+function Get-SafeguardSpsInfo
+{
+    [CmdletBinding()]
+    Param(
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    (Invoke-SafeguardSpsMethod GET info).body
+}
+
+<#
+.SYNOPSIS
+Get Safeguard SPS appliance version via the Web API.
+
+.DESCRIPTION
+This cmdlet will display the version of Safeguard SPS.
+
+.EXAMPLE
+Get-SafeguardSpsVersion
+
+.EXAMPLE
+Get-SafeguardSpsVersion -AltSyntax
+#>
+function Get-SafeguardSpsVersion
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [switch]$AltSyntax
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($AltSyntax)
+    {
+        (Get-SafeguardSpsInfo).version
+    }
+    else
+    {
+        (Get-SafeguardSpsInfo).firmware_version
+    }
+}
