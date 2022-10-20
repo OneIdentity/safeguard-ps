@@ -324,7 +324,9 @@ function Complete-SafeguardSpsWelcomeWizard
         [Parameter(Mandatory=$true)]
         [string]$PrimaryNtpServer,
         [Parameter(Mandatory=$false)]
-        [int]$Timeout = 600
+        [int]$Timeout = 600,
+        [Parameter(Mandatory=$false)]
+        [switch]$PollOriginalIp
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -413,33 +415,36 @@ function Complete-SafeguardSpsWelcomeWizard
 }
 "@
     Write-Host "Posting configuration data..."
-    $local:NewAddress = $local:Parts[0]
+    if ($PollOriginalIp)
+    {
+        $local:PollAddress = $Appliance
+    }
+    else
+    {
+        $local:PollAddress = $local:Parts[0]
+    }
     # On an address change SPS does not return a response, and Invoke-RestMethod errors out
-    try { Invoke-RestMethod -Method POST -Headers @{'Content-type' = 'application/json'} -Timeout $Timeout `
-            -Uri "https://$($Appliance)/api/setup" -Body $local:JsonBody -SkipCertificateCheck }
-    catch {}
+    try { $local:Status = (Invoke-RestMethod -Method POST -Headers @{'Content-type' = 'application/json'} -Timeout $Timeout `
+                            -Uri "https://$($Appliance)/api/setup" -Body $local:JsonBody -SkipCertificateCheck).status }
+    catch { $local:Status = "unknown" }
 
     Start-Sleep 5 # up front wait to solve new transition timing issues
 
     $local:StartTime = (Get-Date)
-    $local:Status = "unknown"
     $local:TimeElapsed = 10
     if ($Timeout -lt 10) { $Timeout = 10 }
     do {
         Write-Progress -Activity "Waiting for completed status" -Status "Current: $($local:Status)" -PercentComplete (($local:TimeElapsed / $Timeout) * 100)
-        try
-        {
-            $local:Status = (Invoke-RestMethod -Method Get -Headers @{'Accept'='application/json'} -Uri "https://$($local:NewAddress)/api/setup" `
-                                -SkipCertificateCheck -timeout $Timeout).status
-        }
-        catch {}
+        try { $local:Status = (Invoke-RestMethod -Method Get -Headers @{'Accept'='application/json'} -Uri "https://$($local:PollAddress)/api/setup" `
+                                -SkipCertificateCheck -timeout $Timeout).status }
+        catch { $local:Status = "unknown" }
         Start-Sleep 2
         $local:TimeElapsed = (((Get-Date) - $local:StartTime).TotalSeconds)
         if ($local:TimeElapsed -gt $Timeout)
         {
             throw "Timed out waiting for completed status, timeout was $Timeout seconds"
         }
-    } until ($local:Status -ieq "completed")
+    } until ($local:Status -ieq "completed" -or $local:Status -ieq "booting")
     Write-Progress -Activity "Waiting for completed status" -Status "Current: $($local:Status)" -PercentComplete 100
 }
 
