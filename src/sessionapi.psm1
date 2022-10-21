@@ -1172,9 +1172,6 @@ function Get-SafeguardSpsInfo
 {
     [CmdletBinding()]
     Param(
-        [parameter(Mandatory, Position = 0)]
-        [string]
-        $FilePath
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
