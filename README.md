@@ -269,6 +269,34 @@ for opening the output directly in Excel.
 
 [![Reporting Cmdlet video](https://img.youtube.com/vi/mWNaCH7eB70/0.jpg)](https://www.youtube.com/watch?v=mWNaCH7eB70)
 
+## Development
+PowerShell development can be done many ways, this is just one way with Visual Studio Code.
+
+### Requirements
+* Install [Visual Studio Code](https://code.visualstudio.com/download)
+* Clone this repository.
+
+### Editing
+* Start Visual Studio Code.
+* Open root folder of safeguard-ps.
+* Create or modify the scripts and save the changes.
+
+### Executing
+* Open a Terminal in Visual Studio Code and execute the following.
+  
+  If you have installed the safeguard-ps module uninstall it. 
+  ```
+  Remove-Module safeguard-ps
+  ```
+  
+  Install the new or modified scripts.
+  ```
+  ./install-local.ps1
+  ```
+* Test your changes
+  
+  Before testing any new changes you must run `Remove-Module safeguard-ps` `cleanup-local.ps1` and `install-local.ps1`.
+  
 ## Powershell cmdlets
 
 The following cmdlets are currently supported.  More will be added to this
