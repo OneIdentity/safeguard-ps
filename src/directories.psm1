@@ -680,14 +680,21 @@ function Sync-SafeguardDirectoryIdentityProvider
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
-        [object]$DirectoryToSync
+        [object]$DirectoryToSync,
+        [Parameter(Mandatory=$false)]
+        [switch]$FullSync
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:IdpId = (Resolve-SafeguardDirectoryIdentityProviderId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToSync)
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "IdentityProviders/$($local:IdpId)/Synchronize"
+    if ($FullSync)
+    {
+        $Parameters = @{ fullSync = $true }
+    }
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        POST "IdentityProviders/$($local:IdpId)/Synchronize" -LongRunningTask -Parameters $Parameters
 }
 
 <#
