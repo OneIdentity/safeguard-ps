@@ -1177,9 +1177,6 @@ function Get-SafeguardSpsInfo
 {
     [CmdletBinding()]
     Param(
-        [parameter(Mandatory, Position = 0)]
-        [string]
-        $FilePath
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -1292,9 +1289,16 @@ function Test-SafeguardSpsFirmware
         slot_id = $Slot
     }
 
-    $summary = (Invoke-SafeguardSpsMethod POST firmware/test -Body $Body).body.test_summary
-    Write-Verbose $summary
-    return $summary.StartsWith("Upgrade is allowed;")
+    try
+    {
+        $summary = (Invoke-SafeguardSpsMethod POST firmware/test -Body $Body).body.test_summary
+        Write-Verbose $summary
+        return $true
+    }
+    catch
+    {
+        return $false
+    }
 }
 
 <#
@@ -1357,22 +1361,48 @@ function Install-SafeguardSpsUpgrade
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    if($TargetVersion -eq (Get-SafeguardSpsVersion))
+    {
+        Write-Host "$TargetVersion is already installed"
+        return
+    }
+
     $activity = "Installing SPS upgrade"
     Write-Progress -Activity $activity -Status 'Importing firmware' -PercentComplete 15
+    Write-Verbose "Starting firmware upload..."
     Import-SafeguardSpsFirmware $FilePath
+    Write-Verbose "Firmware upload complete."
     $slots = (Get-SafeguardSpsFirmwareSlot).items.body
     for($i = 0; $i -lt $slots.count; $i++)
     {
         if($slots[$i].version -ieq $TargetVersion)
         {
+            Write-Verbose "Found target firmware '$($TargetVersion)' in slot $i"
             Write-Progress -Activity $activity -Status "Testing firmware in slot $i" -PercentComplete 65
             if( Test-SafeguardSpsFirmware -Slot $i )
             {
                 Write-Progress -Activity $activity -Status "Installing $TargetVersion from slot $i" -PercentComplete 75
+                Write-Verbose "Installing firmware in slot $i"
                 Install-SafeguardSpsFirmware -Slot $i -Message "Upgrading SPS firmware to $TargetVersion"
                 Write-Progress -Activity $activity -Status "Finished" -PercentComplete 100
-                Start-Sleep 1
-                return
+                Start-Sleep 60
+                Write-Verbose "Waiting for SPS to restart..."
+                for($i = 0; $i -lt 20; $i++)
+                {
+                    try 
+                    {
+                        $currentVersion = Get-SafeguardSpsVersion
+                        if($currentVersion -eq $TargetVersion)
+                        {
+                            Write-Host "Upgrade complete: SPS is at version $currentVersion"
+                            return
+                        }
+                    }
+                    catch {
+                    }
+                    Start-Sleep 15
+                }
+                throw "Timed out waiting for SPS to reach version $TargetVersion"
             }
             else 
             {
