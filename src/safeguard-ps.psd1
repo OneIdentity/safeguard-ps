@@ -344,6 +344,9 @@ PrivateData = @{
         ReleaseNotes = @"
 safeguard-ps Release Notes:
 
+- Added CSV import for Assets, Accounts and Users
+- Added support for SPS patching
+- Added support for Directory full sync
 - bug fixes
 "@
 
