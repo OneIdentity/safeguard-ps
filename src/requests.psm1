@@ -69,7 +69,10 @@ function Resolve-SafeguardRequestableAccountId
         [Parameter(Mandatory=$true)]
         [int]$AssetId,
         [Parameter(Mandatory=$true,Position=0)]
-        [object]$Account
+        [object]$Account,
+        [Parameter(Mandatory=$false)]
+        [ValidateSet("Password", "SSHKey", "SSH", "RemoteDesktop", "RDP", "RemoteDesktopApplication", "RDPApplication", "RDPApp", "Telnet", IgnoreCase=$true)]
+        [string]$AccessRequestType
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -85,25 +88,22 @@ function Resolve-SafeguardRequestableAccountId
         $local:RelativeUrl = "Me/RequestEntitlements"
         try
         {
-            $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
-                                   -Parameters @{ assetIds = "$AssetId"; filter = "Name ieq '$Account'" }).Account
+            $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl -Parameters @{AccessRequestType = "$AccessRequestType"; assetIds = "$AssetId"; filter = "Account.Name ieq '$Account'" }).Account
         }
         catch
         {
             Write-Verbose $_
-            Write-Verbose "Caught exception with ieq filter, trying with q parameter"
-            $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
-                                   -Parameters @{ assetIds = "$AssetId"; q = $Account }).Account
+            $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl -Parameters @{AccessRequestType = "$AccessRequestType"; assetIds = "$AssetId"; q = $Account }).Account
         }
         if (-not $local:Accounts)
         {
             throw "Unable to find a requestable account matching '$Account'"
         }
-        if ($local:Accounts.Count -ne 1)
+        if ($local:Accounts.Count -gt 1)
         {
             throw "Found $($local:Accounts.Count) requestable accounts matching '$Account'"
         }
-        $local:Accounts[0].Id
+        $local:Accounts.Id
     }
     else
     {
@@ -419,7 +419,7 @@ function New-SafeguardAccessRequest
     }
     if ($AccountToUse)
     {
-        $local:AccountId = (Resolve-SafeguardRequestableAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
+        $local:AccountId = (Resolve-SafeguardRequestableAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse -AccessRequestType $AccessRequestType)
     }
     else
     {
@@ -427,7 +427,7 @@ function New-SafeguardAccessRequest
         {
             # Try to resolve AccountId, but do not fail on error
             try {
-                $local:AccountId = (Resolve-SafeguardRequestableAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse)
+                $local:AccountId = (Resolve-SafeguardRequestableAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetId $local:AssetId $AccountToUse -AccessRequestType $AccessRequestType)
             }
             catch {
                 Write-Warning $_
