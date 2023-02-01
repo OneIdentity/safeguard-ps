@@ -1158,14 +1158,14 @@ function Connect-Safeguard
                         $local:RstsResponse = (Invoke-RestMethod -Method POST -Headers @{
                             "Accept" = "application/json";
                             "Content-type" = "application/json"
-                        } -Uri "https://$Appliance/RSTS/oauth2/token" -Body @"
+                        } -Uri "https://$Appliance/RSTS/oauth2/token" -Body ([System.Text.Encoding]::UTF8.GetBytes(@"
 {
     "grant_type": "password",
     "username": "$Username",
     "password": "$($local:PasswordPlainText)",
     "scope": "$($local:Scope)"
 }
-"@)
+"@)))
                     }
                     catch
                     {
