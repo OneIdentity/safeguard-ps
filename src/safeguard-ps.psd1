@@ -224,6 +224,7 @@ FunctionsToExport = @(
     'Get-SafeguardAssetGroupMember','Add-SafeguardAssetGroupMember','Remove-SafeguardAssetGroupMember',
     'Get-SafeguardAccountGroup','New-SafeguardAccountGroup','Remove-SafeguardAccountGroup','Edit-SafeguardAccountGroup',
     'Get-SafeguardAccountGroupMember','Add-SafeguardAccountGroupMember','Remove-SafeguardAccountGroupMember',
+    'Sync-SafeguardUserGroupAuthenticationProvider',
     # groups.psm1 (dynamic)
     'Get-SafeguardDynamicAccountGroup','New-SafeguardDynamicAccountGroup','Edit-SafeguardDynamicAccountGroup',
     'Get-SafeguardDynamicAssetGroup','New-SafeguardDynamicAssetGroup','Edit-SafeguardDynamicAssetGroup',
