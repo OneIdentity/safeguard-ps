@@ -501,7 +501,7 @@ function Get-SafeguardStatus
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
-        [int]$Version
+        [int]$Version = 4
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -596,7 +596,7 @@ function Wait-SafeguardApplianceStateOnline
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
-        [int]$Version,
+        [int]$Version = 4,
         [Parameter(Mandatory=$false)]
         [int]$Timeout = 1800
     )
