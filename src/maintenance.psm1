@@ -1943,11 +1943,32 @@ Version of the Web API you are using (default: 2).
 .PARAMETER Patch
 A string containing the path to a patch file.
 
+.PARAMETER HttpUrl
+A string containing an HTTPS URL where a Safeguard patch is hosted. Must be a public URL. Safeguard
+will download the patch from the specified URL.
+
+.PARAMETER HttpVerifyTls
+A boolean indicating whether or not the TLS certificate of the server should be verified. Specify
+$false for internal servers with self-signed certificates.
+
+.PARAMETER CifsPath
+A string containing a CIFS/SMB/UNC path to a Safeguard patch file. 
+
+Ex. \\server.hostname\folder\patch.sgp
+
+Safeguard will download the patch from the CIFS path.
+
+.PARAMETER CifsUsername
+A string containing the username to authenticate against the CIFS server.
+
+.PARAMETER CifsPwd
+The password for the CIFS user. Anonymous access is not supported.
+
 .PARAMETER Timeout
 A timeout value in seconds for uploading and distributing; also used to wait for installation (default: 3 hours)
 
 .PARAMETER UseStagedPatch
-Use the currently staged patch rather than uploading a new one.
+Use the currently staged patch rather than uploading or pulling a new one.
 
 .PARAMETER NoWait
 Specify this flag to continue immediately without waiting for the patch to install to the connected appliance.
@@ -1976,10 +1997,24 @@ function Install-SafeguardPatch
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
         [int]$Version = 4,
+
+        [Parameter( ParameterSetName='Http',Mandatory=$true,Position=0)]
+        [string]$HttpUrl,
+        [Parameter(ParameterSetName='Http',Mandatory=$false)]
+        [bool] $HttpVerifyTls = $true,
+
+        [Parameter(Mandatory=$true, ParameterSetName = 'Cifs',Position=0)]
+        [string]$CifsPath,
+        [Parameter(Mandatory=$true, ParameterSetName = 'Cifs',Position=1)]
+        [string]$CifsUsername,
+        [Parameter(Mandatory=$true, ParameterSetName = 'Cifs',Position=2)]
+        [string]$CifsPwd,
+
         [Parameter(ParameterSetName="NewPatch",Mandatory=$true,Position=0)]
         [string]$Patch,
         [Parameter(ParameterSetName="NewPatch",Mandatory=$false)]
         [int]$Timeout = 10800,
+
         [Parameter(ParameterSetName="UseExisting",Mandatory=$false)]
         [switch]$UseStagedPatch = $false,
         [Parameter(Mandatory=$false)]
@@ -2018,35 +2053,26 @@ function Install-SafeguardPatch
 
     if (-not $UseStagedPatch)
     {
-        $Response = (Get-SafeguardPatch -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
-        if ($Response)
+        if($PSCmdlet.ParameterSetName -eq 'Http')
         {
-            Write-Host "Removing currently staged patch..."
-            Clear-SafeguardPatch -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure
-            $Response = (Get-SafeguardPatch -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
-            if ($Response)
-            {
-                throw "Failed to delete existing patch"
-            }
+            Set-SafeguardPatch -HttpUrl $HttpUrl -HttpVerifyTls $HttpVerifyTls -Appliance $Appliance -AccessToken $AccessToken -Version $Version -Insecure:$Insecure -Force:$Force
         }
-
-        if (-not (Send-PatchFile $Patch $Appliance $AccessToken $Version -Insecure:$Insecure))
+        elseif($PSCmdlet.ParameterSetName -eq 'Cifs')
         {
-            return
+            Set-SafeguardPatch -CifsPath $CifsPath -CifsUsername $CifsUsername -CifsPwd $CifsPwd -Appliance $Appliance -AccessToken $AccessToken -Version $Version -Insecure:$Insecure -Force:$Force
+        }
+        elseif($PSCmdlet.ParameterSetName -eq 'NewPatch')
+        {
+            Set-SafeguardPatch -Patch $Patch -Appliance $Appliance -AccessToken $AccessToken -Version $Version -Insecure:$Insecure -Force:$Force
         }
     }
 
     $local:StagedPatch = (Get-SafeguardPatch -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
+    if(-not $local:StagedPatch) {
+        throw "No patch is staged!"
+    }
 
     Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-
-    if (Test-SupportForClusterPatch -Appliance $Appliance -Insecure:$Insecure)
-    {
-        Write-Host "Distributing patch to cluster..."
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST Patch/Distribute
-
-        Wait-ForPatchDistribution -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Timeout $Timeout
-    }
 
     if (Test-SafeguardVersion -Appliance $Appliance -Insecure:$Insecure 6.0)
     {
@@ -2165,6 +2191,27 @@ Version of the Web API you are using (default: 2).
 .PARAMETER Patch
 A string containing the path to a patch file.
 
+.PARAMETER HttpUrl
+A string containing an HTTPS URL where a Safeguard patch is hosted. Must be a public URL. Safeguard
+will download the patch from the specified URL.
+
+.PARAMETER HttpVerifyTls
+A boolean indicating whether or not the TLS certificate of the server should be verified. Specify
+$false for internal servers with self-signed certificates.
+
+.PARAMETER CifsPath
+A string containing a CIFS/SMB/UNC path to a Safeguard patch file. 
+
+Ex. \\server.hostname\folder\patch.sgp
+
+Safeguard will download the patch from the CIFS path.
+
+.PARAMETER CifsUsername
+A string containing the username to authenticate against the CIFS server.
+
+.PARAMETER CifsPwd
+The password for the CIFS user. Anonymous access is not supported.
+
 .PARAMETER Timeout
 A timeout value in seconds for uploading and distributing. (default 3 hours)
 
@@ -2192,6 +2239,19 @@ function Set-SafeguardPatch
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
         [int]$Version = 4,
+
+        [Parameter( ParameterSetName='Http',Mandatory=$true,Position=0)]
+        [string]$HttpUrl,
+        [Parameter(ParameterSetName='Http',Mandatory=$false)]
+        [bool] $HttpVerifyTls = $true,
+
+        [Parameter(Mandatory=$true, ParameterSetName = 'Cifs',Position=0)]
+        [string]$CifsPath,
+        [Parameter(Mandatory=$true, ParameterSetName = 'Cifs',Position=1)]
+        [string]$CifsUsername,
+        [Parameter(Mandatory=$true, ParameterSetName = 'Cifs',Position=2)]
+        [string]$CifsPwd,
+
         [Parameter(ParameterSetName="NewPatch",Mandatory=$true,Position=0)]
         [string]$Patch,
         [Parameter(ParameterSetName="NewPatch",Mandatory=$false)]
@@ -2240,9 +2300,35 @@ function Set-SafeguardPatch
         }
     }
 
-    if (-not (Send-PatchFile $Patch $Appliance $AccessToken $Version -Insecure:$Insecure))
+    if($PSCmdlet.ParameterSetName -eq 'Http')
     {
-        return
+        $body = @{
+            Type = 'Http';
+            HttpProperties = @{
+                Url = $HttpUrl;
+                VerifyTlsCertificate = $HttpVerifyTls;
+            }
+        }
+        Write-Host -ForegroundColor Blue "[HTTPS] Safeguard is downloading the patch..."
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST Patch/FromRemote -Body $body
+
+    }
+    elseif($PSCmdlet.ParameterSetName -eq 'Cifs')
+    {
+        $body = @{
+            Type = 'Cifs';
+            CifsProperties = @{
+                UncPath = $CifsPath;
+                Username = $CifsUSername;
+                Password = $CifsPwd
+            }
+        }
+        Write-Host -ForegroundColor Blue "[CIFS] Safeguard is downloading the patch..."
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST Patch/FromRemote -Body $body
+    }
+    elseif($PSCmdlet.ParameterSetName -eq 'NewPatch')
+    {
+        Send-PatchFile $Patch $Appliance $AccessToken $Version -Insecure:$Insecure
     }
 
     $local:StagedPatch = (Get-SafeguardPatch -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
@@ -2252,7 +2338,7 @@ function Set-SafeguardPatch
     }
     else
     {
-       return;
+       throw "No patch is staged!"
     }
 
     Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
