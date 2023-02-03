@@ -756,6 +756,60 @@ function Remove-SafeguardUserGroupMember
 
 <#
 .SYNOPSIS
+Synchronize user group and update authentication providers for users.
+
+.DESCRIPTION
+Safeguard allows setting authentication providers that will be required for group members;
+however, if this configuration has been changed after a user group was created, it requires
+a manual process to force existing users to update.  This cmdlet forces synchronization of
+the user group and updates the authentication requirements of every user.  New users that are
+synchronized to Safeguard do not require this manual step.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER GroupToSync
+Name of the user group to synchronize and update authentication providers.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Sync-SafeguardUserGroupAuthenticationProvider testusergroup
+#>
+function Sync-SafeguardUserGroupAuthenticationProvider
+{
+    [CmdletBinding(DefaultParameterSetName="Operation")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [object]$GroupToSync
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:GroupId = (Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure User $GroupToSync)
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core POST `
+        "UserGroups/$($local:GroupId)/SynchronizeAndUpdateProviders"
+}
+
+<#
+.SYNOPSIS
 Get asset groups as defined by policy administrators that can added to access policy scopes
 via the Web API.
 
