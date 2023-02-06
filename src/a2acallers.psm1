@@ -117,7 +117,7 @@ function Invoke-SafeguardA2aCredentialRetrieval
         [Parameter(Mandatory=$false)]
         [string]$Authorization,
         [Parameter(Mandatory=$false)]
-        [ValidateSet("Password","PrivateKey",IgnoreCase=$true)]
+        [ValidateSet("Password","PrivateKey","ApiKey",IgnoreCase=$true)]
         [string]$CredentialType,
         [Parameter(Mandatory=$false)]
         [ValidateSet("OpenSsh","Ssh2","Putty",IgnoreCase=$true)]
@@ -133,6 +133,7 @@ function Invoke-SafeguardA2aCredentialRetrieval
     {
         "password" { $CredentialType = "Password"; break }
         "privatekey" { $CredentialType = "PrivateKey"; break }
+        "apikey" { $CredentialType = "ApiKey"; break }
     }
 
     $local:RelativeUrl = "Credentials?type=$CredentialType"
@@ -278,7 +279,7 @@ Get an account password from Safeguard via the A2A service of the Web API.
 
 .DESCRIPTION
 The purpose of this cmdlet is to retrieve a single password without having to
-go through access request workflow.  Passwords retrieve using this cmdlet must
+go through access request workflow.  Passwords retrieved using this cmdlet must
 be configured as part of an A2A registration.
 
 .PARAMETER Appliance
@@ -355,7 +356,7 @@ Get an account private key from Safeguard via the A2A service of the Web API.
 
 .DESCRIPTION
 The purpose of this cmdlet is to retrieve a single password without having to
-go through access request workflow.  Passwords retrieve using this cmdlet must
+go through access request workflow.  Private keys retrieved using this cmdlet must
 be configured as part of an A2A registration.
 
 .PARAMETER Appliance
@@ -425,8 +426,16 @@ function Get-SafeguardA2aPrivateKey
 
     if ($PsCmdlet.ParameterSetName -eq "CertStore")
     {
-        Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
-            -Thumbprint $Thumbprint -CredentialType PrivateKey -Version $Version
+        if ($KeyFormat)
+        {
+            Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+                -Thumbprint $Thumbprint -CredentialType PrivateKey -KeyFormat $KeyFormat -Version $Version
+        }
+        else
+        {
+            Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+                -Thumbprint $Thumbprint -CredentialType PrivateKey -Version $Version
+        }
     }
     else
     {
@@ -440,6 +449,91 @@ function Get-SafeguardA2aPrivateKey
             Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
                 -CertificateFile $CertificateFile -Password $Password -CredentialType PrivateKey -Version $Version
         }
+    }
+}
+
+<#
+.SYNOPSIS
+Get an account API key secret from Safeguard via the A2A service of the Web API.
+
+.DESCRIPTION
+The purpose of this cmdlet is to retrieve an API key secret without having to
+go through access request workflow.  Accounts may have more than one API key
+secret associated, so this cmdlet returns an array of objects, each representing
+an API key secret.  API key secrets retrieved using this cmdlet must be configured
+as part of an A2A registration.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER CertificateFile
+A string containing the path to a certificate file to use for authentication.
+
+.PARAMETER Password
+A secure string containing the password for decrypting the certificate file.
+
+.PARAMETER Thumbprint
+A string containing the thumbprint of a certificate the system certificate store.
+
+.PARAMETER ApiKey
+A string containing the API key that identifies the account being requested.
+
+.PARAMETER KeyFormat
+A string containing which format to use for the private key.  The options are:
+  - OpenSsh: OpenSSH legacy PEM format (default)
+  - Ssh2: Tectia format for use with tools from SSH.com
+  - Putty: Putty format for use with PuTTY tools
+
+.PARAMETER Version
+Version of the Web API you are using (default: 4).
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardA2aPrivateKey -Appliance 10.5.32.54 -CertificateFile C:\certs\file.pfx -Password $pass -ApiKey 6A4psUnrLv1hvoWSB3jsm2V50eFT62vwAI9Zlj/dDWw=
+
+.EXAMPLE
+Get-SafeguardA2aPrivateKey 10.5.32.54 6A4psUnrLv1hvoWSB3jsm2V50eFT62vwAI9Zlj/dDWw= -Thumbprint 756766BB590D7FA9CA9E1971A4AE41BB9CEC82F1
+#>
+function Get-SafeguardA2aApiKeySecret
+{
+    [CmdletBinding(DefaultParameterSetName="CertStore")]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(ParameterSetName="File",Mandatory=$true)]
+        [string]$CertificateFile,
+        [Parameter(ParameterSetName="File",Mandatory=$false)]
+        [SecureString]$Password,
+        [Parameter(ParameterSetName="CertStore",Mandatory=$true)]
+        [string]$Thumbprint,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$ApiKey,
+        [Parameter(Mandatory=$false)]
+        [int]$Version = 4
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($PsCmdlet.ParameterSetName -eq "CertStore")
+    {
+        Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+            -Thumbprint $Thumbprint -CredentialType ApiKey -Version $Version
+    }
+    else
+    {
+        Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+            -CertificateFile $CertificateFile -Password $Password -CredentialType ApiKey -Version $Version
     }
 }
 

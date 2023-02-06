@@ -257,7 +257,8 @@ FunctionsToExport = @(
     'Clear-SafeguardA2aAccessRequestBrokerIpRestriction',
     'Reset-SafeguardA2aAccessRequestBrokerApiKey','Get-SafeguardA2aAccessRequestBrokerApiKey',
     # a2acallers.psm1
-    'Get-SafeguardA2aRetrievableAccount','Get-SafeguardA2aPassword','Get-SafeguardA2aPrivateKey','New-SafeguardA2aAccessRequest',
+    'Get-SafeguardA2aRetrievableAccount','Get-SafeguardA2aPassword','Get-SafeguardA2aPrivateKey','Get-SafeguardA2aApiKeySecret',
+    'New-SafeguardA2aAccessRequest',
     # starling.psm1
     'Get-SafeguardStarlingSubscription','New-SafeguardStarlingSubscription','Remove-SafeguardStarlingSubscription',
     'Get-SafeguardStarlingJoinUrl','Invoke-SafeguardStarlingJoin','Invoke-SafeguardStarlingJoinBrowser',

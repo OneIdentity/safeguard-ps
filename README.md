@@ -283,20 +283,20 @@ PowerShell development can be done many ways, this is just one way with Visual S
 
 ### Executing
 * Open a Terminal in Visual Studio Code and execute the following.
-  
-  If you have installed the safeguard-ps module uninstall it. 
+
+  If you have installed the safeguard-ps module uninstall it.
   ```
   Remove-Module safeguard-ps
   ```
-  
+
   Install the new or modified scripts.
   ```
   ./install-local.ps1
   ```
 * Test your changes
-  
+
   Before testing any new changes you must run `Remove-Module safeguard-ps` `cleanup-local.ps1` and `install-local.ps1`.
-  
+
 ## Powershell cmdlets
 
 The following cmdlets are currently supported.  More will be added to this
@@ -690,6 +690,7 @@ update this list.
 - Get-SafeguardA2aRetrievableAccounts
 - Get-SafeguardA2aPassword
 - Get-SafeguardA2aPrivateKey
+- Get-SafeguardA2aApiKeySecret
 
 ### A2A -- Access Request Broker
 
