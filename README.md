@@ -465,7 +465,6 @@ update this list.
 - Show-SafeguardSpsTransactionChange
 - Show-SafeguardSpsEndpoint
 - Invoke-SafeguardSpsStarlingJoinBrowser
-- Invoke-SafeguardSpsStarlingJoinBrowser
 - Remove-SafeguardSpsStarlingJoin
 - Enable-SafeguardSpsRemoteAccess
 - Disable-SafeguardSpsRemoteAccess
