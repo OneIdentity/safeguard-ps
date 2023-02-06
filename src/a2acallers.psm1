@@ -481,12 +481,6 @@ A string containing the thumbprint of a certificate the system certificate store
 .PARAMETER ApiKey
 A string containing the API key that identifies the account being requested.
 
-.PARAMETER KeyFormat
-A string containing which format to use for the private key.  The options are:
-  - OpenSsh: OpenSSH legacy PEM format (default)
-  - Ssh2: Tectia format for use with tools from SSH.com
-  - Putty: Putty format for use with PuTTY tools
-
 .PARAMETER Version
 Version of the Web API you are using (default: 4).
 
@@ -497,10 +491,10 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardA2aPrivateKey -Appliance 10.5.32.54 -CertificateFile C:\certs\file.pfx -Password $pass -ApiKey 6A4psUnrLv1hvoWSB3jsm2V50eFT62vwAI9Zlj/dDWw=
+Get-SafeguardA2aApiKeySecret -Appliance 10.5.32.54 -CertificateFile C:\certs\file.pfx -Password $pass -ApiKey 6A4psUnrLv1hvoWSB3jsm2V50eFT62vwAI9Zlj/dDWw=
 
 .EXAMPLE
-Get-SafeguardA2aPrivateKey 10.5.32.54 6A4psUnrLv1hvoWSB3jsm2V50eFT62vwAI9Zlj/dDWw= -Thumbprint 756766BB590D7FA9CA9E1971A4AE41BB9CEC82F1
+Get-SafeguardA2aApiKeySecret 10.5.32.54 6A4psUnrLv1hvoWSB3jsm2V50eFT62vwAI9Zlj/dDWw= -Thumbprint 756766BB590D7FA9CA9E1971A4AE41BB9CEC82F1
 #>
 function Get-SafeguardA2aApiKeySecret
 {
