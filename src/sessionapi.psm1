@@ -116,7 +116,9 @@ function Invoke-SpsWithoutBody
         [Parameter(Mandatory=$false)]
         [object]$Parameters,
         [Parameter(Mandatory=$false)]
-        [string]$InFile
+        [string]$InFile,
+        [Parameter(Mandatory=$false)]
+        [string]$OutFile
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -133,7 +135,13 @@ function Invoke-SpsWithoutBody
     }
     if ($InFile)
     {
+        Write-Verbose "InFile=$InFile"
         $arguments = $arguments + @{ InFile = $InFile }
+    }
+    if($OutFile) 
+    {
+        Write-Verbose "OutFile=$OutFile"
+        $arguments = $arguments + @{ OutFile = $OutFile }
     }
 
     Invoke-RestMethod @arguments
@@ -155,7 +163,9 @@ function Invoke-SpsInternal
         [Parameter(Mandatory=$false)]
         [HashTable]$Parameters,
         [Parameter(Mandatory=$false)]
-        [string]$InFile
+        [string]$InFile,
+        [Parameter(Mandatory=$false)]
+        [string]$OutFile
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -166,7 +176,7 @@ function Invoke-SpsInternal
         switch ($Method.ToLower())
         {
             {$_ -in "get","delete"} {
-                Invoke-SpsWithoutBody $Method $RelativeUrl $Headers -Parameters $Parameters
+                Invoke-SpsWithoutBody $Method $RelativeUrl $Headers -Parameters $Parameters -OutFile $OutFile
                 break
             }
             {$_ -in "put","post"} {
@@ -632,6 +642,12 @@ A switch to return data as pretty JSON string.
 .PARAMETER BodyOutput
 A switch to just return the body as a PowerShell object.
 
+.PARAMETER InFile
+Path to an input file for upload.
+
+.PARAMETER OutFile
+Name of output file for downloads.
+
 .INPUTS
 None.
 
@@ -676,7 +692,9 @@ function Invoke-SafeguardSpsMethod
         [Parameter(Mandatory=$false)]
         [switch]$BodyOutput,
         [Parameter(Mandatory=$false)]
-        [string]$InFile
+        [string]$InFile,
+        [Parameter(Mandatory=$false)]
+        [string]$OutFile
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -720,6 +738,7 @@ function Invoke-SafeguardSpsMethod
             JsonBody = $JsonBody;
             Parameters = $Parameters;
             InFile = $InFile;
+            OutFile = $OutFile;
         }
         if ($JsonOutput)
         {
@@ -1192,6 +1211,9 @@ Uploads a new firmware to SPS.
 .DESCRIPTION
 This command takes a path to an SPS firmware and uploads it to an open firmware slot.
 
+.PARAMETER FilePath
+Path to the SPS firmware .iso
+
 .EXAMPLE
 Import-SafeguardSpsFirmware -FilePath <path to sps .iso>
 #>
@@ -1217,6 +1239,10 @@ Get Safeguard SPS appliance version via the Web API.
 
 .DESCRIPTION
 This cmdlet will display the version of Safeguard SPS.
+
+.PARAMETER AltSyntax
+Display the version property instead of the firmware_version property.
+
 
 .EXAMPLE
 Get-SafeguardSpsVersion
@@ -1308,6 +1334,12 @@ Starts a firmware upgrade.
 .DESCRIPTION
 This command upgrades SPS with the firmware installed into the indicated slot.
 
+.PARAMETER Slot
+The slot index index of the firmware (1-4)
+
+.PARAMETER Message
+The message to display while upgrading firmware
+
 .EXAMPLE
 Install-SafeguardSpsFirmware -Slot 3 -Message "Upgrading SPS firmware..."
 #>
@@ -1342,6 +1374,12 @@ Install-SafeguardSpsUpgrade
 
 .DESCRIPTION
 This command automates the steps for uploading and installing an SPS firmware upgrade.
+
+.PARAMETER FilePath
+THe path to the firmware .iso
+
+.PARAMETER TargetVersion
+The version of the firmware.
 
 .EXAMPLE
 Install-SafeguardSpsPatch -FilePath <path to SPS .iso>
@@ -1412,3 +1450,65 @@ function Install-SafeguardSpsUpgrade
     }
     throw "Firmware with version $TargetVersion could not be found in any firmware slot."
 }
+
+<#
+.SYNOPSIS
+Get-SafeguardSpsSupportBundle
+
+.DESCRIPTION
+This command downloads an SPS support bundle.
+
+.PARAMETER OutFile
+The output file name. If this is omitted, a unique name will be generated.
+
+.EXAMPLE
+Get-SafeguardSpsSupportBundle  
+#>
+function Get-SafeguardSpsSupportBundle
+{
+    [CmdletBinding()]
+    Param(
+        [parameter(Mandatory = $false, Position = 0)]
+        [string] $OutFile
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $pct = 5
+    $activity = 'Get SPS Support Bundle'
+    Write-Progress -Activity $activity -Status 'Generating support bundle' -PercentComplete $pct
+    $response = Invoke-SafeguardSpsMethod POST troubleshooting/support-bundle
+    $jobId = $response.key
+
+    $maxTime = (Get-Date).AddMinutes(10)
+    $pct += 15
+    while((Get-Date) -lt $maxTime) {
+        $status = Invoke-SafeguardSpsMethod GET "troubleshooting/support-bundle/$($jobId)"
+        if($status.body.status -ieq "finished") {
+            break;
+        }
+        start-sleep -Seconds 10
+        $pct += 1
+        Write-Progress -Activity $activity -Status 'Waiting for support bundle generation to complete' -PercentComplete $pct
+    }
+
+    if ((Get-Date) -gt $maxTime) {
+        throw "Timed out waiting for support bundle generation."
+    }
+
+    $pct = 80
+    Write-Progress -Activity $activity -Status 'Downloading support bundle' -PercentComplete $pct
+    if(-not $OutFile) {
+        $OutFile = "sps-$($safeguardspssession.Appliance)-$(get-date -f yyyy-MM-dd-HH-mm-ss).tar.gz"
+    }
+
+    Invoke-SafeguardSpsMethod GET "troubleshooting/support-bundle/$($jobId)/download" -OutFile $OutFile
+    Write-Progress -Activity $activity -Status 'Deleting support bundle from SPS' -PercentComplete 90
+
+    $null = Invoke-SafeguardSpsMethod DELETE "troubleshooting/support-bundle/$($jobId)"
+    Write-Progress -Activity $activity -Status 'Complete' -PercentComplete 100
+    
+    Write-Host -ForegroundColor Green "Saved SPS support bundle to: $OutFile"
+}
+
