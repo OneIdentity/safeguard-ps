@@ -160,6 +160,7 @@ FunctionsToExport = @(
     'Remove-SafeguardSpsStarlingJoin','Enable-SafeguardSpsRemoteAccess','Disable-SafeguardSpsRemoteAccess',
     'Get-SafeguardSpsFirmwareSlot','Import-SafeguardSpsFirmware','Test-SafeguardSpsFirmware','Install-SafeguardSpsFirmware',
     'Install-SafeguardSpsUpgrade','Get-SafeguardSpsInfo','Get-SafeguardSpsVersion',
+    'Get-SafeguardSpsSupportBundle',
     # archives.psm1
     'Get-SafeguardArchiveServer','New-SafeguardArchiveServer','Test-SafeguardArchiveServer',
     'Remove-SafeguardArchiveServer','Edit-SafeguardArchiveServer',
