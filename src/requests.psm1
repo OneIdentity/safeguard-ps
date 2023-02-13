@@ -344,6 +344,15 @@ A string containing the access request type: Password, Ssh, RemoteDesktop.
 .PARAMETER AllFields
 Return all properties that can be displayed.
 
+.PARAMETER RequestedDurationDays
+The number of days requested for password access. The sum of Requested Days/Hours/Minutes must not exceed 31 days.
+
+.PARAMETER RequestedDurationHours
+The number of hours requested for password access. The sum of Requested Days/Hours/Minutes must not exceed 31 days.
+
+.PARAMETER RequestedDurationMinutes
+The number of minutes requested for password access. The sum of Requested Days/Hours/Minutes must not exceed 31 days.
+
 .INPUTS
 None.
 
@@ -379,7 +388,13 @@ function New-SafeguardAccessRequest
         [Parameter(Mandatory=$false)]
         [string]$TicketNumber,
         [Parameter(Mandatory=$false)]
-        [switch]$AllFields
+        [switch]$AllFields,
+        [Parameter(Mandatory=$false)]
+        [int]$RequestedDurationDays,
+        [Parameter(Mandatory=$false)]
+        [int]$RequestedDurationHours,
+        [Parameter(Mandatory=$false)]
+        [int]$RequestedDurationMinutes
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -445,6 +460,10 @@ function New-SafeguardAccessRequest
     }
     if ($ReasonComment) { $local:Body["ReasonComment"] = $ReasonComment }
     if ($TicketNumber) { $local:Body["TicketNumber"] = $TicketNumber }
+    
+    if ($RequestedDurationDays) { $local:Body["RequestedDurationDays"] = $RequestedDurationDays }
+    if ($RequestedDurationHours) { $local:Body["RequestedDurationHours"] = $RequestedDurationHours }
+    if ($RequestedDurationMinutes) { $local:Body["RequestedDurationMinutes"] = $RequestedDurationMinutes }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
          POST "AccessRequests" -Body $local:Body | Select-Object -Property $local:RequestFields
