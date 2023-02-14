@@ -258,7 +258,7 @@ function Add-ReceiveFileStreamCmdletType
     {
         Write-Verbose "Adding the PSType for downloading a file stream"
 
-        $referenceAssemblies = ("System.dll", "System.Management.Automation.dll", "System.Net.Http.dll", "System.Net.Primitives", "System.Security.Cryptography.X509Certificates.dll")
+        $referenceAssemblies = ("System.dll", "System.Management.Automation.dll", "System.Net.Http.dll", "System.Net.Primitives", "System.Security.Cryptography.X509Certificates.dll", "System.Threading.dll")
 
         $cls = Add-Type -PassThru -ReferencedAssemblies $referenceAssemblies -TypeDefinition  @"
 using System;
@@ -267,6 +267,7 @@ using System.Management.Automation;
 using System.Net.Http;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks;
 
 [Cmdlet("Receive", "FileStream")]
 public class ReceiveFileStreamCmdlet : PSCmdlet
@@ -334,46 +335,53 @@ public class ReceiveFileStreamCmdlet : PSCmdlet
                         var progressRecord = new ProgressRecord(1, "Downloading", "0% Complete");
                         Host.UI.WriteProgress(1, progressRecord);
                         var totalBytes = response.Content.Headers.ContentLength;
-                        using (var fileStream = new FileStream(PathAndFilename, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
-                        using (var contentStream = response.Content.ReadAsStream())
+                        Task readtask = response.Content.ReadAsStreamAsync().ContinueWith(t =>
                         {
-                            var downloadBuffer = new byte[80 * 1024];
-                            var bytesLeft = totalBytes;
-
-                            System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
-
-                            while (bytesLeft > 0)
+                            var contentStream = t.Result;
+                            using (var fileStream = new FileStream(PathAndFilename, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
                             {
-                                var bytesRead = contentStream.Read(downloadBuffer, 0, downloadBuffer.Length);
-                                fileStream.Write(downloadBuffer, 0, bytesRead);
-                                bytesLeft -= bytesRead;
+                                var downloadBuffer = new byte[80 * 1024];
+                                var bytesLeft = totalBytes;
 
-                                if (stopwatch.ElapsedMilliseconds > 1000)
+                                System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+                                while (bytesLeft > 0)
                                 {
-                                    int percentDone = (int)((totalBytes - bytesLeft) / (double)totalBytes * 100);
+                                    var bytesRead = contentStream.Read(downloadBuffer, 0, downloadBuffer.Length);
+                                    fileStream.Write(downloadBuffer, 0, bytesRead);
+                                    bytesLeft -= bytesRead;
 
-                                    progressRecord.StatusDescription = string.Format("{0}% Complete", percentDone);
-                                    progressRecord.PercentComplete = percentDone;
-                                    Host.UI.WriteProgress(1, progressRecord);
+                                    if (stopwatch.ElapsedMilliseconds > 1000)
+                                    {
+                                        int percentDone = (int)((totalBytes - bytesLeft) / (double)totalBytes * 100);
+                                        
+                                        Host.UI.WriteLine("This 1 percentDone is: " + percentDone);
 
-                                    stopwatch.Restart();
+                                        progressRecord.StatusDescription = string.Format("{0}% Complete", percentDone);
+                                        
+                                        Host.UI.WriteLine("This 2 percentDone is: " + percentDone);
+                                        progressRecord.PercentComplete = percentDone;
+                                        Host.UI.WriteProgress(1, progressRecord);
+
+                                        stopwatch.Restart();
+                                    }
                                 }
                             }
-
                             progressRecord.StatusDescription = "100% Complete";
                             progressRecord.PercentComplete = 100;
                             progressRecord.RecordType = ProgressRecordType.Completed;
                             Host.UI.WriteProgress(1, progressRecord);
 
                             Host.UI.WriteLine(string.Format("Download complete. File is saved at {0}...", PathAndFilename));
-                        }
+                        });
+                        readtask.Wait();
                     }
                     else
                     {
                         var message = string.Format("Http Response: {0} - {1}, ", (int)response.StatusCode, response.StatusCode);
                         message += (response.Content.Headers.ContentLength > 0) ?
                             response.Content.ReadAsStringAsync().GetAwaiter().GetResult() : "<no content>";
-                        var ex = new HttpRequestException(message, null, response.StatusCode);
+                        var ex = new HttpRequestException(message);
                         WriteError(new ErrorRecord(ex, "HttpResponseError", ErrorCategory.InvalidResult, request));
                     }
                 }
