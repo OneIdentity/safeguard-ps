@@ -56,6 +56,12 @@ function Add-SendFileStreamCmdletType
         # when running on Windows.
         $referenceAssemblies = ("System.dll", "System.Management.Automation.dll", "System.Net.Http.dll", "System.Net.Primitives", "System.Security.Cryptography.X509Certificates.dll")
 
+        # Powershell 7 moves System.Security.Cryptography.X509Certificates.dll to System.Security.Cryptography.dll
+        if ($PSVersionTable.PSVersion.Major -ge 7)
+        {
+            $referenceAssemblies = ("System.dll", "System.Management.Automation.dll", "System.Net.Http.dll", "System.Net.Primitives", "System.Security.Cryptography.dll", "System.Threading.dll")
+        }
+        
         # Use the PassThru parameter to return the type that gets generated so we can assign it to
         # a variable and access it next in order to load/import it, making it available directly in
         # the PowerShell script, usable/callable like any other Cmdlet.
@@ -214,7 +220,6 @@ public class SendFileStreamCmdlet : PSCmdlet
                 httpClientHandler.ServerCertificateCustomValidationCallback = ServerCertificateCustomValidation;
             }
             insecurePerRequest = Insecure;
-
             using (FileStream stream = new FileStream(PathAndFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             using (HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, string.Format("https://{0}/service/appliance/v{1}/{2}", Appliance, Version, RelPath)))
             {
@@ -257,9 +262,13 @@ function Add-ReceiveFileStreamCmdletType
     if (-not ([System.Management.Automation.PSTypeName]"ReceiveFileStreamCmdlet").Type)
     {
         Write-Verbose "Adding the PSType for downloading a file stream"
-
         $referenceAssemblies = ("System.dll", "System.Management.Automation.dll", "System.Net.Http.dll", "System.Net.Primitives", "System.Security.Cryptography.X509Certificates.dll", "System.Threading.dll")
 
+        # Powershell 7 moves System.Security.Cryptography.X509Certificates.dll to System.Security.Cryptography.dll
+        if ($PSVersionTable.PSVersion.Major -ge 7)
+        {
+            $referenceAssemblies = ("System.dll", "System.Management.Automation.dll", "System.Net.Http.dll", "System.Net.Primitives", "System.Security.Cryptography.dll", "System.Threading.dll")
+        }
         $cls = Add-Type -PassThru -ReferencedAssemblies $referenceAssemblies -TypeDefinition  @"
 using System;
 using System.IO;
@@ -421,7 +430,7 @@ function Send-PatchFile
         }
 
         Add-SendFileStreamCmdletType
-        $local:JsonData = Send-FileStream (Resolve-Path $Patch) $Appliance $AccessToken $Version "Patch" $Insecure.IsPresent
+        $local:JsonData = Send-FileStream (Convert-Path $(Resolve-Path $Patch)) $Appliance $AccessToken $Version "Patch" $Insecure.IsPresent
         try
         {
             $local:JsonData = (ConvertFrom-Json $local:JsonData)
@@ -2728,7 +2737,7 @@ function Import-SafeguardBackup
         Write-Host "POSTing backup to Safeguard. This operation may take several minutes..."
 
         Add-SendFileStreamCmdletType
-        $local:JsonData = Send-FileStream (Resolve-Path $BackupFile) $Appliance $AccessToken $Version "Backups/Upload" $Insecure.IsPresent
+        $local:JsonData = Send-FileStream (Convert-Path $(Resolve-Path $BackupFile)) $Appliance $AccessToken $Version "Backups/Upload" $Insecure.IsPresent
         try
         {
             $local:JsonData = (ConvertFrom-Json $local:JsonData)
