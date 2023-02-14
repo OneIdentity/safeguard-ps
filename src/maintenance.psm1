@@ -354,12 +354,9 @@ public class ReceiveFileStreamCmdlet : PSCmdlet
                                     if (stopwatch.ElapsedMilliseconds > 1000)
                                     {
                                         int percentDone = (int)((totalBytes - bytesLeft) / (double)totalBytes * 100);
-                                        
-                                        Host.UI.WriteLine("This 1 percentDone is: " + percentDone);
 
                                         progressRecord.StatusDescription = string.Format("{0}% Complete", percentDone);
                                         
-                                        Host.UI.WriteLine("This 2 percentDone is: " + percentDone);
                                         progressRecord.PercentComplete = percentDone;
                                         Host.UI.WriteProgress(1, progressRecord);
 
