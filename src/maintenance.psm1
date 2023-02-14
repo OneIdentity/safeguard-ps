@@ -59,7 +59,7 @@ function Add-SendFileStreamCmdletType
         # Powershell 7 moves System.Security.Cryptography.X509Certificates.dll to System.Security.Cryptography.dll
         if ($PSVersionTable.PSVersion.Major -ge 7)
         {
-            $referenceAssemblies = ("System.dll", "System.Management.Automation.dll", "System.Net.Http.dll", "System.Net.Primitives", "System.Security.Cryptography.dll", "System.Threading.dll")
+            $referenceAssemblies = ("System.dll", "System.Management.Automation.dll", "System.Net.Http.dll", "System.Net.Primitives", "System.Security.Cryptography.dll")
         }
         
         # Use the PassThru parameter to return the type that gets generated so we can assign it to
