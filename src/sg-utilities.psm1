@@ -222,7 +222,7 @@ namespace Ex
     public class SafeguardLongRunningTaskException : System.Exception
     {
         public SafeguardLongRunningTaskException()
-            : base("Unknown SafeguardMethodException") {}
+            : base("Unknown SafeguardLongRunningTaskException") {}
         public SafeguardLongRunningTaskException(string message, PSObject[] log)
             : base(message)
         {
