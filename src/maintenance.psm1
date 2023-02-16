@@ -56,6 +56,12 @@ function Add-SendFileStreamCmdletType
         # when running on Windows.
         $referenceAssemblies = ("System.dll", "System.Management.Automation.dll", "System.Net.Http.dll", "System.Net.Primitives", "System.Security.Cryptography.X509Certificates.dll")
 
+        # Powershell 7 moves System.Security.Cryptography.X509Certificates.dll to System.Security.Cryptography.dll
+        if ($PSVersionTable.PSVersion.Major -ge 7)
+        {
+            $referenceAssemblies = ("System.dll", "System.Management.Automation.dll", "System.Net.Http.dll", "System.Net.Primitives", "System.Security.Cryptography.dll")
+        }
+        
         # Use the PassThru parameter to return the type that gets generated so we can assign it to
         # a variable and access it next in order to load/import it, making it available directly in
         # the PowerShell script, usable/callable like any other Cmdlet.
@@ -214,7 +220,6 @@ public class SendFileStreamCmdlet : PSCmdlet
                 httpClientHandler.ServerCertificateCustomValidationCallback = ServerCertificateCustomValidation;
             }
             insecurePerRequest = Insecure;
-
             using (FileStream stream = new FileStream(PathAndFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             using (HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, string.Format("https://{0}/service/appliance/v{1}/{2}", Appliance, Version, RelPath)))
             {
@@ -257,9 +262,13 @@ function Add-ReceiveFileStreamCmdletType
     if (-not ([System.Management.Automation.PSTypeName]"ReceiveFileStreamCmdlet").Type)
     {
         Write-Verbose "Adding the PSType for downloading a file stream"
+        $referenceAssemblies = ("System.dll", "System.Management.Automation.dll", "System.Net.Http.dll", "System.Net.Primitives", "System.Security.Cryptography.X509Certificates.dll", "System.Threading.dll")
 
-        $referenceAssemblies = ("System.dll", "System.Management.Automation.dll", "System.Net.Http.dll", "System.Net.Primitives", "System.Security.Cryptography.X509Certificates.dll")
-
+        # Powershell 7 moves System.Security.Cryptography.X509Certificates.dll to System.Security.Cryptography.dll
+        if ($PSVersionTable.PSVersion.Major -ge 7)
+        {
+            $referenceAssemblies = ("System.dll", "System.Management.Automation.dll", "System.Net.Http.dll", "System.Net.Primitives", "System.Security.Cryptography.dll", "System.Threading.dll")
+        }
         $cls = Add-Type -PassThru -ReferencedAssemblies $referenceAssemblies -TypeDefinition  @"
 using System;
 using System.IO;
@@ -267,6 +276,7 @@ using System.Management.Automation;
 using System.Net.Http;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks;
 
 [Cmdlet("Receive", "FileStream")]
 public class ReceiveFileStreamCmdlet : PSCmdlet
@@ -334,46 +344,50 @@ public class ReceiveFileStreamCmdlet : PSCmdlet
                         var progressRecord = new ProgressRecord(1, "Downloading", "0% Complete");
                         Host.UI.WriteProgress(1, progressRecord);
                         var totalBytes = response.Content.Headers.ContentLength;
-                        using (var fileStream = new FileStream(PathAndFilename, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
-                        using (var contentStream = response.Content.ReadAsStream())
+                        Task readtask = response.Content.ReadAsStreamAsync().ContinueWith(t =>
                         {
-                            var downloadBuffer = new byte[80 * 1024];
-                            var bytesLeft = totalBytes;
-
-                            System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
-
-                            while (bytesLeft > 0)
+                            var contentStream = t.Result;
+                            using (var fileStream = new FileStream(PathAndFilename, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
                             {
-                                var bytesRead = contentStream.Read(downloadBuffer, 0, downloadBuffer.Length);
-                                fileStream.Write(downloadBuffer, 0, bytesRead);
-                                bytesLeft -= bytesRead;
+                                var downloadBuffer = new byte[80 * 1024];
+                                var bytesLeft = totalBytes;
 
-                                if (stopwatch.ElapsedMilliseconds > 1000)
+                                System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+                                while (bytesLeft > 0)
                                 {
-                                    int percentDone = (int)((totalBytes - bytesLeft) / (double)totalBytes * 100);
+                                    var bytesRead = contentStream.Read(downloadBuffer, 0, downloadBuffer.Length);
+                                    fileStream.Write(downloadBuffer, 0, bytesRead);
+                                    bytesLeft -= bytesRead;
 
-                                    progressRecord.StatusDescription = string.Format("{0}% Complete", percentDone);
-                                    progressRecord.PercentComplete = percentDone;
-                                    Host.UI.WriteProgress(1, progressRecord);
+                                    if (stopwatch.ElapsedMilliseconds > 1000)
+                                    {
+                                        int percentDone = (int)((totalBytes - bytesLeft) / (double)totalBytes * 100);
 
-                                    stopwatch.Restart();
+                                        progressRecord.StatusDescription = string.Format("{0}% Complete", percentDone);
+                                        
+                                        progressRecord.PercentComplete = percentDone;
+                                        Host.UI.WriteProgress(1, progressRecord);
+
+                                        stopwatch.Restart();
+                                    }
                                 }
                             }
-
                             progressRecord.StatusDescription = "100% Complete";
                             progressRecord.PercentComplete = 100;
                             progressRecord.RecordType = ProgressRecordType.Completed;
                             Host.UI.WriteProgress(1, progressRecord);
 
                             Host.UI.WriteLine(string.Format("Download complete. File is saved at {0}...", PathAndFilename));
-                        }
+                        });
+                        readtask.Wait();
                     }
                     else
                     {
                         var message = string.Format("Http Response: {0} - {1}, ", (int)response.StatusCode, response.StatusCode);
                         message += (response.Content.Headers.ContentLength > 0) ?
                             response.Content.ReadAsStringAsync().GetAwaiter().GetResult() : "<no content>";
-                        var ex = new HttpRequestException(message, null, response.StatusCode);
+                        var ex = new HttpRequestException(message);
                         WriteError(new ErrorRecord(ex, "HttpResponseError", ErrorCategory.InvalidResult, request));
                     }
                 }
@@ -416,7 +430,7 @@ function Send-PatchFile
         }
 
         Add-SendFileStreamCmdletType
-        $local:JsonData = Send-FileStream (Resolve-Path $Patch) $Appliance $AccessToken $Version "Patch" $Insecure.IsPresent
+        $local:JsonData = Send-FileStream (Convert-Path $(Resolve-Path $Patch)) $Appliance $AccessToken $Version "Patch" $Insecure.IsPresent
         try
         {
             $local:JsonData = (ConvertFrom-Json $local:JsonData)
@@ -2723,7 +2737,7 @@ function Import-SafeguardBackup
         Write-Host "POSTing backup to Safeguard. This operation may take several minutes..."
 
         Add-SendFileStreamCmdletType
-        $local:JsonData = Send-FileStream (Resolve-Path $BackupFile) $Appliance $AccessToken $Version "Backups/Upload" $Insecure.IsPresent
+        $local:JsonData = Send-FileStream (Convert-Path $(Resolve-Path $BackupFile)) $Appliance $AccessToken $Version "Backups/Upload" $Insecure.IsPresent
         try
         {
             $local:JsonData = (ConvertFrom-Json $local:JsonData)
