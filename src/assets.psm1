@@ -1088,6 +1088,10 @@ An integer containing the port for this asset.
 .PARAMETER Platform
 A platform ID for a specific platform type or a string to search for desired platform type.
 
+.PARAMETER ServiceAccountId
+An integer for the ID of the service account to use.  This will override specifying a service
+account name and password.
+
 .PARAMETER ServiceAccountDomainName
 A string containing the service account domain name if it has one.
 
@@ -1167,6 +1171,8 @@ function Edit-SafeguardAsset
         [ValidateSet("None","Password","SshKey","DirectoryPassword","LocalHostPassword","AccessKey","AccountPassword",IgnoreCase=$true)]
         [string]$ServiceAccountCredentialType,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [int]$ServiceAccountId,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$ServiceAccountDomainName,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$ServiceAccountName,
@@ -1216,9 +1222,29 @@ function Edit-SafeguardAsset
         # Connection Properties
         if (-not $AssetObject.ConnectionProperties) { $AssetObject.ConnectionProperties = @{} }
         if ($PSBoundParameters.ContainsKey("Port")) { $AssetObject.ConnectionProperties.Port = $Port }
-        if ($PSBoundParameters.ContainsKey("ServiceAccountCredentialType")) { $AssetObject.ConnectionProperties.ServiceAccountCredentialType = $ServiceAccountCredentialType }
-        if ($PSBoundParameters.ContainsKey("ServiceAccountDomainName")) { $AssetObject.ConnectionProperties.ServiceAccountDomainName = $ServiceAccountDomainName }
-        if ($PSBoundParameters.ContainsKey("ServiceAccountName")) { $AssetObject.ConnectionProperties.ServiceAccountName = $ServiceAccountName }
+        if ($PSBoundParameters.ContainsKey("ServiceAccountCredentialType"))
+        {
+            # if there is a credential type change, start over with connection properties
+            if ($AssetObject.ConnectionProperties.ServiceAccountCredentialType -ne $ServiceAccountCredentialType)
+            {
+                $AssetObject.ConnectionProperties = @{}
+                $AssetObject.ConnectionProperties.ServiceAccountCredentialType = $ServiceAccountCredentialType
+                if ($PSBoundParameters.ContainsKey("Port")) { $AssetObject.ConnectionProperties.Port = $Port }
+            }
+            else
+            {
+                $AssetObject.ConnectionProperties.ServiceAccountCredentialType = $ServiceAccountCredentialType
+            }
+        }
+        if ($PSBoundParameters.ContainsKey("ServiceAccountId"))
+        {
+            $AssetObject.ConnectionProperties.ServiceAccountId = $ServiceAccountId
+        }
+        else
+        {
+            if ($PSBoundParameters.ContainsKey("ServiceAccountDomainName")) { $AssetObject.ConnectionProperties.ServiceAccountDomainName = $ServiceAccountDomainName }
+            if ($PSBoundParameters.ContainsKey("ServiceAccountName")) { $AssetObject.ConnectionProperties.ServiceAccountName = $ServiceAccountName }
+        }
         if ($PSBoundParameters.ContainsKey("PrivilegeElevationCommand")) { $AssetObject.ConnectionProperties.PrivilegeElevationCommand = $PrivilegeElevationCommand }
 
         #Ldap Connection properties
@@ -1231,7 +1257,7 @@ function Edit-SafeguardAsset
             $AssetObject.ConnectionProperties.VerifySslCertificate = $false
         }
 
-        if ($PSBoundParameters.ContainsKey("ServiceAccountPassword"))
+        if ($PSBoundParameters.ContainsKey("ServiceAccountPassword") -and -not $PSBoundParameters.ContainsKey("ServiceAccountId"))
         {
             $AssetObject.ConnectionProperties.ServiceAccountPassword = [System.Net.NetworkCredential]::new("", $ServiceAccountPassword).Password
         }
