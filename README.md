@@ -553,6 +553,8 @@ update this list.
 - New-SafeguardAssetAccountRandomPassword
 - Test-SafeguardAssetAccountPassword
 - Invoke-SafeguardAssetAccountPasswordChange
+- Test-SafeguardAssetAccountSshKey
+- Invoke-SafeguardAssetAccountSshKeyChange
 - Invoke-SafeguardAssetSshHostKeyDiscovery
 - Remove-SafeguardAssetAccount
 
