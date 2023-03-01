@@ -71,7 +71,7 @@ function Resolve-SafeguardRequestableAccountId
         [Parameter(Mandatory=$true,Position=0)]
         [object]$Account,
         [Parameter(Mandatory=$false)]
-        [ValidateSet("Password", "SSHKey", "SSH", "RemoteDesktop", "RDP", "RemoteDesktopApplication", "RDPApplication", "RDPApp", "Telnet", IgnoreCase=$true)]
+        [ValidateSet("Password", "SSHKey", "SSH", "RemoteDesktop", "RDP", "RemoteDesktopApplication", "RDPApplication", "RDPApp", "Telnet", "ApiKey", IgnoreCase=$true)]
         [string]$AccessRequestType
     )
 
@@ -377,7 +377,7 @@ function New-SafeguardAccessRequest
         [Parameter(Mandatory=$false, Position=1)]
         [object]$AccountToUse,
         [Parameter(Mandatory=$true, Position=2)]
-        [ValidateSet("Password", "SSHKey", "SSH", "RemoteDesktop", "RDP", "RemoteDesktopApplication", "RDPApplication", "RDPApp", "Telnet", IgnoreCase=$true)]
+        [ValidateSet("Password", "SSHKey", "SSH", "RemoteDesktop", "RDP", "RemoteDesktopApplication", "RDPApplication", "RDPApp", "Telnet", "ApiKey", IgnoreCase=$true)]
         [string]$AccessRequestType,
         [Parameter(Mandatory=$false)]
         [switch]$Emergency = $false,
@@ -460,7 +460,7 @@ function New-SafeguardAccessRequest
     }
     if ($ReasonComment) { $local:Body["ReasonComment"] = $ReasonComment }
     if ($TicketNumber) { $local:Body["TicketNumber"] = $TicketNumber }
-    
+
     if ($RequestedDurationDays) { $local:Body["RequestedDurationDays"] = $RequestedDurationDays }
     if ($RequestedDurationHours) { $local:Body["RequestedDurationHours"] = $RequestedDurationHours }
     if ($RequestedDurationMinutes) { $local:Body["RequestedDurationMinutes"] = $RequestedDurationMinutes }
@@ -475,9 +475,10 @@ Perform an action on an access request via the Web API.
 
 .DESCRIPTION
 POST to the AccessRequests endpoint.  This script will allow you to Approve,
-Deny, Review, Cancel, Close, CheckIn, CheckOutPassword, and InitializeSession
-on an open access request.  You can also Acknowledge a closed request to remove
-it from your actionable requests list.
+Deny, Review, Cancel, Close, CheckIn, CheckOutPassword, CheckOutSshKey,
+CheckOutApiKey, and InitializeSession on an open access request.  You can
+also Acknowledge a closed request to remove it from your actionable requests
+list.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -527,7 +528,7 @@ function Edit-SafeguardAccessRequest
         [Parameter(Mandatory=$true, Position=0)]
         [string]$RequestId,
         [Parameter(Mandatory=$true, Position=1)]
-        [ValidateSet("Approve", "Deny", "Review", "Cancel", "Close", "CheckIn", "CheckOutPassword", "CheckOutSshKey", "CheckOut", "InitializeSession", "Acknowledge", IgnoreCase=$true)]
+        [ValidateSet("Approve", "Deny", "Review", "Cancel", "Close", "CheckIn", "CheckOutPassword", "CheckOutSshKey", "CheckOutApiKey", "CheckOutApiKeys", "CheckOut", "InitializeSession", "Acknowledge", IgnoreCase=$true)]
         [string]$Action,
         [Parameter(Mandatory=$false)]
         [string]$Comment,
@@ -550,11 +551,13 @@ function Edit-SafeguardAccessRequest
         "checkout" { $Action = "CheckOutPassword"; break }
         "checkoutpassword" { $Action = "CheckOutPassword"; break }
         "checkoutsshkey" { $Action = "CheckOutSshKey"; break }
+        "checkoutapikey" { $Action = "CheckOutApiKeys"; break }
+        "checkoutapikeys" { $Action = "CheckOutApiKeys"; break }
         "initializesession" { $Action = "InitializeSession"; break }
         "acknowledge" { $Action = "Acknowledge"; break }
     }
 
-    if ($AllFields -or $Action -eq "CheckOutPassword" -or $Action -eq "CheckOutSshKey" -or $Action -eq "InitializeSession")
+    if ($AllFields -or $Action -eq "CheckOutPassword" -or $Action -eq "CheckOutSshKey" -or $Action -eq "InitializeSession" -or $Action -eq "CheckOutApiKeys")
     {
         $local:RequestFields = $null
     }
@@ -1060,6 +1063,56 @@ function Get-SafeguardAccessRequestPassword
     Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId CheckOutPassword
 }
 New-Alias -Name Get-SafeguardAccessRequestCheckoutPassword -Value Get-SafeguardAccessRequestPassword
+
+<#
+.SYNOPSIS
+Checks out the API keys for an access request via the Web API.
+
+.DESCRIPTION
+POST to the AccessRequests endpoint.  This script allows you to CheckOutApiKeys
+on an approved access request.  This endpoint returns one or more API keys depending
+on what is configured for the account.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER RequestId
+A string containing the ID of the access request.
+
+.INPUTS
+None.
+
+.OUTPUTS
+An array of JSON objects containing API key data.
+
+.EXAMPLE
+Get-SafeguardAccessRequestApiKey 8518-1-18B1694CF1C0-0026
+#>
+function Get-SafeguardAccessRequestApiKey
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]$RequestId
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Edit-SafeguardAccessRequest -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RequestId CheckOutApiKeys
+}
 
 <#
 .SYNOPSIS
