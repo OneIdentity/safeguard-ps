@@ -492,6 +492,7 @@ update this list.
 - Get-SafeguardAccessRequestPassword (Get-SafeguardAccessRequestCheckoutPassword)
 - Get-SafeguardAccessRequestSshHostKey
 - Get-SafeguardAccessRequestSshKey
+- Get-SafeguardAccessRequestApiKey
 - Get-SafeguardAccessRequestRdpFile
 - Get-SafeguardAccessRequestRdpUrl
 - Get-SafeguardAccessRequestSshUrl
