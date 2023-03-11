@@ -521,6 +521,19 @@ function Get-SafeguardStatus
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    if ($SafeguardSession)
+    {
+        $Insecure = $SafeguardSession["Insecure"]
+    }
+    if (-not ($PSBoundParameters.ContainsKey("Version")) -and $SafeguardSession)
+    {
+        $Version = $SafeguardSession["Version"]
+    }
+    if (-not $Appliance -and $SafeguardSession)
+    {
+        $Appliance = $SafeguardSession["Appliance"]
+    }
+
     # Remove the IsClustered property since it is deprecated and inaccurate
     Invoke-SafeguardMethod -Anonymous -Appliance $Appliance -Insecure:$Insecure Notification -Version $Version GET Status | Select-Object -Property * -ExcludeProperty IsClustered
 }
@@ -617,6 +630,19 @@ function Wait-SafeguardApplianceStateOnline
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($SafeguardSession)
+    {
+        $Insecure = $SafeguardSession["Insecure"]
+    }
+    if (-not ($PSBoundParameters.ContainsKey("Version")) -and $SafeguardSession)
+    {
+        $Version = $SafeguardSession["Version"]
+    }
+    if (-not $Appliance -and $SafeguardSession)
+    {
+        $Appliance = $SafeguardSession["Appliance"]
+    }
 
     Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
     Wait-ForSafeguardOnlineStatus -Appliance $Appliance -Insecure:$Insecure -Version $Version -Timeout $Timeout
