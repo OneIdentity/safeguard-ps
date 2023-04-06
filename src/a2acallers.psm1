@@ -73,12 +73,12 @@ function Invoke-SafeguardA2aMethodWithCertificate
         if (-not $Thumbprint)
         {
             Invoke-RestMethod -Certificate $local:Cert -Method $Method -Headers $local:Headers `
-                -Uri "https://$Appliance/service/$Service/v$Version/$RelativeUrl" -Body $local:BodyInternal
+                -Uri "https://$Appliance/service/$Service/v$Version/$RelativeUrl" -Body ([System.Text.Encoding]::UTF8.GetBytes($local:BodyInternal))
         }
         else
         {
             Invoke-RestMethod -CertificateThumbprint $Thumbprint -Method $Method -Headers $local:Headers `
-                -Uri "https://$Appliance/service/$Service/v$Version/$RelativeUrl" -Body $local:BodyInternal
+                -Uri "https://$Appliance/service/$Service/v$Version/$RelativeUrl" -Body ([System.Text.Encoding]::UTF8.GetBytes($local:BodyInternal))
         }
     }
     catch
