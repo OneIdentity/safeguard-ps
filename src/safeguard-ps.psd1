@@ -349,7 +349,17 @@ PrivateData = @{
         ReleaseNotes = @"
 safeguard-ps Release Notes:
 
-- bug fixes
+- Add support for AccessRequestType in Get-SafeguardRequestableAccount
+- Fix UTF-8 encoding in places where missing
+- Added Sync-SafeguardUserGroupAuthenticationProvider to force sync auth providers
+- Fixed missing default API versions
+- Added support for pulling patches from remote endpoint
+- Added support to get SPS support bundle
+- Added A2A support for API key secrets
+- Added support for request duration parameters
+- Added SSH key check and change cmdlets
+- Fixed bug changing service account cred type
+- Support for API key access requests
 "@
 
     } # End of PSData hashtable
