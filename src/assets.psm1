@@ -1235,15 +1235,51 @@ function Edit-SafeguardAsset
             {
                 $AssetObject.ConnectionProperties.ServiceAccountCredentialType = $ServiceAccountCredentialType
             }
+            # Proper credential type setup code from New-SafeguardAsset
+            switch ($ServiceAccountCredentialType.ToLower())
+            {
+                {$_ -in "password","accountpassword","accesskey"} {
+                    if (-not $PSBoundParameters.ContainsKey("ServiceAccountName") -or -not $ServiceAccountName)
+                    {
+                        if ($PSCmdlet.ParameterSetName -ne "Ldap")
+                        {
+                            $ServiceAccountName = (Read-Host "ServiceAccountName")
+                        }
+                    }
+                    $AssetObject.ConnectionProperties.ServiceAccountName = $ServiceAccountName
+                    if ($ServiceAccountCredentialType -eq "AccessKey")
+                    {
+                        if (-not $PSBoundParameters.ContainsKey("ServiceAccountSecretKey"))
+                        {
+                            $ServiceAccountSecretKey = (Read-Host "ServiceAccountSecretKey")
+                        }
+                        $AssetObject.ConnectionProperties.SecretKey = $ServiceAccountSecretKey
+                    }
+                    else
+                    {
+                        if (-not $PSBoundParameters.ContainsKey("ServiceAccountPassword"))
+                        {
+                            $ServiceAccountPassword = (Read-Host -AsSecureString "ServiceAccountPassword")
+                        }
+                        $AssetObject.ConnectionProperties.ServiceAccountPassword = [System.Net.NetworkCredential]::new("", $ServiceAccountPassword).Password
+                    }
+                }
+                {$_ -eq "directorypassword"} {
+                    if (-not $PSBoundParameters.ContainsKey("ServiceAccountDomainName")) { $ServiceAccountDomainName = (Read-Host "ServiceAccountDomainName") }
+                    if (-not $PSBoundParameters.ContainsKey("ServiceAccountName")) { $ServiceAccountName = (Read-Host "ServiceAccountName") }
+                    Import-Module -Name "$PSScriptRoot\directories.psm1" -Scope Local
+                    $local:DirectoryAccount = (Get-SafeguardDirectoryAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ServiceAccountDomainName $ServiceAccountName)
+                    if (-not $local:DirectoryAccount)
+                    {
+                        throw "Unable to find directory account '$ServiceAccountDomainName\$ServiceAccountName'"
+                    }
+                    $AssetObject.ConnectionProperties.ServiceAccountId = $local:DirectoryAccount.Id
+                }
+            }
         }
         if ($PSBoundParameters.ContainsKey("ServiceAccountId"))
         {
             $AssetObject.ConnectionProperties.ServiceAccountId = $ServiceAccountId
-        }
-        else
-        {
-            if ($PSBoundParameters.ContainsKey("ServiceAccountDomainName")) { $AssetObject.ConnectionProperties.ServiceAccountDomainName = $ServiceAccountDomainName }
-            if ($PSBoundParameters.ContainsKey("ServiceAccountName")) { $AssetObject.ConnectionProperties.ServiceAccountName = $ServiceAccountName }
         }
         if ($PSBoundParameters.ContainsKey("PrivilegeElevationCommand")) { $AssetObject.ConnectionProperties.PrivilegeElevationCommand = $PrivilegeElevationCommand }
 
