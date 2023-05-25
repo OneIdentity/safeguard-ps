@@ -72,13 +72,29 @@ function Invoke-SafeguardA2aMethodWithCertificate
     {
         if (-not $Thumbprint)
         {
-            Invoke-RestMethod -Certificate $local:Cert -Method $Method -Headers $local:Headers `
-                -Uri "https://$Appliance/service/$Service/v$Version/$RelativeUrl" -Body ([System.Text.Encoding]::UTF8.GetBytes($local:BodyInternal))
+            if (-not $local:BodyInternal)
+            {
+                Invoke-RestMethod -Certificate $local:Cert -Method $Method -Headers $local:Headers `
+                    -Uri "https://$Appliance/service/$Service/v$Version/$RelativeUrl"
+            }
+            else
+            {
+                Invoke-RestMethod -Certificate $local:Cert -Method $Method -Headers $local:Headers `
+                    -Uri "https://$Appliance/service/$Service/v$Version/$RelativeUrl" -Body ([System.Text.Encoding]::UTF8.GetBytes($local:BodyInternal))
+            }
         }
         else
         {
-            Invoke-RestMethod -CertificateThumbprint $Thumbprint -Method $Method -Headers $local:Headers `
-                -Uri "https://$Appliance/service/$Service/v$Version/$RelativeUrl" -Body ([System.Text.Encoding]::UTF8.GetBytes($local:BodyInternal))
+            if (-not $local:BodyInternal)
+            {
+                Invoke-RestMethod -CertificateThumbprint $Thumbprint -Method $Method -Headers $local:Headers `
+                    -Uri "https://$Appliance/service/$Service/v$Version/$RelativeUrl"
+            }
+            else
+            {
+                Invoke-RestMethod -CertificateThumbprint $Thumbprint -Method $Method -Headers $local:Headers `
+                    -Uri "https://$Appliance/service/$Service/v$Version/$RelativeUrl" -Body ([System.Text.Encoding]::UTF8.GetBytes($local:BodyInternal))
+            }
         }
     }
     catch
