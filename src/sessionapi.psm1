@@ -503,6 +503,12 @@ The username to authenticate as.
 .PARAMETER Password
 SecureString containing the password.
 
+.PARAMETER Thumbprint
+Thumbprint of the certificate in the Users local certificate store.
+
+.PARAMETER CertificateFile
+Path to the pfx certificate on the filesystem.
+
 .INPUTS
 None.
 
