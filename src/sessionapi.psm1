@@ -5,12 +5,16 @@ function Connect-Sps
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [string]$SessionMaster,
-        [Parameter(Mandatory=$true,Position=1)]
+        [Parameter(Mandatory=$false)]
         [string]$SessionUsername,
-        [Parameter(Mandatory=$true,Position=2)]
+        [Parameter(Mandatory=$false)]
         [SecureString]$SessionPassword,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [string]$CertificateFile,
+        [Parameter(Mandatory=$false)]
+        [string]$Thumbprint
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -23,15 +27,19 @@ function Connect-Sps
         Disable-SslVerification
         if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
     }
-
-    $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $SessionPassword).Password
-
+             write-host $Thumbrint
     try
     {
+
+        if($Thumbprint){Invoke-RestMethod -Uri "https://$SessionMaster/api/authentication?type=x509" -SessionVariable HttpSession -CertificateThumbprint $Thumbprint | Write-Verbose }
+        elseif($CertificateFile){  Invoke-RestMethod -Uri "https://$SessionMaster/api/authentication?type=x509" -SessionVariable HttpSession -Certificate $CertificateFile | Write-Verbose }
+        else
+        {
+        $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $SessionPassword).Password
         $local:BasicAuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $SessionUsername, $local:PasswordPlainText)))
         Remove-Variable -Scope local PasswordPlainText
-        Invoke-RestMethod -Uri "https://$SessionMaster/api/authentication" -SessionVariable HttpSession `
-            -Headers @{ Authorization = ("Basic {0}" -f $local:BasicAuthInfo) } | Write-Verbose
+        Invoke-RestMethod -Uri "https://$SessionMaster/api/authentication" -SessionVariable HttpSession -Headers @{ Authorization = ("Basic {0}" -f $local:BasicAuthInfo) } | Write-Verbose
+        }
     }
     catch
     {
@@ -40,7 +48,9 @@ function Connect-Sps
     }
     finally
     {
+     if($local:BasicAuthInfo){
         Remove-Variable -Scope local BasicAuthInfo
+        }
     }
 
     $HttpSession
@@ -116,9 +126,7 @@ function Invoke-SpsWithoutBody
         [Parameter(Mandatory=$false)]
         [object]$Parameters,
         [Parameter(Mandatory=$false)]
-        [string]$InFile,
-        [Parameter(Mandatory=$false)]
-        [string]$OutFile
+        [string]$InFile
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -135,13 +143,7 @@ function Invoke-SpsWithoutBody
     }
     if ($InFile)
     {
-        Write-Verbose "InFile=$InFile"
         $arguments = $arguments + @{ InFile = $InFile }
-    }
-    if($OutFile) 
-    {
-        Write-Verbose "OutFile=$OutFile"
-        $arguments = $arguments + @{ OutFile = $OutFile }
     }
 
     Invoke-RestMethod @arguments
@@ -163,9 +165,7 @@ function Invoke-SpsInternal
         [Parameter(Mandatory=$false)]
         [HashTable]$Parameters,
         [Parameter(Mandatory=$false)]
-        [string]$InFile,
-        [Parameter(Mandatory=$false)]
-        [string]$OutFile
+        [string]$InFile
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -176,7 +176,7 @@ function Invoke-SpsInternal
         switch ($Method.ToLower())
         {
             {$_ -in "get","delete"} {
-                Invoke-SpsWithoutBody $Method $RelativeUrl $Headers -Parameters $Parameters -OutFile $OutFile
+                Invoke-SpsWithoutBody $Method $RelativeUrl $Headers -Parameters $Parameters
                 break
             }
             {$_ -in "put","post"} {
@@ -527,23 +527,30 @@ function Connect-SafeguardSps
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Appliance,
-        [Parameter(Mandatory=$true,Position=1)]
+        [Parameter(Mandatory=$false)]
         [string]$Username,
         [Parameter(Mandatory=$false)]
         [SecureString]$Password,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [string]$CertificateFile,
+        [Parameter(Mandatory=$false)]
+        [string]$Thumbprint
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    if (-not $Password)
+    
+    if($CertificateFile){ $local:HttpSession = (Connect-Sps -SessionMaster $Appliance -CertificateFile $CertificateFile -Insecure:$Insecure)}
+    elseif($Thumbprint){ $local:HttpSession = (Connect-Sps -SessionMaster $Appliance -Thumbprint $Thumbprint -Insecure:$Insecure)}
+    else
     {
-        $Password = (Read-Host "Password" -AsSecureString)
+        if (-not $Password) {$Password = (Read-Host "Password" -AsSecureString) }
+        $local:HttpSession = (Connect-Sps -SessionMaster $Appliance -SessionUsername $Username -SessionPassword $Password -Insecure:$Insecure)
     }
 
-    $local:HttpSession = (Connect-Sps -SessionMaster $Appliance -SessionUsername $Username -SessionPassword $Password -Insecure:$Insecure)
+
     Set-Variable -Name "SafeguardSpsSession" -Scope Global -Value @{
         "Appliance" = $Appliance;
         "Insecure" = $Insecure;
@@ -642,12 +649,6 @@ A switch to return data as pretty JSON string.
 .PARAMETER BodyOutput
 A switch to just return the body as a PowerShell object.
 
-.PARAMETER InFile
-Path to an input file for upload.
-
-.PARAMETER OutFile
-Name of output file for downloads.
-
 .INPUTS
 None.
 
@@ -692,9 +693,7 @@ function Invoke-SafeguardSpsMethod
         [Parameter(Mandatory=$false)]
         [switch]$BodyOutput,
         [Parameter(Mandatory=$false)]
-        [string]$InFile,
-        [Parameter(Mandatory=$false)]
-        [string]$OutFile
+        [string]$InFile
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -738,7 +737,6 @@ function Invoke-SafeguardSpsMethod
             JsonBody = $JsonBody;
             Parameters = $Parameters;
             InFile = $InFile;
-            OutFile = $OutFile;
         }
         if ($JsonOutput)
         {
@@ -1196,6 +1194,9 @@ function Get-SafeguardSpsInfo
 {
     [CmdletBinding()]
     Param(
+        [parameter(Mandatory, Position = 0)]
+        [string]
+        $FilePath
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -1210,9 +1211,6 @@ Uploads a new firmware to SPS.
 
 .DESCRIPTION
 This command takes a path to an SPS firmware and uploads it to an open firmware slot.
-
-.PARAMETER FilePath
-Path to the SPS firmware .iso
 
 .EXAMPLE
 Import-SafeguardSpsFirmware -FilePath <path to sps .iso>
@@ -1239,10 +1237,6 @@ Get Safeguard SPS appliance version via the Web API.
 
 .DESCRIPTION
 This cmdlet will display the version of Safeguard SPS.
-
-.PARAMETER AltSyntax
-Display the version property instead of the firmware_version property.
-
 
 .EXAMPLE
 Get-SafeguardSpsVersion
@@ -1315,16 +1309,9 @@ function Test-SafeguardSpsFirmware
         slot_id = $Slot
     }
 
-    try
-    {
-        $summary = (Invoke-SafeguardSpsMethod POST firmware/test -Body $Body).body.test_summary
-        Write-Verbose $summary
-        return $true
-    }
-    catch
-    {
-        return $false
-    }
+    $summary = (Invoke-SafeguardSpsMethod POST firmware/test -Body $Body).body.test_summary
+    Write-Verbose $summary
+    return $summary.StartsWith("Upgrade is allowed;")
 }
 
 <#
@@ -1333,12 +1320,6 @@ Starts a firmware upgrade.
 
 .DESCRIPTION
 This command upgrades SPS with the firmware installed into the indicated slot.
-
-.PARAMETER Slot
-The slot index index of the firmware (1-4)
-
-.PARAMETER Message
-The message to display while upgrading firmware
 
 .EXAMPLE
 Install-SafeguardSpsFirmware -Slot 3 -Message "Upgrading SPS firmware..."
@@ -1375,12 +1356,6 @@ Install-SafeguardSpsUpgrade
 .DESCRIPTION
 This command automates the steps for uploading and installing an SPS firmware upgrade.
 
-.PARAMETER FilePath
-THe path to the firmware .iso
-
-.PARAMETER TargetVersion
-The version of the firmware.
-
 .EXAMPLE
 Install-SafeguardSpsPatch -FilePath <path to SPS .iso>
 #>
@@ -1399,48 +1374,22 @@ function Install-SafeguardSpsUpgrade
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if($TargetVersion -eq (Get-SafeguardSpsVersion))
-    {
-        Write-Host "$TargetVersion is already installed"
-        return
-    }
-
     $activity = "Installing SPS upgrade"
     Write-Progress -Activity $activity -Status 'Importing firmware' -PercentComplete 15
-    Write-Verbose "Starting firmware upload..."
     Import-SafeguardSpsFirmware $FilePath
-    Write-Verbose "Firmware upload complete."
     $slots = (Get-SafeguardSpsFirmwareSlot).items.body
     for($i = 0; $i -lt $slots.count; $i++)
     {
         if($slots[$i].version -ieq $TargetVersion)
         {
-            Write-Verbose "Found target firmware '$($TargetVersion)' in slot $i"
             Write-Progress -Activity $activity -Status "Testing firmware in slot $i" -PercentComplete 65
             if( Test-SafeguardSpsFirmware -Slot $i )
             {
                 Write-Progress -Activity $activity -Status "Installing $TargetVersion from slot $i" -PercentComplete 75
-                Write-Verbose "Installing firmware in slot $i"
                 Install-SafeguardSpsFirmware -Slot $i -Message "Upgrading SPS firmware to $TargetVersion"
                 Write-Progress -Activity $activity -Status "Finished" -PercentComplete 100
-                Start-Sleep 60
-                Write-Verbose "Waiting for SPS to restart..."
-                for($i = 0; $i -lt 20; $i++)
-                {
-                    try 
-                    {
-                        $currentVersion = Get-SafeguardSpsVersion
-                        if($currentVersion -eq $TargetVersion)
-                        {
-                            Write-Host "Upgrade complete: SPS is at version $currentVersion"
-                            return
-                        }
-                    }
-                    catch {
-                    }
-                    Start-Sleep 15
-                }
-                throw "Timed out waiting for SPS to reach version $TargetVersion"
+                Start-Sleep 1
+                return
             }
             else 
             {
@@ -1450,65 +1399,3 @@ function Install-SafeguardSpsUpgrade
     }
     throw "Firmware with version $TargetVersion could not be found in any firmware slot."
 }
-
-<#
-.SYNOPSIS
-Get-SafeguardSpsSupportBundle
-
-.DESCRIPTION
-This command downloads an SPS support bundle.
-
-.PARAMETER OutFile
-The output file name. If this is omitted, a unique name will be generated.
-
-.EXAMPLE
-Get-SafeguardSpsSupportBundle  
-#>
-function Get-SafeguardSpsSupportBundle
-{
-    [CmdletBinding()]
-    Param(
-        [parameter(Mandatory = $false, Position = 0)]
-        [string] $OutFile
-    )
-
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    $pct = 5
-    $activity = 'Get SPS Support Bundle'
-    Write-Progress -Activity $activity -Status 'Generating support bundle' -PercentComplete $pct
-    $response = Invoke-SafeguardSpsMethod POST troubleshooting/support-bundle
-    $jobId = $response.key
-
-    $maxTime = (Get-Date).AddMinutes(10)
-    $pct += 15
-    while((Get-Date) -lt $maxTime) {
-        $status = Invoke-SafeguardSpsMethod GET "troubleshooting/support-bundle/$($jobId)"
-        if($status.body.status -ieq "finished") {
-            break;
-        }
-        start-sleep -Seconds 10
-        $pct += 1
-        Write-Progress -Activity $activity -Status 'Waiting for support bundle generation to complete' -PercentComplete $pct
-    }
-
-    if ((Get-Date) -gt $maxTime) {
-        throw "Timed out waiting for support bundle generation."
-    }
-
-    $pct = 80
-    Write-Progress -Activity $activity -Status 'Downloading support bundle' -PercentComplete $pct
-    if(-not $OutFile) {
-        $OutFile = "sps-$($safeguardspssession.Appliance)-$(get-date -f yyyy-MM-dd-HH-mm-ss).tar.gz"
-    }
-
-    Invoke-SafeguardSpsMethod GET "troubleshooting/support-bundle/$($jobId)/download" -OutFile $OutFile
-    Write-Progress -Activity $activity -Status 'Deleting support bundle from SPS' -PercentComplete 90
-
-    $null = Invoke-SafeguardSpsMethod DELETE "troubleshooting/support-bundle/$($jobId)"
-    Write-Progress -Activity $activity -Status 'Complete' -PercentComplete 100
-    
-    Write-Host -ForegroundColor Green "Saved SPS support bundle to: $OutFile"
-}
-
