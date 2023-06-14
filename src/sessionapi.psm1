@@ -27,7 +27,6 @@ function Connect-Sps
         Disable-SslVerification
         if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
     }
-             write-host $Thumbrint
     try
     {
 
