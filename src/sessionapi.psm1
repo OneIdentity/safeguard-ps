@@ -12,9 +12,12 @@ function Connect-Sps
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
+        [switch]$LocalLogin,
+        [Parameter(Mandatory=$false)]
         [string]$CertificateFile,
         [Parameter(Mandatory=$false)]
         [string]$Thumbprint
+
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -27,6 +30,7 @@ function Connect-Sps
         Disable-SslVerification
         if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
     }
+             write-host $Thumbrint
     try
     {
 
@@ -34,10 +38,14 @@ function Connect-Sps
         elseif($CertificateFile){  Invoke-RestMethod -Uri "https://$SessionMaster/api/authentication?type=x509" -SessionVariable HttpSession -Certificate $CertificateFile | Write-Verbose }
         else
         {
+        $sps_auth_uri = "https://$SessionMaster/api/authentication"
+        if($LocalLogin){ $sps_auth_uri = "https://$SessionMaster/api/authentication?login_method=local"}
+
         $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $SessionPassword).Password
         $local:BasicAuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $SessionUsername, $local:PasswordPlainText)))
         Remove-Variable -Scope local PasswordPlainText
-        Invoke-RestMethod -Uri "https://$SessionMaster/api/authentication" -SessionVariable HttpSession -Headers @{ Authorization = ("Basic {0}" -f $local:BasicAuthInfo) } | Write-Verbose
+       
+        Invoke-RestMethod -Uri $sps_auth_uri -SessionVariable HttpSession -Headers @{ Authorization = ("Basic {0}" -f $local:BasicAuthInfo) } | Write-Verbose
         }
     }
     catch
@@ -497,17 +505,14 @@ IP address or hostname of a Safeguard SPS appliance.
 .PARAMETER Insecure
 Ignore verification of Safeguard SPS appliance SSL certificate--will be ignored for entire session.
 
+.PARAMETER LocalLogin
+Enable authentication from the local database.
+
 .PARAMETER Username
 The username to authenticate as.
 
 .PARAMETER Password
 SecureString containing the password.
-
-.PARAMETER Thumbprint
-Thumbprint of the certificate in the Users local certificate store.
-
-.PARAMETER CertificateFile
-Path to the pfx certificate on the filesystem.
 
 .INPUTS
 None.
@@ -539,6 +544,8 @@ function Connect-SafeguardSps
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
+        [switch]$LocalLogin,
+        [Parameter(Mandatory=$false)]
         [string]$CertificateFile,
         [Parameter(Mandatory=$false)]
         [string]$Thumbprint
@@ -552,7 +559,7 @@ function Connect-SafeguardSps
     else
     {
         if (-not $Password) {$Password = (Read-Host "Password" -AsSecureString) }
-        $local:HttpSession = (Connect-Sps -SessionMaster $Appliance -SessionUsername $Username -SessionPassword $Password -Insecure:$Insecure)
+        $local:HttpSession = (Connect-Sps -SessionMaster $Appliance -SessionUsername $Username -SessionPassword $Password -Insecure:$Insecure -LocalLogin:$LocalLogin)
     }
 
 
