@@ -368,10 +368,95 @@ function Get-SafeguardA2aPassword
 
 <#
 .SYNOPSIS
+Set an account password to Safeguard via the A2A service of the Web API.
+
+.DESCRIPTION
+The purpose of this cmdlet is to allow A2A users to set a single password.
+Passwords set using this cmdlet must be configured as part of an A2A registration.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER CertificateFile
+A string containing the path to a certificate file to use for authentication.
+
+.PARAMETER Password
+A secure string containing the password for decrypting the certificate file.
+
+.PARAMETER Thumbprint
+A string containing the thumbprint of a certificate the system certificate store.
+
+.PARAMETER ApiKey
+A string containing the API key that identifies the account being requested.
+
+.PARAMETER Version
+Version of the Web API you are using (default: 4).
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Set-SafeguardA2aPassword -Appliance 10.5.32.54 -CertificateFile C:\certs\file.pfx -Password $pass -ApiKey 6A4psUnrLv1hvoWSB3jsm2V50eFT62vwAI9Zlj/dDWw=
+
+.EXAMPLE
+Set-SafeguardA2aPassword 10.5.32.54 6A4psUnrLv1hvoWSB3jsm2V50eFT62vwAI9Zlj/dDWw= -Thumbprint 756766BB590D7FA9CA9E1971A4AE41BB9CEC82F1
+#>
+function Set-SafeguardA2aPassword
+{
+    [CmdletBinding(DefaultParameterSetName="CertStore")]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(ParameterSetName="File",Mandatory=$true)]
+        [string]$CertificateFile,
+        [Parameter(ParameterSetName="File",Mandatory=$false)]
+        [SecureString]$Password,
+        [Parameter(ParameterSetName="CertStore",Mandatory=$true)]
+        [string]$Thumbprint,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$ApiKey,
+        [Parameter(Mandatory=$false,Position=2)]
+        [SecureString]$NewPassword,
+        [Parameter(Mandatory=$false)]
+        [int]$Version = 4
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not $NewPassword)
+    {
+        $NewPassword = (Read-Host -AsSecureString "NewPassword")
+    }
+    $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $NewPassword).Password
+
+    if ($PsCmdlet.ParameterSetName -eq "CertStore")
+    {
+        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+            -Thumbprint $Thumbprint -Service a2a -Method PUT -RelativeUrl Credentials/Password -Body $local:PasswordPlainText -Version $Version
+    }
+    else
+    {
+        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey"  -Version $Version `
+            -CertificateFile $CertificateFile -Password $Password -Service a2a -Method PUT -RelativeUrl Credentials/Password -Body $local:PasswordPlainText
+    }
+
+}
+
+<#
+.SYNOPSIS
 Get an account private key from Safeguard via the A2A service of the Web API.
 
 .DESCRIPTION
-The purpose of this cmdlet is to retrieve a single password without having to
+The purpose of this cmdlet is to retrieve a single private key without having to
 go through access request workflow.  Private keys retrieved using this cmdlet must
 be configured as part of an A2A registration.
 
@@ -465,6 +550,120 @@ function Get-SafeguardA2aPrivateKey
             Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
                 -CertificateFile $CertificateFile -Password $Password -CredentialType PrivateKey -Version $Version
         }
+    }
+}
+
+<#
+.SYNOPSIS
+Set an account private key to Safeguard via the A2A service of the Web API.
+
+.DESCRIPTION
+The purpose of this cmdlet is to allow A2A users to set a single private key.
+Private keys set using this cmdlet must be configured as part of an A2A registration.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER CertificateFile
+A string containing the path to a certificate file to use for authentication.
+
+.PARAMETER Password
+A secure string containing the password for decrypting the certificate file.
+
+.PARAMETER Thumbprint
+A string containing the thumbprint of a certificate the system certificate store.
+
+.PARAMETER ApiKey
+A string containing the API key that identifies the account being requested.
+
+.PARAMETER KeyFormat
+A string containing which format to use for the private key.  The options are:
+  - OpenSsh: OpenSSH legacy PEM format (default)
+  - Ssh2: Tectia format for use with tools from SSH.com
+  - Putty: Putty format for use with PuTTY tools
+
+.PARAMETER Version
+Version of the Web API you are using (default: 4).
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Set-SafeguardA2aPrivateKey -Appliance 10.5.32.54 -CertificateFile C:\certs\file.pfx -Password $pass -ApiKey 6A4psUnrLv1hvoWSB3jsm2V50eFT62vwAI9Zlj/dDWw=
+
+.EXAMPLE
+Set-SafeguardA2aPrivateKey 10.5.32.54 6A4psUnrLv1hvoWSB3jsm2V50eFT62vwAI9Zlj/dDWw= -Thumbprint 756766BB590D7FA9CA9E1971A4AE41BB9CEC82F1
+#>
+function Set-SafeguardA2aPrivateKey
+{
+    [CmdletBinding(DefaultParameterSetName="CertStore")]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(ParameterSetName="File",Mandatory=$true)]
+        [string]$CertificateFile,
+        [Parameter(ParameterSetName="File",Mandatory=$false)]
+        [SecureString]$Password,
+        [Parameter(ParameterSetName="CertStore",Mandatory=$true)]
+        [string]$Thumbprint,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$ApiKey,
+        [Parameter(Mandatory=$false)]
+        [ValidateSet("OpenSsh","Ssh2","Putty",IgnoreCase=$true)]
+        [string]$KeyFormat = $null,
+        [Parameter(Mandatory=$false)]
+        [SecureString]$PrivateKeyPassphrase,
+        [Parameter(Mandatory=$true)]
+        [string]$PrivateKey,
+        [Parameter(Mandatory=$false)]
+        [int]$Version = 4
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not $PrivateKeyPassphrase)
+    {
+        $PrivateKeyPassphrase = (Read-Host -AsSecureString "PrivateKeyPassphrase")
+    }
+    $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $PrivateKeyPassphrase).Password
+
+    #$local:PrivateKeyPlainText = (Get-Content $PrivateKeyFile) -join ""
+
+    $local:Body = @{
+        "Passphrase" = $local:PasswordPlainText
+        "PrivateKey" = $local:PrivateKey
+    }
+
+    $local:RelativeUrl = "Credentials/SshKey"
+    if ($KeyFormat)
+    {
+        switch ($KeyFormat)
+        {
+            "openssh" { $KeyFormat = "OpenSsh"; break }
+            "ssh2" { $KeyFormat = "Ssh2"; break }
+            "putty" { $KeyFormat = "Putty"; break }
+        }
+        $local:RelativeUrl = "Credentials/SshKey?keyFormat=$KeyFormat"
+    }
+
+    if ($PsCmdlet.ParameterSetName -eq "CertStore")
+    {
+        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+            -Thumbprint $Thumbprint -Service a2a -Method PUT -RelativeUrl $local:RelativeUrl -Body $local:Body -Version $Version
+    }
+    else
+    {
+        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+            -CertificateFile $CertificateFile -Password $Password -Service a2a -Method PUT -RelativeUrl $local:RelativeUrl -Body $local:Body -Version $Version
     }
 }
 
