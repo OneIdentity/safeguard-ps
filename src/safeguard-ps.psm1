@@ -49,119 +49,6 @@ function Get-SessionConnectionIdentifier
     }
 
 }
-function Show-RstsWindow
-{
-    [CmdletBinding()]
-    Param(
-        [Parameter(Mandatory=$true,Position=0)]
-        [string]$Appliance,
-        [Parameter(Mandatory=$false,Position=1)]
-        [string]$PrimaryProviderId = "",
-        [Parameter(Mandatory=$false,Position=2)]
-        [string]$SecondaryProviderId = "",
-        [Parameter(Mandatory=$false,Position=3)]
-        [string]$Username = ""
-    )
-
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    if (-not ([System.Management.Automation.PSTypeName]"RstsWindow").Type)
-    {
-        Write-Verbose "Adding the PSType for rSTS Web form interaction"
-        Add-Type -TypeDefinition  @"
-        using System;
-        using System.Text.RegularExpressions;
-        using System.Web;
-        using System.Windows.Forms;
-        public class RstsWindow {
-            private const string ClientId = "00000000-0000-0000-0000-000000000000";
-            private const string RedirectUri = "urn%3AInstalledApplication";
-            private readonly string _appliance;
-            private System.Windows.Forms.Form _form;
-            private WebBrowser _browser;
-            public RstsWindow(string appliance) {
-                _appliance = appliance;
-                _form = new Form() { Text = string.Format("{0} - Safeguard Login", _appliance),
-                                     Width = 640, Height = 720, StartPosition = FormStartPosition.CenterParent };
-                _browser = new WebBrowser() { Dock = DockStyle.Fill, AllowNavigation = true };
-                _form.Controls.Add(_browser);
-                _browser.DocumentTitleChanged += (sender, args) => {
-                    var b = (WebBrowser)sender;
-                    if (Regex.IsMatch(b.DocumentTitle, "error=[^&]*|access_token=[^&]*")) {
-                        var matchStart = b.DocumentTitle.StartsWith("error=") ? "error=".Length : "access_token=".Length;
-                        AuthorizationCode = b.DocumentTitle.Substring(matchStart);
-                        _form.DialogResult = DialogResult.OK;
-                        _form.Hide(); }
-                };
-            }
-            public string AuthorizationCode { get; set; }
-            public bool Show(string primaryProviderId = "", string secondaryProviderId = "", string username = "") {
-                try {
-                    string url = string.Format("https://{0}/RSTS/Login?response_type=token&client_id={1}&redirect_uri={2}",
-                            _appliance, ClientId, RedirectUri);
-                    if (!string.IsNullOrEmpty(primaryProviderId))   url += string.Format("&primaryProviderId={0}",   HttpUtility.UrlEncode(primaryProviderId));
-                    if (!string.IsNullOrEmpty(secondaryProviderId)) url += string.Format("&secondaryProviderid={0}", HttpUtility.UrlEncode(secondaryProviderId));
-                    if (!string.IsNullOrEmpty(username))            url += string.Format("&login_hint={0}", HttpUtility.UrlEncode(username));
-
-                    _browser.Stop();
-                    _browser.Navigate(url);
-                    if (_form.ShowDialog() == DialogResult.OK) { return true; }
-                    return false;
-                } catch (Exception e) {
-                    var color = Console.ForegroundColor; Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine(e); Console.ForegroundColor = color;
-                    return false;
-                }
-            }
-        }
-"@ -ReferencedAssemblies System.Windows.Forms,System.Web
-    }
-
-    if (-not $global:Browser)
-    {
-        $local:Browser = New-Object -TypeName RstsWindow -ArgumentList $Appliance
-    }
-    if (!$local:Browser.Show($PrimaryProviderId, $SecondaryProviderId, $Username))
-    {
-        throw "Unable to correctly manipulate browser"
-    }
-    $global:AuthorizationCode = $local:Browser.AuthorizationCode
-    $local:Browser = $null
-}
-function Get-RstsTokenFromGui
-{
-    [CmdletBinding()]
-    Param(
-        [Parameter(Mandatory=$true,Position=0)]
-        [string]$Appliance,
-        [Parameter(Mandatory=$false,Position=1)]
-        [string]$PrimaryProviderId = "",
-        [Parameter(Mandatory=$false,Position=2)]
-        [string]$SecondaryProviderId = "",
-        [Parameter(Mandatory=$false,Position=3)]
-        [string]$Username = ""
-    )
-
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    if ($PSVersionTable.PSEdition -eq "Core")
-    {
-        throw "This -Gui parameter is not supported in PowerShell Core"
-    }
-
-    Show-RstsWindow $Appliance $PrimaryProviderId $SecondaryProviderId $Username
-    $local:Code = $global:AuthorizationCode
-    Remove-Variable -Name AuthorizationCode -Scope Global -Force -ErrorAction "SilentlyContinue"
-    if (-not $local:Code)
-    {
-        throw "Unable to obtain access_token"
-    }
-
-    # Return as a hashtable object because other parts of the code later on will expect it.
-    @{access_token=$local:Code}
-}
 function Get-RstsTokenFromBrowser
 {
     [CmdletBinding()]
@@ -169,12 +56,8 @@ function Get-RstsTokenFromBrowser
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Appliance,
         [Parameter(Mandatory=$false,Position=1)]
-        [string]$PrimaryProviderId = "",
-        [Parameter(Mandatory=$false,Position=2)]
-        [string]$SecondaryProviderId = "",
-        [Parameter(Mandatory=$false,Position=3)]
         [string]$Username = "",
-        [Parameter(Mandatory=$false,Position=4)]
+        [Parameter(Mandatory=$false,Position=2)]
         [int]$Port = 8400
     )
 
@@ -188,13 +71,13 @@ function Get-RstsTokenFromBrowser
         {
             $local:Assemblies = ("System.Web.dll","System.Net.Primitives.dll","System.Net.Sockets.dll","System.Text.RegularExpressions.dll",
                                  "System.Web.HttpUtility.dll","System.Diagnostics.Process.dll","System.ComponentModel.Primitives.dll",
-                                 "System.Runtime.InteropServices.RuntimeInformation.dll","System.Collections.Specialized","System.Console.dll")
+                                 "System.Runtime.InteropServices.RuntimeInformation.dll","System.Collections.Specialized","System.Console.dll","System.Security.Cryptography.dll")
         }
         else
         {
             $local:Assemblies = ("System.Web.dll","System.Net.Primitives.dll","System.Net.Sockets.dll","System.Text.RegularExpressions.dll",
                                  "System.Diagnostics.Process.dll","System.ComponentModel.Primitives.dll",
-                                 "System.Runtime.InteropServices.RuntimeInformation.dll","System.Collections.Specialized")
+                                 "System.Runtime.InteropServices.RuntimeInformation.dll","System.Collections.Specialized","System.Security.Cryptography.dll")
         }
         Add-Type -ReferencedAssemblies $local:Assemblies -TypeDefinition @"
         using System;
@@ -202,26 +85,26 @@ function Get-RstsTokenFromBrowser
         using System.Net;
         using System.Net.Sockets;
         using System.Runtime.InteropServices;
+        using System.Security.Cryptography;
         using System.Text;
         using System.Text.RegularExpressions;
         using System.Threading;
         using System.Threading.Tasks;
         using System.Web;
         public class RstsAccessTokenExtractor {
-            private const string ClientId = "00000000-0000-0000-0000-000000000000";
             private readonly string _appliance;
             public RstsAccessTokenExtractor(string appliance) { _appliance = appliance; }
-            public string AccessToken { get; set; }
+            public string AuthorizationCode { get; set; }
+            public string CodeVerifier { get; set; }
             public string Error { get; set; }
-            public bool Show(string primaryProviderId = "", string secondaryProviderId = "", string username = "", int port = 8400) {
+            public bool Show(string username = "", int port = 8400) {
                 var tcpListener = new TcpListener(IPAddress.Loopback, port);
                 tcpListener.Start();
                 try {
+                    CodeVerifier = OAuthCodeVerifier();
                     string redirectUri = "urn:InstalledApplicationTcpListener";
-                    string accessTokenUri = string.Format("https://{0}/RSTS/Login?response_type=token&client_id={1}&redirect_uri={2}&port={3}", _appliance, ClientId, redirectUri, port);
-                    if (!string.IsNullOrEmpty(primaryProviderId))   redirectUri += string.Format("&primaryProviderId={0}",   HttpUtility.UrlEncode(primaryProviderId));
-                    if (!string.IsNullOrEmpty(secondaryProviderId)) redirectUri += string.Format("&secondaryProviderid={0}", HttpUtility.UrlEncode(secondaryProviderId));
-                    if (!string.IsNullOrEmpty(username))            redirectUri += string.Format("&login_hint={0}", HttpUtility.UrlEncode(username));
+                    string accessTokenUri = $"https://{_appliance}/RSTS/Login?response_type=code&code_challenge_method=S256&code_challenge={OAuthCodeChallenge(CodeVerifier)}&redirect_uri={redirectUri}&port={port}";
+                    if (!string.IsNullOrEmpty(username)) redirectUri += string.Format("&login_hint={0}", Uri.EscapeDataString(username));
                     try {
                         var psi = new ProcessStartInfo { FileName = accessTokenUri, UseShellExecute = true };
                         Process.Start(psi);
@@ -271,7 +154,7 @@ function Get-RstsTokenFromBrowser
                     if (innerTask != null) {
                         innerTask.Wait(source.Token);
                         if (!innerTask.IsFaulted && innerTask.Result != null)
-                            AccessToken = HttpUtility.ParseQueryString(ExtractUriFromHttpRequest(innerTask.Result)).Get("oauth");
+                            AuthorizationCode = HttpUtility.ParseQueryString(ExtractUriFromHttpRequest(innerTask.Result)).Get("oauth");
                         else if (innerTask.Result != null)
                             Error = innerTask.Result;
                         else
@@ -282,6 +165,35 @@ function Get-RstsTokenFromBrowser
                 finally {
                     tcpListener.Stop();
                 }
+            }
+            private string OAuthCodeVerifier()
+            {
+                var bytes = new byte[60];
+                RandomNumberGenerator.Create().GetBytes(bytes);
+                return ToBase64Url(bytes);
+            }
+            private string OAuthCodeChallenge(string codeVerifier)
+            {
+                using (var sha = SHA256.Create())
+                {
+                    var hash = sha.ComputeHash(Encoding.ASCII.GetBytes(codeVerifier));
+                    return ToBase64Url(hash);
+                }
+            }
+            // https://172.21.21.1/RSTS/Login?
+            // response_type=code&
+            // redirect_uri=https%3a%2f%2flocalhost%3a7035%2f%3fserver%3d172.21.21.1%26auth%3dresume&
+            // code_challenge=Ullteua8nkpbqkCUpKSxqPfTqrZvZfnmpV3YTGEPUfQ&
+            // code_challenge_method=S256&
+            // state=w5mtmJUPPMhHEW-qo4PyyX4pGDsevgTN2QNRC0aWiaxd8weEQdgiHoieLe4NDeuAkL63Q6-ipG1nIOwY
+
+            /// <summary>Creates a Base64 string with the trailing equal signs removed and any plus signs replaced with
+            /// minus signs and any forward slashes replaced with underscores.</summary>
+            /// <param name="data">Any byte array to be Base64 encoded.</param>
+            /// <returns>A special Base64 string that is URL safe. Used in JWTs, OAuth2.0 and other things.</returns>
+            private string ToBase64Url(byte[] data)
+            {
+                return Convert.ToBase64String(data).TrimEnd('=').Replace('+', '-').Replace('/', '_');
             }
             private string ExtractUriFromHttpRequest(string httpRequest) {
                 string regexp = @"GET \/\?(.*) HTTP";
@@ -297,17 +209,37 @@ function Get-RstsTokenFromBrowser
     {
         $local:Browser = New-Object -TypeName RstsAccessTokenExtractor -ArgumentList $Appliance
     }
-    if (!$local:Browser.Show($PrimaryProviderId, $SecondaryProviderId, $Username, $Port))
+    if (!$local:Browser.Show($Username, $Port))
     {
         throw "Unable to correctly manipulate browser"
     }
-    if (-not $local:Browser.AccessToken)
+    if (-not $local:Browser.AuthorizationCode)
     {
-        throw "Unable to obtain access_token"
+        throw "Unable to obtain authorization code"
+    }
+
+    try
+    {
+        Write-Verbose "Redeeming RSTS authorization code..."
+        $local:RstsResponse = (Invoke-RestMethod -Method POST -Headers @{
+            "Accept" = "application/json";
+            "Content-type" = "application/json"
+        } -Uri "https://$Appliance/RSTS/oauth2/token" -Body ([System.Text.Encoding]::UTF8.GetBytes(@"
+{
+"grant_type": "authorization_code",
+"redirect_uri": "urn:InstalledApplication",
+"code": "$($local:Browser.AuthorizationCode)",
+"code_verifier": "$($local:Browser.CodeVerifier)"
+}
+"@)))
+    }
+    catch
+    {
+        throw "Unable to obtain access token"
     }
 
     # Return as a hashtable object because other parts of the code later on will expect it.
-    @{access_token=$local:Browser.AccessToken}
+    @{access_token=$local:RstsResponse.access_token}
 }
 function Submit-RstsMultifactorPost
 {
@@ -856,7 +788,7 @@ authentication is also supported. Two-factor authentication is not supported.
 First this script retrieves an access token from the embedded redistributable
 secure token service. Then, it exchanges this token for a Safeguard user token.
 
-You must use the -Gui parameter for 2FA login support.
+You must use the -Browser parameter for 2FA login support.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -911,7 +843,7 @@ Connect-Safeguard 10.5.32.54 local -Credential (Get-Credential)
 Login Successful.
 
 .EXAMPLE
-Connect-Safeguard 10.5.32.54 -Gui -Insecure
+Connect-Safeguard 10.5.32.54 -Browser
 
 [Opens browser window for normal Safeguard login experience, including 2FA]
 
@@ -990,24 +922,18 @@ function Connect-Safeguard
             if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
 
-        if ($Gui)
+        if ($Browser)
         {
-            $local:RstsResponse = (Get-RstsTokenFromGui $Appliance $IdentityProvider "" $Username)
-        }
-        elseif ($Browser)
-        {
-            $local:RstsResponse = (Get-RstsTokenFromBrowser $Appliance $IdentityProvider "" $Username)
+            $local:RstsResponse = (Get-RstsTokenFromBrowser $Appliance $Username)
         }
         else
         {
-            Write-Verbose "Getting configured identity providers from RSTS service (using POST)..."
-            $local:GetPrimaryProvidersRelativeURL = "RSTS/UserLogin/LoginController?response_type=token&redirect_uri=urn:InstalledApplication&loginRequestStep=1"
+            Write-Verbose "Getting configured identity providers from CORE service (using GET)..."
             try
             {
-                $local:ConfiguredProvidersRaw = (Invoke-RestMethod -Method POST -Uri "https://$Appliance/$($local:GetPrimaryProvidersRelativeURL)" `
-                                              -Headers @{ "Content-type" = "application/x-www-form-urlencoded" } `
-                                              -Body "RelayState=" `
-                                              -ErrorAction SilentlyContinue).Providers
+                $local:ConfiguredProvidersRaw = (Invoke-RestMethod -Method GET -Uri "https://$Appliance/service/core/v$Version/AuthenticationProviders" `
+                                            -Headers @{ "Accept" = "application/json" } `
+                                            -ErrorAction SilentlyContinue)
             }
             catch [Net.WebException]
             {
@@ -1021,47 +947,34 @@ function Connect-Safeguard
             {
                 Write-Verbose "Initial attempt threw unknown exception"
             }
-            if (-not $local:ConfiguredProvidersRaw)
-            {
-                try
-                {
-                    Write-Verbose "Getting configured identity providers from RSTS service (using GET)..."
-                    $local:ConfiguredProvidersRaw = (Invoke-RestMethod -Method GET -Uri "https://$Appliance/$($local:GetPrimaryProvidersRelativeURL)" `
-                                                  -ErrorAction SilentlyContinue).Providers
-                }
-                catch
-                {
-                    Write-Verbose "Also threw an unknown exception"
-                }
-            }
 
             # Built-in providers
             $local:ConfiguredProviders = ,(New-Object -TypeName PSObject -Property @{
-                Id = "certificate";
-                DisplayName = "certificate"
+                RstsProviderId = "certificate";
+                Name = "certificate"
             }),(New-Object -TypeName PSObject -Property @{
-                Id = "local";
-                DisplayName = "Local"
+                RstsProviderId = "local";
+                Name = "Local"
             })
-            $local:ConfiguredProvidersRaw | Sort-Object DisplayName | ForEach-Object {
+            $local:ConfiguredProvidersRaw | Sort-Object Name | ForEach-Object {
                 # Trim out local so we can control order
-                if ($_.Id -ine "local")
+                if ($_.RstsProviderId -ine "local")
                 {
                     $local:ConfiguredProviders += (New-Object -TypeName PSObject -Property @{
-                        Id = $_.Id;
-                        DisplayName = $_.DisplayName
+                        RstsProviderId = $_.RstsProviderId;
+                        Name = $_.Name
                     })
                 }
             }
 
             $local:IdentityProviders = ($local:ConfiguredProviders | ForEach-Object {
-                if ($_.Id -ieq "certificate" -or $_.Id -ieq "local")
+                if ($_.RstsProviderId -ieq "certificate" -or $_.RstsProviderId -ieq "local")
                 {
-                    "$($_.Id)"
+                    "$($_.RstsProviderId)"
                 }
                 else
                 {
-                    "$($_.Id) [$($_.DisplayName)]"
+                    "$($_.RstsProviderId) [$($_.Name)]"
                 }
             })
             if (-not $IdentityProvider)
@@ -1084,17 +997,17 @@ function Connect-Safeguard
                     $IdentityProvider = (Read-Host "Provider")
                 }
             }
-            if ($local:ConfiguredProviders -and ($local:ConfiguredProviders.Id.ToLower() -notcontains $IdentityProvider.ToLower() `
-                -and $local:ConfiguredProviders.DisplayName.ToLower() -notcontains $IdentityProvider.ToLower()))
+            if ($local:ConfiguredProviders -and ($local:ConfiguredProviders.RstsProviderId.ToLower() -notcontains $IdentityProvider.ToLower() `
+                -and $local:ConfiguredProviders.Name.ToLower() -notcontains $IdentityProvider.ToLower()))
             {
                 throw "IdentityProvider '$($local:IdentityProvider)' not found in ($($local:IdentityProviders -join ", "))"
             }
 
             # Allow the caller to specify the domain name for AD
             $local:ConfiguredProviders | ForEach-Object {
-                if ($_.DisplayName.ToLower() -ieq $IdentityProvider)
+                if ($_.Name.ToLower() -ieq $IdentityProvider)
                 {
-                    $IdentityProvider = $_.Id
+                    $IdentityProvider = $_.RstsProviderId
                 }
             }
 
@@ -1256,23 +1169,6 @@ function Connect-Safeguard
             {
                 throw
             }
-        }
-        if ($local:LoginResponse.Status -eq "Needs2FA" -and $Gui)
-        {
-            $local:RstsResponse = (Get-RstsTokenFromGui $Appliance $local:LoginResponse.PrimaryProviderId $local:LoginResponse.SecondaryProviderId)
-            Write-Verbose "Re-calling Safeguard LoginResponse service..."
-            $local:LoginResponse = (Invoke-RestMethod -Method POST -Headers @{
-                "Accept" = "application/json";
-                "Content-type" = "application/json"
-            } -Uri "https://$Appliance/service/core/v$Version/Token/LoginResponse" -Body @"
-{
-    "StsAccessToken": "$($local:RstsResponse.access_token)"
-}
-"@)
-        }
-        elseif ($local:LoginResponse.Status -eq "Needs2FA")
-        {
-            Write-Host -ForegroundColor Magenta "Two-factor authentication required, use -Gui or -TwoFactor parameter"
         }
 
         if ($local:LoginResponse.Status -ine "Success")
@@ -1887,9 +1783,9 @@ function Update-SafeguardAccessToken
         throw "No current Safeguard login session."
     }
 
-    if ($SafeguardSession.Gui)
+    if ($SafeguardSession.Browser)
     {
-        Connect-Safeguard -Appliance $SafeguardSession.Appliance -Insecure:$SafeguardSession.Insecure -Gui -Version $SafeguardSession.Version
+        Connect-Safeguard -Appliance $SafeguardSession.Appliance -Insecure:$SafeguardSession.Insecure -Browser -Version $SafeguardSession.Version
     }
     elseif ($SafeguardSession.IdentityProvider -ieq "certificate")
     {
