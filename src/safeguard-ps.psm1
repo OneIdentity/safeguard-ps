@@ -783,7 +783,7 @@ returned to standard out and not saved in the session.
 The password may be passed in as a SecureString or a Powershell
 credential can be used for both username and password. By default, this
 script will securely prompt for the password. Client certificate
-authentication is also supported. Two-factor authentication is not supported.
+authentication is also supported.
 
 First this script retrieves an access token from the embedded redistributable
 secure token service. Then, it exchanges this token for a Safeguard user token.
@@ -817,8 +817,15 @@ Client certificate thumbprint to use to authenticate the connection to the RSTS.
 .PARAMETER Version
 Version of the Web API you are using (default: 4).
 
-.PARAMETER Gui
-Display redistributable STS login window in a browser.  Supports 2FA.
+.PARAMETER Gui (Deprecated)
+Use -Browser instead.
+
+.PARAMETER Browser
+Launch redistributable STS login window in a native system browser.  Supports 2FA.
+
+If neither the -Gui nor -Browser switches are specified, then the OAuth2 Resource Owner Password Credential grant type
+will be used to programmatically submit the provided credentials. Ensure that Safeguard has been configured to allow
+this grant type by checking the Safeguard Access settings in Appliance Management.
 
 .PARAMETER TwoFactor
 Attempt to authenticate using multiple factors via the command line.  Supports Starling 2FA.
