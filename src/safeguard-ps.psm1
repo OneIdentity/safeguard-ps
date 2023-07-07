@@ -922,7 +922,7 @@ function Connect-Safeguard
             if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
         }
 
-        if ($Browser)
+        if ($Browser -Or $Gui)
         {
             $local:RstsResponse = (Get-RstsTokenFromBrowser $Appliance $Username)
         }
@@ -1196,7 +1196,7 @@ function Connect-Safeguard
                 "Thumbprint" = $Thumbprint;
                 "CertificateFile" = $CertificateFile;
                 "Insecure" = $Insecure;
-                "Gui" = $Gui;
+                "Gui" = $Gui -Or $Browser;
                 "NoWindowTitle" = $NoWindowTitle;
                 "AssetPartitionId" = $null
             }
@@ -1783,7 +1783,7 @@ function Update-SafeguardAccessToken
         throw "No current Safeguard login session."
     }
 
-    if ($SafeguardSession.Browser)
+    if ($SafeguardSession.Gui)
     {
         Connect-Safeguard -Appliance $SafeguardSession.Appliance -Insecure:$SafeguardSession.Insecure -Browser -Version $SafeguardSession.Version
     }

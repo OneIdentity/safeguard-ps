@@ -347,7 +347,7 @@ A string containing the network address of the replica to add to the cluster.
 .PARAMETER ReplicaAccessToken
 A string containing the access token for the replica.
 
-.PARAMETER ReplicaBrowser
+.PARAMETER ReplicaGui
 Specify this flag to display the browser login experience to authenticate to the replica (required for 2FA).
 
 .PARAMETER NoWait
@@ -369,7 +369,7 @@ Add-SafeguardClusterMember -AccessToken $token -Appliance 10.5.32.54 -ReplicaNet
 Add-SafeguardClusterMember 10.5.33.144 -ReplicaAccessToken $tok -NoWait
 
 .EXAMPLE
-Add-SafeguardClusterMember 10.5.33.144 -ReplicaBrowser
+Add-SafeguardClusterMember 10.5.33.144 -ReplicaGui
 #>
 function Add-SafeguardClusterMember
 {
@@ -386,7 +386,7 @@ function Add-SafeguardClusterMember
         [Parameter(Mandatory=$false)]
         [object]$ReplicaAccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$ReplicaBrowser,
+        [switch]$ReplicaGui,
         [Parameter(Mandatory=$false)]
         [switch]$NoWait,
         [Parameter(Mandatory=$false)]
@@ -408,7 +408,7 @@ function Add-SafeguardClusterMember
             # which will not hit this code.
             $Insecure = $SafeguardSession["Insecure"]
         }
-        $ReplicaAccessToken = (Connect-Safeguard -Insecure:$Insecure $ReplicaNetworkAddress -Browser:$ReplicaBrowser -NoSessionVariable)
+        $ReplicaAccessToken = (Connect-Safeguard -Insecure:$Insecure $ReplicaNetworkAddress -Browser:$ReplicaGui -NoSessionVariable)
     }
 
     if (-not $ReplicaAccessToken)
