@@ -1411,3 +1411,64 @@ function Install-SafeguardSpsUpgrade
     }
     throw "Firmware with version $TargetVersion could not be found in any firmware slot."
 }
+
+<#
+.SYNOPSIS
+Get-SafeguardSpsSupportBundle
+
+.DESCRIPTION
+This command downloads an SPS support bundle.
+
+.PARAMETER OutFile
+The output file name. If this is omitted, a unique name will be generated.
+
+.EXAMPLE
+Get-SafeguardSpsSupportBundle  
+#>
+function Get-SafeguardSpsSupportBundle
+{
+    [CmdletBinding()]
+    Param(
+        [parameter(Mandatory = $false, Position = 0)]
+        [string] $OutFile
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $pct = 5
+    $activity = 'Get SPS Support Bundle'
+    Write-Progress -Activity $activity -Status 'Generating support bundle' -PercentComplete $pct
+    $response = Invoke-SafeguardSpsMethod POST troubleshooting/support-bundle
+    $jobId = $response.key
+
+    $maxTime = (Get-Date).AddMinutes(10)
+    $pct += 15
+    while((Get-Date) -lt $maxTime) {
+        $status = Invoke-SafeguardSpsMethod GET "troubleshooting/support-bundle/$($jobId)"
+        if($status.body.status -ieq "finished") {
+            break;
+        }
+        start-sleep -Seconds 10
+        $pct += 1
+        Write-Progress -Activity $activity -Status 'Waiting for support bundle generation to complete' -PercentComplete $pct
+    }
+
+    if ((Get-Date) -gt $maxTime) {
+        throw "Timed out waiting for support bundle generation."
+    }
+
+    $pct = 80
+    Write-Progress -Activity $activity -Status 'Downloading support bundle' -PercentComplete $pct
+    if(-not $OutFile) {
+        $OutFile = "sps-$($safeguardspssession.Appliance)-$(get-date -f yyyy-MM-dd-HH-mm-ss).tar.gz"
+    }
+
+    Invoke-SafeguardSpsMethod GET "troubleshooting/support-bundle/$($jobId)/download" -OutFile $OutFile
+    Write-Progress -Activity $activity -Status 'Deleting support bundle from SPS' -PercentComplete 90
+
+    $null = Invoke-SafeguardSpsMethod DELETE "troubleshooting/support-bundle/$($jobId)"
+    Write-Progress -Activity $activity -Status 'Complete' -PercentComplete 100
+    
+    Write-Host -ForegroundColor Green "Saved SPS support bundle to: $OutFile"
+}
