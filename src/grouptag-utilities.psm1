@@ -352,7 +352,10 @@ function Convert-StringToCondition
     if (-not $local:ClosingBracket) { throw "Mismatched bracket while reading condition substring: $($StringBuf.Value.Str)" }
 
     # Start parsing children in this group
-    $local:StringParts = $local:SubString.Split(" `t`n", 3, [StringSplitOptions]::RemoveEmptyEntries)
+    # Powershell 6+ - an "enhancement" in .NET requires you to force a certain overload when calling string.split
+    # using multiple characters as split-points, in this case we need to force the char[] overload.
+    # https://github.com/PowerShell/PowerShell/issues/11720
+    $local:StringParts = $local:SubString.Split([char[]] " `t`n", 3, [StringSplitOptions]::RemoveEmptyEntries)
     if ($local:StringParts.Count -ne 3)
     {
         throw "Conditions string did not parse into three parts [ObjectAttribute CompareType 'CompareValue']: $($local:SubString)"
