@@ -1690,6 +1690,8 @@ function Import-SafeguardUser
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [string]$Delimiter=",",
         [Parameter(Mandatory=$true, Position=0)]
         [string]$Path
     )
@@ -1699,7 +1701,7 @@ function Import-SafeguardUser
 		return ""
 	}
 
-    $local:Users = Import-Csv -Path $Path
+    $local:Users = Import-Csv -Path $Path -Delimiter $Delimiter
     $local:UsersCount = 1;
     if($null -ne $local:Users.Count) 
     {

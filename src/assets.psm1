@@ -2611,6 +2611,8 @@ function Import-SafeguardAsset
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [char]$Delimiter=",",
         [Parameter(Mandatory=$true, Position=0)]
         [string]$Path
     )
@@ -2620,7 +2622,7 @@ function Import-SafeguardAsset
 		return ""
 	}
 
-    $local:Assets = Import-Csv -Path $Path
+    $local:Assets = Import-Csv -Path $Path -Delimiter $Delimiter
     $local:AssetsCount = 1;
     if($null -ne $local:Assets.Count)
     {
@@ -2861,6 +2863,8 @@ function Import-SafeguardAssetAccount
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [char]$Delimiter=",",
         [Parameter(Mandatory=$true, Position=0)]
         [string]$Path
     )
@@ -2870,7 +2874,7 @@ function Import-SafeguardAssetAccount
 		return ""
 	}
 
-    $local:Accounts = Import-Csv -Path $Path
+    $local:Accounts = Import-Csv -Path $Path -Delimiter $Delimiter
     $local:AccountsCount = 1;
     if($null -ne $local:Accounts.Count)
     {
@@ -3027,6 +3031,8 @@ function Import-SafeguardAssetAccountPassword
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [char]$Delimiter=",",
         [Parameter(Mandatory=$true, Position=0)]
         [string]$Path
     )
@@ -3036,7 +3042,7 @@ function Import-SafeguardAssetAccountPassword
 		return ""
 	}
 
-    $local:Passwords = Import-Csv -Path $Path
+    $local:Passwords = Import-Csv -Path $Path -Delimiter $Delimiter
     $local:PasswordsCount = 1;
     if($null -ne $local:Passwords.Count)
     {
@@ -3188,6 +3194,8 @@ function Import-SafeguardAssetAccountSshKey
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [char]$Delimiter=",",
         [Parameter(Mandatory=$true, Position=0)]
         [string]$Path
     )
@@ -3197,7 +3205,7 @@ function Import-SafeguardAssetAccountSshKey
 		return ""
 	}
 
-    $local:SshKeys = Import-Csv -Path $Path
+    $local:SshKeys = Import-Csv -Path $Path -Delimiter $Delimiter
     $local:SshKeysCount = 1;
     if($null -ne $local:SshKeys.Count)
     {
