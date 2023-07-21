@@ -54,7 +54,7 @@ function Invoke-SafeguardA2aMethodWithCertificate
 
     $Service = $Service.ToLower()
 
-    $local:BodyInternal = $null
+    $local:BodyInternal = ""
     if ($Body)
     {
         $local:BodyInternal = (ConvertTo-Json -InputObject $Body)
