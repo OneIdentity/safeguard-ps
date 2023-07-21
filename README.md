@@ -134,13 +134,13 @@ Client certificate authentication is also available in `Connect-Safeguard`.
 This can be done either using a PFX certificate file or a SHA-1 thumbprint
 of a certificate stored in the Current User personal certificate store.
 
-Two-factor authentication can only be performed using the `-Gui` parameter,
+Two-factor authentication can only be performed using the `-Browser` parameter,
 so that the built-in secure token service can use the browser agent to
 redirect you to multiple authentication providers.  This authentication
 mechanism uses the Authorization Code Grant of OAuth2.
 
 ```Powershell
-> Connect-Safeguard -Insecure 192.168.123.123 -Gui
+> Connect-Safeguard -Insecure 192.168.123.123 -Browser
 Login Successful.
 ```
 

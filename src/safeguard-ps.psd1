@@ -11,7 +11,7 @@
 RootModule = 'safeguard-ps.psm1'
 
 # Version number of this module.
-ModuleVersion = '7.3.99999'
+ModuleVersion = '7.4.99999'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -261,7 +261,7 @@ FunctionsToExport = @(
     'Reset-SafeguardA2aAccessRequestBrokerApiKey','Get-SafeguardA2aAccessRequestBrokerApiKey',
     # a2acallers.psm1
     'Get-SafeguardA2aRetrievableAccount','Get-SafeguardA2aPassword','Get-SafeguardA2aPrivateKey','Get-SafeguardA2aApiKeySecret',
-    'New-SafeguardA2aAccessRequest',
+    'New-SafeguardA2aAccessRequest','Set-SafeguardA2aPassword','Set-SafeguardA2aPrivateKey',
     # starling.psm1
     'Get-SafeguardStarlingSubscription','New-SafeguardStarlingSubscription','Remove-SafeguardStarlingSubscription',
     'Get-SafeguardStarlingJoinUrl','Invoke-SafeguardStarlingJoin','Invoke-SafeguardStarlingJoinBrowser',
