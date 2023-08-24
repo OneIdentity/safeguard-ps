@@ -1730,7 +1730,7 @@ function Get-SafeguardAccessTokenStatus
         $local:Response = (Invoke-WebRequest -Method GET -Headers @{
                 "Authorization" = "Bearer $AccessToken"
             } -Uri "https://$Appliance/service/core/v3/Me")
-        $local:TimeRemaining = (New-TimeSpan -Minutes $local:Response.Headers["X-TokenLifetimeRemaining"])
+        $local:TimeRemaining = (New-TimeSpan -Minutes $local:Response.Headers["X-TokenLifetimeRemaining"][0])
         if ($Raw)
         {
             $local:TimeRemaining
