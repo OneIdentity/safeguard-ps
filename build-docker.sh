@@ -22,4 +22,4 @@ if [ ! -z "$(docker images -q oneidentity/safeguard-ps:$Version$ImageType)" ]; t
     docker rmi --force "oneidentity/safeguard-ps:$Version$ImageType"
 fi
 echo "Building a new image: oneidentity/safeguard-ps:$Version$ImageType ..."
-docker build --no-cache -t "oneidentity/safeguard-ps:$Version$ImageType" -f "docker/$DockerFile" $ScriptDir
+docker build --no-cache -t "oneidentity/safeguard-ps:$Version$ImageType" -f "docker/$DockerFile" $ScriptDir 2>&1
