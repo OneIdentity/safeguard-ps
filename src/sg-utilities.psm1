@@ -43,6 +43,9 @@ namespace Ex
         }
         public SafeguardMethodException(string message, Exception innerException)
             : base(message, innerException) {}
+#if !NETFRAMEWORK
+        [Obsolete(DiagnosticId = "SYSLIB0051")]
+#endif
         protected SafeguardMethodException
             (SerializationInfo info, StreamingContext context)
             : base(info, context) {}
