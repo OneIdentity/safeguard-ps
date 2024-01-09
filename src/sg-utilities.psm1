@@ -43,9 +43,7 @@ namespace Ex
         }
         public SafeguardMethodException(string message, Exception innerException)
             : base(message, innerException) {}
-#if !NETFRAMEWORK
-        [Obsolete(DiagnosticId = "SYSLIB0051")]
-#endif
+        [Obsolete]
         protected SafeguardMethodException
             (SerializationInfo info, StreamingContext context)
             : base(info, context) {}
@@ -170,7 +168,7 @@ namespace Ex
             ))
         }
     }
-    if ($local:ThrownException.Status -eq "TrustFailure")
+    if ($local:ThrownException.Status -eq "TrustFailure" -or $local:ThrownException.Message.StartsWith("The SSL connection could not be established"))
     {
         Write-Host -ForegroundColor Magenta "To ignore SSL/TLS trust failure use the -Insecure parameter to bypass server certificate validation."
     }
