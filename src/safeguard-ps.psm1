@@ -622,26 +622,71 @@ function Invoke-WithoutBody
     {
         if ($LongRunningTask)
         {
-            $local:Response = (Invoke-WebRequest -Method $Method -Headers $Headers -Uri $local:Url `
-                                   -InFile $InFile -OutFile $OutFile -TimeoutSec $Timeout)
+            $invokeWebRequestParams = @{
+                Method = $Method
+                Headers = $Headers
+                Uri = $local:Url
+                InFile = $InFile
+                TimeoutSec = $Timeout
+            }
+
+            if ($OutFile) {
+                $invokeWebRequestParams['OutFile'] = $OutFile
+            }
+
+            $local:Response = Invoke-WebRequest @invokeWebRequestParams
             Wait-LongRunningTask $local:Response $Headers $Timeout
         }
         else
         {
-            Invoke-RestMethod -Method $Method -Headers $Headers -Uri $local:Url -InFile $InFile -OutFile $OutFile -TimeoutSec $Timeout
+            $invokeRestMethodParams = @{
+                Method = $Method
+                Headers = $Headers
+                Uri = $local:Url
+                InFile = $InFile
+                TimeoutSec = $Timeout
+            }
+
+            if ($OutFile) {
+                $invokeRestMethodParams['OutFile'] = $OutFile
+            }
+
+            Invoke-RestMethod @invokeRestMethodParams
         }
     }
     else
     {
         if ($LongRunningTask)
         {
-            $local:Response = $(Invoke-RestMethod -Method $Method -Headers $Headers -Uri $local:Url `
-                                    -InFile $InFile -OutFile $OutFile -TimeoutSec $Timeout)
+            $invokeRestMethodParams = @{
+                Method = $Method
+                Headers = $Headers
+                Uri = $local:Url
+                InFile = $InFile
+                TimeoutSec = $Timeout
+            }
+
+            if ($OutFile) {
+                $invokeRestMethodParams['OutFile'] = $OutFile
+            }
+
+            $local:Response = Invoke-RestMethod @invokeRestMethodParams
             Wait-LongRunningTask $local:Response $Headers $Timeout
         }
         else
         {
-            Invoke-RestMethod -Method $Method -Headers $Headers -Uri $local:Url -OutFile $OutFile -TimeoutSec $Timeout
+            $invokeRestMethodParams = @{
+                Method = $Method
+                Headers = $Headers
+                Uri = $local:Url
+                TimeoutSec = $Timeout
+            }
+
+            if ($OutFile) {
+                $invokeRestMethodParams['OutFile'] = $OutFile
+            }
+
+            Invoke-RestMethod @invokeRestMethodParams
         }
     }
 }
@@ -690,16 +735,36 @@ function Invoke-WithBody
     Write-Verbose "$($local:BodyInternal)"
     if ($LongRunningTask)
     {
-        $local:Response = (Invoke-WebRequest -Method $Method -Headers $Headers -Uri $local:Url `
-                           -Body ([System.Text.Encoding]::UTF8.GetBytes($local:BodyInternal)) `
-                           -OutFile $OutFile -TimeoutSec $Timeout)
+        $invokeWebRequestParams = @{
+            Method = $Method
+            Headers = $Headers
+            Uri = $local:Url
+            Body = [System.Text.Encoding]::UTF8.GetBytes($local:BodyInternal)
+            TimeoutSec = $Timeout
+        }
+
+        if ($OutFile) {
+            $invokeWebRequestParams['OutFile'] = $OutFile
+        }
+
+        $local:Response = Invoke-WebRequest @invokeWebRequestParams
         Wait-LongRunningTask $local:Response $Headers $Timeout
     }
     else
     {
-        Invoke-RestMethod -Method $Method -Headers $Headers -Uri $local:Url `
-            -Body ([System.Text.Encoding]::UTF8.GetBytes($local:BodyInternal)) `
-            -OutFile $OutFile -TimeoutSec $Timeout
+        $invokeRestMethodParams = @{
+            Method = $Method
+            Headers = $Headers
+            Uri = $local:Url
+            Body = [System.Text.Encoding]::UTF8.GetBytes($local:BodyInternal)
+            TimeoutSec = $Timeout
+        }
+
+        if ($OutFile) {
+            $invokeRestMethodParams['OutFile'] = $OutFile
+        }
+
+        Invoke-RestMethod @invokeRestMethodParams
     }
 }
 
