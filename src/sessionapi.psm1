@@ -138,7 +138,7 @@ function Invoke-SpsWithoutBody
         Write-Verbose "InFile=$InFile"
         $arguments = $arguments + @{ InFile = $InFile }
     }
-    if($OutFile) 
+    if ($OutFile)
     {
         Write-Verbose "OutFile=$OutFile"
         $arguments = $arguments + @{ OutFile = $OutFile }
@@ -1427,7 +1427,7 @@ function Install-SafeguardSpsUpgrade
                 Write-Verbose "Waiting for SPS to restart..."
                 for($i = 0; $i -lt 20; $i++)
                 {
-                    try 
+                    try
                     {
                         $currentVersion = Get-SafeguardSpsVersion
                         if($currentVersion -eq $TargetVersion)
@@ -1442,7 +1442,7 @@ function Install-SafeguardSpsUpgrade
                 }
                 throw "Timed out waiting for SPS to reach version $TargetVersion"
             }
-            else 
+            else
             {
                 throw "Firmware at slot $i failed upgrade test. For details run: Test-SafeguardSpsFirmware -Slot $i"
             }
@@ -1462,7 +1462,7 @@ This command downloads an SPS support bundle.
 The output file name. If this is omitted, a unique name will be generated.
 
 .EXAMPLE
-Get-SafeguardSpsSupportBundle  
+Get-SafeguardSpsSupportBundle
 #>
 function Get-SafeguardSpsSupportBundle
 {
@@ -1508,7 +1508,7 @@ function Get-SafeguardSpsSupportBundle
 
     $null = Invoke-SafeguardSpsMethod DELETE "troubleshooting/support-bundle/$($jobId)"
     Write-Progress -Activity $activity -Status 'Complete' -PercentComplete 100
-    
+
     Write-Host -ForegroundColor Green "Saved SPS support bundle to: $OutFile"
 }
 
