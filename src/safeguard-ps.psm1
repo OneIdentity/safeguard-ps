@@ -618,31 +618,31 @@ function Invoke-WithoutBody
     $local:Url = (New-SafeguardUrl $Appliance $Service $Version $RelativeUrl -Parameters $Parameters)
     Write-Verbose "Url=$($local:Url)"
     Write-Verbose "Parameters=$(ConvertTo-Json -InputObject $Parameters)"
+    $arguments = @{
+        Method = $Method;
+        Headers = $Headers;
+        Uri = $local:Url;
+        TimeoutSec = $Timeout
+    }
     if ($InFile)
     {
-        if ($LongRunningTask)
-        {
-            $local:Response = (Invoke-WebRequest -Method $Method -Headers $Headers -Uri $local:Url `
-                                   -InFile $InFile -OutFile $OutFile -TimeoutSec $Timeout)
-            Wait-LongRunningTask $local:Response $Headers $Timeout
-        }
-        else
-        {
-            Invoke-RestMethod -Method $Method -Headers $Headers -Uri $local:Url -InFile $InFile -OutFile $OutFile -TimeoutSec $Timeout
-        }
+        Write-Verbose "InFile=$InFile"
+        $arguments = $arguments + @{ InFile = $InFile }
+    }
+    if ($OutFile)
+    {
+        Write-Verbose "OutFile=$OutFile"
+        $arguments = $arguments + @{ OutFile = $OutFile }
+    }
+
+    if ($LongRunningTask)
+    {
+        $local:Response = (Invoke-WebRequest @arguments)
+        Wait-LongRunningTask $local:Response $Headers $Timeout
     }
     else
     {
-        if ($LongRunningTask)
-        {
-            $local:Response = $(Invoke-RestMethod -Method $Method -Headers $Headers -Uri $local:Url `
-                                    -InFile $InFile -OutFile $OutFile -TimeoutSec $Timeout)
-            Wait-LongRunningTask $local:Response $Headers $Timeout
-        }
-        else
-        {
-            Invoke-RestMethod -Method $Method -Headers $Headers -Uri $local:Url -OutFile $OutFile -TimeoutSec $Timeout
-        }
+        Invoke-RestMethod @arguments
     }
 }
 function Invoke-WithBody
@@ -688,18 +688,28 @@ function Invoke-WithBody
     Write-Verbose "Parameters=$(ConvertTo-Json -InputObject $Parameters)"
     Write-Verbose "---Request Body---"
     Write-Verbose "$($local:BodyInternal)"
+    $arguments = @{
+        Method = $Method;
+        Headers = $Headers;
+        Uri = $local:Url;
+        Body = ([System.Text.Encoding]::UTF8.GetBytes($local:BodyInternal));
+        TimeoutSec = $Timeout
+    }
+    if ($OutFile)
+    {
+        Write-Verbose "OutFile=$OutFile"
+        $arguments = $arguments + @{ OutFile = $OutFile }
+    }
+
+
     if ($LongRunningTask)
     {
-        $local:Response = (Invoke-WebRequest -Method $Method -Headers $Headers -Uri $local:Url `
-                           -Body ([System.Text.Encoding]::UTF8.GetBytes($local:BodyInternal)) `
-                           -OutFile $OutFile -TimeoutSec $Timeout)
+        $local:Response = (Invoke-WebRequest @arguments)
         Wait-LongRunningTask $local:Response $Headers $Timeout
     }
     else
     {
-        Invoke-RestMethod -Method $Method -Headers $Headers -Uri $local:Url `
-            -Body ([System.Text.Encoding]::UTF8.GetBytes($local:BodyInternal)) `
-            -OutFile $OutFile -TimeoutSec $Timeout
+        Invoke-RestMethod @arguments
     }
 }
 
