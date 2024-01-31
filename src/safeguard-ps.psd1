@@ -261,7 +261,7 @@ FunctionsToExport = @(
     'Reset-SafeguardA2aAccessRequestBrokerApiKey','Get-SafeguardA2aAccessRequestBrokerApiKey',
     # a2acallers.psm1
     'Get-SafeguardA2aRetrievableAccount','Get-SafeguardA2aPassword','Get-SafeguardA2aPrivateKey','Get-SafeguardA2aApiKeySecret',
-    'New-SafeguardA2aAccessRequest',
+    'New-SafeguardA2aAccessRequest','Set-SafeguardA2aPassword','Set-SafeguardA2aPrivateKey',
     # starling.psm1
     'Get-SafeguardStarlingSubscription','New-SafeguardStarlingSubscription','Remove-SafeguardStarlingSubscription',
     'Get-SafeguardStarlingJoinUrl','Invoke-SafeguardStarlingJoin','Invoke-SafeguardStarlingJoinBrowser',
@@ -349,7 +349,13 @@ PrivateData = @{
         ReleaseNotes = @"
 safeguard-ps Release Notes:
 
-- bug fixes
+- X-TokenLifetimeRemaining header may return a string array in newer versions of powershell. ps New-Timespan just wants a string.
+- fix string.split call to force the correct .NET overload
+- Update Read.Me with -Browser notes for PKCE.
+- Update safeguard-ps to use PKCE
+- Add the new set a2a credential cmdlets to the public commands.
+- Add cmdlets to set passwords and sshkeys through the A2A service
+- Allow calling A2A endpoints without a body
 "@
 
     } # End of PSData hashtable

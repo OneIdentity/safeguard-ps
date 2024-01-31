@@ -348,7 +348,7 @@ A string containing the network address of the replica to add to the cluster.
 A string containing the access token for the replica.
 
 .PARAMETER ReplicaGui
-Specify this flag to display the GUI login experience to authenticate to the replica (required for 2FA).
+Specify this flag to display the browser login experience to authenticate to the replica (required for 2FA).
 
 .PARAMETER NoWait
 Specify this flag to continue immediately without waiting for the enrollment to complete.
@@ -408,7 +408,7 @@ function Add-SafeguardClusterMember
             # which will not hit this code.
             $Insecure = $SafeguardSession["Insecure"]
         }
-        $ReplicaAccessToken = (Connect-Safeguard -Insecure:$Insecure $ReplicaNetworkAddress -Gui:$ReplicaGui -NoSessionVariable)
+        $ReplicaAccessToken = (Connect-Safeguard -Insecure:$Insecure $ReplicaNetworkAddress -Browser:$ReplicaGui -NoSessionVariable)
     }
 
     if (-not $ReplicaAccessToken)

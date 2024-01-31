@@ -152,6 +152,11 @@ function Invoke-SpsWithoutBody
     {
         $arguments = $arguments + @{ InFile = $InFile }
     }
+    if ($OutFile)
+    {
+        Write-Verbose "OutFile=$OutFile"
+        $arguments = $arguments + @{ OutFile = $OutFile }
+    }
 
     Invoke-RestMethod @arguments
 }
@@ -1400,10 +1405,26 @@ function Install-SafeguardSpsUpgrade
                 Write-Progress -Activity $activity -Status "Installing $TargetVersion from slot $i" -PercentComplete 75
                 Install-SafeguardSpsFirmware -Slot $i -Message "Upgrading SPS firmware to $TargetVersion"
                 Write-Progress -Activity $activity -Status "Finished" -PercentComplete 100
-                Start-Sleep 1
-                return
+                Start-Sleep 60
+                Write-Verbose "Waiting for SPS to restart..."
+                for($i = 0; $i -lt 20; $i++)
+                {
+                    try
+                    {
+                        $currentVersion = Get-SafeguardSpsVersion
+                        if($currentVersion -eq $TargetVersion)
+                        {
+                            Write-Host "Upgrade complete: SPS is at version $currentVersion"
+                            return
+                        }
+                    }
+                    catch {
+                    }
+                    Start-Sleep 15
+                }
+                throw "Timed out waiting for SPS to reach version $TargetVersion"
             }
-            else 
+            else
             {
                 throw "Firmware at slot $i failed upgrade test. For details run: Test-SafeguardSpsFirmware -Slot $i"
             }
@@ -1423,7 +1444,7 @@ This command downloads an SPS support bundle.
 The output file name. If this is omitted, a unique name will be generated.
 
 .EXAMPLE
-Get-SafeguardSpsSupportBundle  
+Get-SafeguardSpsSupportBundle
 #>
 function Get-SafeguardSpsSupportBundle
 {
@@ -1469,6 +1490,6 @@ function Get-SafeguardSpsSupportBundle
 
     $null = Invoke-SafeguardSpsMethod DELETE "troubleshooting/support-bundle/$($jobId)"
     Write-Progress -Activity $activity -Status 'Complete' -PercentComplete 100
-    
+
     Write-Host -ForegroundColor Green "Saved SPS support bundle to: $OutFile"
 }
