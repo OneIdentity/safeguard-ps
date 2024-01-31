@@ -349,7 +349,13 @@ PrivateData = @{
         ReleaseNotes = @"
 safeguard-ps Release Notes:
 
-- bug fixes
+- X-TokenLifetimeRemaining header may return a string array in newer versions of powershell. ps New-Timespan just wants a string.
+- fix string.split call to force the correct .NET overload
+- Update Read.Me with -Browser notes for PKCE.
+- Update safeguard-ps to use PKCE
+- Add the new set a2a credential cmdlets to the public commands.
+- Add cmdlets to set passwords and sshkeys through the A2A service
+- Allow calling A2A endpoints without a body
 "@
 
     } # End of PSData hashtable
