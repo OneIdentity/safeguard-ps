@@ -1760,7 +1760,7 @@ function Import-SafeguardUser
 
             if(![string]::IsNullOrEmpty($local:User.AdminRoles)) 
             {
-                $local:Args.Add("AdminRoles", $local:User.AdminRoles)
+                $local:Args.Add("AdminRoles", $local:User.AdminRoles.split(","))
             }
 
             if([string]::IsNullOrEmpty($local:User.Password)) {
