@@ -349,7 +349,9 @@ PrivateData = @{
         ReleaseNotes = @"
 safeguard-ps Release Notes:
 
-- bug fixes
+- Updates for .NET 8 and PowerShell 7.4. If you are using PowerShell 7.4 you will need to upgrade to safeguard-ps 7.5 or later. (#505)
+- Fixed Import-SafeguardUser issue when specifying mutiple AdminRoles (#504)
+- other bug fixes
 "@
 
     } # End of PSData hashtable
