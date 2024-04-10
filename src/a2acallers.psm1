@@ -878,7 +878,7 @@ function New-SafeguardA2aAccessRequest
         [Parameter(ParameterSetName="CertStoreAndIds",Mandatory=$false,Position=4)]
         [int]$AccountIdToUse,
         [Parameter(Mandatory=$false,Position=5)]
-        [ValidateSet("Password", "SSHKey", "SSH", "RemoteDesktop", "RDP", "RemoteDesktopApplication", "RDPApplication", "RDPApp", "Telnet", IgnoreCase=$true)]
+        [ValidateSet("Password", "SSHKey", "SSH", "RemoteDesktop", "RDP", "RemoteDesktopApplication", "RDPApplication", "RDPApp", "Telnet", "APIKey", "File", IgnoreCase=$true)]
         [string]$AccessRequestType,
         [Parameter(Mandatory=$false)]
         [switch]$Emergency = $false,
