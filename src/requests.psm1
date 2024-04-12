@@ -71,7 +71,7 @@ function Resolve-SafeguardRequestableAccountId
         [Parameter(Mandatory=$true,Position=0)]
         [object]$Account,
         [Parameter(Mandatory=$false)]
-        [ValidateSet("Password", "SSHKey", "SSH", "RemoteDesktop", "RDP", "RemoteDesktopApplication", "RDPApplication", "RDPApp", "Telnet", "APIKey", IgnoreCase=$true)]
+        [ValidateSet("Password", "SSHKey", "SSH", "RemoteDesktop", "RDP", "RemoteDesktopApplication", "RDPApplication", "RDPApp", "Telnet", "APIKey", "File", IgnoreCase=$true)]
         [string]$AccessRequestType
     )
 
@@ -377,7 +377,7 @@ function New-SafeguardAccessRequest
         [Parameter(Mandatory=$false, Position=1)]
         [object]$AccountToUse,
         [Parameter(Mandatory=$true, Position=2)]
-        [ValidateSet("Password", "SSHKey", "SSH", "RemoteDesktop", "RDP", "RemoteDesktopApplication", "RDPApplication", "RDPApp", "Telnet", "APIKey", IgnoreCase=$true)]
+        [ValidateSet("Password", "SSHKey", "SSH", "RemoteDesktop", "RDP", "RemoteDesktopApplication", "RDPApplication", "RDPApp", "Telnet", "APIKey", "File", IgnoreCase=$true)]
         [string]$AccessRequestType,
         [Parameter(Mandatory=$false)]
         [switch]$Emergency = $false,
@@ -424,7 +424,7 @@ function New-SafeguardAccessRequest
         AccessRequestType = "$AccessRequestType"
     }
 
-    if ($AccessRequestType -ieq "Password" -or $AccessRequestType -ieq "SSHKey" -or $AccessRequestType -ieq "APIKey")
+    if ($AccessRequestType -ieq "Password" -or $AccessRequestType -ieq "SSHKey" -or $AccessRequestType -ieq "APIKey" -or $AccessRequestType -ieq "File")
     {
         # Accounts are required for password requests, but not for sessions where you can use bring your own account
         if (-not $AccountToUse)
