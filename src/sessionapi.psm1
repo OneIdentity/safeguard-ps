@@ -1,3 +1,10 @@
+# Default UserAgent from powershell looks like a Mozilla browser. As of v7.5
+# SPS is requiring X-Token header include the user/info token value for all
+# PUT/POST/DELETE requests, but relaxes that requirement for non-browser
+# requests. If any new REST API calls are added make sure to include
+# -UserAgent $script:SpsUserAgent in the Invoke-RestMethod call.
+$script:SpsUserAgent = "PowerShell/6.0.0"
+
 # Helpers
 function Connect-Sps
 {
@@ -30,7 +37,7 @@ function Connect-Sps
     {
         $local:BasicAuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $SessionUsername, $local:PasswordPlainText)))
         Remove-Variable -Scope local PasswordPlainText
-        Invoke-RestMethod -Uri "https://$SessionMaster/api/authentication" -SessionVariable HttpSession `
+        Invoke-RestMethod -UserAgent $script:SpsUserAgent -Uri "https://$SessionMaster/api/authentication" -SessionVariable HttpSession `
             -Headers @{ Authorization = ("Basic {0}" -f $local:BasicAuthInfo) } | Write-Verbose
     }
     catch
@@ -100,7 +107,7 @@ function Invoke-SpsWithBody
     Write-Verbose "Parameters=$(ConvertTo-Json -InputObject $Parameters)"
     Write-Verbose "---Request Body---"
     Write-Verbose "$($local:BodyInternal)"
-    Invoke-RestMethod -WebSession $SafeguardSpsSession.Session -Method $Method -Headers $Headers -Uri $local:Url `
+    Invoke-RestMethod -WebSession $SafeguardSpsSession.Session -Method $Method -Headers $Headers -UserAgent $script:SpsUserAgent -Uri $local:Url `
                       -Body ([System.Text.Encoding]::UTF8.GetBytes($local:BodyInternal)) `
 }
 function Invoke-SpsWithoutBody
@@ -132,6 +139,7 @@ function Invoke-SpsWithoutBody
         Method = $Method;
         Headers = $Headers;
         Uri = $local:Url;
+        UserAgent = $script:SpsUserAgent;
     }
     if ($InFile)
     {
@@ -234,7 +242,7 @@ function Get-SafeguardSpsWelcomeWizardStatus
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    (Invoke-RestMethod -Method GET -Headers @{'Accept' = 'application/json'} -Uri "https://$($Appliance)/api/setup" -SkipCertificateCheck).status
+    (Invoke-RestMethod -Method GET -Headers @{'Accept' = 'application/json'} -UserAgent $script:SpsUserAgent -Uri "https://$($Appliance)/api/setup" -SkipCertificateCheck).status
 }
 
 <#
@@ -364,7 +372,7 @@ function Complete-SafeguardSpsWelcomeWizard
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:Response = (Invoke-RestMethod -Method GET -Headers @{'Accept' = 'application/json'} -Uri "https://$($Appliance)/api/setup" -SkipCertificateCheck)
+    $local:Response = (Invoke-RestMethod -Method GET -Headers @{'Accept' = 'application/json'} -UserAgent $script:SpsUserAgent -Uri "https://$($Appliance)/api/setup" -SkipCertificateCheck)
     if ($local:Response.status -ine "uninitialized")
     {
         Write-Host -ForegroundColor "Configuration Status: $($local:Response.status)"
@@ -457,7 +465,7 @@ function Complete-SafeguardSpsWelcomeWizard
     }
     # On an address change SPS does not return a response, and Invoke-RestMethod errors out
     try { $local:Status = (Invoke-RestMethod -Method POST -Headers @{'Content-type' = 'application/json'} -Timeout $Timeout `
-                            -Uri "https://$($Appliance)/api/setup" -Body $local:JsonBody -SkipCertificateCheck).status }
+                            -UserAgent $script:SpsUserAgent -Uri "https://$($Appliance)/api/setup" -Body $local:JsonBody -SkipCertificateCheck).status }
     catch { $local:Status = "unknown" }
 
     Start-Sleep 5 # up front wait to solve new transition timing issues
@@ -467,7 +475,7 @@ function Complete-SafeguardSpsWelcomeWizard
     if ($Timeout -lt 10) { $Timeout = 10 }
     do {
         Write-Progress -Activity "Waiting for completed status" -Status "Current: $($local:Status)" -PercentComplete (($local:TimeElapsed / $Timeout) * 100)
-        try { $local:Status = (Invoke-RestMethod -Method Get -Headers @{'Accept'='application/json'} -Uri "https://$($local:PollAddress)/api/setup" `
+        try { $local:Status = (Invoke-RestMethod -Method Get -Headers @{'Accept'='application/json'} -UserAgent $script:SpsUserAgent -Uri "https://$($local:PollAddress)/api/setup" `
                                 -SkipCertificateCheck -timeout $Timeout).status }
         catch { $local:Status = "unknown" }
         Start-Sleep 2

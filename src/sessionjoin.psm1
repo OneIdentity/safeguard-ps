@@ -1,4 +1,11 @@
 $script:SgSpsClusterFields = "Id","NodeId","Description","SpsNetworkAddress","SpsHostName","Trusted","UseHostNameForLaunch"
+# Default UserAgent from powershell looks like a Mozilla browser. As of v7.5
+# SPS is requiring X-Token header include the user/info token value for all
+# PUT/POST/DELETE requests, but relaxes that requirement for non-browser
+# requests. If any new REST API calls are added make sure to include
+# -UserAgent $script:SpsUserAgent in the Invoke-RestMethod call.
+$script:SpsUserAgent = "PowerShell/6.0.0"
+
 # Helpers
 function Get-SafeguardSessionClusterInternal
 {
@@ -82,7 +89,7 @@ function Get-NicRefForIp
 
     Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
     :OUTER foreach ($Name in "nic1","nic2","nic3") {
-        $local:Nic = (Invoke-RestMethod -WebSession $HttpSession -Uri "https://$SessionMaster/api/configuration/network/nics/$Name" `
+        $local:Nic = (Invoke-RestMethod -WebSession $HttpSession -UserAgent $script:SpsUserAgent -Uri "https://$SessionMaster/api/configuration/network/nics/$Name" `
                           -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } -Method Get).body
         $local:Nic.interfaces."@order" | ForEach-Object {
             $local:NicId = $_
@@ -98,7 +105,6 @@ function Get-NicRefForIp
         }
     }
 }
-
 
 <#
 .SYNOPSIS
@@ -379,8 +385,8 @@ function Join-SafeguardSessionCluster
 
         Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
         # Make sure clustering is turned on
-        $local:Clustering = (Invoke-RestMethod -WebSession $HttpSession -Uri "https://$SessionMaster/api/configuration/local_services/cluster" `
-            -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } -Method Get)
+        $local:Clustering = (Invoke-RestMethod -WebSession $HttpSession -Method Get -UserAgent $script:SpsUserAgent -Uri "https://$SessionMaster/api/configuration/local_services/cluster" `
+            -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" })
         if (-not $local:Clustering -or -not $local:Clustering.body.enabled)
         {
             if ($AutoEnableClustering)
@@ -401,17 +407,28 @@ function Join-SafeguardSessionCluster
                 Write-Host "ListenAddress = $($local:NicRef)"
                 try
                 {
-                    Invoke-RestMethod -WebSession $HttpSession -Method Post -Uri "https://$SessionMaster/api/transaction" `
-                        -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } | Write-Verbose
+                    Invoke-RestMethod -WebSession $HttpSession -Method Post -UserAgent $script:SpsUserAgent -Uri "https://$SessionMaster/api/transaction" `
+                        -Headers @{
+                          "Accept" = "application/json";
+                          "Content-type" = "application/json";
+                        } | Write-Verbose
 
-                    Invoke-RestMethod -WebSession $HttpSession -Method Put -Uri "https://$SessionMaster/api/configuration/local_services/cluster" `
-                        -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } -Body (ConvertTo-Json -InputObject @{
+                    Invoke-RestMethod -WebSession $HttpSession -Method Put -UserAgent $script:SpsUserAgent -Uri "https://$SessionMaster/api/configuration/local_services/cluster" `
+                        -Headers @{
+                          "Accept" = "application/json";
+                          "Content-type" = "application/json";
+                        } `
+                        -Body (ConvertTo-Json -InputObject @{
                             enabled = $true;
                             listen_address = $local:NicRef
                         }) | Write-Verbose
 
-                    Invoke-RestMethod -WebSession $HttpSession -Method Put -Uri "https://$SessionMaster/api/transaction" `
-                        -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } -Body (ConvertTo-Json -InputObject @{
+                    Invoke-RestMethod -WebSession $HttpSession -Method Put -UserAgent $script:SpsUserAgent -Uri "https://$SessionMaster/api/transaction" `
+                        -Headers @{
+                          "Accept" = "application/json";
+                          "Content-type" = "application/json";
+                        } `
+                        -Body (ConvertTo-Json -InputObject @{
                             status = "commit"
                         }) | Write-Verbose
 
@@ -421,7 +438,7 @@ function Join-SafeguardSessionCluster
                 {
                     try
                     {
-                        Invoke-RestMethod -WebSession $HttpSession -Method Delete -Uri "https://$SessionMaster/api/transaction" | Write-Verbose
+                        Invoke-RestMethod -WebSession $HttpSession -Method Delete -UserAgent $script:SpsUserAgent -Uri "https://$SessionMaster/api/transaction" | Write-Verbose
                     }
                     catch {}
                 }
@@ -438,7 +455,7 @@ function Join-SafeguardSessionCluster
         # Make sure this node is a session master
         try
         {
-            Invoke-RestMethod -WebSession $HttpSession -Method Get -Uri "https://$SessionMaster/api/cluster/status" | Write-Verbose
+            Invoke-RestMethod -WebSession $HttpSession -Method Get -UserAgent $script:SpsUserAgent -Uri "https://$SessionMaster/api/cluster/status" | Write-Verbose
         }
         catch
         {
@@ -457,14 +474,24 @@ function Join-SafeguardSessionCluster
                 Write-Host "Sending promote command..."
                 try
                 {
-                    Invoke-RestMethod -WebSession $HttpSession -Method Post -Uri "https://$SessionMaster/api/transaction" `
-                        -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } | Write-Verbose
+                    Invoke-RestMethod -WebSession $HttpSession -Method Post -UserAgent $script:SpsUserAgent -Uri "https://$SessionMaster/api/transaction" `
+                        -Headers @{
+                          "Accept" = "application/json";
+                          "Content-type" = "application/json";
+                        } | Write-Verbose
 
-                    Invoke-RestMethod -WebSession $HttpSession -Method Post -Uri "https://$SessionMaster/api/cluster/promote" `
-                        -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } | Write-Verbose
+                    Invoke-RestMethod -WebSession $HttpSession -Method Post -UserAgent $script:SpsUserAgent -Uri "https://$SessionMaster/api/cluster/promote" `
+                        -Headers @{
+                          "Accept" = "application/json";
+                          "Content-type" = "application/json";
+                        } | Write-Verbose
 
-                    Invoke-RestMethod -WebSession $HttpSession -Method Put -Uri "https://$SessionMaster/api/transaction" `
-                        -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } -Body (ConvertTo-Json -InputObject @{
+                    Invoke-RestMethod -WebSession $HttpSession -Method Put -UserAgent $script:SpsUserAgent -Uri "https://$SessionMaster/api/transaction" `
+                        -Headers @{
+                          "Accept" = "application/json";
+                          "Content-type" = "application/json";
+                        } `
+                        -Body (ConvertTo-Json -InputObject @{
                             status = "commit"
                         }) | Write-Verbose
 
@@ -474,7 +501,7 @@ function Join-SafeguardSessionCluster
                 {
                     try
                     {
-                        Invoke-RestMethod -WebSession $HttpSession -Method Delete -Uri "https://$SessionMaster/api/transaction" | Write-Verbose
+                        Invoke-RestMethod -WebSession $HttpSession -Method Delete -UserAgent $script:SpsUserAgent -Uri "https://$SessionMaster/api/transaction" | Write-Verbose
                     }
                     catch {}
                 }
@@ -490,8 +517,13 @@ function Join-SafeguardSessionCluster
 
         # Run the spp join command
         Write-Host "Sending join command..."
-        Invoke-RestMethod -WebSession $HttpSession -Method Post -Uri "https://$SessionMaster/api/cluster/spp" `
-            -Headers @{ "Accept" = "application/json"; "Content-type" = "application/json" } -Body (ConvertTo-Json -InputObject @{
+
+        Invoke-RestMethod -WebSession $HttpSession -Method Post -UserAgent $script:SpsUserAgent -Uri "https://$SessionMaster/api/cluster/spp" `
+            -Headers @{
+              "Accept" = "application/json";
+              "Content-type" = "application/json";
+            } `
+            -Body (ConvertTo-Json -InputObject @{
                 spp = $Appliance;
                 spp_api_token = $AccessToken;
                 spp_cert_chain = $local:SppCertData
@@ -1033,3 +1065,4 @@ function Disable-SafeguardSessionClusterAuditStream
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AuditLog/StreamService" -Body @{ Enabled = $false }
     }
 }
+
