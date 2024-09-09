@@ -77,7 +77,7 @@ function Get-RstsTokenFromBrowser
         {
             $local:Assemblies = ("System.Web.dll","System.Net.Primitives.dll","System.Net.Sockets.dll","System.Text.RegularExpressions.dll",
                                  "System.Diagnostics.Process.dll","System.ComponentModel.Primitives.dll",
-                                 "System.Runtime.InteropServices.RuntimeInformation.dll","System.Collections.Specialized","System.Security.Cryptography.dll")
+                                 "System.Runtime.InteropServices.RuntimeInformation.dll","System.Collections.Specialized")
         }
         Add-Type -ReferencedAssemblies $local:Assemblies -TypeDefinition @"
         using System;
@@ -103,7 +103,7 @@ function Get-RstsTokenFromBrowser
                 try {
                     CodeVerifier = OAuthCodeVerifier();
                     string redirectUri = "urn:InstalledApplicationTcpListener";
-                    string accessTokenUri = $"https://{_appliance}/RSTS/Login?response_type=code&code_challenge_method=S256&code_challenge={OAuthCodeChallenge(CodeVerifier)}&redirect_uri={redirectUri}&port={port}";
+                    string accessTokenUri = string.Format("https://{0}/RSTS/Login?response_type=code&code_challenge_method=S256&code_challenge={1}&redirect_uri={2}&port={3}", _appliance, OAuthCodeChallenge(CodeVerifier), redirectUri, port);
                     if (!string.IsNullOrEmpty(username)) redirectUri += string.Format("&login_hint={0}", Uri.EscapeDataString(username));
                     try {
                         var psi = new ProcessStartInfo { FileName = accessTokenUri, UseShellExecute = true };
