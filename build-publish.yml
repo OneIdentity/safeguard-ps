@@ -18,13 +18,13 @@ jobs:
       vmImage: 'windows-latest'
     steps:
       - template: pipeline-templates/build-windows-steps.yml
-      - task: AzureKeyVault@1
+      - task: AzureKeyVault@2
         inputs:
           azureSubscription: 'OneIdentity.RD.SBox.Safeguard-ServiceConnection'
           KeyVaultName: 'SafeguardBuildSecrets'
           SecretsFilter: 'PowerShellGalleryApiKey'
         displayName: 'Get PowerShell Gallery API key from Sandbox Azure Key Vault'
-      - task: AzureKeyVault@1
+      - task: AzureKeyVault@2
         inputs:
           azureSubscription: 'Azure.Infrastructure.CodeSigning'
           KeyVaultName: 'CodeSigningCertificates'
@@ -55,11 +55,11 @@ jobs:
           failOnStderr: true
           script: |
             [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-            Install-PackageProvider Nuget –Force
+            Install-PackageProvider Nuget -Force
             Get-PSRepository
             Publish-Module -Name safeguard-ps -NuGetApiKey "$(PowerShellGalleryApiKey)" -Verbose -SkipAutomaticTags -Force
         displayName: 'Publish PowerShell module to PowerShell Gallery'
-      - task: AzureKeyVault@1
+      - task: AzureKeyVault@2
         inputs:
           azureSubscription: 'OneIdentity.RD.SBox.Safeguard-ServiceConnection'
           KeyVaultName: 'SafeguardBuildSecrets'
@@ -83,7 +83,7 @@ jobs:
       vmImage: 'ubuntu-latest'
     steps:
       - template: pipeline-templates/build-linux-steps.yml
-      - task: AzureKeyVault@1
+      - task: AzureKeyVault@2
         inputs:
           azureSubscription: 'OneIdentity.RD.SBox.Safeguard-ServiceConnection'
           KeyVaultName: 'SafeguardBuildSecrets'
