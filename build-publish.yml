@@ -72,7 +72,7 @@ jobs:
           targetType: 'inline'
           failOnStderr: true
           script: |
-            docker login -u petrsnd --password-stdin <<<$(DockerHubAccessToken) 2>/dev/null
+            docker login -u danpetersonoi --password-stdin <<<$(DockerHubAccessToken) 2>/dev/null
             docker push oneidentity/safeguard-ps:$(VersionString)-nanoserver
             docker logout
         displayName: 'Pushing Docker Windows Nano Server image to Docker Hub'
@@ -95,7 +95,7 @@ jobs:
           targetType: 'inline'
           failOnStderr: true
           script: |
-            docker login -u petrsnd --password-stdin <<<$(DockerHubAccessToken) 2>/dev/null
+            docker login -u danpetersonoi --password-stdin <<<$(DockerHubAccessToken) 2>/dev/null
             docker push oneidentity/safeguard-ps:$(VersionString)-ubuntu18.04
             docker push oneidentity/safeguard-ps:$(VersionString)-ubuntu16.04
             docker push oneidentity/safeguard-ps:$(VersionString)-centos7
