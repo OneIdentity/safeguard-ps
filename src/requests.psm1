@@ -1267,8 +1267,6 @@ the clipboard so it can be pasted.
 This parameter will cause the output of the API to be returned rather than
 writing the private key to a file or adding a command to your command history.
 
-.PARAMETER
-
 .INPUTS
 None.
 
@@ -1421,8 +1419,6 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER RequestId
 A string containing the ID of the access request.
 
-.PARAMETER
-
 .INPUTS
 None.
 
@@ -1469,7 +1465,15 @@ function Get-SafeguardAccessRequestRdpFile
     {
         if (-not ([System.Management.Automation.PSTypeName]"RdpPasswordEncrypter").Type)
         {
-            Add-Type -TypeDefinition @"
+           if ($PSVersionTable.PSEdition -eq "Core")
+           {
+               $local:Assemblies = ("System.Security.Cryptography.ProtectedData")
+           }
+           else
+           {
+               $local:Assemblies = ("System.Security")
+           }
+           Add-Type -ReferencedAssemblies $local:Assemblies -TypeDefinition @"
 using System;
 using System.Text;
 using System.Security.Cryptography;
@@ -1488,7 +1492,7 @@ public class RdpPasswordEncrypter {
         catch (Exception) { return null; }
     }
 }
-"@ -ReferencedAssemblies System.Security
+"@
         }
         $local:Encrypter = New-Object RdpPasswordEncrypter
         $local:FakePassword = $local:Encrypter.GetEncryptedPassword("sg")
@@ -1517,8 +1521,6 @@ Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER RequestId
 A string containing the ID of the access request.
-
-.PARAMETER
 
 .INPUTS
 None.
@@ -1576,8 +1578,6 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER RequestId
 A string containing the ID of the access request.
 
-.PARAMETER
-
 .INPUTS
 None.
 
@@ -1633,8 +1633,6 @@ Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER RequestId
 A string containing the ID of the access request.
-
-.PARAMETER
 
 .INPUTS
 None.
@@ -1712,8 +1710,6 @@ Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER RequestId
 A string containing the ID of the access request.
-
-.PARAMETER
 
 .INPUTS
 None.

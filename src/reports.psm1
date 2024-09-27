@@ -845,9 +845,9 @@ function Get-SafeguardReportAssetGroupMembership
                 AssetId = $_.Id;
                 AssetPartitionName = $_.AssetPartitionName;
                 AssetPartitionId = $_.AssetPartitionId;
-                PlatformDisplayName = $_.PlatformDisplayName;
-                PlatformType = $_.PlatformType;
-                PlatformId = $_.PlatformId;
+                PlatformDisplayName = $_.Platform.DisplayName;
+                PlatformType = $_.Platform.Type;
+                PlatformId = $_.Platform.Id;
                 Disabled = $_.Disabled;
                 SupportsSessionManagement = $_.SupportsSessionManagement;
                 AllowSessionRequests = $_.AllowSessionRequests;
@@ -948,7 +948,7 @@ function Get-SafeguardReportAccountGroupMembership
                 GroupId = $local:GroupInfo.GroupId;
                 AccountName = $_.Name;
                 AccountDescription = $_.Description;
-                AccountId = $_.AccountId;
+                AccountId = $_.Id;
                 AssetName = $_.Asset.Name;
                 NetworkAddress = $_.Asset.NetworkAddress;
                 AssetId = $_.Asset.Id;
@@ -959,9 +959,9 @@ function Get-SafeguardReportAccountGroupMembership
                 DistinguishedName = $_.DistinguishedName;
                 NetBiosName = $_.NetBiosName;
                 AltLoginName = $_.AltLoginName;
-                PlatformDisplayName = $_.PlatformDisplayName;
-                PlatformType = $_.PlatformType;
-                PlatformId = $_.PlatformId;
+                PlatformDisplayName = $_.Platform.DisplayName;
+                PlatformType = $_.Platform.Type;
+                PlatformId = $_.Platform.Id;
                 Disabled = $_.Disabled;
                 AllowPasswordRequest = $_.AllowPasswordRequest;
                 AllowSessionRequest = $_.AllowSessionRequest;
@@ -1054,14 +1054,14 @@ function Get-SafeguardReportAssetManagementConfiguration
             -Insecure:$Insecure Core GET "AssetAccounts") | ForEach-Object {
         $local:Profile = $local:ProfileLookupTable["$($_.AssetParitionId)_$($_.EffectiveProfileId)"]
         $local:Configuration = New-Object PSObject -Property ([ordered]@{
-            AssetPartitionName = $_.AssetPartitionName;
-            AssetName = $_.AssetName;
+            AssetPartitionName = $_.Asset.AssetPartitionName;
+            AssetName = $_.Asset.Name;
             AccountName = $_.Name;
             AccountDescription = $_.Description;
             AccountDistinguishedName = $_.DistinguishedName;
-            PlatformDisplayName = $_.PlatformDisplayName;
-            AssetPartitionId = $_.AssetParitionId;
-            AssetId = $_.AssetId;
+            PlatformDisplayName = $_.Platform.DisplayName;
+            AssetPartitionId = $_.Asset.AssetPartitionId;
+            AssetId = $_.Asset.Id;
             AccountId = $_.Id;
             ProfileName = $_.EffectiveProfileName;
             SyncGroupName = $_.SyncGroupName;
@@ -1258,19 +1258,19 @@ function Get-SafeguardReportPasswordLastChanged
 
     $local:Changes = @()
     (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-        -Fields AssetId,Id,AssetName,Name,DomainName,Description,LastSuccessPasswordCheckDate,LastSuccessPasswordChangeDate) | ForEach-Object {
+        -Fields Asset.Id,Id,Asset.Name,Name,DomainName,Description,TaskProperties.LastSuccessPasswordCheckDate,TaskProperties.LastSuccessPasswordChangeDate) | ForEach-Object {
             $local:Change = New-Object PSObject -Property ([ordered]@{
-                AssetId = $_.AssetId;
+                AssetId = $_.Asset.Id;
                 AccountId = $_.Id;
-                AssetName = $_.AssetName;
+                AssetName = $_.Asset.Name;
                 AccountName = $_.Name;
                 DomainName = $_.DomainName;
                 Description = $_.Description;
                 LastPasswordChange = "";
                 LastPasswordCheck = "";
             })
-            if ($_.LastSuccessPasswordChangeDate) {$local:Change.LastPasswordChange = (Get-Date $_.LastSuccessPasswordChangeDate -Format "yyyy-MM-dd HH:mm:ss");}
-            if ($_.LastSuccessPasswordCheckDate) {$local:Change.LastPasswordCheck = (Get-Date $_.LastSuccessPasswordCheckDate -Format "yyyy-MM-dd HH:mm:ss");}
+            if ($_.TaskProperties.LastSuccessPasswordChangeDate) {$local:Change.LastPasswordChange = (Get-Date $_.TaskProperties.LastSuccessPasswordChangeDate -Format "yyyy-MM-dd HH:mm:ss");}
+            if ($_.TaskProperties.LastSuccessPasswordCheckDate) {$local:Change.LastPasswordCheck = (Get-Date $_.TaskProperties.LastSuccessPasswordCheckDate -Format "yyyy-MM-dd HH:mm:ss");}
             $local:Changes += $local:Change
         }
 
@@ -1386,7 +1386,7 @@ function Get-SafeguardReportAssetAccountPasswordHistory
                                 -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -AssetToGet $AssetToGet -AccountToGet $AccountToGet)
     $local:AccountId = $local:Account.Id
 
-    $local:OutFile = (Get-OutFileForParam -OutputDirectory $OutputDirectory -FileName "sg-pwhistory-$Days-days-$($local:Account.AssetName)-$($local:Account.Name).csv" -StdOut:$StdOut)
+    $local:OutFile = (Get-OutFileForParam -OutputDirectory $OutputDirectory -FileName "sg-pwhistory-$Days-days-$($local:Account.Asset.Name)-$($local:Account.Name).csv" -StdOut:$StdOut)
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts/$($local:AccountId)/Passwords" `
         -Accept "text/csv" -OutFile $local:OutFile `
