@@ -375,7 +375,7 @@ function Set-SafeguardAuthenticationProviderAsDefault
     $local:Provider = (Get-SafeguardAuthenticationProvider -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -ProviderToGet $ProviderToSet)
     if ($local:Provider)
     {
-        if ($local:Provider.Count -ne 1)
+        if ($local:Provider.Count -gt 1)
         {
             throw "More than one authentication provider matched '$ProviderToSet'"
         }
