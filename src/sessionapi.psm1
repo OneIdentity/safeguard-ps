@@ -1043,7 +1043,10 @@ function Invoke-SafeguardSpsStarlingJoinBrowser
     Param(
         [Parameter(Mandatory=$false,Position=0)]
         [ValidateSet("dev", "devtest", "stage", "prod", IgnoreCase=$true)]
-        [string]$Environment = "prod"
+        [string]$Environment = "prod",
+        [Parameter(Mandatory=$false,Position=1)]
+        [ValidateSet("us", "eu")]
+        [string]$DataCenter = "us"
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -1068,7 +1071,12 @@ function Invoke-SafeguardSpsStarlingJoinBrowser
             "stage" { $local:Suffix = "-stage"; $Environment = "stage"; break }
             "prod" { $local:Suffix = ""; $Environment = "prod"; break }
         }
-        $local:JoinUrl = "https://account$($local:Suffix).cloud.oneidentity.com/join/Safeguard/$($local:InstanceName)/$($local:TimsLicense)"
+        switch ($DataCenter)
+        {
+            "us" { $local:Tld = "com" }
+            "eu" { $local:Tld = "eu"}
+        }
+        $local:JoinUrl = "https://account$($local:Suffix).cloud.oneidentity.$($local:Tld)/join/Safeguard/$($local:InstanceName)/$($local:TimsLicense)"
 
         Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
 
