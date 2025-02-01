@@ -17,7 +17,7 @@ function Disable-SslVerification
         }
         else
         {
-            Write-Verbose "Disabling SSL on non-Windows platform"
+            Write-Verbose "Disabling SSL on cross-platform PowerShell"
             if (-not $global:PSDefaultParameterValues.Contains("Invoke-RestMethod:SkipCertificateCheck"))
             {
                 $global:PSDefaultParameterValues.Add("Invoke-RestMethod:SkipCertificateCheck",$true)
@@ -31,11 +31,10 @@ function Disable-SslVerification
     else
     {
         Write-Verbose "Disabling SSL on Windows platform"
-    }
-    if (-not ([System.Management.Automation.PSTypeName]"TrustEverything").Type)
-    {
-        Write-Verbose "Adding the PSType for SSL trust override"
-        Add-Type -TypeDefinition  @"
+        if (-not ([System.Management.Automation.PSTypeName]"TrustEverything").Type)
+        {
+            Write-Verbose "Adding the PSType for SSL trust override"
+            Add-Type -TypeDefinition  @"
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 public static class TrustEverything
@@ -46,9 +45,10 @@ public static void SetCallback() { System.Net.ServicePointManager.ServerCertific
 public static void UnsetCallback() { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
 }
 "@
+        }
+        Write-Verbose "Adding the trust everything callback"
+        [TrustEverything]::SetCallback()
     }
-    Write-Verbose "Adding the trust everything callback"
-    [TrustEverything]::SetCallback()
 }
 function Enable-SslVerification
 {
@@ -67,7 +67,7 @@ function Enable-SslVerification
         }
         else
         {
-            Write-Verbose "Enabling SSL on non-Windows platform"
+            Write-Verbose "Enabling SSL on cross-platform PowerShell"
             $global:PSDefaultParameterValues.Remove("Invoke-RestMethod:SkipCertificateCheck")
             $global:PSDefaultParameterValues.Remove("Invoke-WebRequest:SkipCertificateCheck")
         }
@@ -75,11 +75,11 @@ function Enable-SslVerification
     else
     {
         Write-Verbose "Enabling SSL on Windows platform"
-    }
-    if (([System.Management.Automation.PSTypeName]"TrustEverything").Type)
+        if (([System.Management.Automation.PSTypeName]"TrustEverything").Type)
     {
         Write-Verbose "Removing the trust everything callback"
         [TrustEverything]::UnsetCallback()
+    }
     }
 }
 function Edit-SslVersionSupport
