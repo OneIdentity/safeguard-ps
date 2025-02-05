@@ -26,7 +26,7 @@ Author = 'petrsnd'
 CompanyName = 'One Identity LLC'
 
 # Copyright statement for this module
-Copyright = '(c) 2024 One Identity LLC. All rights reserved.'
+Copyright = '(c) 2025 One Identity LLC. All rights reserved.'
 
 # Description of the functionality provided by this module
 Description = 'Scripting tools for interacting with the One Identity Safeguard Web API.'
