@@ -347,13 +347,8 @@ PrivateData = @{
 
         # ReleaseNotes of this module
         ReleaseNotes = @"
-safeguard-ps 8.0 Release Notes:
+safeguard-ps 8.1 Release Notes:
 
-- fixed issue related to ignoring TLS errors on PowerShell 7.5+
-- allow SPS Starling join cmdlet to work with EU
-- add a2a broker support for file access request type
-- other compatbility issues with changes in PowerShell 5.X
-- additional bug fixes
 "@
 
     } # End of PSData hashtable
