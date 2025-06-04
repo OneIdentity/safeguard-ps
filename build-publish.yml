@@ -1,7 +1,5 @@
 variables:
   - template: pipeline-templates/global-variables.yml
-  - name: codeSigningCertFileName
-    value: 'OneIdentityCodeSigning.pfx'
 trigger:
   branches:
     include:
@@ -24,31 +22,62 @@ jobs:
           KeyVaultName: 'SafeguardBuildSecrets'
           SecretsFilter: 'PowerShellGalleryApiKey'
         displayName: 'Get PowerShell Gallery API key from Sandbox Azure Key Vault'
+
       - task: AzureKeyVault@2
-        inputs:
-          azureSubscription: 'Azure.Infrastructure.CodeSigning'
-          KeyVaultName: 'CodeSigningCertificates'
-          SecretsFilter: '*'
         displayName: 'Get code signing certificate from Azure Key Vault'
-      - task: PowerShell@2
         inputs:
-          targetType: inline
-          failOnStderr: true
-          script: |
-            $kvSecretBytes = [System.Convert]::FromBase64String("$(OneIdentity-CodeSigning)")
-            $certCollection = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2Collection
-            $certCollection.Import($kvSecretBytes,$null,[System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::Exportable)
-            $protectedCertificateBytes = $certCollection.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Pkcs12,"$(OneIdentity-CodeSigningCertPassword)")
-            $certpath = '$(Build.BinariesDirectory)/$(codeSigningCertFileName)'
-            Write-Verbose -Verbose $certpath
-            [System.IO.File]::WriteAllBytes($certpath, $protectedCertificateBytes)
-            $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 -ArgumentList "$certpath","$(OneIdentity-CodeSigningCertPassword)"
-            Write-Verbose -Verbose "Subject: $($cert.Subject)"
-            Write-Verbose -Verbose "Issuer: $($cert.Issuer)"
-            $catalogfile = (Get-Module safeguard-ps -ListAvailable)[0].Path -replace "psd1","cat"
-            Write-Verbose -Verbose $catalogfile
-            Set-AuthenticodeSignature -Certificate $cert -FilePath $catalogfile -TimestampServer "http://timestamp.comodoca.com?td=sha256"
+          # The "Safeguard Privileged Passwords" project in Azure has been setup with a new Connected Service under Project Settings > Service Connections.
+          # We may not have permissions to view them, but they are there. And this service connection should then have access to
+          # the SPPCodeSigning Key Vault under the OneIdentity.Ops.SaaS.AzureDevOpsInfrastructure subscription, in the CodeSigningCertificates
+          # resource group.
+          ConnectedServiceName: "OneIdentity.Infrastructure.SPPCodeSigning"
+          KeyVaultName: "SPPCodeSigning"
+          SecretsFilter: "SPPCodeSigning-Password, SPPCodeSigning-TotpPrivateKey"
+          # PRs from repository forks are not allowed to access secrets in the pipeline. For more information see https://learn.microsoft.com/en-us/azure/devops/pipelines/repos/github?view=azure-devops&tabs=yaml#access-restrictions
+
+      # SSL.com example:
+      # https://www.ssl.com/how-to/how-to-integrate-esigner-cka-with-ci-cd-tools-for-automated-code-signing/#ftoc-heading-1
+      # and click on the Azure Pipeline tab.
+      - powershell: |
+          # Download and unzip eSignerCKA setup. This downloads their latest version, which when unzipped has
+          # a file name that also contains the version number. So we need to move it to a known name.
+          Invoke-WebRequest -OutFile eSigner_CKA_Setup.zip "https://www.ssl.com/download/ssl-com-esigner-cka"
+          Expand-Archive -Force eSigner_CKA_Setup.zip
+          Remove-Item eSigner_CKA_Setup.zip
+          Move-Item -Path "eSigner_CKA_*\*.exe" -Destination "eSigner_CKA_Installer.exe"
+        displayName: "Download and Unzip eSignerCKA Setup"
+      
+      - powershell: |
+          .\eSigner_CKA_Installer.exe /CURRENTUSER /VERYSILENT /SUPPRESSMSGBOXES /DIR="$(Build.SourcesDirectory)\eSignerCKA" | Out-Null
+          dir $(Build.SourcesDirectory)\eSignerCKA
+        displayName: "Setup eSignerCKA in silent mode and output installation directory"
+      
+      - powershell: |
+          $(Build.SourcesDirectory)\eSignerCKA\eSignerCKATool.exe config -mode "product" -user "ssl.oid.safeguardpp@groups.quest.com" -pass "$(SPPCodeSigning-Password)" -totp "$(SPPCodeSigning-TotpPrivateKey)" -key "$(Build.SourcesDirectory)\eSignerCKA\master.key" -r
+        displayName: "Configure account information on eSignerCKA using Azure Key Vault values"
+      
+      - powershell: |
+          $(Build.SourcesDirectory)\eSignerCKA\eSignerCKATool.exe unload
+          $(Build.SourcesDirectory)\eSignerCKA\eSignerCKATool.exe load
+        displayName: "Unload and load certificate into Windows Certificate Store"
+      
+      # We should now be able to access the certificate using the standard Windows signtool.exe from the Windows SDK,
+      # which should be installed on the build agent images being used.
+      #
+      # Typically, you often see examples of signtool.exe and other things accessing the certificate by the thumbprint.
+      # And in fact, the sample SSL.com code includes a bunch of extra PowerShell script to get the thumbprint. The
+      # signtool.exe can sign catalog files, but we'll stick with the Set-AuthenticodeSignature cmdlet for now.
+      # "signtool.exe" sign /fd sha256 /tr http://ts.ssl.com /td sha256 /n "One Identity LLC" "C:\path\to\program.exe"
+      
+      - powershell: |
+          $cert = Get-ChildItem -Path Cert:\CurrentUser\My -CodeSigningCert
+          Write-Verbose -Verbose "Subject: $($cert.Subject)"
+          Write-Verbose -Verbose "Issuer: $($cert.Issuer)"
+          $catalogfile = (Get-Module safeguard-ps -ListAvailable)[0].Path -replace "psd1","cat"
+          Write-Verbose -Verbose $catalogfile
+          Set-AuthenticodeSignature -Certificate $cert -FilePath $catalogfile -HashAlgorithm SHA256 -TimestampServer "http://ts.ssl.com"
         displayName: 'Signing PowerShell module catalog file'
+
       - task: PowerShell@2
         inputs:
           targetType: inline
@@ -59,6 +88,7 @@ jobs:
             Get-PSRepository
             Publish-Module -Name safeguard-ps -NuGetApiKey "$(PowerShellGalleryApiKey)" -Verbose -SkipAutomaticTags -Force
         displayName: 'Publish PowerShell module to PowerShell Gallery'
+
       - task: AzureKeyVault@2
         inputs:
           azureSubscription: 'SafeguardOpenSource'
@@ -67,6 +97,7 @@ jobs:
         displayName: 'Get Docker Hub Access Token from Sandbox Azure Key Vault'
         continueOnError: false
         condition: and( succeeded(), eq( variables.shouldPublishDocker, true ) )
+
       - task: Bash@3
         inputs:
           targetType: 'inline'
