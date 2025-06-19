@@ -766,3 +766,17 @@ update this list.
 ### Audit Log
 
 - Get-SafeguardAuditLog
+
+
+### Tags
+- Get-SafeguardTag
+- Get-SafeguardTagOccurences
+- Get-SafeguardAssetTags
+- Update-SafeguardAssetTags
+- Get-SafeguardAccountTags
+- Update-SafeguardAccountTags
+- Find-SafeguardTag
+- New-SafeguardTag
+- Remove-SafeguardTag
+- Test-SafeguardAssetTaggingRule
+- Test-SafeguardAssetAccountTaggingRule
