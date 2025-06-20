@@ -777,6 +777,7 @@ update this list.
 - Update-SafeguardAccountTags
 - Find-SafeguardTag
 - New-SafeguardTag
+- Update-SafeguardTag
 - Remove-SafeguardTag
 - Test-SafeguardAssetTaggingRule
 - Test-SafeguardAssetAccountTaggingRule
