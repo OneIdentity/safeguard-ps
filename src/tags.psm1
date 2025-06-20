@@ -72,17 +72,8 @@ function Resolve-SafeguardTagId {
 
     # we need to use Resolve-AssetPartitionIdFromSafeguardSession from the assetpartitions.psm1 module to get the AssetPartition ID so check if the module is loaded
     if (-not (Get-Module assetpartitions)) {
-        $sgModulePath = (Get-Module safeguard-ps).Path
-        if (-not $sgModulePath) {
-            # looks like safeguard-ps is not loaded. Makes no sense to continue as there is no session so throw exception
-            throw "The module safeguard-ps is not loaded. Please load the module first and establish a session to the SPP."
-        } else {
-            # get the folder path for the safeguard-ps module and load the assetpartitions.psm1 module
-            $sgModuleFolder = Split-Path -Path $sgModulePath
-            Import-module "$sgModuleFolder\assetpartitions.psm1"
-        }
+        Import-module "$PSScriptRoot\assetpartitions.psm1"
     }
-
     $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
     if (-not $AssetPartitionId) {
         $AssetPartitionId = -1
@@ -183,17 +174,8 @@ function Get-SafeguardTag {
 
     # we need to use Resolve-AssetPartitionIdFromSafeguardSession from the assetpartitions.psm1 module to get the AssetPartition ID so check if the module is loaded
     if (-not (Get-Module assetpartitions)) {
-        $sgModulePath = (Get-Module safeguard-ps).Path
-        if (-not $sgModulePath) {
-            # looks like safeguard-ps is not loaded. Makes no sense to continue as there is no session so throw exception
-            throw "The module safeguard-ps is not loaded. Please load the module first and establish a session to the SPP."
-        } else {
-            # get the folder path for the safeguard-ps module and load the assetpartitions.psm1 module
-            $sgModuleFolder = Split-Path -Path $sgModulePath
-            Import-module "$sgModuleFolder\assetpartitions.psm1"
-        }
+        Import-module "$PSScriptRoot\assetpartitions.psm1"
     }
-
     $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
     if (-not $AssetPartitionId) {
         $AssetPartitionId = -1
@@ -280,21 +262,12 @@ function Get-SafeguardTagOccurences {
     $local:Parameters = $null
     if ($Fields) {
         $local:Parameters = @{ fields = ($Fields -join ",")}
-    }
+    } 
 
     # we need to use Resolve-AssetPartitionIdFromSafeguardSession from the assetpartitions.psm1 module to get the AssetPartition ID so check if the module is loaded
     if (-not (Get-Module assetpartitions)) {
-        $sgModulePath = (Get-Module safeguard-ps).Path
-        if (-not $sgModulePath) {
-            # looks like safeguard-ps is not loaded. Makes no sense to continue as there is no session so throw exception
-            throw "The module safeguard-ps is not loaded. Please load the module first and establish a session to the SPP."
-        } else {
-            # get the folder path for the safeguard-ps module and load the assetpartitions.psm1 module
-            $sgModuleFolder = Split-Path -Path $sgModulePath
-            Import-module "$sgModuleFolder\assetpartitions.psm1"
-        }
+        Import-module "$PSScriptRoot\assetpartitions.psm1"
     }
-
     $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
     if (-not $AssetPartitionId) {
         $AssetPartitionId = -1
@@ -385,17 +358,8 @@ function Get-SafeguardAssetTags {
     
     # we need to use function Resolve-SafeguardAssetId from the asset.psm1 module to get the Asset ID so check if the module is load
     if (-not (Get-Module assets)) {
-        $local:sgModulePath = (Get-Module safeguard-ps).Path
-        if (-not $local:sgModulePath) {
-            # looks like safeguard-ps is not loaded. Makes no sense to continue as there is no session so throw exception
-            throw "The module safeguard-ps is not loaded. Please load the module first and establish a session to the SPP."
-        } else {
-            # get the folder path for the safeguard-ps module and load the assetpartitions.psm1 module
-            $sgModuleFolder = Split-Path -Path $local:sgModulePath
-            Import-module "$sgModuleFolder\assets.psm1"
-        }
+        Import-module "$PSScriptRoot\assets.psm1"
     }
-
     $AssetId = (Resolve-SafeguardAssetId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $Asset)
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Assets/$AssetId/Tags" -Parameters $local:Parameters
 }
@@ -478,15 +442,7 @@ function Update-SafeguardAssetTags {
    
     # we need to use function Resolve-SafeguardAssetId from the asset.psm1 module to get the Asset ID so check if the module is load
     if (-not (Get-Module assets)) {
-        $local:sgModulePath = (Get-Module safeguard-ps).Path
-        if (-not $local:sgModulePath) {
-            # looks like safeguard-ps is not loaded. Makes no sense to continue as there is no session so throw exception
-            throw "The module safeguard-ps is not loaded. Please load the module first and establish a session to the SPP."
-        } else {
-            # get the folder path for the safeguard-ps module and load the assetpartitions.psm1 module
-            $sgModuleFolder = Split-Path -Path $local:sgModulePath
-            Import-module "$sgModuleFolder\assets.psm1"
-        }
+        Import-module "$PSScriptRoot\assets.psm1"
     }
     $AssetId = (Resolve-SafeguardAssetId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $Asset)    
     $local:body =@() # empty array to store the tag IDs.
@@ -579,17 +535,8 @@ function Get-SafeguardAccountTags {
    
     # we need to use function Resolve-SafeguardAssetAccountId from the asset.psm1 module to get the Asset Account ID so check if the module is load
     if (-not (Get-Module assets)) {
-        $local:sgModulePath = (Get-Module safeguard-ps).Path
-        if (-not $local:sgModulePath) {
-            # looks like safeguard-ps is not loaded. Makes no sense to continue as there is no session so throw exception
-            throw "The module safeguard-ps is not loaded. Please load the module first and establish a session to the SPP."
-        } else {
-            # get the folder path for the safeguard-ps module and load the assetpartitions.psm1 module
-            $sgModuleFolder = Split-Path -Path $local:sgModulePath
-            Import-module "$sgModuleFolder\assets.psm1"
-        }
+        Import-module "$PSScriptRoot\assets.psm1"
     }
-
     $AccountId = (Resolve-SafeguardAssetAccountId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Account $Account)
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetAccounts/$AccountId/Tags" -Parameters $local:Parameters
 }
@@ -659,7 +606,7 @@ function Update-SafeguardAccountTags {
         [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$true,Position=0)]
         [object]$Account,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$false)]
         [object[]]$Tags
     )
 
@@ -668,24 +615,14 @@ function Update-SafeguardAccountTags {
    
     # we need to use function Resolve-SafeguardAssetAccountId from the asset.psm1 module to get the Asset Account ID so check if the module is load
     if (-not (Get-Module assets)) {
-        $local:sgModulePath = (Get-Module safeguard-ps).Path
-        if (-not $local:sgModulePath) {
-            # looks like safeguard-ps is not loaded. Makes no sense to continue as there is no session so throw exception
-            throw "The module safeguard-ps is not loaded. Please load the module first and establish a session to the SPP."
-        } else {
-            # get the folder path for the safeguard-ps module and load the assetpartitions.psm1 module
-            $sgModuleFolder = Split-Path -Path $local:sgModulePath
-            Import-module "$sgModuleFolder\assets.psm1"
-        }
+        Import-module "$PSScriptRoot\assets.psm1"
     }
     $AccountId = (Resolve-SafeguardAssetAccountId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Account $Account)
 
     $local:body =@() # empty array to store the tag IDs.
     if ($Tags.Count -gt 0) {
-        # convert tag names to array and get the ID for each tag.
-        $local:TagsArray = $Tags -split ","
-        foreach ($tagName in $local:TagsArray) {
-            $tagId = Resolve-SafeguardTagId $tagName
+        foreach ($tag in $Tags) {
+            $tagId = Resolve-SafeguardTagId $tag
             if ($tagId) {
                 # found the tag so add the ID to the body
                 $local:body += [PSCustomObject]@{ Id = $tagId }
@@ -694,7 +631,7 @@ function Update-SafeguardAccountTags {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AssetAccounts/$AccountId/Tags" -Body $local:body
     } else {
         # No tags specified so remove all tags. Send empty json body.
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Assets/$AssetId/Tags" -JsonBody "[]"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AssetAccounts/$AccountId/Tags" -JsonBody "[]"
     }    
 }
 
@@ -786,15 +723,7 @@ function Find-SafeguardTag {
 
     # we need to use Resolve-AssetPartitionIdFromSafeguardSession from the assetpartitions.psm1 module to get the Asset Partition ID so check if the module is loaded
     if (-not (Get-Module assetpartitions)) {
-        $sgModulePath = (Get-Module safeguard-ps).Path
-        if (-not $sgModulePath) {
-            # looks like safeguard-ps is not loaded. Makes no sense to continue as there is no session so throw exception
-            throw "The module safeguard-ps is not loaded. Please load the module first and establish a session to the SPP."
-        } else {
-            # get the folder path for the safeguard-ps module and load the assetpartitions.psm1 module
-            $sgModuleFolder = Split-Path -Path $sgModulePath
-            Import-module "$sgModuleFolder\assetpartitions.psm1"
-        }
+        Import-module "$PSScriptRoot\assetpartitions.psm1"
     }
 
     $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
@@ -943,15 +872,7 @@ function New-SafeguardTag {
 
     # we need to use Resolve-AssetPartitionIdFromSafeguardSession from the assetpartitions.psm1 module so check if the module is loaded
     if (-not (Get-Module assetpartitions)) {
-        $sgModulePath = (Get-Module safeguard-ps).Path
-        if (-not $sgModulePath) {
-            # looks like safeguard-ps is not loaded. Makes no sense to continue as there is no session so throw exception
-            throw "The module safeguard-ps is not loaded. Please load the module first and establish a session to the SPP."
-        } else {
-            # get the folder path for the safeguard-ps module and load the assetpartitions.psm1 module
-            $sgModuleFolder = Split-Path -Path $sgModulePath
-            Import-module "$sgModuleFolder\assetpartitions.psm1"
-        }
+        Import-module "$PSScriptRoot\assetpartitions.psm1"
     }
 
     $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
@@ -970,15 +891,7 @@ function New-SafeguardTag {
     if ($PSBoundParameters.ContainsKey("AssetAccountTaggingRule")) { $local:Body.AssetAccountTaggingRule = $AssetAccountTaggingRule }    
     if ($PSBoundParameters.ContainsKey("Owners")) {
         if (-not (Get-Module users)) {
-            $sgModulePath = (Get-Module safeguard-ps).Path
-            if (-not $sgModulePath) {
-                # looks like safeguard-ps is not loaded. Makes no sense to continue as there is no session so throw exception
-                throw "The module safeguard-ps is not loaded. Please load the module first and establish a session to the SPP."
-            } else {
-                # get the folder path for the safeguard-ps module and load the assetpartitions.psm1 module
-                $sgModuleFolder = Split-Path -Path $sgModulePath
-                Import-module "$sgModuleFolder\users.psm1"
-            }
+            Import-module "$PSScriptRoot\users.psm1"
         }
         $local:Body.ManagedBy = @()
         $Owners | ForEach-Object {
@@ -1115,17 +1028,8 @@ function Update-SafeguardTag {
 
     # we need to use Resolve-AssetPartitionIdFromSafeguardSession from the assetpartitions.psm1 module so check if the module is loaded
     if (-not (Get-Module assetpartitions)) {
-        $sgModulePath = (Get-Module safeguard-ps).Path
-        if (-not $sgModulePath) {
-            # looks like safeguard-ps is not loaded. Makes no sense to continue as there is no session so throw exception
-            throw "The module safeguard-ps is not loaded. Please load the module first and establish a session to the SPP."
-        } else {
-            # get the folder path for the safeguard-ps module and load the assetpartitions.psm1 module
-            $sgModuleFolder = Split-Path -Path $sgModulePath
-            Import-module "$sgModuleFolder\assetpartitions.psm1"
-        }
+        Import-module "$PSScriptRoot\assetpartitions.psm1"
     }
-
     $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
     if (-not $AssetPartitionId) {
         $AssetPartitionId = -1
@@ -1154,21 +1058,15 @@ function Update-SafeguardTag {
 
         if ($Owners) {
             if (-not (Get-Module users)) {
-                $sgModulePath = (Get-Module safeguard-ps).Path
-                if (-not $sgModulePath) {
-                    # looks like safeguard-ps is not loaded. Makes no sense to continue as there is no session so throw exception
-                    throw "The module safeguard-ps is not loaded. Please load the module first and establish a session to the SPP."
-                } else {
-                    # get the folder path for the safeguard-ps module and load the assetpartitions.psm1 module
-                    $sgModuleFolder = Split-Path -Path $sgModulePath
-                    Import-module "$sgModuleFolder\users.psm1"
-                }
+                Import-module "$PSScriptRoot\users.psm1"
             }
 
             # get owner object and add to ManagedBy
+            $newOwners = @()
             $Owners | ForEach-Object {
-                $local:tagObj.ManagedBy += (Resolve-SafeguardUserObject -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $_) 
+                $newOwners += (Resolve-SafeguardUserObject -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $_) 
             }
+            $local:tagObj.ManagedBy = $newOwners
         } else {
             $local:tagObj.ManagedBy = @() # clear owners
         }
@@ -1241,15 +1139,7 @@ function Remove-SafeguardTag {
 
     # we need to use Resolve-AssetPartitionIdFromSafeguardSession from the assetpartitions.psm1 module to get the AssetPartition ID so check if the module is loaded
     if (-not (Get-Module assetpartitions)) {
-        $sgModulePath = (Get-Module safeguard-ps).Path
-        if (-not $sgModulePath) {
-            # looks like safeguard-ps is not loaded. Makes no sense to continue as there is no session so throw exception
-            throw "The module safeguard-ps is not loaded. Please load the module first and establish a session to the SPP."
-        } else {
-            # get the folder path for the safeguard-ps module and load the assetpartitions.psm1 module
-            $sgModuleFolder = Split-Path -Path $sgModulePath
-            Import-module "$sgModuleFolder\assetpartitions.psm1"
-        }
+        Import-module "$PSScriptRoot\assetpartitions.psm1"
     }
 
     $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
@@ -1346,15 +1236,7 @@ function Test-SafeguardAssetTaggingRule {
 
     # we need to use Resolve-AssetPartitionIdFromSafeguardSession from the assetpartitions.psm1 module to get the AssetPartition ID so check if the module is loaded
     if (-not (Get-Module assetpartitions)) {
-        $sgModulePath = (Get-Module safeguard-ps).Path
-        if (-not $sgModulePath) {
-            # looks like safeguard-ps is not loaded. Makes no sense to continue as there is no session so throw exception
-            throw "The module safeguard-ps is not loaded. Please load the module first and establish a session to the SPP."
-        } else {
-            # get the folder path for the safeguard-ps module and load the assetpartitions.psm1 module
-            $sgModuleFolder = Split-Path -Path $sgModulePath
-            Import-module "$sgModuleFolder\assetpartitions.psm1"
-        }
+        Import-module "$PSScriptRoot\assetpartitions.psm1"
     }
 
     $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
@@ -1456,15 +1338,7 @@ function Test-SafeguardAssetAccountTaggingRule {
 
     # we need to use Resolve-AssetPartitionIdFromSafeguardSession from the assetpartitions.psm1 module to get the AssetPartition ID so check if the module is loaded
     if (-not (Get-Module assetpartitions)) {
-        $sgModulePath = (Get-Module safeguard-ps).Path
-        if (-not $sgModulePath) {
-            # looks like safeguard-ps is not loaded. Makes no sense to continue as there is no session so throw exception
-            throw "The module safeguard-ps is not loaded. Please load the module first and establish a session to the SPP."
-        } else {
-            # get the folder path for the safeguard-ps module and load the assetpartitions.psm1 module
-            $sgModuleFolder = Split-Path -Path $sgModulePath
-            Import-module "$sgModuleFolder\assetpartitions.psm1"
-        }
+        Import-module "$PSScriptRoot\assetpartitions.psm1"
     }
 
     $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)

@@ -84,20 +84,24 @@ Get-SafeguardTagOccurences "prod"
 
 
 # Example: Update a tag
-Update-SafeguardTag -TagId 1 -Name "new Tag Name" -Description "Some new description" -Owners "Admin1","Admin2","New Owner3"
+Update-SafeguardTag -TagId 1 -Name "new Tag Name" -Description "Some new description" -Owners "sgadmin","requestor","approver"
 # Note: any parameters not passed in will be cleared (eg: asset and account tagging rules).
+
+
+# Example: rename tag 1 back to prod
+Update-SafeguardTag -TagId 1 -Name "prod" -Description "production host" -Owners "sgadmin"
 
 
 # Example: test an AssetTagging rule
 $taggingRule = '{"Description": null,"Enabled": true,"RuleConditionGroup": {"LogicalJoinType": "And","Children": [{"TaggingGroupingCondition": {"ObjectAttribute": "Name","CompareType": "Contains","CompareValue": ".demo"},"TaggingGroupingConditionGroup": null}]}}' | ConvertFrom-Json
-Test-SafeguardAssetTaggingRule -AssetPartitionId 1 -Tag prod -TaggingRule $taggingRule
+Test-SafeguardAssetTaggingRule -AssetPartitionId -1 -Tag prod -TaggingRule $taggingRule
 
 
 # Example test an AssetAccountTagging rule
 $taggingRule = '{"Description": null,"Enabled": true,"RuleConditionGroup": {"LogicalJoinType": "And","Children": [{"TaggingGroupingCondition": {"ObjectAttribute": "Name","CompareType": "Contains","CompareValue": "domadmin"},"TaggingGroupingConditionGroup": null}]}}' | ConvertFrom-Json
-Test-SafeguardAssetAccountTaggingRule -AssetPartitionId 1 -Tag prod -TaggingRule $taggingRule
+Test-SafeguardAssetAccountTaggingRule -AssetPartitionId -1 -Tag prod -TaggingRule $taggingRule
 
 
 # Example: delete a safeguard tag
-Remove-SafeguardTag prod
+Remove-SafeguardTag -AssetPartitionId 1 tag1
 

@@ -294,8 +294,10 @@ FunctionsToExport = @(
     # auditlog.psm1
     'Get-SafeguardAuditLog',
     # tags.psm1
-    'Get-SafeguardTag', 'Get-SafeguardTagOccurences', 'Get-SafeguardAssetTags', 'Update-SafeguardAssetTags', 'Get-SafeguardAccountTags', 'Update-SafeguardAccountTags', 'Find-SafeguardTag', 'New-SafeguardTag', 'Remove-SafeguardTag', 'Test-SafeguardAssetTaggingRule', 'Test-SafeguardAssetAccountTaggingRule'
-    )
+    'Get-SafeguardTag', 'Get-SafeguardTagOccurences', 'Get-SafeguardAssetTags', 'Update-SafeguardAssetTags', 'Get-SafeguardAccountTags',
+    'Update-SafeguardAccountTags', 'Find-SafeguardTag', 'New-SafeguardTag', 'Update-SafeguardTag', 'Remove-SafeguardTag',
+    'Test-SafeguardAssetTaggingRule', 'Test-SafeguardAssetAccountTaggingRule'
+)
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
 CmdletsToExport = @()
