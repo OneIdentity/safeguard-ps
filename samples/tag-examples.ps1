@@ -39,7 +39,7 @@ $assetAccountTaggingRule='{
   }
 }' | ConvertFrom-Json
 $owners = @("sglocaladmin", "approver")
-New-SafeguardTag -AssetPartitionId $assetPartitionId -Name $name -Description $description -AssetTaggingRule $assetTaggingRule -AssetAccountTaggingRule $assetAccountTaggingRule -Owners $owners
+New-SafeguardTag -AssetPartitionId $assetPartitionId -Name $name -Description $description -AssetTaggingRule $assetTaggingRule -AssetAccountTaggingRule $assetAccountTaggingRule -Owner $owners
 
 
 # Example: get a tag based on the name from Asset Partition 1
@@ -50,46 +50,46 @@ Write-Host "Retrieved tag $($tagObject.Name) with description '$($tagObject.Desc
 
 
 # Example: Find a tag
-Find-SafeguardTag -QueryFilter "Name contains 'tag'" -Fields Id,Name,Description -OrderBy Name
+Find-SafeguardTag -QueryFilter "Name contains 'tag'" -Field Id,Name,Description -OrderBy Name
 
 
 # Example: Assign two tags to an Asset
 $tags= @("Prod", "Tag2")
-Update-SafeguardAssetTags -Asset "dc01.oneidentity.demo" -Tags $tags
+Update-SafeguardAssetTag -Asset "dc01.oneidentity.demo" -Tag $tags
 
 
 # Example: Get the tags on a specific asset
-Get-SafeguardAssetTags "dc01.oneidentity.demo"
+Get-SafeguardAssetTag "dc01.oneidentity.demo"
 
 
 # Example: remove all tags from an asset
-Update-SafeguardAssetTags -Asset "dc01.oneidentity.demo" -Tags @()
+Update-SafeguardAssetTag -Asset "dc01.oneidentity.demo" -Tag @()
 
 
 # Example: Assign two tags to an account
 $tags= @("Prod", "Tag2")
-Update-SafeguardAccountTags -Account "root" -Tags $tags
+Update-SafeguardAccountTag -Account "root" -Tag $tags
 
 
 # Example: Get the tags on a specific account
-Get-SafeguardAccountTags -Account "root"
+Get-SafeguardAccountTag -Account "root"
 
 
 # Example: remove all tags from an account
-Update-SafeguardAccountTags -Account "root" -Tags @()
+Update-SafeguardAccountTag -Account "root" -Tag @()
 
 
 # Example: Get the Tag occurrences for tag "prod"
-Get-SafeguardTagOccurences "prod"
+Get-SafeguardTagOccurence "prod"
 
 
 # Example: Update a tag
-Update-SafeguardTag -TagId 1 -Name "new Tag Name" -Description "Some new description" -Owners "sgadmin","requestor","approver"
+Update-SafeguardTag -TagId 1 -Name "new Tag Name" -Description "Some new description" -Owner "sgadmin","requestor","approver"
 # Note: any parameters not passed in will be cleared (eg: asset and account tagging rules).
 
 
 # Example: rename tag 1 back to prod
-Update-SafeguardTag -TagId 1 -Name "prod" -Description "production host" -Owners "sgadmin"
+Update-SafeguardTag -TagId 1 -Name "prod" -Description "production host" -Owner "sgadmin"
 
 
 # Example: test an AssetTagging rule

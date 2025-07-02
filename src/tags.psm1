@@ -7,14 +7,87 @@
 #
 # The code for Tags is structured similarly to the Asset.psm1 module.
 # All functions require an active session to the Safeguard SPP. 
-# Use Connect-Safeguard cmdlet to get a session, without an active session REST-API calls are not possible. 
-# This module relies on assetpartitions.psm1 and assets.psm1 from the safeguard-ps module.
+# Use Connect-Safeguard cmdlet to get a session, without an active session Web API calls are not possible. 
+# This module relies on assetpartitions.psm1, assets.psm1 and users.psm1 from the safeguard-ps module.
 #>
 
 
 <#
 .SYNOPSIS
-Helper function used to get the ID of a tag based on tag name or tag id
+Helper function to resolve the AssetPartitionId
+
+.DESCRIPTION
+Helper function which returns the asset partition id.
+If the asset partition name is specified, then the id is looked up.
+If AssetPartitionId is specified, then this value is returned. 
+This function does not check if the specified asset partion id exists.
+If neither is specified, then the macrocosm partition id -1 is returned.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition to get tags from.
+If this value is empty, the Macrocosm partition will be used.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to get tags from.
+(If specified, this will override the AssetPartition parameter)
+
+.EXAMPLE
+Resolve-AssetPartitionId -AssetPartition "Macrocosm"
+
+.OUTPUTS
+The id of the asset partition
+
+.NOTES
+Visibility: Internal
+Access: Private
+Intended Use: Internal module use only
+#>
+function Resolve-AssetPartitionId {
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$AssetPartition = $null,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    # if AssetPartition is passed in and AssetPartitionID is empty, then lookup based on AssetPartition name
+    if ($PSBoundParameters.ContainsKey('AssetPartition') -and (-not $PSBoundParameters.ContainsKey('AssetPartitionId'))) {
+        # we need to use Resolve-AssetPartitionIdFromSafeguardSession from the assetpartitions.psm1 module to get the AssetPartition ID so check if the module is loaded
+        if (-not (Get-Module assetpartitions)) {
+            Import-module "$PSScriptRoot\assetpartitions.psm1"
+        }
+        $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
+    }
+    if (-not $AssetPartitionId) {
+        # AssetPartition and AssetPartitionId param are both empty so use Macrocosm.
+        $AssetPartitionId = -1
+    }
+    return $AssetPartitionId
+}
+
+
+<#
+.SYNOPSIS
+Helper function to get the ID of a tag based on tag name or tag id
 
 .DESCRIPTION
 Helper function which returns the tag id.
@@ -35,11 +108,14 @@ An integer containing an ID or a string containing the name of the asset partiti
 If this value is empty, the Macrocosm partition will be used.
 
 .PARAMETER AssetPartitionId
-An integer containing the asset partition ID to get assets from.
+An integer containing the asset partition ID to get tags from.
 (If specified, this will override the AssetPartition parameter)
 
 .PARAMETER Tag
-An integer containing the ID of the Tag or a string containing the name of the tag to get.
+An integer containing the ID of the tag or a string containing the name of the tag to get.
+
+.OUTPUTS
+The id of the tag
 
 .NOTES
 Visibility: Internal
@@ -70,26 +146,18 @@ function Resolve-SafeguardTagId {
         $Tag = $Tag.Id
     }
 
-    # we need to use Resolve-AssetPartitionIdFromSafeguardSession from the assetpartitions.psm1 module to get the AssetPartition ID so check if the module is loaded
-    if (-not (Get-Module assetpartitions)) {
-        Import-module "$PSScriptRoot\assetpartitions.psm1"
-    }
-    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
-    if (-not $AssetPartitionId) {
-        $AssetPartitionId = -1
-    }
+    # use the helper function Resolve-AssetPartitionId to get the asset partition id.
+    $AssetPartitionId = Resolve-AssetPartitionId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId
     $local:RelPath = "AssetPartitions/$AssetPartitionId/Tags"
 
     if (-not ($Tag -as [int])) {
         # get tag based on name
-        $local:Tags = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" -Parameters @{ filter = "Name ieq '$Tag'"; fields = "Id" })
-    } 
-    else {
+        $escapedTagName = $Tag -replace "'", "\'"
+        $local:Tags = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" -Parameters @{ filter = "Name ieq '$escapedTagName'"; fields = "Id" })
+    } else {
         # Tag ID was supplied as param, not tag name
-        if ($AssetPartitionId) {
-            # Confirm that the tag with this ID actually exists.
-            $local:Tags = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" -Parameters @{ filter = "Id eq $Tag and AssetPartitionId eq $AssetPartitionId"; fields = "Id" })
-        }       
+        # Confirm that the tag with this ID actually exists.
+        $local:Tags = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" -Parameters @{ filter = "Id eq $Tag and AssetPartitionId eq $AssetPartitionId"; fields = "Id" })
     }
     if ($local:Tags.Count -eq 0){
         # If no tag found then return nothing
@@ -103,11 +171,11 @@ function Resolve-SafeguardTagId {
 
 <#
 .SYNOPSIS
-Get tag from Safeguard via the REST-API.
+Get tag from Safeguard via the Web API.
 
 .DESCRIPTION
 Get the tag from Safeguard. A tag can be added to Assets or Accounts.
-If the tag does not exist, this function does not return anything.
+If the tag does not exist, nothing is returned.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -123,15 +191,16 @@ An integer containing an ID or a string containing the name of the asset partiti
 If this value is empty, the Macrocosm partition will be used.
 
 .PARAMETER AssetPartitionId
-An integer containing the asset partition ID to get assets from.
+An integer containing the asset partition ID to get tags from.
 (If specified, this will override the AssetPartition parameter)
 
 .PARAMETER TagToGet
 An integer containing the ID of the Tag to get or a string containing the name of the tag (case insensitive).
 If this value is empty, all tags on the Asset Partition will be returned.
 
-.PARAMETER Fields
+.PARAMETER Field
 An array of the tag property names to return.
+(can be one of the following Id, AssetPartitionId, AssetPartitionName, Name, Description, AssetTaggingRule, AssetAccountTaggingRule, ManagedBy)
 
 .INPUTS
 None.
@@ -143,7 +212,7 @@ JSON response from Safeguard Web API.
 Get-SafeguardTag -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
-Get-SafeguardTag "tagname"
+Get-SafeguardTag "tagname" -Field "Id","Name","ManagedBy"
 #>
 function Get-SafeguardTag {
     [CmdletBinding()]
@@ -161,25 +230,19 @@ function Get-SafeguardTag {
         [Parameter(Mandatory=$false,Position=0)]
         [object]$TagToGet,
         [Parameter(Mandatory=$false)]
-        [string[]]$Fields
+        [string[]]$Field
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:Parameters = $null
-    if ($Fields) {
-        $local:Parameters = @{ fields = ($Fields -join ",")}
+    if ($Field) {
+        $local:Parameters = @{ fields = ($Field -join ",")}
     }
 
-    # we need to use Resolve-AssetPartitionIdFromSafeguardSession from the assetpartitions.psm1 module to get the AssetPartition ID so check if the module is loaded
-    if (-not (Get-Module assetpartitions)) {
-        Import-module "$PSScriptRoot\assetpartitions.psm1"
-    }
-    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
-    if (-not $AssetPartitionId) {
-        $AssetPartitionId = -1
-    }
+    # use the helper function Resolve-AssetPartitionId to get the asset partition id.
+    $AssetPartitionId = Resolve-AssetPartitionId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId
     $local:RelPath = "AssetPartitions/$AssetPartitionId/Tags"
 
     if ($PSBoundParameters.ContainsKey("TagToGet")) {
@@ -197,7 +260,7 @@ function Get-SafeguardTag {
 
 <#
 .SYNOPSIS
-Get the objects with this tag from Safeguard via the REST-API.
+Get the objects with this tag from Safeguard via the Web API.
 
 .DESCRIPTION
 Get the tagged objects from Safeguard (a tag can be assigned to Assets or Accounts).
@@ -216,13 +279,13 @@ An integer containing an ID or a string containing the name of the asset partiti
 If this value is empty, the Macrocosm partition will be used.
 
 .PARAMETER AssetPartitionId
-An integer containing the asset partition ID to get assets from.
+An integer containing the asset partition ID to get tags from.
 (If specified, this will override the AssetPartition parameter)
 
 .PARAMETER Tag
-Mandatory parameter. An integer containing the ID of the Tag to get or a string containing the name of the tag.
+Mandatory parameter. An integer containing the ID of the tag to get or a string containing the name of the tag.
 
-.PARAMETER Fields
+.PARAMETER Field
 An array of the tag property names to return (can be one of the following Id, Name, DomainName, Type, AssetId, AssetName)
 
 .INPUTS
@@ -232,12 +295,12 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardTagOccurences 2
+Get-SafeguardTagOccurence 2
 
 .EXAMPLE
-Get-SafeguardTagOccurences "tagname"
+Get-SafeguardTagOccurence "tagname"
 #>
-function Get-SafeguardTagOccurences {
+function Get-SafeguardTagOccurence {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
@@ -253,25 +316,19 @@ function Get-SafeguardTagOccurences {
         [Parameter(Mandatory=$true,Position=0)]
         [object]$Tag,
         [Parameter(Mandatory=$false)]
-        [string[]]$Fields
+        [string[]]$Field
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:Parameters = $null
-    if ($Fields) {
-        $local:Parameters = @{ fields = ($Fields -join ",")}
+    if ($Field) {
+        $local:Parameters = @{ fields = ($Field -join ",")}
     } 
 
-    # we need to use Resolve-AssetPartitionIdFromSafeguardSession from the assetpartitions.psm1 module to get the AssetPartition ID so check if the module is loaded
-    if (-not (Get-Module assetpartitions)) {
-        Import-module "$PSScriptRoot\assetpartitions.psm1"
-    }
-    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
-    if (-not $AssetPartitionId) {
-        $AssetPartitionId = -1
-    }
+    # use the helper function Resolve-AssetPartitionId to get the asset partition id.
+    $AssetPartitionId = Resolve-AssetPartitionId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId
     $local:RelPath = "AssetPartitions/$AssetPartitionId/Tags"
 
     if ($PSBoundParameters.ContainsKey("Tag")) {
@@ -285,7 +342,7 @@ function Get-SafeguardTagOccurences {
 
 <#
 .SYNOPSIS
-Get the tags from a specific asset via the REST-API.
+Get the tags from a specific asset via the Web API.
 
 .DESCRIPTION
 Get the assigned tags for a specific asset.
@@ -310,8 +367,9 @@ An integer containing the asset partition ID to get the asset's tags from.
 .PARAMETER Asset
 Required parameter. An integer containing the ID of the asset or a string containing the name of the asset to get the tags for.
 
-.PARAMETER Fields
+.PARAMETER Field
 An array of the tag property names to return.
+(Can be one of the following: Id, Name, Description, AdminAssigned)
 
 .INPUTS
 None.
@@ -320,16 +378,16 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardAssetTags "assetname" 
+Get-SafeguardAssetTag "assetname" 
 
 .EXAMPLE
-Get-SafeguardAssetTags 14 
+Get-SafeguardAssetTag 14 
 
 .EXAMPLE
-Get-SafeguardAssetTags "assetname" -Fields Id,Name,Description
+Get-SafeguardAssetTag "assetname" -Field Id,Name,Description
 
 #>
-function Get-SafeguardAssetTags {
+function Get-SafeguardAssetTag {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
@@ -345,15 +403,15 @@ function Get-SafeguardAssetTags {
         [Parameter(Mandatory=$true,Position=0)]
         [object]$Asset,
         [Parameter(Mandatory=$false)]
-        [string[]]$Fields
+        [string[]]$Field
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:Parameters = $null
-    if ($Fields) {
-        $local:Parameters = @{ fields = ($Fields -join ",")}
+    if ($Field) {
+        $local:Parameters = @{ fields = ($Field -join ",")}
     }
     
     # we need to use function Resolve-SafeguardAssetId from the asset.psm1 module to get the Asset ID so check if the module is load
@@ -367,7 +425,7 @@ function Get-SafeguardAssetTags {
 
 <#
 .SYNOPSIS
-Update the tags on a specific asset via the REST-API.
+Update the tags on a specific asset via the Web API.
 
 .DESCRIPTION
 Update the assigned tags on a specific asset.
@@ -394,8 +452,8 @@ An integer containing the asset partition ID to get the asset's tags from.
 .PARAMETER Asset
 Mandatory parameter. An integer containing the ID of the asset or a string containing the name of the asset to update the tags for.
 
-.PARAMETER Tags
-Mandatory parameter. An array of integers with the tag Ids or a string array of Tag names to assign to the asset.
+.PARAMETER Tag
+Mandatory parameter. An array of integers with the tag Ids or a string array of tag names to assign to the asset.
 If an empty array is passed in, then all tags will be removed from the asset.
 
 .INPUTS
@@ -405,20 +463,20 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Update-SafeguardAssetTags assetname -Tags @("Prod,VM,DMZ")
+Update-SafeguardAssetTag assetname -Tag @("Prod,VM,DMZ")
 
 .EXAMPLE
-Update-SafeguardAssetTags assetname -Tags @(1,2,3)
+Update-SafeguardAssetTag assetname -Tag @(1,2,3)
 
 .EXAMPLE
-Update-SafeguardAssetTags 8 -Tags @("Prod,VM,DMZ")
+Update-SafeguardAssetTag 8 -Tag @("Prod,VM,DMZ")
 
 .EXAMPLE
 $tags = @("VM","Prod","DMZ")
-Update-SafeguardAssetTags -Asset "assetName" -Tags $tags
+Update-SafeguardAssetTags -Asset "assetName" -Tag $tags
 
 #>
-function Update-SafeguardAssetTags {
+function Update-SafeguardAssetTag {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
@@ -434,7 +492,7 @@ function Update-SafeguardAssetTags {
         [Parameter(Mandatory=$true,Position=0)]
         [object]$Asset,
         [Parameter(Mandatory=$false)]
-        [object[]]$Tags
+        [object[]]$Tag
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -446,9 +504,9 @@ function Update-SafeguardAssetTags {
     }
     $AssetId = (Resolve-SafeguardAssetId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $Asset)    
     $local:body =@() # empty array to store the tag IDs.
-    if ($Tags.Count -gt 0) {
-        foreach ($tag in $Tags) {
-            $tagId = Resolve-SafeguardTagId $tag
+    if ($Tag.Count -gt 0) {
+        foreach ($tagObj in $Tag) {
+            $tagId = Resolve-SafeguardTagId $tagObj
             if ($tagId) {
                 # found the tag so add the ID to the body
                 $local:body += [PSCustomObject]@{ Id = $tagId }
@@ -464,7 +522,7 @@ function Update-SafeguardAssetTags {
 
 <#
 .SYNOPSIS
-Get the tags from a specific account via the REST-API.
+Get the tags from a specific account via the Web API.
 
 .DESCRIPTION
 Get the assigned tags for a specific account.
@@ -489,9 +547,9 @@ An integer containing the asset partition ID to get the asset's tags from.
 .PARAMETER Account
 Mandatory parameter. An integer containing the ID of the account or a string containing the name of the account to get the tags for.
 
-.PARAMETER Fields
+.PARAMETER Field
 String array with the tag property names to return.
-Example: Id,Name,Description
+(Can be one of the following: Id,Name,Description,AdminAssigned
 
 .INPUTS
 None.
@@ -500,13 +558,13 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardAccountTags "accountname" 
+Get-SafeguardAccountTag "accountname" 
 
 .EXAMPLE
-Get-SafeguardAccountTags "accountname" -Fields Id,Name,Description
+Get-SafeguardAccountTag "accountname" -Field Id,Name,Description
 
 #>
-function Get-SafeguardAccountTags {
+function Get-SafeguardAccountTag {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
@@ -522,15 +580,15 @@ function Get-SafeguardAccountTags {
         [Parameter(Mandatory=$true,Position=0)]
         [object]$Account,
         [Parameter(Mandatory=$false)]
-        [string[]]$Fields
+        [string[]]$Field
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:Parameters = $null
-    if ($Fields) {
-        $local:Parameters = @{ fields = ($Fields -join ",")}
+    if ($Field) {
+        $local:Parameters = @{ fields = ($Field -join ",")}
     }
    
     # we need to use function Resolve-SafeguardAssetAccountId from the asset.psm1 module to get the Asset Account ID so check if the module is load
@@ -544,7 +602,7 @@ function Get-SafeguardAccountTags {
 
 <#
 .SYNOPSIS
-Update the tags on a specific account via the REST-API.
+Update the tags on a specific account via the Web API.
 
 .DESCRIPTION
 Update the assigned tags on a specific account. Currently assigned tags are replaced by the tags specified.
@@ -570,7 +628,7 @@ An integer containing the asset partition ID to get the asset's tags from.
 .PARAMETER Account
 Mandatory parameter. An integer containing the ID of the account or a string containing the name of the account to update the tags for.
 
-.PARAMETER Tags
+.PARAMETER Tag
 Mandatory parameter. An array of integers with the Tag Ids or a string array with the Tag names to assign to the account.
 If an empty array is passed in, all tags will be removed from the account.
 
@@ -581,17 +639,17 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Update-SafeguardAccountTags "accountName" -Tags @("Prod","DMZ","Tier1")
+Update-SafeguardAccountTag "accountName" -Tag @("Prod","DMZ","Tier1")
 
 .EXAMPLE
-Update-SafeguardAccountTags "accountName" -Tags @(1,2,3)
+Update-SafeguardAccountTag "accountName" -Tag @(1,2,3)
 
 .EXAMPLE
 $tags = @("TagName1", "TagName2", "TagName3")
-Update-SafeguardAccountTags -Account 8 -Tags $tags
+Update-SafeguardAccountTag -Account 8 -Tag $tags
 
 #>
-function Update-SafeguardAccountTags {
+function Update-SafeguardAccountTag {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
@@ -607,7 +665,7 @@ function Update-SafeguardAccountTags {
         [Parameter(Mandatory=$true,Position=0)]
         [object]$Account,
         [Parameter(Mandatory=$false)]
-        [object[]]$Tags
+        [object[]]$Tag
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -620,9 +678,9 @@ function Update-SafeguardAccountTags {
     $AccountId = (Resolve-SafeguardAssetAccountId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Account $Account)
 
     $local:body =@() # empty array to store the tag IDs.
-    if ($Tags.Count -gt 0) {
-        foreach ($tag in $Tags) {
-            $tagId = Resolve-SafeguardTagId $tag
+    if ($Tag.Count -gt 0) {
+        foreach ($tagObj in $Tag) {
+            $tagId = Resolve-SafeguardTagId $tagObj
             if ($tagId) {
                 # found the tag so add the ID to the body
                 $local:body += [PSCustomObject]@{ Id = $tagId }
@@ -667,9 +725,9 @@ A string to pass to the -filter query parameter in the Safeguard Web API.
 Example: Name ieq 'prod'
 Available operators: eq, ne, gt, ge, lt, le, and, or, not, contains, ieq, icontains, sw, isw, ew, iew, in [ {item1}, {item2}, etc], (). Use \ to escape quotes, asterisks and backslashes in strings.
 
-.PARAMETER Fields
+.PARAMETER Field
 An array of the tag property names to return.
-Example: Id,Name
+(can be one of the following Id, AssetPartitionId, AssetPartitionName, Name, Description, AssetTaggingRule, AssetAccountTaggingRule, ManagedBy)
 
 .PARAMETER OrderBy
 An array of the tag property names to order by.
@@ -693,7 +751,7 @@ Find-SafeguardTag -QueryFilter "Description eq 'locations'"
 Find-SafeguardTag -QueryFilter "AssetTaggingRule.Description eq 'WindowsServers'"
 
 .EXAMPLE
-Find-SafeguardTag -QueryFilter "Name contains 'prod'" -Fields Id,Name,Description -OrderBy Name
+Find-SafeguardTag -QueryFilter "Name contains 'prod'" -Field Id,Name,Description -OrderBy Name
 #>
 function Find-SafeguardTag {
     [CmdletBinding(DefaultParameterSetName="Search")]
@@ -713,7 +771,7 @@ function Find-SafeguardTag {
         [Parameter(Mandatory=$true,Position=0,ParameterSetName="Query")]
         [string]$QueryFilter,
         [Parameter(Mandatory=$false)]
-        [string[]]$Fields,
+        [string[]]$Field,
         [Parameter(Mandatory=$false)]
         [string[]]$OrderBy
     )
@@ -721,15 +779,8 @@ function Find-SafeguardTag {
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    # we need to use Resolve-AssetPartitionIdFromSafeguardSession from the assetpartitions.psm1 module to get the Asset Partition ID so check if the module is loaded
-    if (-not (Get-Module assetpartitions)) {
-        Import-module "$PSScriptRoot\assetpartitions.psm1"
-    }
-
-    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
-    if (-not $AssetPartitionId) {
-        $AssetPartitionId = -1
-    }
+    # use the helper function Resolve-AssetPartitionId to get the asset partition id.
+    $AssetPartitionId = Resolve-AssetPartitionId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId
     $local:RelPath = "AssetPartitions/$AssetPartitionId/Tags"
 
     if ($PSCmdlet.ParameterSetName -eq "Search") {
@@ -738,8 +789,8 @@ function Find-SafeguardTag {
         $local:Parameters = @{ filter = $QueryFilter }
     }
 
-    if ($Fields) {
-        $local:Parameters["fields"] = ($Fields -join ",")
+    if ($Field) {
+        $local:Parameters["fields"] = ($Field -join ",")
     }
     if ($OrderBy) {
         $local:Parameters["orderby"] = ($OrderBy -join ",")
@@ -821,7 +872,7 @@ For example:'{
   }
 }' | ConvertFrom-Json
 
-.PARAMETER Owners
+.PARAMETER Owner
 An optional string array containing the names of the owners for the new tag.
 Note: an owner cannot be a system account such as admin.
 If you specify an owner name who does not exist, a RuntimeException will be thrown.
@@ -839,7 +890,7 @@ New-SafeguardTag "prod"
 New-SafeguardTag "prod" "environment"
 
 .EXAMPLE
-New-SafeguardTag -Name "Non-prod" -Description "server environment" -Owners "Admin1","Admin2"
+New-SafeguardTag -Name "Non-prod" -Description "server environment" -Owner "Admin1","Admin2"
 
 #>
 function New-SafeguardTag {
@@ -864,22 +915,14 @@ function New-SafeguardTag {
         [Parameter(Mandatory=$false)]
         [PSCustomObject]$AssetAccountTaggingRule=$null,
         [Parameter(Mandatory=$false)]
-        [string[]]$Owners=@()
+        [string[]]$Owner=@()
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    # we need to use Resolve-AssetPartitionIdFromSafeguardSession from the assetpartitions.psm1 module so check if the module is loaded
-    if (-not (Get-Module assetpartitions)) {
-        Import-module "$PSScriptRoot\assetpartitions.psm1"
-    }
-
-    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
-    if (-not $AssetPartitionId) {
-        $AssetPartitionId = -1
-    }
-
+    # use the helper function Resolve-AssetPartitionId to get the asset partition id.
+    $AssetPartitionId = Resolve-AssetPartitionId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId
     $local:RelPath = "AssetPartitions/$AssetPartitionId/Tags"
 
     $local:Body = @{
@@ -889,12 +932,12 @@ function New-SafeguardTag {
     if ($PSBoundParameters.ContainsKey("Description")) { $local:Body.Description = $Description }
     if ($PSBoundParameters.ContainsKey("AssetTaggingRule")) { $local:Body.AssetTaggingRule = $AssetTaggingRule }
     if ($PSBoundParameters.ContainsKey("AssetAccountTaggingRule")) { $local:Body.AssetAccountTaggingRule = $AssetAccountTaggingRule }    
-    if ($PSBoundParameters.ContainsKey("Owners")) {
+    if ($PSBoundParameters.ContainsKey("Owner")) {
         if (-not (Get-Module users)) {
             Import-module "$PSScriptRoot\users.psm1"
         }
         $local:Body.ManagedBy = @()
-        $Owners | ForEach-Object {
+        $Owner | ForEach-Object {
             $local:Body.ManagedBy += (Resolve-SafeguardUserObject -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $_)
         }
     }
@@ -979,7 +1022,7 @@ For example:'{
   }
 }' | ConvertFrom-Json
 
-.PARAMETER Owners
+.PARAMETER Owner
 An optional string array containing the names of the owners for the new tag.
 Note: an owner cannot be a system account such as admin.
 
@@ -991,7 +1034,7 @@ Update-SafeguardTag -TagId 1 -Name "prod"
 Any parameters not passed in will be cleared (eg: description, asset and account tagging rules, owners).
 
 .EXAMPLE
-Update-SafeguardTag -TagId 1 -Name "new Tag Name" -Description "Some new description" -Owners "Admin1","Admin2","New Owner3"
+Update-SafeguardTag -TagId 1 -Name "new Tag Name" -Description "Some new description" -Owner "Admin1","Admin2","New Owner3"
 Any parameters not passed in will be cleared (eg: asset and account tagging rules).
 
 TODO: code to move tag to new partition.
@@ -1020,21 +1063,16 @@ function Update-SafeguardTag {
         [Parameter(Mandatory=$false)]
         [PSCustomObject]$AssetAccountTaggingRule=$null,
         [Parameter(Mandatory=$false)]
-        [string[]]$Owners
+        [string[]]$Owner
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    # we need to use Resolve-AssetPartitionIdFromSafeguardSession from the assetpartitions.psm1 module so check if the module is loaded
-    if (-not (Get-Module assetpartitions)) {
-        Import-module "$PSScriptRoot\assetpartitions.psm1"
-    }
-    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
-    if (-not $AssetPartitionId) {
-        $AssetPartitionId = -1
-    }
     $emptyTaggingRule = '{"Description":null,"Enabled":false,"RuleConditionGroup":{"LogicalJoinType":"And","Children":[{"TaggingGroupingCondition":{"ObjectAttribute":"Name","CompareType":"Contains","CompareValue":""},"TaggingGroupingConditionGroup":null}]}}' | ConvertFrom-Json
+
+    # use the helper function Resolve-AssetPartitionId to get the asset partition id.
+    $AssetPartitionId = Resolve-AssetPartitionId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId
     $local:RelPath = "AssetPartitions/$AssetPartitionId/Tags/$tagId"
 
     $local:tagObj = Get-SafeguardTag $TagId
@@ -1044,26 +1082,26 @@ function Update-SafeguardTag {
         $local:tagObj.Description = $Description
         # check if AssetTagging rule was passed in as a parameter
         if ($AssetTaggingRule) {
-            $local:tagObj.AssetTaggingRule = $AssetTaggingRule #| ConvertTo-Json -Depth 30 # set depth to something large so that grouped rules are all added.
+            $local:tagObj.AssetTaggingRule = $AssetTaggingRule 
         } else {
             # no AssetTaggingRule param specified so set the default empty one
-            $local:tagObj.AssetTaggingRule = $emptyTaggingRule #| ConvertTo-Json -Depth 5
+            $local:tagObj.AssetTaggingRule = $emptyTaggingRule 
         }
         # check if AssetAccountTaggingRule was passed in as a parameter
         if ($AssetAccountTaggingRule) {
-            $local:tagObj.AssetAccountTaggingRule = $AssetAccountTaggingRule #| ConvertTo-Json -Depth 30 # set depth to something large so that grouped rules are all added.
+            $local:tagObj.AssetAccountTaggingRule = $AssetAccountTaggingRule 
         } else {
-            $local:tagObj.AssetAccountTaggingRule = $emptyTaggingRule #| ConvertTo-Json -Depth 5
+            $local:tagObj.AssetAccountTaggingRule = $emptyTaggingRule
         }
 
-        if ($Owners) {
+        if ($Owner) {
             if (-not (Get-Module users)) {
                 Import-module "$PSScriptRoot\users.psm1"
             }
 
             # get owner object and add to ManagedBy
             $newOwners = @()
-            $Owners | ForEach-Object {
+            $Owner | ForEach-Object {
                 $newOwners += (Resolve-SafeguardUserObject -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $_) 
             }
             $local:tagObj.ManagedBy = $newOwners
@@ -1137,16 +1175,8 @@ function Remove-SafeguardTag {
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    # we need to use Resolve-AssetPartitionIdFromSafeguardSession from the assetpartitions.psm1 module to get the AssetPartition ID so check if the module is loaded
-    if (-not (Get-Module assetpartitions)) {
-        Import-module "$PSScriptRoot\assetpartitions.psm1"
-    }
-
-    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
-    if (-not $AssetPartitionId) {
-        $AssetPartitionId = -1
-    }
-
+    # use the helper function Resolve-AssetPartitionId to get the asset partition id.
+    $AssetPartitionId = Resolve-AssetPartitionId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId
     $local:RelPath = "AssetPartitions/$AssetPartitionId/Tags"    
     $local:TagId = (Resolve-SafeguardTagId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $TagToDelete)
 
@@ -1234,16 +1264,8 @@ function Test-SafeguardAssetTaggingRule {
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    # we need to use Resolve-AssetPartitionIdFromSafeguardSession from the assetpartitions.psm1 module to get the AssetPartition ID so check if the module is loaded
-    if (-not (Get-Module assetpartitions)) {
-        Import-module "$PSScriptRoot\assetpartitions.psm1"
-    }
-
-    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
-    if (-not $AssetPartitionId) {
-        $AssetPartitionId = -1
-    }
-
+    # use the helper function Resolve-AssetPartitionId to get the asset partition id.
+    $AssetPartitionId = Resolve-AssetPartitionId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId
     $local:TagId = (Resolve-SafeguardTagId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $Tag)
     if ($local:TagId) {
         $local:RelPath = "AssetPartitions/$AssetPartitionId/Tags/$local:TagId/TestAssetRule"
@@ -1336,16 +1358,8 @@ function Test-SafeguardAssetAccountTaggingRule {
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    # we need to use Resolve-AssetPartitionIdFromSafeguardSession from the assetpartitions.psm1 module to get the AssetPartition ID so check if the module is loaded
-    if (-not (Get-Module assetpartitions)) {
-        Import-module "$PSScriptRoot\assetpartitions.psm1"
-    }
-
-    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
-    if (-not $AssetPartitionId) {
-        $AssetPartitionId = -1
-    }
-
+    # use the helper function Resolve-AssetPartitionId to get the asset partition id.
+    $AssetPartitionId = Resolve-AssetPartitionId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId
     $local:TagId = (Resolve-SafeguardTagId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $Tag)
     if ($local:TagId) {
         $local:RelPath = "AssetPartitions/$AssetPartitionId/Tags/$local:TagId/TestAssetAccountRule"
