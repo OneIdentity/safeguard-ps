@@ -1,4 +1,4 @@
-variables:
+variables:    
   - template: pipeline-templates/global-variables.yml
 trigger:
   branches:
@@ -70,14 +70,15 @@ jobs:
       # "signtool.exe" sign /fd sha256 /tr http://ts.ssl.com /td sha256 /n "One Identity LLC" "C:\path\to\program.exe"
       
       - powershell: |
+          $signingToolPath = 'C:\Program Files (x86)\Microsoft SDKs\ClickOnce\SignTool\signtool.exe'
           $cert = Get-ChildItem -Path Cert:\CurrentUser\My -CodeSigningCert
           Write-Verbose -Verbose "Subject: $($cert.Subject)"
           Write-Verbose -Verbose "Issuer: $($cert.Issuer)"
           $catalogfile = (Get-Module safeguard-ps -ListAvailable)[0].Path -replace "psd1","cat"
           Write-Verbose -Verbose $catalogfile
-          $result = Set-AuthenticodeSignature -Certificate $cert -FilePath $catalogfile -HashAlgorithm SHA256 -TimestampServer "http://ts.ssl.com"
-          Write-Verbose -Verbose "Status: $($result.Status)"
-          Write-Verbose -Verbose "StatusMessage: $($result.StatusMessage)"
+          # Build the SignTool command
+          $SignCommand = "& `"$signingToolPath`" sign /n `"$cert`" /fd `"SHA256`" /tr `"http://ts.ssl.com`" /td `"SHA256`" `"$catalogfile`""
+          Invoke-Expression $SignCommand
         displayName: 'Signing PowerShell module catalog file'
 
       - task: PowerShell@2
