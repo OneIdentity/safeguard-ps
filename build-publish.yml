@@ -77,7 +77,7 @@ jobs:
           $catalogfile = (Get-Module safeguard-ps -ListAvailable)[0].Path -replace "psd1","cat"
           Write-Verbose -Verbose $catalogfile
           # Build the SignTool command
-          $SignCommand = "& `"$signingToolPath`" sign /n `"$cert`" /fd `"SHA256`" /tr `"http://ts.ssl.com`" /td `"SHA256`" `"$catalogfile`""
+          $SignCommand = "& `"$signingToolPath`" sign /n "One Identity LLC" /fd "SHA256" /tr "http://ts.ssl.com" /td "SHA256" `"$catalogfile`""
           Invoke-Expression $SignCommand
         displayName: 'Signing PowerShell module catalog file'
 
