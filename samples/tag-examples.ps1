@@ -66,21 +66,25 @@ Get-SafeguardAssetTag "dc01.oneidentity.demo"
 Update-SafeguardAssetTag -Asset "dc01.oneidentity.demo" -Tag @()
 
 
-# Example: Assign two tags to an account
+# Example: Assign two tags to an asset account
 $tags= @("Prod", "Tag2")
-Update-SafeguardAccountTag -Account "root" -Tag $tags
+Update-SafeguardAssetAccountTag -Account "root" -Tag $tags
 
 
-# Example: Get the tags on a specific account
-Get-SafeguardAccountTag -Account "root"
+# Example: Get the tags on a specific asset account
+Get-SafeguardAssetAccountTag -Account "root"
 
 
-# Example: remove all tags from an account
-Update-SafeguardAccountTag -Account "root" -Tag @()
+# Example: remove all tags from an asset account
+Update-SafeguardAssetAccountTag -Account "root" -Tag @()
 
 
 # Example: Get the Tag occurrences for tag "prod"
 Get-SafeguardTagOccurence "prod"
+
+
+# Example: Get the Tag occurrences for tag "prod" with specific fields specified
+Get-SafeguardTagOccurence "prod" -Field Id,Name,Description -OrderBy Name
 
 
 # Example: Update a tag

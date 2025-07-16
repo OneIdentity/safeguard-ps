@@ -770,11 +770,11 @@ update this list.
 
 ### Tags
 - Get-SafeguardTag
-- Get-SafeguardTagOccurences
-- Get-SafeguardAssetTags
-- Update-SafeguardAssetTags
-- Get-SafeguardAccountTags
-- Update-SafeguardAccountTags
+- Get-SafeguardTagOccurence
+- Get-SafeguardAssetTag
+- Update-SafeguardAssetTag
+- Get-SafeguardAssetAccountTag
+- Update-SafeguardAssetAccountTag
 - Find-SafeguardTag
 - New-SafeguardTag
 - Update-SafeguardTag

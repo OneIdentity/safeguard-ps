@@ -22,6 +22,7 @@ If the asset partition name is specified, then the id is looked up.
 If AssetPartitionId is specified, then this value is returned. 
 This function does not check if the specified asset partion id exists.
 If neither is specified, then the macrocosm partition id -1 is returned.
+This function is only used internally in the tags.psm1 module. Should not be exported.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -42,6 +43,9 @@ An integer containing the asset partition ID to get tags from.
 
 .EXAMPLE
 Resolve-AssetPartitionId -AssetPartition "Macrocosm"
+
+.INPUTS
+None.
 
 .OUTPUTS
 The id of the asset partition
@@ -113,6 +117,9 @@ An integer containing the asset partition ID to get tags from.
 
 .PARAMETER Tag
 An integer containing the ID of the tag or a string containing the name of the tag to get.
+
+.INPUTS
+None.
 
 .OUTPUTS
 The id of the tag
@@ -286,7 +293,7 @@ An integer containing the asset partition ID to get tags from.
 Mandatory parameter. An integer containing the ID of the tag to get or a string containing the name of the tag.
 
 .PARAMETER Field
-An array of the tag property names to return (can be one of the following Id, Name, DomainName, Type, AssetId, AssetName)
+An array of the tag property names to return (can be one of the following Id, Name, DomainName, Type, AssetId, AssetName, IsStatic)
 
 .INPUTS
 None.
@@ -525,7 +532,7 @@ function Update-SafeguardAssetTag {
 Get the tags from a specific account via the Web API.
 
 .DESCRIPTION
-Get the assigned tags for a specific account.
+Get the assigned tags for a specific asset account.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -537,11 +544,11 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER AssetPartition
-An integer containing an ID or a string containing the name of the asset partition to get tags from an asset.
+An integer containing an ID or a string containing the name of the asset partition to get tags from an asset account.
 If this value is empty, the Macrocosm partition will be used.
 
 .PARAMETER AssetPartitionId
-An integer containing the asset partition ID to get the asset's tags from.
+An integer containing the asset partition ID to get the asset account's tags from.
 (If specified, this will override the AssetPartition parameter)
 
 .PARAMETER Account
@@ -558,13 +565,13 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardAccountTag "accountname" 
+Get-SafeguardAssetAccountTag "accountname" 
 
 .EXAMPLE
-Get-SafeguardAccountTag "accountname" -Field Id,Name,Description
+Get-SafeguardAssetAccountTag "accountname" -Field Id,Name,Description
 
 #>
-function Get-SafeguardAccountTag {
+function Get-SafeguardAssetAccountTag {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
@@ -639,17 +646,17 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Update-SafeguardAccountTag "accountName" -Tag @("Prod","DMZ","Tier1")
+Update-SafeguardAssetAccountTag "accountName" -Tag @("Prod","DMZ","Tier1")
 
 .EXAMPLE
-Update-SafeguardAccountTag "accountName" -Tag @(1,2,3)
+Update-SafeguardAssetAccountTag "accountName" -Tag @(1,2,3)
 
 .EXAMPLE
 $tags = @("TagName1", "TagName2", "TagName3")
-Update-SafeguardAccountTag -Account 8 -Tag $tags
+Update-SafeguardAssetAccountTag -Account 8 -Tag $tags
 
 #>
-function Update-SafeguardAccountTag {
+function Update-SafeguardAssetAccountTag {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
@@ -802,10 +809,10 @@ function Find-SafeguardTag {
 
 <#
 .SYNOPSIS
-Create a new tag via the REST API.
+Create a new tag via the Web API.
 
 .DESCRIPTION
-Tags are text values which can be assed to an asset or account. They serve as meta data on an asset or account 
+Tags are text values which can be assigned to an asset or account. They serve as meta data on an asset or account 
 and can be used to store extra information such and the environment (e.g dev,test,acceptance,prod).
 Each tag can have a list of owners.
 
@@ -819,7 +826,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER AssetPartition
-An integer containing an ID  or a string containing the name of the asset partition where the tag should be created.
+An integer containing an ID or a string containing the name of the asset partition where the tag should be created.
 
 .PARAMETER AssetPartitionId
 An integer containing the asset partition ID where the tag should be created.
@@ -947,13 +954,13 @@ function New-SafeguardTag {
 
 <#
 .SYNOPSIS
-Update an existing tag via the REST API.
+Update an existing tag via the Web API.
 
 .DESCRIPTION
 Update an existing tag. The tag is retrieved based on the ID of tag (not the name of the tag).
 This allows the Name parameter to be used to set a new name for tag.
 Please note that changing a Tag name may impact dynamic asset groups and dynamic account groups which use "Contains" in the rule.
-If an value is set on the tag in safeguard but is not passed in as a parameter, then the value will be cleared.
+If a value is set on the tag in Safeguard but is not passed in as a parameter, then the value will be cleared.
 For example if the AssetTaggingRule is set on the tag but is not specified as a parameter when calling the Update-SafeguardTag function, then it will be cleared.
 
 .PARAMETER Appliance
@@ -966,10 +973,10 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER AssetPartition
-An integer containing an ID or a string containing the name of the asset partition where the tag should be created.
+An integer containing an ID or a string containing the name of the asset partition where the tag should be updated.
 
 .PARAMETER AssetPartitionId
-An integer value containing the asset partition ID in which the tag resides.
+An integer value containing the asset partition ID to update the tag in.
 
 .PARAMETER TagId
 Mandatory integer with the ID of the tag. 
@@ -979,7 +986,7 @@ The tag is retrieved based on the ID so that changing the name is possible.
 A mandatory string containing the name for the tag.
 
 .PARAMETER Description
-An optional string containing the description for the new tag.
+An optional string containing the description for the tag.
 
 .PARAMETER AssetTaggingRule
 An optional string containing the JSON format of the Asset Tagging Rule.
@@ -1023,8 +1030,11 @@ For example:'{
 }' | ConvertFrom-Json
 
 .PARAMETER Owner
-An optional string array containing the names of the owners for the new tag.
+An optional string array containing the names of the owners for the tag.
 Note: an owner cannot be a system account such as admin.
+
+.INPUTS
+None.
 
 .OUTPUTS
 JSON response from Safeguard Web API.
@@ -1078,7 +1088,6 @@ function Update-SafeguardTag {
     $local:tagObj = Get-SafeguardTag $TagId
     if ($local:tagObj) {
         $local:tagObj.Name = $Name # Name is mandatory, may not be empty
-        $local:tagObj.AssetPartitionID = $AssetPartitionId
         $local:tagObj.Description = $Description
         # check if AssetTagging rule was passed in as a parameter
         if ($AssetTaggingRule) {
@@ -1137,11 +1146,11 @@ Ignore verification of Safeguard appliance SSL certificate.
 An integer containing an ID  or a string containing the name of the asset partition to delete a tag form.
 
 .PARAMETER AssetPartitionId
-An integer containing the asset partition ID to delete a tag form.
+An integer containing the asset partition ID to delete a tag from.
 (If specified, this will override the AssetPartition parameter)
 
 .PARAMETER TagToDelete
-An integer containing the ID of the asset to remove or a string containing the name of the tag.
+An integer containing the ID of the tag to delete, or a string containing the name of the tag to delete.
 
 .INPUTS
 None.
@@ -1190,7 +1199,7 @@ Test an AssetTaggingRule on a tag.
 
 .DESCRIPTION
 Test what an AssetTaggingRule would do. 
-This can be used to verify which assets would be assigned this the tag if the rule is set.
+This can be used to verify which assets would be assigned this tag if the rule is set.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -1209,7 +1218,7 @@ An integer containing the asset partition ID where the tag exists.
 (If specified, this will override the AssetPartition parameter)
 
 .PARAMETER Tag
-An integer containing the ID of the asset or a string containing the name of the tag.
+An integer containing the ID of the tag or a string containing the name of the tag.
 
 .PARAMETER TaggingRule
 A PSCustomObject with the JSON for the asset tagging rule.
@@ -1230,6 +1239,9 @@ For example '{
     ]
   }
 }' | ConvertFrom-Json
+
+.INPUTS
+None.
 
 .OUTPUTS
 JSON response from Safeguard Web API.
@@ -1284,7 +1296,7 @@ Test an AssetAccountTaggingRule on a tag.
 
 .DESCRIPTION
 Test what an AssetAccountTaggingRule would do. 
-This can be used to verify which accounts would be assigned this the tag if the rule is set.
+This can be used to verify which accounts would be assigned this tag if the rule is set.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -1303,10 +1315,10 @@ An integer containing the asset partition ID where the tag exists.
 (If specified, this will override the AssetPartition parameter)
 
 .PARAMETER Tag
-An integer containing the ID of the asset or a string containing the name of the tag.
+An integer containing the ID of the tag or a string containing the name of the tag.
 
 .PARAMETER TaggingRule
-A PSCustomObject with the JSON for the asset tagging rule.
+A PSCustomObject with the JSON for the asset account tagging rule.
 For example '{
   "Description": null,
   "Enabled": true,
@@ -1324,6 +1336,9 @@ For example '{
     ]
   }
 }' | ConvertFrom-Json
+
+.INPUTS
+None.
 
 .OUTPUTS
 JSON response from Safeguard Web API.
