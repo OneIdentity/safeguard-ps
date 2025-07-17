@@ -99,7 +99,8 @@ NestedModules = @(
     'deleted.psm1',
     'service.psm1',
     'syslog.psm1',
-    'auditlog.psm1'
+    'auditlog.psm1',
+    'tags.psm1'
     )
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
@@ -291,8 +292,12 @@ FunctionsToExport = @(
     # syslog.psm1
     'Get-SafeguardSyslogServer','New-SafeguardSyslogServer','Remove-SafeguardSyslogServer','Edit-SafeguardSyslogServer',
     # auditlog.psm1
-    'Get-SafeguardAuditLog'
-    )
+    'Get-SafeguardAuditLog',
+    # tags.psm1
+    'Get-SafeguardTag', 'Get-SafeguardTagOccurence', 'Get-SafeguardAssetTag', 'Update-SafeguardAssetTag', 'Get-SafeguardAssetAccountTag',
+    'Update-SafeguardAssetAccountTag', 'Find-SafeguardTag', 'New-SafeguardTag', 'Update-SafeguardTag', 'Remove-SafeguardTag',
+    'Test-SafeguardAssetTaggingRule', 'Test-SafeguardAssetAccountTaggingRule'
+)
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
 CmdletsToExport = @()
