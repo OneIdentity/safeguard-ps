@@ -71,6 +71,14 @@ never require Administrator permission:
 > Install-Module safeguard-ps -Scope CurrentUser
 ```
 
+Or you may need to use the new method:
+```Powershell
+> Install-PSResource -Name safeguard-ps
+```
+Note, `Install-PSResource` doesn't load the newly installed module into the current
+session. You must import the new version or start a new session to use the updated
+module.
+
 ## Upgrading
 
 If you want to upgrade from the
