@@ -58,6 +58,8 @@ function Get-RstsTokenFromBrowser
         [Parameter(Mandatory=$false,Position=1)]
         [string]$Username = "",
         [Parameter(Mandatory=$false,Position=2)]
+        [string]$IdentityProvider,
+        [Parameter(Mandatory=$false,Position=3)]
         [int]$Port = 8400
     )
 
@@ -97,14 +99,14 @@ function Get-RstsTokenFromBrowser
             public string AuthorizationCode { get; set; }
             public string CodeVerifier { get; set; }
             public string Error { get; set; }
-            public bool Show(string username = "", int port = 8400) {
+            public bool Show(string username = "", int port = 8400, string authProvider = "") {
                 var tcpListener = new TcpListener(IPAddress.Loopback, port);
                 tcpListener.Start();
                 try {
                     CodeVerifier = OAuthCodeVerifier();
                     string redirectUri = "urn:InstalledApplicationTcpListener";
-                    string accessTokenUri = string.Format("https://{0}/RSTS/Login?response_type=code&code_challenge_method=S256&code_challenge={1}&redirect_uri={2}&port={3}", _appliance, OAuthCodeChallenge(CodeVerifier), redirectUri, port);
                     if (!string.IsNullOrEmpty(username)) redirectUri += string.Format("&login_hint={0}", Uri.EscapeDataString(username));
+                    string accessTokenUri = string.Format("https://{0}/RSTS/Login?response_type=code&code_challenge_method=S256&code_challenge={1}&redirect_uri={2}&port={3}&primaryProviderId={4}", _appliance, OAuthCodeChallenge(CodeVerifier), redirectUri, port, Uri.EscapeDataString(authProvider));
                     try {
                         var psi = new ProcessStartInfo { FileName = accessTokenUri, UseShellExecute = true };
                         Process.Start(psi);
@@ -209,7 +211,7 @@ function Get-RstsTokenFromBrowser
     {
         $local:Browser = New-Object -TypeName RstsAccessTokenExtractor -ArgumentList $Appliance
     }
-    if (!$local:Browser.Show($Username, $Port))
+    if (!$local:Browser.Show($Username, $Port, $IdentityProvider))
     {
         throw "Unable to correctly manipulate browser"
     }
@@ -892,6 +894,12 @@ Login Successful.
 Connect-Safeguard 10.5.32.162 local Admin Admin123 -NoSessionVariable
 eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1Ni...
 
+.EXAMPLE
+Connect-Safeguard 10.5.32.162 -Browser -IdentityProvider extf14 -Username floyd.smith@acme.com
+
+[Opens browser window for normal Safeguard login experience, including 2FA, using the specified
+identity provider. Which may automatically redirect if it is to an external federation provider.]
+
 #>
 function Connect-Safeguard
 {
@@ -905,7 +913,7 @@ function Connect-Safeguard
         [string]$IdentityProvider,
         [Parameter(ParameterSetName="PSCredential",Position=2)]
         [PSCredential]$Credential,
-        [Parameter(ParameterSetName="Username",Mandatory=$false,Position=2)]
+        [Parameter(ParameterSetName="Username",Mandatory=$false,Position=2)][Parameter(ParameterSetName="Browser",Mandatory=$false)]
         [string]$Username,
         [Parameter(ParameterSetName="Username",Position=3)]
         [SecureString]$Password,
@@ -941,7 +949,7 @@ function Connect-Safeguard
 
         if ($Browser -Or $Gui)
         {
-            $local:RstsResponse = (Get-RstsTokenFromBrowser $Appliance $Username)
+            $local:RstsResponse = (Get-RstsTokenFromBrowser $Appliance $Username $IdentityProvider)
         }
         else
         {
