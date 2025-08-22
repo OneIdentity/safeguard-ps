@@ -95,6 +95,8 @@ function Get-RstsTokenFromBrowser
         using System.Web;
         public class RstsAccessTokenExtractor {
             private readonly string _appliance;
+            private static readonly string ResponseHtml = "<!doctype html><html><head><title>Authentication Complete</title><meta name=\"color-scheme\" content=\"dark\"><script>var prefDark = window.matchMedia(\"(prefers-color-scheme: dark)\");if (!prefDark.matches){{document.head.querySelector('meta[name=\"color-scheme\"]').setAttribute(\"content\", \"light\");}}</script></head><body><h2>Authentication complete.</h2><p>You can return to PowerShell.</p><p>Feel free to close this browser tab.</p></body></html>";
+
             public RstsAccessTokenExtractor(string appliance) { _appliance = appliance; }
             public string AuthorizationCode { get; set; }
             public string CodeVerifier { get; set; }
@@ -106,7 +108,8 @@ function Get-RstsTokenFromBrowser
                     CodeVerifier = OAuthCodeVerifier();
                     string redirectUri = "urn:InstalledApplicationTcpListener";
                     if (!string.IsNullOrEmpty(username)) redirectUri += string.Format("&login_hint={0}", Uri.EscapeDataString(username));
-                    string accessTokenUri = string.Format("https://{0}/RSTS/Login?response_type=code&code_challenge_method=S256&code_challenge={1}&redirect_uri={2}&port={3}&primaryProviderId={4}", _appliance, OAuthCodeChallenge(CodeVerifier), redirectUri, port, Uri.EscapeDataString(authProvider));
+                    if (!string.IsNullOrEmpty(authProvider)) redirectUri += string.Format("&primaryProviderId={0}", Uri.EscapeDataString(authProvider));
+                    string accessTokenUri = string.Format("https://{0}/RSTS/Login?response_type=code&code_challenge_method=S256&code_challenge={1}&redirect_uri={2}&port={3}", _appliance, OAuthCodeChallenge(CodeVerifier), redirectUri, port);
                     try {
                         var psi = new ProcessStartInfo { FileName = accessTokenUri, UseShellExecute = true };
                         Process.Start(psi);
@@ -144,7 +147,7 @@ function Get-RstsTokenFromBrowser
                                 var s = Encoding.ASCII.GetString(readBuffer, 0, numberOfBytesRead);
                                 sb.Append(s);
                             } while (networkStream.DataAvailable);
-                            var fullResponse = "HTTP/1.1 200 OK\r\n\r\n<html><head><title>Authentication Complete</title></head><body><h2>Authentication complete.</h2><p>You can return to PowerShell.</p><p>Feel free to close this browser tab.</p></body></html>\r\n";
+                            var fullResponse = "HTTP/1.1 200 OK\r\n\r\n" + ResponseHtml + "\r\n";
                             var response = Encoding.ASCII.GetBytes(fullResponse);
                             await networkStream.WriteAsync(response, 0, response.Length, source.Token);
                             await networkStream.FlushAsync();
