@@ -116,7 +116,7 @@ jobs:
       - template: pipeline-templates/build-linux-steps.yml
       - task: AzureKeyVault@2
         inputs:
-          azureSubscription: 'OneIdentity.RD.SBox.Safeguard-ServiceConnection'
+          azureSubscription: 'SafeguardOpenSource'
           KeyVaultName: 'SafeguardBuildSecrets'
           SecretsFilter: 'DockerHubAccessToken,DockerHubPassword'
         displayName: 'Get Docker Hub Access Token from Sandbox Azure Key Vault'
