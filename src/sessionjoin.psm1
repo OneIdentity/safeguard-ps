@@ -715,10 +715,15 @@ function Remove-SafeguardSessionSplitCluster
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:SessionCluster = (Get-SafeguardSessionSplitCluster -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $SessionMaster -AllFields)[0]
+    $local:SessionCluster = (Get-SafeguardSessionSplitCluster -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $SessionMaster)
     if (-not $local:SessionCluster)
     {
         throw "Session cluster '$($local:SessionCluster)' not found, maybe not split? Use Get-SafeguardSessionSplitCluster"
+    }
+
+    if ($local:SessionCluster.Count -gt 1)
+    {
+        throw "Multiple session clusters found matching '$($SessionMaster)'.  Please specify by ID."
     }
 
     Invoke-SafeguardMethod -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure Core `
