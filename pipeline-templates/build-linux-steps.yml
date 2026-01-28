@@ -19,7 +19,7 @@ steps:
       failOnStderr: true
       script: |
         Write-Host "PSModulePath = $($env:PSModulePath)"
-        $local:TargetDir = (($env:PSModulePath -split ':') | Where-Object { Test-Path $_ })[0]
+        $local:TargetDir = (($env:PSModulePath.Split([System.IO.Path]::PathSeparator)) | Where-Object { Test-Path -ErrorAction SilentlyContinue $_ })[0]
         if (-not $TargetDir)
         {
           throw "Unable to find a PSModulePath in your user profile (" + $env:UserProfile + "), PSModulePath: " + $env:PSModulePath
