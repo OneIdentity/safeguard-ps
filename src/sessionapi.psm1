@@ -18,7 +18,8 @@ function Connect-Sps
         [SecureString]$SessionPassword,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [switch]$LocalLogin
+        [switch]$LocalLogin,
+        [Parameter(Mandatory=$false)]$LoginMethod
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -39,8 +40,11 @@ function Connect-Sps
         $local:BasicAuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $SessionUsername, $local:PasswordPlainText)))
         Remove-Variable -Scope local PasswordPlainText
         $apiUrl = "https://$SessionMaster/api/authentication"
-        if ($LocalLogin) {
-            $apiUrl += "?login_method=local"
+        if ($LocalLogin -and $LoginMethod -eq "") {
+            $LoginMethod = "local"
+        }
+        if ($LoginMethod -ne "") {
+            $apiUrl += "?login_method=$LoginMethod"
         }
         Invoke-RestMethod -UserAgent $script:SpsUserAgent -Uri $apiUrl -SessionVariable HttpSession `
             -Headers @{ Authorization = ("Basic {0}" -f $local:BasicAuthInfo) } | Write-Verbose
@@ -549,7 +553,8 @@ function Connect-SafeguardSps
         [SecureString]$Password,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [switch]$LocalLogin
+        [switch]$LocalLogin,
+        [Parameter(Mandatory=$false)]$LoginMethod
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -560,7 +565,7 @@ function Connect-SafeguardSps
         $Password = (Read-Host "Password" -AsSecureString)
     }
 
-    $local:HttpSession = (Connect-Sps -SessionMaster $Appliance -SessionUsername $Username -SessionPassword $Password -Insecure:$Insecure -LocalLogin:$LocalLogin)
+    $local:HttpSession = (Connect-Sps -SessionMaster $Appliance -SessionUsername $Username -SessionPassword $Password -Insecure:$Insecure -LocalLogin:$LocalLogin -LoginMethod:$LoginMethod)
     Set-Variable -Name "SafeguardSpsSession" -Scope Global -Value @{
         "Appliance" = $Appliance;
         "Insecure" = $Insecure;
