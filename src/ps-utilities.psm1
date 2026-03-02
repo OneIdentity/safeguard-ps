@@ -126,13 +126,16 @@ function Use-CertificateFile
         [SecureString]$Password
     )
 
+    # Resolve relative paths to full paths
+    $local:ResolvedPath = (Resolve-Path $CertificateFile).Path
+    
     if (-not $Password)
     {
-        Get-PfxCertificate -FilePath $CertificateFile
+        Get-PfxCertificate -FilePath $local:ResolvedPath
     }
     else
     {
         $local:X509KeyStorageFlag = 0
-        New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 -ArgumentList $CertificateFile, $Password, $local:X509KeyStorageFlag
+        New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 -ArgumentList $local:ResolvedPath, $Password, $local:X509KeyStorageFlag
     }
 }
