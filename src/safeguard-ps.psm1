@@ -50,6 +50,67 @@ function Get-SessionConnectionIdentifier
     }
 
 }
+function Resolve-ProviderToRstsId
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$true,Position=1)]
+        [int]$Version,
+        [Parameter(Mandatory=$true,Position=2)]
+        [string]$Provider
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Write-Verbose "Resolving identity provider '$Provider' to rSTS provider ID..."
+    try
+    {
+        $local:Providers = (Invoke-RestMethod -Method GET -Uri "https://$Appliance/service/core/v$Version/AuthenticationProviders" `
+                            -Headers @{ "Accept" = "application/json" } `
+                            -ErrorAction SilentlyContinue)
+    }
+    catch
+    {
+        Write-Verbose "Unable to fetch authentication providers for resolution: $_"
+        return $Provider
+    }
+
+    if (-not $local:Providers)
+    {
+        Write-Verbose "No authentication providers returned, using provider as-is"
+        return $Provider
+    }
+
+    # Exact match on RstsProviderId
+    $local:Match = $local:Providers | Where-Object { $_.RstsProviderId -ieq $Provider } | Select-Object -First 1
+    if ($local:Match)
+    {
+        Write-Verbose "Matched provider by RstsProviderId: $($local:Match.RstsProviderId)"
+        return $local:Match.RstsProviderId
+    }
+
+    # Exact match on Name (allows the caller to specify the domain name for AD)
+    $local:Match = $local:Providers | Where-Object { $_.Name -ieq $Provider } | Select-Object -First 1
+    if ($local:Match)
+    {
+        Write-Verbose "Matched provider by Name '$($local:Match.Name)' to RstsProviderId: $($local:Match.RstsProviderId)"
+        return $local:Match.RstsProviderId
+    }
+
+    # Contains match on RstsProviderId (allows partial provider IDs)
+    $local:Match = $local:Providers | Where-Object { $_.RstsProviderId -ilike "*$Provider*" } | Select-Object -First 1
+    if ($local:Match)
+    {
+        Write-Verbose "Matched provider by partial RstsProviderId: $($local:Match.RstsProviderId)"
+        return $local:Match.RstsProviderId
+    }
+
+    $local:KnownProviders = ($local:Providers | ForEach-Object { "$($_.RstsProviderId) [$($_.Name)]" }) -join ", "
+    throw "Unable to find identity provider matching '$Provider' in ($local:KnownProviders)"
+}
 function Get-RstsTokenFromBrowser
 {
     [CmdletBinding()]
@@ -953,6 +1014,10 @@ function Connect-Safeguard
 
         if ($Browser -Or $Gui)
         {
+            if ($IdentityProvider)
+            {
+                $IdentityProvider = (Resolve-ProviderToRstsId $Appliance $Version $IdentityProvider)
+            }
             $local:RstsResponse = (Get-RstsTokenFromBrowser $Appliance $Username $IdentityProvider)
         }
         else
