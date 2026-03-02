@@ -133,8 +133,6 @@ function Use-CertificateFile
     else
     {
         $local:X509KeyStorageFlag = 0
-        $local:Cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2
-        $local:Cert.Import([string]($CertificateFile), [SecureString]($Password), $local:X509KeyStorageFlag)
-        $local:Cert
+        New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 -ArgumentList $CertificateFile, $Password, $local:X509KeyStorageFlag
     }
 }
