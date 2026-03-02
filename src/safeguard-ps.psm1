@@ -1152,7 +1152,7 @@ function Connect-Safeguard
                 catch
                 {
                     Write-Verbose "An exception was caught trying to authenticate to RSTS using a certificate."
-                    Write-Verbose "Your problem may be an quirk on Windows where the low-level HTTPS client requires that you have the Issuing CA"
+                    Write-Verbose "Your problem may be a quirk on Windows where the low-level HTTPS client requires that you have the Issuing CA"
                     Write-Verbose "in your 'Intermediate Certificate Authorities' store, otherwise Windows doesn't think you have a matching"
                     Write-Verbose "certificate to send in the initial client connection. This occurs even if you pass in a PFX file specifying"
                     Write-Verbose "exactly which certificate to use."
