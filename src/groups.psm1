@@ -636,7 +636,7 @@ function Edit-SafeguardUserGroup
         [object[]]$local:Users = $null
         foreach ($local:User in $UserList)
         {
-            $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User -Fields Id,Name,PrimaryAuthenticationProvider.Id)
+            $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User -Fields Id,Name,PrimaryAuthenticationProvider.Id,DirectoryProperties)
             $local:Users += $($local:ResolvedUser)
         }
 
