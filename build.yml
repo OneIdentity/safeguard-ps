@@ -1,0 +1,172 @@
+variables:
+  - template: pipeline-templates/global-variables.yml
+
+trigger:
+  branches:
+    include:
+      - master
+      - release-*
+  paths:
+    exclude:
+      - README.md
+
+pr:
+  branches:
+    include:
+      - master
+      - release-*
+  paths:
+    exclude:
+      - README.md
+
+jobs:
+# Job 1: PR Validation Windows - runs only on pull requests
+- job: PRValidation_Windows
+  displayName: "PR Validation: Windows - Build module and Docker image"
+  condition: eq(variables['Build.Reason'], 'PullRequest')
+  pool:
+    vmImage: 'windows-latest'
+  steps:
+    - template: pipeline-templates/build-windows-steps.yml
+
+# Job 2: PR Validation Linux - runs only on pull requests
+- job: PRValidation_Linux
+  displayName: "PR Validation: Linux - Build module and Docker images"
+  condition: eq(variables['Build.Reason'], 'PullRequest')
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+    - template: pipeline-templates/build-linux-steps.yml
+
+# Job 3: Build and Publish Windows - runs only on successful merges (not PRs)
+- job: BuildAndPublish_Windows
+  displayName: "Build and publish Windows module and Docker image"
+  condition: ne(variables['Build.Reason'], 'PullRequest')
+  pool:
+    vmImage: 'windows-latest'
+  steps:
+    - template: pipeline-templates/build-windows-steps.yml
+    - task: AzureKeyVault@2
+      inputs:
+        azureSubscription: 'SafeguardOpenSource'
+        KeyVaultName: 'SafeguardBuildSecrets'
+        SecretsFilter: 'PowerShellGalleryApiKey'
+      displayName: 'Get PowerShell Gallery API key from Sandbox Azure Key Vault'
+
+    - task: AzureKeyVault@2
+      displayName: 'Get code signing certificate from Azure Key Vault'
+      inputs:
+        # The "Safeguard Privileged Passwords" project in Azure has been setup with a new Connected Service under Project Settings > Service Connections.
+        # We may not have permissions to view them, but they are there. And this service connection should then have access to
+        # the SPPCodeSigning Key Vault under the OneIdentity.Ops.SaaS.AzureDevOpsInfrastructure subscription, in the CodeSigningCertificates
+        # resource group.
+        ConnectedServiceName: "OneIdentity.Infrastructure.SPPCodeSigning"
+        KeyVaultName: "SPPCodeSigning"
+        SecretsFilter: "SPPCodeSigning-Password, SPPCodeSigning-TotpPrivateKey"
+        # PRs from repository forks are not allowed to access secrets in the pipeline. For more information see https://learn.microsoft.com/en-us/azure/devops/pipelines/repos/github?view=azure-devops&tabs=yaml#access-restrictions
+
+    # SSL.com example:
+    # https://www.ssl.com/how-to/how-to-integrate-esigner-cka-with-ci-cd-tools-for-automated-code-signing/#ftoc-heading-1
+    # and click on the Azure Pipeline tab.
+    - powershell: |
+        # Download and unzip eSignerCKA setup. This downloads their latest version, which when unzipped has
+        # a file name that also contains the version number. So we need to move it to a known name.
+        Invoke-WebRequest -OutFile eSigner_CKA_Setup.zip "https://www.ssl.com/download/ssl-com-esigner-cka"
+        Expand-Archive -Force eSigner_CKA_Setup.zip
+        Remove-Item eSigner_CKA_Setup.zip
+        Move-Item -Path "eSigner_CKA_*\*.exe" -Destination "eSigner_CKA_Installer.exe"
+      displayName: "Download and Unzip eSignerCKA Setup"
+    
+    - powershell: |
+        .\eSigner_CKA_Installer.exe /CURRENTUSER /VERYSILENT /SUPPRESSMSGBOXES /DIR="$(Build.SourcesDirectory)\eSignerCKA" | Out-Null
+        dir $(Build.SourcesDirectory)\eSignerCKA
+      displayName: "Setup eSignerCKA in silent mode and output installation directory"
+    
+    - powershell: |
+        $(Build.SourcesDirectory)\eSignerCKA\eSignerCKATool.exe config -mode "product" -user "ssl.oid.safeguardpp@groups.quest.com" -pass "$(SPPCodeSigning-Password)" -totp "$(SPPCodeSigning-TotpPrivateKey)" -key "$(Build.SourcesDirectory)\eSignerCKA\master.key" -r
+      displayName: "Configure account information on eSignerCKA using Azure Key Vault values"
+    
+    - powershell: |
+        $(Build.SourcesDirectory)\eSignerCKA\eSignerCKATool.exe unload
+        $(Build.SourcesDirectory)\eSignerCKA\eSignerCKATool.exe load
+      displayName: "Unload and load certificate into Windows Certificate Store"
+    
+    # We should now be able to access the certificate using the standard Windows signtool.exe from the Windows SDK,
+    # which should be installed on the build agent images being used.
+    #
+    # Typically, you often see examples of signtool.exe and other things accessing the certificate by the thumbprint.
+    # And in fact, the sample SSL.com code includes a bunch of extra PowerShell script to get the thumbprint. The
+    # signtool.exe can sign catalog files, but we'll stick with the Set-AuthenticodeSignature cmdlet for now.
+    # "signtool.exe" sign /fd sha256 /tr http://ts.ssl.com /td sha256 /n "One Identity LLC" "C:\path\to\program.exe"
+    
+    - powershell: |
+        $cert = Get-ChildItem -Path Cert:\CurrentUser\My -CodeSigningCert
+        Write-Verbose -Verbose "Subject: $($cert.Subject)"
+        Write-Verbose -Verbose "Issuer: $($cert.Issuer)"
+        $catalogfile = (Get-Module safeguard-ps -ListAvailable)[0].Path -replace "psd1","cat"
+        Write-Verbose -Verbose $catalogfile
+        Set-AuthenticodeSignature -Certificate $cert -FilePath $catalogfile -HashAlgorithm SHA256 -TimestampServer "http://ts.ssl.com"
+      displayName: 'Signing PowerShell module catalog file'
+
+    - task: PowerShell@2
+      inputs:
+        targetType: inline
+        failOnStderr: true
+        script: |
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          Install-PackageProvider Nuget -Force
+          Get-PSRepository
+          Publish-Module -Name safeguard-ps -NuGetApiKey "$(PowerShellGalleryApiKey)" -Verbose -SkipAutomaticTags -Force
+      displayName: 'Publish PowerShell module to PowerShell Gallery'
+
+    - task: AzureKeyVault@2
+      inputs:
+        azureSubscription: 'SafeguardOpenSource'
+        KeyVaultName: 'SafeguardBuildSecrets'
+        SecretsFilter: 'DockerHubAccessToken,DockerHubPassword'
+      displayName: 'Get Docker Hub Access Token from Sandbox Azure Key Vault'
+      continueOnError: false
+      condition: and( succeeded(), eq( variables.shouldPublishDocker, true ) )
+
+    - task: Bash@3
+      inputs:
+        targetType: 'inline'
+        failOnStderr: true
+        script: |
+          docker login -u danpetersonoi --password-stdin <<<$(DockerHubAccessToken) 2>/dev/null
+          docker push oneidentity/safeguard-ps:$(VersionString)-nanoserver
+          docker logout
+      displayName: 'Pushing Docker Windows Nano Server image to Docker Hub'
+      condition: and( succeeded(), eq( variables.shouldPublishDocker, true ) )
+
+# Job 4: Build and Publish Linux - runs only on successful merges (not PRs)
+- job: BuildAndPublish_Linux
+  displayName: "Build and publish Linux module and Docker images"
+  condition: ne(variables['Build.Reason'], 'PullRequest')
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+    - template: pipeline-templates/build-linux-steps.yml
+    - task: AzureKeyVault@2
+      inputs:
+        azureSubscription: 'SafeguardOpenSource'
+        KeyVaultName: 'SafeguardBuildSecrets'
+        SecretsFilter: 'DockerHubAccessToken,DockerHubPassword'
+      displayName: 'Get Docker Hub Access Token from Sandbox Azure Key Vault'
+      condition: and( succeeded(), eq( variables.shouldPublishDocker, true ) )
+    - task: Bash@3
+      inputs:
+        targetType: 'inline'
+        failOnStderr: true
+        script: |
+          docker login -u danpetersonoi --password-stdin <<<$(DockerHubAccessToken) 2>/dev/null
+          docker push oneidentity/safeguard-ps:$(VersionString)-ubuntu18.04
+          docker push oneidentity/safeguard-ps:$(VersionString)-ubuntu16.04
+          docker push oneidentity/safeguard-ps:$(VersionString)-centos7
+          docker push oneidentity/safeguard-ps:$(VersionString)-alpine3.8
+          docker push oneidentity/safeguard-ps:$(VersionString)-opensuse42.3
+          docker push oneidentity/safeguard-ps:$(VersionString)-fedora28
+          docker push oneidentity/safeguard-ps:latest
+          docker logout
+      condition: and( succeeded(), eq(variables.shouldPublishDocker, true) )
+      displayName: 'Pushing Linux Docker images to Docker Hub'
