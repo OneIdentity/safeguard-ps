@@ -466,8 +466,28 @@ function New-SafeguardAccessRequest
     if ($RequestedDurationHours) { $local:Body["RequestedDurationHours"] = $RequestedDurationHours }
     if ($RequestedDurationMinutes) { $local:Body["RequestedDurationMinutes"] = $RequestedDurationMinutes }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-         POST "AccessRequests" -Body $local:Body | Select-Object -Property $local:RequestFields
+    $local:Result = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+         POST "AccessRequests" -Body $local:Body | Select-Object -Property $local:RequestFields)
+
+    if ($local:Result.Id)
+    {
+        try
+        {
+            Set-Clipboard -Value "$($local:Result.Id)"
+            Write-Host "Access Request ID '$($local:Result.Id)' copied to clipboard." -ForegroundColor Magenta
+        }
+        catch
+        {
+            try
+            {
+                Set-ClipboardText "$($local:Result.Id)"
+                Write-Host "Access Request ID '$($local:Result.Id)' copied to clipboard." -ForegroundColor Magenta
+            }
+            catch {}
+        }
+    }
+
+    $local:Result
 }
 
 <#
