@@ -1,3 +1,4 @@
+# Copyright (c) 2026 One Identity LLC. All rights reserved.
 $script:SgSpsClusterFields = "Id","NodeId","Description","SpsNetworkAddress","SpsHostName","Trusted","UseHostNameForLaunch"
 # Default UserAgent from powershell looks like a Mozilla browser. As of v7.5
 # SPS is requiring X-Token header include the user/info token value for all

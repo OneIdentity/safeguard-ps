@@ -1,3 +1,4 @@
+# Copyright (c) 2026 One Identity LLC. All rights reserved.
 # BUG#777399 -- After patching to 2.2, tasks fail on assets with service accounts using SSH keys
 # Support Reference: 4304990
 [CmdletBinding()]

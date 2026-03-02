@@ -1,4 +1,5 @@
 #!/bin/bash
+# Copyright (c) 2026 One Identity LLC. All rights reserved.
 trap "exit 1" TERM
 export TOP_PID=$$
 

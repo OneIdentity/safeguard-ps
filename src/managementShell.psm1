@@ -1,3 +1,4 @@
+# Copyright (c) 2026 One Identity LLC. All rights reserved.
 <#
 .SYNOPSIS
 Get the available cmdlets from the safeguard-ps module.

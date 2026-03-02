@@ -1,4 +1,5 @@
 #!/bin/bash
+# Copyright (c) 2026 One Identity LLC. All rights reserved.
 if [ "$#" -ne 2 ]; then
     >&2 echo "This script requires 2 arguments -- verNum, buildId"
     exit 1

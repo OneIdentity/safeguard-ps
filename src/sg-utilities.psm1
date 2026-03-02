@@ -1,3 +1,4 @@
+# Copyright (c) 2026 One Identity LLC. All rights reserved.
 # This file contains random Safeguard utilities required by some modules
 # Nothing is exported from here
 function Out-SafeguardExceptionIfPossible

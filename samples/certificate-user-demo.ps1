@@ -1,3 +1,4 @@
+# Copyright (c) 2026 One Identity LLC. All rights reserved.
 # This script assumes that the bootstrap admin account has the default password
 # It also uses some test data underneath this directory
 [CmdletBinding()]

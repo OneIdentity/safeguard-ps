@@ -1,3 +1,4 @@
+# Copyright (c) 2026 One Identity LLC. All rights reserved.
 [CmdletBinding(DefaultParameterSetName="Text")]
 Param (
     [Parameter(Mandatory=$true,Position=0)]

@@ -1,3 +1,4 @@
+# Copyright (c) 2026 One Identity LLC. All rights reserved.
 # Global session variable for login information, including SPS
 Remove-Variable -Name "SafeguardSession" -Scope Global -ErrorAction "SilentlyContinue"
 New-Variable -Name "SafeguardSession" -Scope Global -Value $null
