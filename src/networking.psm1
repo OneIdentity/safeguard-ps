@@ -1,3 +1,4 @@
+# Copyright (c) 2026 One Identity LLC. All rights reserved.
 <#
 .SYNOPSIS
 Get the networking information for one of the appliance's network interfaces.

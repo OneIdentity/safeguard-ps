@@ -1,3 +1,4 @@
+# Copyright (c) 2026 One Identity LLC. All rights reserved.
 # tagging and grouping rule serialization/deserialization
 #
 # I didn't generate proper grammar or use parsing library here.  I also didn't use a lexer to tokenize symbols, etc.

@@ -1,3 +1,4 @@
+# Copyright (c) 2026 One Identity LLC. All rights reserved.
 # SSL handling helpers
 # Nothing is exported from here
 function Disable-SslVerification

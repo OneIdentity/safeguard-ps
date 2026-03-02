@@ -1,3 +1,4 @@
+# Copyright (c) 2026 One Identity LLC. All rights reserved.
 # Helper
 function Copy-ScheduleToDto
 {
