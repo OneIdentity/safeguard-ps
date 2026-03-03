@@ -1096,6 +1096,28 @@ Use asset\account syntax (e.g. "server01\svc-account") to specify accounts.
 .PARAMETER AllowLinkedAccountPasswordAccess
 Switch to allow linked accounts to be requested for password access.
 
+.PARAMETER RdpApplicationHostAsset
+An asset ID or name of the host asset for Remote Desktop Application sessions.
+Use asset\account syntax for -RdpApplicationHostAccount to specify the login account.
+
+.PARAMETER RdpApplicationHostAccount
+An account ID or asset\account name for the login account on the RDP application host.
+
+.PARAMETER RdpApplicationHostUserSupplied
+Switch to indicate that the credentials for the application host are user-supplied.
+
+.PARAMETER RdpApplicationDisplayName
+The display name of the remote application.
+
+.PARAMETER RdpApplicationAlias
+The alias of the remote application (Windows Server).
+
+.PARAMETER RdpApplicationProgram
+The path to the remote application program (e.g. path to OI-SG-RemoteApp-Launcher.exe).
+
+.PARAMETER RdpApplicationCmdLine
+The command line arguments for the remote application.
+
 .PARAMETER ApproverUsers
 An array of user IDs or names to add as approvers. When specified, approval will be required.
 A single approver set is created with all specified users and groups.
@@ -1129,6 +1151,9 @@ Add-SafeguardAccessPolicy -Entitlement "Lab Admin" -Name "SSH Linked" -AccessReq
 
 .EXAMPLE
 Add-SafeguardAccessPolicy -Entitlement "Lab Admin" -Name "SSH Shared" -AccessRequestType Ssh -ScopeAssets "server01" -SessionAccessAccountType PolicySpecific -SessionAccessAccounts "server01\svc-admin"
+
+.EXAMPLE
+Add-SafeguardAccessPolicy -Entitlement "Lab Admin" -Name "App Access" -AccessRequestType RDPApp -RdpApplicationHostAsset "rdphost01" -RdpApplicationHostAccount "rdphost01\svc-login" -RdpApplicationDisplayName "MyApp" -RdpApplicationAlias "myapp"
 
 .EXAMPLE
 Add-SafeguardAccessPolicy -AccessPolicyObject $policyObj
@@ -1167,6 +1192,20 @@ function Add-SafeguardAccessPolicy
         [object[]]$SessionAccessAccounts,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [switch]$AllowLinkedAccountPasswordAccess,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [object]$RdpApplicationHostAsset,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [object]$RdpApplicationHostAccount,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [switch]$RdpApplicationHostUserSupplied,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$RdpApplicationDisplayName,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$RdpApplicationAlias,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$RdpApplicationProgram,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$RdpApplicationCmdLine,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [object[]]$ApproverUsers,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
@@ -1232,6 +1271,35 @@ function Add-SafeguardAccessPolicy
         if ($AllowLinkedAccountPasswordAccess)
         {
             $AccessPolicyObject.AccessRequestProperties.AllowLinkedAccountPasswordAccess = $true
+        }
+
+        # Remote Desktop Application properties
+        if ($PSBoundParameters.ContainsKey("RdpApplicationHostAsset") -or $PSBoundParameters.ContainsKey("RdpApplicationHostAccount") -or `
+            $PSBoundParameters.ContainsKey("RdpApplicationDisplayName") -or $PSBoundParameters.ContainsKey("RdpApplicationAlias") -or `
+            $PSBoundParameters.ContainsKey("RdpApplicationProgram") -or $PSBoundParameters.ContainsKey("RdpApplicationCmdLine") -or `
+            $RdpApplicationHostUserSupplied)
+        {
+            if ($AccessRequestType -ne "RemoteDesktopApplication")
+            {
+                throw "RDP application properties can only be set when AccessRequestType is RemoteDesktopApplication (or RDPApplication/RDPApp)"
+            }
+            $local:RdpAppProps = @{}
+            if ($PSBoundParameters.ContainsKey("RdpApplicationHostAsset"))
+            {
+                $local:RdpAppProps.ApplicationHostAssetId = (Resolve-SafeguardPolicyAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RdpApplicationHostAsset)
+            }
+            if ($PSBoundParameters.ContainsKey("RdpApplicationHostAccount"))
+            {
+                $local:RdpAppProps.ApplicationHostAccountId = (Resolve-SafeguardPolicyAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RdpApplicationHostAccount)
+            }
+            if ($RdpApplicationHostUserSupplied) { $local:RdpAppProps.ApplicationHostUserSupplied = $true }
+            if ($PSBoundParameters.ContainsKey("RdpApplicationDisplayName")) { $local:RdpAppProps.ApplicationDisplayName = $RdpApplicationDisplayName }
+            if ($PSBoundParameters.ContainsKey("RdpApplicationAlias")) { $local:RdpAppProps.ApplicationAlias = $RdpApplicationAlias }
+            if ($PSBoundParameters.ContainsKey("RdpApplicationProgram")) { $local:RdpAppProps.ApplicationProgram = $RdpApplicationProgram }
+            if ($PSBoundParameters.ContainsKey("RdpApplicationCmdLine")) { $local:RdpAppProps.ApplicationCmdLine = $RdpApplicationCmdLine }
+            $AccessPolicyObject.SessionProperties = @{
+                RemoteDesktopApplicationProperties = $local:RdpAppProps
+            }
         }
 
         if ($PSBoundParameters.ContainsKey("ApproverUsers") -or $PSBoundParameters.ContainsKey("ApproverGroups"))
@@ -1391,6 +1459,27 @@ Use asset\account syntax (e.g. "server01\svc-account") to specify accounts.
 .PARAMETER AllowLinkedAccountPasswordAccess
 Switch to allow linked accounts to be requested for password access.
 
+.PARAMETER RdpApplicationHostAsset
+An asset ID or name of the host asset for Remote Desktop Application sessions.
+
+.PARAMETER RdpApplicationHostAccount
+An account ID or asset\account name for the login account on the RDP application host.
+
+.PARAMETER RdpApplicationHostUserSupplied
+Switch to indicate that the credentials for the application host are user-supplied.
+
+.PARAMETER RdpApplicationDisplayName
+The display name of the remote application.
+
+.PARAMETER RdpApplicationAlias
+The alias of the remote application (Windows Server).
+
+.PARAMETER RdpApplicationProgram
+The path to the remote application program (e.g. path to OI-SG-RemoteApp-Launcher.exe).
+
+.PARAMETER RdpApplicationCmdLine
+The command line arguments for the remote application.
+
 .PARAMETER ApproverUsers
 An array of user IDs or names to set as approvers. When specified, approval will be required.
 A single approver set is created with all specified users and groups (replaces existing approver sets).
@@ -1467,6 +1556,20 @@ function Edit-SafeguardAccessPolicy
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [switch]$AllowLinkedAccountPasswordAccess,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [object]$RdpApplicationHostAsset,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [object]$RdpApplicationHostAccount,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [switch]$RdpApplicationHostUserSupplied,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$RdpApplicationDisplayName,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$RdpApplicationAlias,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$RdpApplicationProgram,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$RdpApplicationCmdLine,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [object[]]$ApproverUsers,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [object[]]$ApproverGroups,
@@ -1540,6 +1643,35 @@ function Edit-SafeguardAccessPolicy
         if ($AllowLinkedAccountPasswordAccess)
         {
             $AccessPolicyObject.AccessRequestProperties.AllowLinkedAccountPasswordAccess = $true
+        }
+
+        # Remote Desktop Application properties
+        if ($PSBoundParameters.ContainsKey("RdpApplicationHostAsset") -or $PSBoundParameters.ContainsKey("RdpApplicationHostAccount") -or `
+            $PSBoundParameters.ContainsKey("RdpApplicationDisplayName") -or $PSBoundParameters.ContainsKey("RdpApplicationAlias") -or `
+            $PSBoundParameters.ContainsKey("RdpApplicationProgram") -or $PSBoundParameters.ContainsKey("RdpApplicationCmdLine") -or `
+            $RdpApplicationHostUserSupplied)
+        {
+            $local:EffectiveType = $AccessPolicyObject.AccessRequestProperties.AccessRequestType
+            if ($local:EffectiveType -ne "RemoteDesktopApplication")
+            {
+                throw "RDP application properties can only be set when AccessRequestType is RemoteDesktopApplication (current type: $($local:EffectiveType))"
+            }
+            if (-not $AccessPolicyObject.SessionProperties) { $AccessPolicyObject.SessionProperties = @{} }
+            if (-not $AccessPolicyObject.SessionProperties.RemoteDesktopApplicationProperties) { $AccessPolicyObject.SessionProperties.RemoteDesktopApplicationProperties = @{} }
+            $local:RdpAppProps = $AccessPolicyObject.SessionProperties.RemoteDesktopApplicationProperties
+            if ($PSBoundParameters.ContainsKey("RdpApplicationHostAsset"))
+            {
+                $local:RdpAppProps.ApplicationHostAssetId = (Resolve-SafeguardPolicyAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RdpApplicationHostAsset)
+            }
+            if ($PSBoundParameters.ContainsKey("RdpApplicationHostAccount"))
+            {
+                $local:RdpAppProps.ApplicationHostAccountId = (Resolve-SafeguardPolicyAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RdpApplicationHostAccount)
+            }
+            if ($RdpApplicationHostUserSupplied) { $local:RdpAppProps.ApplicationHostUserSupplied = $true }
+            if ($PSBoundParameters.ContainsKey("RdpApplicationDisplayName")) { $local:RdpAppProps.ApplicationDisplayName = $RdpApplicationDisplayName }
+            if ($PSBoundParameters.ContainsKey("RdpApplicationAlias")) { $local:RdpAppProps.ApplicationAlias = $RdpApplicationAlias }
+            if ($PSBoundParameters.ContainsKey("RdpApplicationProgram")) { $local:RdpAppProps.ApplicationProgram = $RdpApplicationProgram }
+            if ($PSBoundParameters.ContainsKey("RdpApplicationCmdLine")) { $local:RdpAppProps.ApplicationCmdLine = $RdpApplicationCmdLine }
         }
 
         if ($PSBoundParameters.ContainsKey("ApproverUsers") -or $PSBoundParameters.ContainsKey("ApproverGroups"))
