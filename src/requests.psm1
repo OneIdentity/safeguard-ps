@@ -354,6 +354,10 @@ The number of hours requested for password access. The sum of Requested Days/Hou
 .PARAMETER RequestedDurationMinutes
 The number of minutes requested for password access. The sum of Requested Days/Hours/Minutes must not exceed 31 days.
 
+.PARAMETER NoClipboard
+Do not copy the access request ID to the clipboard. By default, when running interactively, the
+access request ID is copied to the clipboard automatically.
+
 .INPUTS
 None.
 
@@ -395,7 +399,9 @@ function New-SafeguardAccessRequest
         [Parameter(Mandatory=$false)]
         [int]$RequestedDurationHours,
         [Parameter(Mandatory=$false)]
-        [int]$RequestedDurationMinutes
+        [int]$RequestedDurationMinutes,
+        [Parameter(Mandatory=$false)]
+        [switch]$NoClipboard
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -469,7 +475,7 @@ function New-SafeguardAccessRequest
     $local:Result = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
          POST "AccessRequests" -Body $local:Body | Select-Object -Property $local:RequestFields)
 
-    if ($local:Result.Id)
+    if ($local:Result.Id -and -not $NoClipboard -and [Environment]::UserInteractive)
     {
         try
         {
