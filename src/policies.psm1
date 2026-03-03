@@ -1086,6 +1086,7 @@ An array of asset group IDs or names to include in the policy scope.
 .PARAMETER ApproverUsers
 An array of user IDs or names to add as approvers. When specified, approval will be required.
 A single approver set is created with all specified users and groups.
+Use provider\user syntax (e.g. "local\admin") to uniquely identify users from a specific identity provider.
 
 .PARAMETER ApproverGroups
 An array of user group IDs or names to add as approvers. When specified, approval will be required.
@@ -1327,6 +1328,7 @@ An array of asset group IDs or names to set as the policy scope (replaces existi
 .PARAMETER ApproverUsers
 An array of user IDs or names to set as approvers. When specified, approval will be required.
 A single approver set is created with all specified users and groups (replaces existing approver sets).
+Use provider\user syntax (e.g. "local\admin") to uniquely identify users from a specific identity provider.
 
 .PARAMETER ApproverGroups
 An array of user group IDs or names to set as approvers. When specified, approval will be required.
