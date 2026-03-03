@@ -57,7 +57,7 @@ function Resolve-SafeguardEntitlementId
 Get entitlements in Safeguard via the Web API.
 
 .DESCRIPTION
-Entitlement is a set of access request policies that restrict system access to authorized users
+Entitlement is a set of access request policies that restrict privileged access to authorized users
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -148,6 +148,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER Name
 The name of the entitlement.
 
+.PARAMETER Description
+A string containing the description of the entitlement.
+
 .PARAMETER MemberUsers
 Array of IDs or names of the users to be added to the entitlement.
 
@@ -175,6 +178,8 @@ function New-SafeguardEntitlement
         [switch]$Insecure,
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Name,
+        [Parameter(Mandatory=$false)]
+        [string]$Description,
         [Parameter(Mandatory=$false,Position=1)]
         [object[]]$MemberUsers,
         [Parameter(Mandatory=$false,Position=2)]
@@ -205,8 +210,11 @@ function New-SafeguardEntitlement
         $local:Members += $($local:Member)
     }
 
+    $local:Body = @{ Name = $Name; Members = $local:Members }
+    if ($PSBoundParameters.ContainsKey("Description")) { $local:Body.Description = $Description }
+
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Roles `
-        -Body @{ Name = $Name; Members = $local:Members}
+        -Body $local:Body
 }
 
 
@@ -216,7 +224,7 @@ function New-SafeguardEntitlement
 Remove entitlements in Safeguard via the Web API.
 
 .DESCRIPTION
-Entitlement is a set of access request policies that restrict system access to authorized users
+Entitlement is a set of access request policies that restrict privileged access to authorized users
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -265,4 +273,122 @@ function Remove-SafeguardEntitlement
     $local:EntitlementId = Resolve-SafeguardEntitlementId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $EntitlementToDelete
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Roles/$($local:EntitlementId)"
 
+}
+
+<#
+.SYNOPSIS
+Edit an existing entitlement in Safeguard via the Web API.
+
+.DESCRIPTION
+Edit an existing entitlement in Safeguard. Entitlements are sets of access request
+policies that restrict privileged access to authorized users.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER EntitlementToEdit
+An integer containing the ID or a string containing the name of the entitlement to edit.
+
+.PARAMETER Name
+A string containing the new name for the entitlement.
+
+.PARAMETER Description
+A string containing the new description for the entitlement.
+
+.PARAMETER MemberUsers
+Array of IDs or names of the users to set as members of the entitlement.
+
+.PARAMETER MemberGroups
+Array of IDs or names of the user groups to set as members of the entitlement.
+
+.PARAMETER EntitlementObject
+An object containing the existing entitlement with desired properties set.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Edit-SafeguardEntitlement -EntitlementToEdit "Lab Administrator" -Description "Updated description"
+
+.EXAMPLE
+Edit-SafeguardEntitlement -EntitlementToEdit 123 -Name "New Name"
+
+.EXAMPLE
+$obj = Get-SafeguardEntitlement "Lab Administrator"; $obj.Description = "New desc"; Edit-SafeguardEntitlement -EntitlementObject $obj
+#>
+function Edit-SafeguardEntitlement
+{
+    [CmdletBinding(DefaultParameterSetName="Attributes")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$true,Position=0)]
+        [object]$EntitlementToEdit,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$Name,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$Description,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [object[]]$MemberUsers,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [object[]]$MemberGroups,
+        [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
+        [object]$EntitlementObject
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $EntitlementObject)
+    {
+        throw "EntitlementObject must not be null"
+    }
+
+    if ($PsCmdlet.ParameterSetName -eq "Attributes")
+    {
+        $local:EntitlementId = Resolve-SafeguardEntitlementId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $EntitlementToEdit
+        $EntitlementObject = (Get-SafeguardEntitlement -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:EntitlementId)
+
+        if ($PSBoundParameters.ContainsKey("Name")) { $EntitlementObject.Name = $Name }
+        if ($PSBoundParameters.ContainsKey("Description")) { $EntitlementObject.Description = $Description }
+
+        if ($PSBoundParameters.ContainsKey("MemberUsers") -or $PSBoundParameters.ContainsKey("MemberGroups"))
+        {
+            [object[]]$local:Members = $null
+            foreach ($local:User in $MemberUsers)
+            {
+                $local:ResolvedUserId = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User).Id
+                $local:Member = @{
+                    Id = $local:ResolvedUserId;
+                    PrincipalKind = "User"
+                }
+                $local:Members += $($local:Member)
+            }
+            foreach ($local:Group in $MemberGroups)
+            {
+                $local:ResolvedGroupId = (Get-SafeguardUserGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -GroupToGet $local:Group).Id
+                $local:Member = @{
+                    Id = $local:ResolvedGroupId;
+                    PrincipalKind = "Group"
+                }
+                $local:Members += $($local:Member)
+            }
+            $EntitlementObject.Members = $local:Members
+        }
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Roles/$($EntitlementObject.Id)" -Body $EntitlementObject
 }
