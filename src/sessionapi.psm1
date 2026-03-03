@@ -528,7 +528,8 @@ Enable authentication from the local database. This is a shortcut for
 
 .PARAMETER LoginMethod
 Specify a login method to use for authentication (e.g. local). Cannot be
-used together with LocalLogin.
+used together with LocalLogin. For more information on available login methods, see:
+https://docs.oneidentity.com/bundle/safeguard-for-privileged-sessions_tutorial-rest-api_8.2/page/guides/rest-api-guide/rest-api-authentication.htm
 
 .PARAMETER Username
 The username to authenticate as.
@@ -596,6 +597,65 @@ function Connect-SafeguardSps
         "Session" = $local:HttpSession
     }
     Write-Host "Login Successful."
+}
+
+<#
+.SYNOPSIS
+Get the available login methods from a Safeguard SPS appliance.
+
+.DESCRIPTION
+This cmdlet calls the SPS authentication endpoint anonymously to retrieve
+the list of available login methods. No authentication is required.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard SPS appliance.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard SPS appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+List of available login methods from the SPS appliance.
+
+.EXAMPLE
+Get-SafeguardSpsLoginMethod 10.5.32.54
+
+.EXAMPLE
+Get-SafeguardSpsLoginMethod sps1.mycompany.corp -Insecure
+#>
+function Get-SafeguardSpsLoginMethod
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
+    Edit-SslVersionSupport
+    if ($Insecure)
+    {
+        Disable-SslVerification
+        if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+    }
+
+    try
+    {
+        $local:Result = (Invoke-RestMethod -UserAgent $script:SpsUserAgent -Uri "https://$Appliance/api/authentication/login_methods")
+        $local:Result.login_methods
+    }
+    catch
+    {
+        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+        Out-SafeguardExceptionIfPossible $_
+    }
 }
 
 <#
