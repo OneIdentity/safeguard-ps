@@ -83,13 +83,18 @@ function Resolve-SafeguardPolicyAccountId
     if (-not ($Account -as [int]))
     {
         $local:RelativeUrl = "PolicyAccounts"
-        if ($PSBoundParameters.ContainsKey("AssetId"))
+        $local:PreFilter = ""
+        if ($AssetId)
         {
             $local:PreFilter = "Asset.Id eq $AssetId and "
         }
-        else
+        # Support asset\account syntax (e.g. "ubtu2404-agnt.dan.test\root")
+        $local:Pair = ($Account -split "\\")
+        if ($local:Pair.Length -eq 2)
         {
-            $local:PreFilter = ""
+            $local:ResolvedAssetId = (Resolve-SafeguardPolicyAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:Pair[0])
+            $local:PreFilter = "Asset.Id eq $($local:ResolvedAssetId) and "
+            $Account = $local:Pair[1]
         }
         try
         {
@@ -1078,9 +1083,17 @@ An array of account group IDs or names to include in the policy scope.
 .PARAMETER ScopeAssetGroups
 An array of asset group IDs or names to include in the policy scope.
 
+.PARAMETER ApproverUsers
+An array of user IDs or names to add as approvers. When specified, approval will be required.
+A single approver set is created with all specified users and groups.
+
+.PARAMETER ApproverGroups
+An array of user group IDs or names to add as approvers. When specified, approval will be required.
+A single approver set is created with all specified users and groups.
+
 .PARAMETER AccessPolicyObject
 An object containing the access policy to create. Use this for advanced configuration
-(approver sets, session properties, hourly restrictions, etc.).
+(multiple approver sets, session properties, hourly restrictions, etc.).
 
 .INPUTS
 None.
@@ -1093,6 +1106,9 @@ Add-SafeguardAccessPolicy -Entitlement "Lab Administrator" -Name "SSH Access" -A
 
 .EXAMPLE
 Add-SafeguardAccessPolicy -Entitlement 5 -Name "Password Access" -AccessRequestType Password -ScopeAccounts "root","admin"
+
+.EXAMPLE
+Add-SafeguardAccessPolicy -Entitlement 5 -Name "Approved Access" -AccessRequestType Password -ApproverUsers "admin1","admin2"
 
 .EXAMPLE
 Add-SafeguardAccessPolicy -AccessPolicyObject $policyObj
@@ -1124,6 +1140,10 @@ function Add-SafeguardAccessPolicy
         [object[]]$ScopeAccountGroups,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [object[]]$ScopeAssetGroups,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [object[]]$ApproverUsers,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [object[]]$ApproverGroups,
         [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
         [object]$AccessPolicyObject
     )
@@ -1156,8 +1176,35 @@ function Add-SafeguardAccessPolicy
         if ($PSBoundParameters.ContainsKey("ScopeAccounts") -or $PSBoundParameters.ContainsKey("ScopeAssets") -or `
             $PSBoundParameters.ContainsKey("ScopeAccountGroups") -or $PSBoundParameters.ContainsKey("ScopeAssetGroups"))
         {
-            $AccessPolicyObject.ScopeItems = (Resolve-SafeguardAccessPolicyScopeItems -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+            $AccessPolicyObject.ScopeItems = @(Resolve-SafeguardAccessPolicyScopeItems -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
                 -ScopeAccounts $ScopeAccounts -ScopeAssets $ScopeAssets -ScopeAccountGroups $ScopeAccountGroups -ScopeAssetGroups $ScopeAssetGroups)
+        }
+
+        if ($PSBoundParameters.ContainsKey("ApproverUsers") -or $PSBoundParameters.ContainsKey("ApproverGroups"))
+        {
+            # Build a single approver set from all specified users and groups
+            [object[]]$local:Approvers = @()
+            foreach ($local:User in $ApproverUsers)
+            {
+                $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User)
+                $local:Approvers += @{ Id = $local:ResolvedUser.Id; PrincipalKind = "User" }
+            }
+            foreach ($local:Group in $ApproverGroups)
+            {
+                Import-Module -Name "$PSScriptRoot\groups.psm1" -Scope Local
+                $local:ResolvedGroup = (Get-SafeguardUserGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -GroupToGet $local:Group)
+                $local:Approvers += @{ Id = $local:ResolvedGroup.Id; PrincipalKind = "Group" }
+            }
+            $AccessPolicyObject.ApproverProperties = @{ RequireApproval = $true }
+            $AccessPolicyObject.ApproverSets = @(@{
+                RequiredApprovers = 1;
+                Approvers = @($local:Approvers)
+            })
+        }
+        else
+        {
+            # Default to automatic approval when no approvers are specified
+            $AccessPolicyObject.ApproverProperties = @{ RequireApproval = $false }
         }
     }
 
@@ -1346,7 +1393,7 @@ function Edit-SafeguardAccessPolicy
         if ($PSBoundParameters.ContainsKey("ScopeAccounts") -or $PSBoundParameters.ContainsKey("ScopeAssets") -or `
             $PSBoundParameters.ContainsKey("ScopeAccountGroups") -or $PSBoundParameters.ContainsKey("ScopeAssetGroups"))
         {
-            $AccessPolicyObject.ScopeItems = (Resolve-SafeguardAccessPolicyScopeItems -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+            $AccessPolicyObject.ScopeItems = @(Resolve-SafeguardAccessPolicyScopeItems -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
                 -ScopeAccounts $ScopeAccounts -ScopeAssets $ScopeAssets -ScopeAccountGroups $ScopeAccountGroups -ScopeAssetGroups $ScopeAssetGroups)
         }
     }
