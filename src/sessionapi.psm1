@@ -9,7 +9,7 @@ $script:SpsUserAgent = "PowerShell/6.0.0"
 # Helpers
 function Connect-Sps
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Default")]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [string]$SessionMaster,
@@ -19,8 +19,10 @@ function Connect-Sps
         [SecureString]$SessionPassword,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(ParameterSetName="LocalLogin",Mandatory=$false)]
         [switch]$LocalLogin,
-        [Parameter(Mandatory=$false)]$LoginMethod
+        [Parameter(ParameterSetName="LoginMethod",Mandatory=$false)]
+        [string]$LoginMethod
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -41,7 +43,7 @@ function Connect-Sps
         $local:BasicAuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $SessionUsername, $local:PasswordPlainText)))
         Remove-Variable -Scope local PasswordPlainText
         $apiUrl = "https://$SessionMaster/api/authentication"
-        if ($LocalLogin -and $LoginMethod -eq "") {
+        if ($LocalLogin) {
             $LoginMethod = "local"
         }
         if ($LoginMethod -ne "") {
@@ -510,6 +512,10 @@ appliance and save it as a global variable.
 The password may be passed in as a SecureString.  By default, this
 script will securely prompt for the password.
 
+The LocalLogin and LoginMethod parameters are mutually exclusive. Use LocalLogin
+as a shortcut for -LoginMethod local, or use LoginMethod to specify a custom
+authentication method.
+
 .PARAMETER Appliance
 IP address or hostname of a Safeguard SPS appliance.
 
@@ -517,7 +523,12 @@ IP address or hostname of a Safeguard SPS appliance.
 Ignore verification of Safeguard SPS appliance SSL certificate--will be ignored for entire session.
 
 .PARAMETER LocalLogin
-Enable authentication from the local database.
+Enable authentication from the local database. This is a shortcut for
+-LoginMethod local. Cannot be used together with LoginMethod.
+
+.PARAMETER LoginMethod
+Specify a login method to use for authentication (e.g. local). Cannot be
+used together with LocalLogin.
 
 .PARAMETER Username
 The username to authenticate as.
@@ -541,10 +552,20 @@ Login Successful.
 Connect-SafeguardSps sps1.mycompany.corp admin
 
 Login Successful.
+
+.EXAMPLE
+Connect-SafeguardSps sps1.mycompany.corp admin -LocalLogin
+
+Login Successful.
+
+.EXAMPLE
+Connect-SafeguardSps sps1.mycompany.corp admin -LoginMethod local
+
+Login Successful.
 #>
 function Connect-SafeguardSps
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Default")]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Appliance,
@@ -554,8 +575,10 @@ function Connect-SafeguardSps
         [SecureString]$Password,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(ParameterSetName="LocalLogin",Mandatory=$false)]
         [switch]$LocalLogin,
-        [Parameter(Mandatory=$false)]$LoginMethod
+        [Parameter(ParameterSetName="LoginMethod",Mandatory=$false)]
+        [string]$LoginMethod
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
