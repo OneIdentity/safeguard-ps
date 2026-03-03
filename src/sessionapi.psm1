@@ -19,8 +19,10 @@ function Connect-Sps
         [SecureString]$SessionPassword,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
         [switch]$LocalLogin,
-        [Parameter(Mandatory=$false)]$LoginMethod
+        [Parameter(Mandatory=$false)]
+        [string]$LoginMethod
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -41,7 +43,7 @@ function Connect-Sps
         $local:BasicAuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $SessionUsername, $local:PasswordPlainText)))
         Remove-Variable -Scope local PasswordPlainText
         $apiUrl = "https://$SessionMaster/api/authentication"
-        if ($LocalLogin -and $LoginMethod -eq "") {
+        if ($LocalLogin) {
             $LoginMethod = "local"
         }
         if ($LoginMethod -ne "") {
@@ -510,6 +512,10 @@ appliance and save it as a global variable.
 The password may be passed in as a SecureString.  By default, this
 script will securely prompt for the password.
 
+The LocalLogin and LoginMethod parameters are mutually exclusive. Use LocalLogin
+as a shortcut for -LoginMethod local, or use LoginMethod to specify a custom
+authentication method.
+
 .PARAMETER Appliance
 IP address or hostname of a Safeguard SPS appliance.
 
@@ -517,7 +523,14 @@ IP address or hostname of a Safeguard SPS appliance.
 Ignore verification of Safeguard SPS appliance SSL certificate--will be ignored for entire session.
 
 .PARAMETER LocalLogin
-Enable authentication from the local database.
+Enable authentication from the local database. This is a shortcut for
+-LoginMethod local. Cannot be used together with LoginMethod.
+
+.PARAMETER LoginMethod
+Specify a login method to use for authentication (e.g. local). Cannot be
+used together with LocalLogin. Use Get-SafeguardSpsLoginMethod to discover
+available login methods on the appliance. For more information, see:
+https://docs.oneidentity.com/bundle/safeguard-for-privileged-sessions_tutorial-rest-api_8.2/page/guides/rest-api-guide/rest-api-authentication.htm
 
 .PARAMETER Username
 The username to authenticate as.
@@ -541,10 +554,20 @@ Login Successful.
 Connect-SafeguardSps sps1.mycompany.corp admin
 
 Login Successful.
+
+.EXAMPLE
+Connect-SafeguardSps sps1.mycompany.corp admin -LocalLogin
+
+Login Successful.
+
+.EXAMPLE
+Connect-SafeguardSps sps1.mycompany.corp admin -LoginMethod local
+
+Login Successful.
 #>
 function Connect-SafeguardSps
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Default")]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Appliance,
@@ -554,8 +577,10 @@ function Connect-SafeguardSps
         [SecureString]$Password,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
+        [Parameter(ParameterSetName="LocalLogin",Mandatory=$false)]
         [switch]$LocalLogin,
-        [Parameter(Mandatory=$false)]$LoginMethod
+        [Parameter(ParameterSetName="LoginMethod",Mandatory=$false)]
+        [string]$LoginMethod
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -566,13 +591,80 @@ function Connect-SafeguardSps
         $Password = (Read-Host "Password" -AsSecureString)
     }
 
-    $local:HttpSession = (Connect-Sps -SessionMaster $Appliance -SessionUsername $Username -SessionPassword $Password -Insecure:$Insecure -LocalLogin:$LocalLogin -LoginMethod:$LoginMethod)
+    $local:SplatArgs = @{
+        SessionMaster = $Appliance
+        SessionUsername = $Username
+        SessionPassword = $Password
+        Insecure = $Insecure
+    }
+    if ($PSBoundParameters.ContainsKey("LocalLogin")) { $local:SplatArgs["LocalLogin"] = $LocalLogin }
+    if ($PSBoundParameters.ContainsKey("LoginMethod")) { $local:SplatArgs["LoginMethod"] = $LoginMethod }
+    $local:HttpSession = (Connect-Sps @local:SplatArgs)
     Set-Variable -Name "SafeguardSpsSession" -Scope Global -Value @{
         "Appliance" = $Appliance;
         "Insecure" = $Insecure;
         "Session" = $local:HttpSession
     }
     Write-Host "Login Successful."
+}
+
+<#
+.SYNOPSIS
+Get the available login methods from a Safeguard SPS appliance.
+
+.DESCRIPTION
+This cmdlet calls the SPS authentication endpoint anonymously to retrieve
+the list of available login methods. No authentication is required.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard SPS appliance.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard SPS appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+List of available login methods from the SPS appliance.
+
+.EXAMPLE
+Get-SafeguardSpsLoginMethod 10.5.32.54
+
+.EXAMPLE
+Get-SafeguardSpsLoginMethod sps1.mycompany.corp -Insecure
+#>
+function Get-SafeguardSpsLoginMethod
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
+    Edit-SslVersionSupport
+    if ($Insecure)
+    {
+        Disable-SslVerification
+        if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+    }
+
+    try
+    {
+        $local:Result = (Invoke-RestMethod -UserAgent $script:SpsUserAgent -Uri "https://$Appliance/api/authentication/login_methods")
+        $local:Result.login_methods
+    }
+    catch
+    {
+        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+        Out-SafeguardExceptionIfPossible $_
+    }
 }
 
 <#
