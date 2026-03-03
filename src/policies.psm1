@@ -1299,6 +1299,10 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER PolicyToEdit
 An integer containing the ID or a string containing the name of the access policy to edit.
 
+.PARAMETER EntitlementToEdit
+An integer containing the ID or a string containing the name of the entitlement to qualify
+the access policy lookup in case multiple policies share the same name.
+
 .PARAMETER Name
 A string containing the new name for the access policy.
 
@@ -1320,6 +1324,17 @@ An array of account group IDs or names to set as the policy scope (replaces exis
 .PARAMETER ScopeAssetGroups
 An array of asset group IDs or names to set as the policy scope (replaces existing scope asset groups).
 
+.PARAMETER ApproverUsers
+An array of user IDs or names to set as approvers. When specified, approval will be required.
+A single approver set is created with all specified users and groups (replaces existing approver sets).
+
+.PARAMETER ApproverGroups
+An array of user group IDs or names to set as approvers. When specified, approval will be required.
+A single approver set is created with all specified users and groups (replaces existing approver sets).
+
+.PARAMETER NoApproval
+Switch to disable approval requirement (automatic approval). Removes existing approver sets.
+
 .PARAMETER AccessPolicyObject
 An object containing the existing access policy with desired properties set.
 
@@ -1333,7 +1348,16 @@ JSON response from Safeguard Web API.
 Edit-SafeguardAccessPolicy -PolicyToEdit "SSH Access" -Description "Updated description"
 
 .EXAMPLE
+Edit-SafeguardAccessPolicy -PolicyToEdit "SSH Access" -EntitlementToEdit "Lab Administrator" -Description "Updated"
+
+.EXAMPLE
 Edit-SafeguardAccessPolicy -PolicyToEdit 123 -ScopeAccounts "root","admin"
+
+.EXAMPLE
+Edit-SafeguardAccessPolicy -PolicyToEdit "SSH Access" -ApproverUsers "admin1","admin2"
+
+.EXAMPLE
+Edit-SafeguardAccessPolicy -PolicyToEdit "SSH Access" -NoApproval
 
 .EXAMPLE
 $obj = Get-SafeguardAccessPolicy "SSH Access"; $obj.Description = "New desc"; Edit-SafeguardAccessPolicy -AccessPolicyObject $obj
@@ -1351,6 +1375,8 @@ function Edit-SafeguardAccessPolicy
         [Parameter(ParameterSetName="Attributes",Mandatory=$true,Position=0)]
         [object]$PolicyToEdit,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [object]$EntitlementToEdit,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$Name,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$Description,
@@ -1365,6 +1391,12 @@ function Edit-SafeguardAccessPolicy
         [object[]]$ScopeAccountGroups,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [object[]]$ScopeAssetGroups,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [object[]]$ApproverUsers,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [object[]]$ApproverGroups,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [switch]$NoApproval,
         [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
         [object]$AccessPolicyObject
     )
@@ -1379,7 +1411,14 @@ function Edit-SafeguardAccessPolicy
 
     if ($PsCmdlet.ParameterSetName -eq "Attributes")
     {
-        $local:AccessPolicyId = Resolve-SafeguardAccessPolicyId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $PolicyToEdit
+        $local:ResolveParams = @{}
+        if ($PSBoundParameters.ContainsKey("EntitlementToEdit"))
+        {
+            Import-Module -Name "$PSScriptRoot\entitlements.psm1" -Scope Local
+            $local:ResolveParams["EntitlementId"] = (Resolve-SafeguardEntitlementId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $EntitlementToEdit)
+        }
+
+        $local:AccessPolicyId = Resolve-SafeguardAccessPolicyId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure @local:ResolveParams $PolicyToEdit
         $AccessPolicyObject = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AccessPolicies/$($local:AccessPolicyId)")
 
         if ($PSBoundParameters.ContainsKey("Name")) { $AccessPolicyObject.Name = $Name }
@@ -1395,6 +1434,32 @@ function Edit-SafeguardAccessPolicy
         {
             $AccessPolicyObject.ScopeItems = @(Resolve-SafeguardAccessPolicyScopeItems -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
                 -ScopeAccounts $ScopeAccounts -ScopeAssets $ScopeAssets -ScopeAccountGroups $ScopeAccountGroups -ScopeAssetGroups $ScopeAssetGroups)
+        }
+
+        if ($PSBoundParameters.ContainsKey("ApproverUsers") -or $PSBoundParameters.ContainsKey("ApproverGroups"))
+        {
+            [object[]]$local:Approvers = @()
+            foreach ($local:User in $ApproverUsers)
+            {
+                $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User)
+                $local:Approvers += @{ Id = $local:ResolvedUser.Id; PrincipalKind = "User" }
+            }
+            foreach ($local:Group in $ApproverGroups)
+            {
+                Import-Module -Name "$PSScriptRoot\groups.psm1" -Scope Local
+                $local:ResolvedGroup = (Get-SafeguardUserGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -GroupToGet $local:Group)
+                $local:Approvers += @{ Id = $local:ResolvedGroup.Id; PrincipalKind = "Group" }
+            }
+            $AccessPolicyObject.ApproverProperties = @{ RequireApproval = $true }
+            $AccessPolicyObject.ApproverSets = @(@{
+                RequiredApprovers = 1;
+                Approvers = @($local:Approvers)
+            })
+        }
+        elseif ($NoApproval)
+        {
+            $AccessPolicyObject.ApproverProperties = @{ RequireApproval = $false }
+            $AccessPolicyObject.ApproverSets = @()
         }
     }
 
