@@ -9,7 +9,7 @@ $script:SpsUserAgent = "PowerShell/6.0.0"
 # Helpers
 function Connect-Sps
 {
-    [CmdletBinding(DefaultParameterSetName="Default")]
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [string]$SessionMaster,
@@ -19,9 +19,9 @@ function Connect-Sps
         [SecureString]$SessionPassword,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(ParameterSetName="LocalLogin",Mandatory=$false)]
+        [Parameter(Mandatory=$false)]
         [switch]$LocalLogin,
-        [Parameter(ParameterSetName="LoginMethod",Mandatory=$false)]
+        [Parameter(Mandatory=$false)]
         [string]$LoginMethod
     )
 
@@ -591,7 +591,15 @@ function Connect-SafeguardSps
         $Password = (Read-Host "Password" -AsSecureString)
     }
 
-    $local:HttpSession = (Connect-Sps -SessionMaster $Appliance -SessionUsername $Username -SessionPassword $Password -Insecure:$Insecure -LocalLogin:$LocalLogin -LoginMethod:$LoginMethod)
+    $local:SplatArgs = @{
+        SessionMaster = $Appliance
+        SessionUsername = $Username
+        SessionPassword = $Password
+        Insecure = $Insecure
+    }
+    if ($PSBoundParameters.ContainsKey("LocalLogin")) { $local:SplatArgs["LocalLogin"] = $LocalLogin }
+    if ($PSBoundParameters.ContainsKey("LoginMethod")) { $local:SplatArgs["LoginMethod"] = $LoginMethod }
+    $local:HttpSession = (Connect-Sps @local:SplatArgs)
     Set-Variable -Name "SafeguardSpsSession" -Scope Global -Value @{
         "Appliance" = $Appliance;
         "Insecure" = $Insecure;
