@@ -528,7 +528,8 @@ Enable authentication from the local database. This is a shortcut for
 
 .PARAMETER LoginMethod
 Specify a login method to use for authentication (e.g. local). Cannot be
-used together with LocalLogin. For more information on available login methods, see:
+used together with LocalLogin. Use Get-SafeguardSpsLoginMethod to discover
+available login methods on the appliance. For more information, see:
 https://docs.oneidentity.com/bundle/safeguard-for-privileged-sessions_tutorial-rest-api_8.2/page/guides/rest-api-guide/rest-api-authentication.htm
 
 .PARAMETER Username
