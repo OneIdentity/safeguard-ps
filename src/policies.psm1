@@ -1071,6 +1071,10 @@ The type of access being granted (Password, RemoteDesktop, Ssh, Telnet, SshKey, 
 .PARAMETER Description
 A string containing a description of the access policy.
 
+.PARAMETER Priority
+An integer for the priority of this policy within its entitlement. Set to 0 for lowest priority.
+Default is max priority plus 1 (highest).
+
 .PARAMETER ScopeAccounts
 An array of account IDs or names to include in the policy scope.
 
@@ -1208,6 +1212,8 @@ function Add-SafeguardAccessPolicy
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$Description,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [int]$Priority,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [object[]]$ScopeAccounts,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [object[]]$ScopeAssets,
@@ -1296,6 +1302,7 @@ function Add-SafeguardAccessPolicy
         }
 
         if ($PSBoundParameters.ContainsKey("Description")) { $AccessPolicyObject.Description = $Description }
+        if ($PSBoundParameters.ContainsKey("Priority")) { $AccessPolicyObject.Priority = $Priority }
 
         if ($PSBoundParameters.ContainsKey("ScopeAccounts") -or $PSBoundParameters.ContainsKey("ScopeAssets") -or `
             $PSBoundParameters.ContainsKey("ScopeAccountGroups") -or $PSBoundParameters.ContainsKey("ScopeAssetGroups"))
@@ -1492,6 +1499,9 @@ A string containing the new name for the access policy.
 .PARAMETER Description
 A string containing the new description for the access policy.
 
+.PARAMETER Priority
+An integer for the priority of this policy within its entitlement. Set to 0 for lowest priority.
+
 .PARAMETER AccessRequestType
 The type of access being granted (Password, RemoteDesktop, Ssh, Telnet, SshKey, RemoteDesktopApplication, ApiKey, File).
 
@@ -1629,6 +1639,8 @@ function Edit-SafeguardAccessPolicy
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$Description,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [int]$Priority,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [ValidateSet("Password","SSH","SSHKey","RemoteDesktop","RDP","Telnet","SshKey","RemoteDesktopApplication","RDPApplication","RDPApp","ApiKey","APIKey","File",IgnoreCase=$true)]
         [string]$AccessRequestType,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
@@ -1713,6 +1725,7 @@ function Edit-SafeguardAccessPolicy
 
         if ($PSBoundParameters.ContainsKey("Name")) { $AccessPolicyObject.Name = $Name }
         if ($PSBoundParameters.ContainsKey("Description")) { $AccessPolicyObject.Description = $Description }
+        if ($PSBoundParameters.ContainsKey("Priority")) { $AccessPolicyObject.Priority = $Priority }
         if ($PSBoundParameters.ContainsKey("AccessRequestType"))
         {
             # Normalize access request type aliases
