@@ -1096,6 +1096,36 @@ Use asset\account syntax (e.g. "server01\svc-account") to specify accounts.
 .PARAMETER AllowLinkedAccountPasswordAccess
 Switch to allow linked accounts to be requested for password access.
 
+.PARAMETER AllowSimultaneousAccess
+Whether to allow more than one access request to be active at the same time (default: false).
+
+.PARAMETER MaximumSimultaneousReleases
+Maximum number of times access can be granted during the same time period (1-99, default: 1).
+
+.PARAMETER ChangePasswordAfterCheckin
+Whether to change the account password after an access request is checked in (default: true).
+
+.PARAMETER ChangeSshKeyAfterCheckin
+Whether to change the SSH key pair after an access request is checked in (default: true).
+
+.PARAMETER IncludePasswordRelease
+Whether to include the password with session or file access requests (default: false).
+
+.PARAMETER IncludeSshKeyRelease
+Whether to include the SSH key with session or file access requests (default: false).
+
+.PARAMETER TerminateExpiredSessions
+Whether to terminate active sessions when the access request expires (default: false).
+
+.PARAMETER PassphraseProtectSshKey
+Whether the SSH private key will be encrypted upon check out (default: true).
+
+.PARAMETER UseAltLoginName
+Whether to use the AltLoginName AD attribute for a session connection launch string (default: false).
+
+.PARAMETER LinkedAccountScopeFiltering
+Whether to filter linked accounts using scope filtering (default: false).
+
 .PARAMETER RdpApplicationHostAsset
 An asset ID or name of the host asset for Remote Desktop Application sessions.
 Use asset\account syntax for -RdpApplicationHostAccount to specify the login account.
@@ -1193,6 +1223,27 @@ function Add-SafeguardAccessPolicy
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [switch]$AllowLinkedAccountPasswordAccess,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [bool]$AllowSimultaneousAccess,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [ValidateRange(1,99)]
+        [int]$MaximumSimultaneousReleases,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [bool]$ChangePasswordAfterCheckin,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [bool]$ChangeSshKeyAfterCheckin,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [bool]$IncludePasswordRelease,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [bool]$IncludeSshKeyRelease,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [bool]$TerminateExpiredSessions,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [bool]$PassphraseProtectSshKey,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [bool]$UseAltLoginName,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [bool]$LinkedAccountScopeFiltering,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [object]$RdpApplicationHostAsset,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [object]$RdpApplicationHostAccount,
@@ -1272,6 +1323,16 @@ function Add-SafeguardAccessPolicy
         {
             $AccessPolicyObject.AccessRequestProperties.AllowLinkedAccountPasswordAccess = $true
         }
+        if ($PSBoundParameters.ContainsKey("AllowSimultaneousAccess")) { $AccessPolicyObject.AccessRequestProperties.AllowSimultaneousAccess = $AllowSimultaneousAccess }
+        if ($PSBoundParameters.ContainsKey("MaximumSimultaneousReleases")) { $AccessPolicyObject.AccessRequestProperties.MaximumSimultaneousReleases = $MaximumSimultaneousReleases }
+        if ($PSBoundParameters.ContainsKey("ChangePasswordAfterCheckin")) { $AccessPolicyObject.AccessRequestProperties.ChangePasswordAfterCheckin = $ChangePasswordAfterCheckin }
+        if ($PSBoundParameters.ContainsKey("ChangeSshKeyAfterCheckin")) { $AccessPolicyObject.AccessRequestProperties.ChangeSshKeyAfterCheckin = $ChangeSshKeyAfterCheckin }
+        if ($PSBoundParameters.ContainsKey("IncludePasswordRelease")) { $AccessPolicyObject.AccessRequestProperties.IncludePasswordRelease = $IncludePasswordRelease }
+        if ($PSBoundParameters.ContainsKey("IncludeSshKeyRelease")) { $AccessPolicyObject.AccessRequestProperties.IncludeSshKeyRelease = $IncludeSshKeyRelease }
+        if ($PSBoundParameters.ContainsKey("TerminateExpiredSessions")) { $AccessPolicyObject.AccessRequestProperties.TerminateExpiredSessions = $TerminateExpiredSessions }
+        if ($PSBoundParameters.ContainsKey("PassphraseProtectSshKey")) { $AccessPolicyObject.AccessRequestProperties.PassphraseProtectSshKey = $PassphraseProtectSshKey }
+        if ($PSBoundParameters.ContainsKey("UseAltLoginName")) { $AccessPolicyObject.AccessRequestProperties.UseAltLoginName = $UseAltLoginName }
+        if ($PSBoundParameters.ContainsKey("LinkedAccountScopeFiltering")) { $AccessPolicyObject.AccessRequestProperties.LinkedAccountScopeFiltering = $LinkedAccountScopeFiltering }
 
         # Remote Desktop Application properties
         if ($PSBoundParameters.ContainsKey("RdpApplicationHostAsset") -or $PSBoundParameters.ContainsKey("RdpApplicationHostAccount") -or `
@@ -1459,6 +1520,36 @@ Use asset\account syntax (e.g. "server01\svc-account") to specify accounts.
 .PARAMETER AllowLinkedAccountPasswordAccess
 Switch to allow linked accounts to be requested for password access.
 
+.PARAMETER AllowSimultaneousAccess
+Whether to allow more than one access request to be active at the same time.
+
+.PARAMETER MaximumSimultaneousReleases
+Maximum number of times access can be granted during the same time period (1-99).
+
+.PARAMETER ChangePasswordAfterCheckin
+Whether to change the account password after an access request is checked in.
+
+.PARAMETER ChangeSshKeyAfterCheckin
+Whether to change the SSH key pair after an access request is checked in.
+
+.PARAMETER IncludePasswordRelease
+Whether to include the password with session or file access requests.
+
+.PARAMETER IncludeSshKeyRelease
+Whether to include the SSH key with session or file access requests.
+
+.PARAMETER TerminateExpiredSessions
+Whether to terminate active sessions when the access request expires.
+
+.PARAMETER PassphraseProtectSshKey
+Whether the SSH private key will be encrypted upon check out.
+
+.PARAMETER UseAltLoginName
+Whether to use the AltLoginName AD attribute for a session connection launch string.
+
+.PARAMETER LinkedAccountScopeFiltering
+Whether to filter linked accounts using scope filtering.
+
 .PARAMETER RdpApplicationHostAsset
 An asset ID or name of the host asset for Remote Desktop Application sessions.
 
@@ -1556,6 +1647,27 @@ function Edit-SafeguardAccessPolicy
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [switch]$AllowLinkedAccountPasswordAccess,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [bool]$AllowSimultaneousAccess,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [ValidateRange(1,99)]
+        [int]$MaximumSimultaneousReleases,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [bool]$ChangePasswordAfterCheckin,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [bool]$ChangeSshKeyAfterCheckin,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [bool]$IncludePasswordRelease,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [bool]$IncludeSshKeyRelease,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [bool]$TerminateExpiredSessions,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [bool]$PassphraseProtectSshKey,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [bool]$UseAltLoginName,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [bool]$LinkedAccountScopeFiltering,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [object]$RdpApplicationHostAsset,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [object]$RdpApplicationHostAccount,
@@ -1644,6 +1756,16 @@ function Edit-SafeguardAccessPolicy
         {
             $AccessPolicyObject.AccessRequestProperties.AllowLinkedAccountPasswordAccess = $true
         }
+        if ($PSBoundParameters.ContainsKey("AllowSimultaneousAccess")) { $AccessPolicyObject.AccessRequestProperties.AllowSimultaneousAccess = $AllowSimultaneousAccess }
+        if ($PSBoundParameters.ContainsKey("MaximumSimultaneousReleases")) { $AccessPolicyObject.AccessRequestProperties.MaximumSimultaneousReleases = $MaximumSimultaneousReleases }
+        if ($PSBoundParameters.ContainsKey("ChangePasswordAfterCheckin")) { $AccessPolicyObject.AccessRequestProperties.ChangePasswordAfterCheckin = $ChangePasswordAfterCheckin }
+        if ($PSBoundParameters.ContainsKey("ChangeSshKeyAfterCheckin")) { $AccessPolicyObject.AccessRequestProperties.ChangeSshKeyAfterCheckin = $ChangeSshKeyAfterCheckin }
+        if ($PSBoundParameters.ContainsKey("IncludePasswordRelease")) { $AccessPolicyObject.AccessRequestProperties.IncludePasswordRelease = $IncludePasswordRelease }
+        if ($PSBoundParameters.ContainsKey("IncludeSshKeyRelease")) { $AccessPolicyObject.AccessRequestProperties.IncludeSshKeyRelease = $IncludeSshKeyRelease }
+        if ($PSBoundParameters.ContainsKey("TerminateExpiredSessions")) { $AccessPolicyObject.AccessRequestProperties.TerminateExpiredSessions = $TerminateExpiredSessions }
+        if ($PSBoundParameters.ContainsKey("PassphraseProtectSshKey")) { $AccessPolicyObject.AccessRequestProperties.PassphraseProtectSshKey = $PassphraseProtectSshKey }
+        if ($PSBoundParameters.ContainsKey("UseAltLoginName")) { $AccessPolicyObject.AccessRequestProperties.UseAltLoginName = $UseAltLoginName }
+        if ($PSBoundParameters.ContainsKey("LinkedAccountScopeFiltering")) { $AccessPolicyObject.AccessRequestProperties.LinkedAccountScopeFiltering = $LinkedAccountScopeFiltering }
 
         # Remote Desktop Application properties
         if ($PSBoundParameters.ContainsKey("RdpApplicationHostAsset") -or $PSBoundParameters.ContainsKey("RdpApplicationHostAccount") -or `
