@@ -64,6 +64,62 @@ function Connect-Sps
 
     $HttpSession
 }
+function Connect-SpsCertificate
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$SessionMaster,
+        [Parameter(Mandatory=$false)]
+        [string]$CertificateFile,
+        [Parameter(Mandatory=$false)]
+        [string]$Thumbprint,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true)]
+        [string]$LoginMethod
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
+    Edit-SslVersionSupport
+    if ($Insecure)
+    {
+        Disable-SslVerification
+        if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+    }
+
+    try
+    {
+        $local:ApiUrl = "https://$SessionMaster/api/authentication?type=x509&login_method=$LoginMethod"
+        if ($CertificateFile)
+        {
+            Write-Verbose "Authenticating to SPS using X.509 certificate from PFX file..."
+            $local:ClientCertificate = (Get-PfxCertificate -FilePath $CertificateFile)
+            Invoke-RestMethod -UserAgent $script:SpsUserAgent -Certificate $local:ClientCertificate `
+                -Uri $local:ApiUrl -SessionVariable HttpSession | Write-Verbose
+        }
+        else
+        {
+            Write-Verbose "Authenticating to SPS using X.509 certificate from Windows certificate store..."
+            Invoke-RestMethod -UserAgent $script:SpsUserAgent -CertificateThumbprint $Thumbprint `
+                -Uri $local:ApiUrl -SessionVariable HttpSession | Write-Verbose
+        }
+    }
+    catch
+    {
+        Write-Verbose "An exception was caught trying to authenticate to SPS using a certificate."
+        Write-Verbose "Your problem may be a quirk on Windows where the low-level HTTPS client requires that you have the Issuing CA"
+        Write-Verbose "in your 'Intermediate Certificate Authorities' store, otherwise Windows doesn't think you have a matching"
+        Write-Verbose "certificate to send in the initial client connection."
+        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+        Out-SafeguardExceptionIfPossible $_
+    }
+
+    $HttpSession
+}
 function New-SpsUrl
 {
     [CmdletBinding()]
@@ -516,6 +572,11 @@ The LocalLogin and LoginMethod parameters are mutually exclusive. Use LocalLogin
 as a shortcut for -LoginMethod local, or use LoginMethod to specify a custom
 authentication method.
 
+X.509 certificate authentication is supported via the CertificateFile or
+Thumbprint parameters. When using certificate authentication, the LoginMethod
+parameter must also be specified to indicate the authentication backend
+configured to accept X.509 certificates.
+
 .PARAMETER Appliance
 IP address or hostname of a Safeguard SPS appliance.
 
@@ -537,6 +598,14 @@ The username to authenticate as.
 
 .PARAMETER Password
 SecureString containing the password.
+
+.PARAMETER CertificateFile
+Path to a PFX (PKCS12) file containing the client certificate to use for
+X.509 certificate authentication to SPS. Requires LoginMethod to be specified.
+
+.PARAMETER Thumbprint
+Client certificate thumbprint from the Windows certificate store to use for
+X.509 certificate authentication to SPS. Requires LoginMethod to be specified.
 
 .INPUTS
 None.
@@ -564,6 +633,16 @@ Login Successful.
 Connect-SafeguardSps sps1.mycompany.corp admin -LoginMethod local
 
 Login Successful.
+
+.EXAMPLE
+Connect-SafeguardSps sps1.mycompany.corp -LoginMethod x509 -CertificateFile C:\certs\mycert.pfx
+
+Login Successful.
+
+.EXAMPLE
+Connect-SafeguardSps sps1.mycompany.corp -LoginMethod x509 -Thumbprint "AB40BF0AD5647C9A8E0431DA5F473F44910D8975"
+
+Login Successful.
 #>
 function Connect-SafeguardSps
 {
@@ -571,35 +650,59 @@ function Connect-SafeguardSps
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Appliance,
-        [Parameter(Mandatory=$true,Position=1)]
+        [Parameter(ParameterSetName="Default",Mandatory=$true,Position=1)]
+        [Parameter(ParameterSetName="LocalLogin",Mandatory=$true,Position=1)]
+        [Parameter(ParameterSetName="LoginMethod",Mandatory=$true,Position=1)]
         [string]$Username,
-        [Parameter(Mandatory=$false)]
+        [Parameter(ParameterSetName="Default",Mandatory=$false)]
+        [Parameter(ParameterSetName="LocalLogin",Mandatory=$false)]
+        [Parameter(ParameterSetName="LoginMethod",Mandatory=$false)]
         [SecureString]$Password,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(ParameterSetName="LocalLogin",Mandatory=$false)]
         [switch]$LocalLogin,
         [Parameter(ParameterSetName="LoginMethod",Mandatory=$false)]
-        [string]$LoginMethod
+        [Parameter(ParameterSetName="CertificateFile",Mandatory=$true)]
+        [Parameter(ParameterSetName="CertificateThumbprint",Mandatory=$true)]
+        [string]$LoginMethod,
+        [Parameter(ParameterSetName="CertificateFile",Mandatory=$true)]
+        [string]$CertificateFile,
+        [Parameter(ParameterSetName="CertificateThumbprint",Mandatory=$true)]
+        [string]$Thumbprint
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if (-not $Password)
+    if ($CertificateFile -or $Thumbprint)
     {
-        $Password = (Read-Host "Password" -AsSecureString)
+        $local:SplatArgs = @{
+            SessionMaster = $Appliance
+            Insecure = $Insecure
+            LoginMethod = $LoginMethod
+        }
+        if ($CertificateFile) { $local:SplatArgs["CertificateFile"] = $CertificateFile }
+        if ($Thumbprint) { $local:SplatArgs["Thumbprint"] = $Thumbprint }
+        $local:HttpSession = (Connect-SpsCertificate @local:SplatArgs)
     }
+    else
+    {
+        if (-not $Password)
+        {
+            $Password = (Read-Host "Password" -AsSecureString)
+        }
 
-    $local:SplatArgs = @{
-        SessionMaster = $Appliance
-        SessionUsername = $Username
-        SessionPassword = $Password
-        Insecure = $Insecure
+        $local:SplatArgs = @{
+            SessionMaster = $Appliance
+            SessionUsername = $Username
+            SessionPassword = $Password
+            Insecure = $Insecure
+        }
+        if ($PSBoundParameters.ContainsKey("LocalLogin")) { $local:SplatArgs["LocalLogin"] = $LocalLogin }
+        if ($PSBoundParameters.ContainsKey("LoginMethod")) { $local:SplatArgs["LoginMethod"] = $LoginMethod }
+        $local:HttpSession = (Connect-Sps @local:SplatArgs)
     }
-    if ($PSBoundParameters.ContainsKey("LocalLogin")) { $local:SplatArgs["LocalLogin"] = $LocalLogin }
-    if ($PSBoundParameters.ContainsKey("LoginMethod")) { $local:SplatArgs["LoginMethod"] = $LoginMethod }
-    $local:HttpSession = (Connect-Sps @local:SplatArgs)
     Set-Variable -Name "SafeguardSpsSession" -Scope Global -Value @{
         "Appliance" = $Appliance;
         "Insecure" = $Insecure;
