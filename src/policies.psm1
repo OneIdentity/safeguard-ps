@@ -1083,6 +1083,19 @@ An array of account group IDs or names to include in the policy scope.
 .PARAMETER ScopeAssetGroups
 An array of asset group IDs or names to include in the policy scope.
 
+.PARAMETER SessionAccessAccountType
+How to authenticate to assets for session access (None, UserSupplied, LinkedAccount, PolicySpecific).
+Use LinkedAccount to use the requesting user's linked accounts.
+Use PolicySpecific with -SessionAccessAccounts to specify shared or directory accounts.
+
+.PARAMETER SessionAccessAccounts
+An array of account IDs or asset\account names to use as session access accounts.
+Only used when SessionAccessAccountType is PolicySpecific.
+Use asset\account syntax (e.g. "server01\svc-account") to specify accounts.
+
+.PARAMETER AllowLinkedAccountPasswordAccess
+Switch to allow linked accounts to be requested for password access.
+
 .PARAMETER ApproverUsers
 An array of user IDs or names to add as approvers. When specified, approval will be required.
 A single approver set is created with all specified users and groups.
@@ -1112,6 +1125,12 @@ Add-SafeguardAccessPolicy -Entitlement 5 -Name "Password Access" -AccessRequestT
 Add-SafeguardAccessPolicy -Entitlement 5 -Name "Approved Access" -AccessRequestType Password -ApproverUsers "admin1","admin2"
 
 .EXAMPLE
+Add-SafeguardAccessPolicy -Entitlement "Lab Admin" -Name "SSH Linked" -AccessRequestType Ssh -ScopeAssets "server01" -SessionAccessAccountType LinkedAccount
+
+.EXAMPLE
+Add-SafeguardAccessPolicy -Entitlement "Lab Admin" -Name "SSH Shared" -AccessRequestType Ssh -ScopeAssets "server01" -SessionAccessAccountType PolicySpecific -SessionAccessAccounts "server01\svc-admin"
+
+.EXAMPLE
 Add-SafeguardAccessPolicy -AccessPolicyObject $policyObj
 #>
 function Add-SafeguardAccessPolicy
@@ -1129,7 +1148,7 @@ function Add-SafeguardAccessPolicy
         [Parameter(ParameterSetName="Attributes",Mandatory=$true,Position=1)]
         [string]$Name,
         [Parameter(ParameterSetName="Attributes",Mandatory=$true,Position=2)]
-        [ValidateSet("Password","RemoteDesktop","Ssh","Telnet","SshKey","RemoteDesktopApplication","ApiKey","File",IgnoreCase=$true)]
+        [ValidateSet("Password","SSH","SSHKey","RemoteDesktop","RDP","Telnet","SshKey","RemoteDesktopApplication","RDPApplication","RDPApp","ApiKey","APIKey","File",IgnoreCase=$true)]
         [string]$AccessRequestType,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$Description,
@@ -1141,6 +1160,13 @@ function Add-SafeguardAccessPolicy
         [object[]]$ScopeAccountGroups,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [object[]]$ScopeAssetGroups,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [ValidateSet("None","UserSupplied","LinkedAccount","PolicySpecific",IgnoreCase=$true)]
+        [string]$SessionAccessAccountType,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [object[]]$SessionAccessAccounts,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [switch]$AllowLinkedAccountPasswordAccess,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [object[]]$ApproverUsers,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
@@ -1164,6 +1190,13 @@ function Add-SafeguardAccessPolicy
         Import-Module -Name "$PSScriptRoot\entitlements.psm1" -Scope Local
         $local:EntitlementId = Resolve-SafeguardEntitlementId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Entitlement
 
+        # Normalize access request type aliases
+        if ($AccessRequestType -ieq "RDP") { $AccessRequestType = "RemoteDesktop" }
+        elseif ($AccessRequestType -ieq "RDPApplication" -or $AccessRequestType -ieq "RDPApp") { $AccessRequestType = "RemoteDesktopApplication" }
+        elseif ($AccessRequestType -ieq "SSH") { $AccessRequestType = "Ssh" }
+        elseif ($AccessRequestType -ieq "SSHKey") { $AccessRequestType = "SshKey" }
+        elseif ($AccessRequestType -ieq "APIKey") { $AccessRequestType = "ApiKey" }
+
         $AccessPolicyObject = @{
             Name = $Name;
             RoleId = $local:EntitlementId;
@@ -1179,6 +1212,26 @@ function Add-SafeguardAccessPolicy
         {
             $AccessPolicyObject.ScopeItems = @(Resolve-SafeguardAccessPolicyScopeItems -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
                 -ScopeAccounts $ScopeAccounts -ScopeAssets $ScopeAssets -ScopeAccountGroups $ScopeAccountGroups -ScopeAssetGroups $ScopeAssetGroups)
+        }
+
+        if ($PSBoundParameters.ContainsKey("SessionAccessAccountType"))
+        {
+            $AccessPolicyObject.AccessRequestProperties.SessionAccessAccountType = $SessionAccessAccountType
+        }
+        if ($PSBoundParameters.ContainsKey("SessionAccessAccounts"))
+        {
+            [object[]]$local:SessionAccounts = @()
+            foreach ($local:SessionAccount in $SessionAccessAccounts)
+            {
+                $local:AccountId = (Resolve-SafeguardPolicyAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:SessionAccount)
+                $local:SessionAccounts += @{ Id = $local:AccountId }
+            }
+            $AccessPolicyObject.AccessRequestProperties.SessionAccessAccountType = "PolicySpecific"
+            $AccessPolicyObject.AccessRequestProperties.SessionAccessAccounts = @($local:SessionAccounts)
+        }
+        if ($AllowLinkedAccountPasswordAccess)
+        {
+            $AccessPolicyObject.AccessRequestProperties.AllowLinkedAccountPasswordAccess = $true
         }
 
         if ($PSBoundParameters.ContainsKey("ApproverUsers") -or $PSBoundParameters.ContainsKey("ApproverGroups"))
@@ -1325,6 +1378,19 @@ An array of account group IDs or names to set as the policy scope (replaces exis
 .PARAMETER ScopeAssetGroups
 An array of asset group IDs or names to set as the policy scope (replaces existing scope asset groups).
 
+.PARAMETER SessionAccessAccountType
+How to authenticate to assets for session access (None, UserSupplied, LinkedAccount, PolicySpecific).
+Use LinkedAccount to use the requesting user's linked accounts.
+Use PolicySpecific with -SessionAccessAccounts to specify shared or directory accounts.
+
+.PARAMETER SessionAccessAccounts
+An array of account IDs or asset\account names to use as session access accounts.
+Only used when SessionAccessAccountType is PolicySpecific.
+Use asset\account syntax (e.g. "server01\svc-account") to specify accounts.
+
+.PARAMETER AllowLinkedAccountPasswordAccess
+Switch to allow linked accounts to be requested for password access.
+
 .PARAMETER ApproverUsers
 An array of user IDs or names to set as approvers. When specified, approval will be required.
 A single approver set is created with all specified users and groups (replaces existing approver sets).
@@ -1383,7 +1449,7 @@ function Edit-SafeguardAccessPolicy
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$Description,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
-        [ValidateSet("Password","RemoteDesktop","Ssh","Telnet","SshKey","RemoteDesktopApplication","ApiKey","File",IgnoreCase=$true)]
+        [ValidateSet("Password","SSH","SSHKey","RemoteDesktop","RDP","Telnet","SshKey","RemoteDesktopApplication","RDPApplication","RDPApp","ApiKey","APIKey","File",IgnoreCase=$true)]
         [string]$AccessRequestType,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [object[]]$ScopeAccounts,
@@ -1393,6 +1459,13 @@ function Edit-SafeguardAccessPolicy
         [object[]]$ScopeAccountGroups,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [object[]]$ScopeAssetGroups,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [ValidateSet("None","UserSupplied","LinkedAccount","PolicySpecific",IgnoreCase=$true)]
+        [string]$SessionAccessAccountType,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [object[]]$SessionAccessAccounts,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [switch]$AllowLinkedAccountPasswordAccess,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [object[]]$ApproverUsers,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
@@ -1427,6 +1500,13 @@ function Edit-SafeguardAccessPolicy
         if ($PSBoundParameters.ContainsKey("Description")) { $AccessPolicyObject.Description = $Description }
         if ($PSBoundParameters.ContainsKey("AccessRequestType"))
         {
+            # Normalize access request type aliases
+            if ($AccessRequestType -ieq "RDP") { $AccessRequestType = "RemoteDesktop" }
+            elseif ($AccessRequestType -ieq "RDPApplication" -or $AccessRequestType -ieq "RDPApp") { $AccessRequestType = "RemoteDesktopApplication" }
+            elseif ($AccessRequestType -ieq "SSH") { $AccessRequestType = "Ssh" }
+            elseif ($AccessRequestType -ieq "SSHKey") { $AccessRequestType = "SshKey" }
+            elseif ($AccessRequestType -ieq "APIKey") { $AccessRequestType = "ApiKey" }
+
             if (-not $AccessPolicyObject.AccessRequestProperties) { $AccessPolicyObject.AccessRequestProperties = @{} }
             $AccessPolicyObject.AccessRequestProperties.AccessRequestType = $AccessRequestType
         }
@@ -1436,6 +1516,30 @@ function Edit-SafeguardAccessPolicy
         {
             $AccessPolicyObject.ScopeItems = @(Resolve-SafeguardAccessPolicyScopeItems -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
                 -ScopeAccounts $ScopeAccounts -ScopeAssets $ScopeAssets -ScopeAccountGroups $ScopeAccountGroups -ScopeAssetGroups $ScopeAssetGroups)
+        }
+
+        if ($PSBoundParameters.ContainsKey("SessionAccessAccountType") -or $PSBoundParameters.ContainsKey("SessionAccessAccounts") -or $AllowLinkedAccountPasswordAccess)
+        {
+            if (-not $AccessPolicyObject.AccessRequestProperties) { $AccessPolicyObject.AccessRequestProperties = @{} }
+        }
+        if ($PSBoundParameters.ContainsKey("SessionAccessAccountType"))
+        {
+            $AccessPolicyObject.AccessRequestProperties.SessionAccessAccountType = $SessionAccessAccountType
+        }
+        if ($PSBoundParameters.ContainsKey("SessionAccessAccounts"))
+        {
+            [object[]]$local:SessionAccounts = @()
+            foreach ($local:SessionAccount in $SessionAccessAccounts)
+            {
+                $local:AccountId = (Resolve-SafeguardPolicyAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:SessionAccount)
+                $local:SessionAccounts += @{ Id = $local:AccountId }
+            }
+            $AccessPolicyObject.AccessRequestProperties.SessionAccessAccountType = "PolicySpecific"
+            $AccessPolicyObject.AccessRequestProperties.SessionAccessAccounts = @($local:SessionAccounts)
+        }
+        if ($AllowLinkedAccountPasswordAccess)
+        {
+            $AccessPolicyObject.AccessRequestProperties.AllowLinkedAccountPasswordAccess = $true
         }
 
         if ($PSBoundParameters.ContainsKey("ApproverUsers") -or $PSBoundParameters.ContainsKey("ApproverGroups"))
