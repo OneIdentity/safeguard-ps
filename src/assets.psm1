@@ -1755,6 +1755,13 @@ A string containing the description for the account.
 .PARAMETER DomainName
 A string containing the domain name for the account.
 
+.PARAMETER PasswordProfile
+An integer containing the ID of a password profile or a string containing the name of a
+password profile to assign to this account.
+
+.PARAMETER PrivilegeGroupMembershipList
+An array of strings containing group names for account JIT privileges.
+
 .PARAMETER AccountObject
 An object containing the existing asset account with desired properties set.
 
@@ -1772,6 +1779,12 @@ Edit-SafeguardAssetAccount mysystem.domain.com root -Description "ADMIN"
 
 .EXAMPLE
 Edit-SafeguardAssetAccount -AccountObject $obj
+
+.EXAMPLE
+Edit-SafeguardAssetAccount mysystem.domain.com root -PasswordProfile "StandardProfile"
+
+.EXAMPLE
+Edit-SafeguardAssetAccount mysystem.domain.com root -PrivilegeGroupMembershipList "Group1","Group2"
 #>
 function Edit-SafeguardAssetAccount
 {
@@ -1795,6 +1808,10 @@ function Edit-SafeguardAssetAccount
         [string]$Description,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$DomainName,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [object]$PasswordProfile,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string[]]$PrivilegeGroupMembershipList,
         [Parameter(ParameterSetName="Object",Mandatory=$true)]
         [object]$AccountObject
     )
@@ -1820,6 +1837,18 @@ function Edit-SafeguardAssetAccount
 
         if ($PSBoundParameters.ContainsKey("Description")) { $AccountObject.Description = $Description }
         if ($PSBoundParameters.ContainsKey("DomainName")) { $AccountObject.DomainName = $DomainName }
+        if ($PSBoundParameters.ContainsKey("PasswordProfile"))
+        {
+            Import-Module -Name "$PSScriptRoot\profiles.psm1" -Scope Local
+            $local:ProfileId = (Resolve-SafeguardPasswordProfileId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                    -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $PasswordProfile)
+            if (-not $AccountObject.PasswordProfile) { $AccountObject.PasswordProfile = @{} }
+            $AccountObject.PasswordProfile.Id = $local:ProfileId
+        }
+        if ($PSBoundParameters.ContainsKey("PrivilegeGroupMembershipList"))
+        {
+            $AccountObject.PrivilegeGroupMembershipList = $PrivilegeGroupMembershipList
+        }
     }
     else
     {
@@ -1829,6 +1858,148 @@ function Edit-SafeguardAssetAccount
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AssetAccounts/$($AccountObject.Id)" -Body $AccountObject
+}
+
+<#
+.SYNOPSIS
+Enable an asset account in Safeguard via the Web API.
+
+.DESCRIPTION
+Enable an asset account in Safeguard.  This allows the account to be used for
+access requests and automated password tasks.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+the asset account is in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID the asset account is in.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER AssetToEdit
+An integer containing the ID of the asset to enable the account of or a string containing the name.
+
+.PARAMETER AccountToEdit
+An integer containing the ID of the account to enable or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Enable-SafeguardAssetAccount -AccessToken $token -Appliance 10.5.32.54 -Insecure windows.blah.corp administrator
+
+.EXAMPLE
+Enable-SafeguardAssetAccount mysystem.domain.com root
+#>
+function Enable-SafeguardAssetAccount
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$AssetToEdit,
+        [Parameter(Mandatory=$true,Position=1)]
+        [object]$AccountToEdit
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToEdit -Account $AccountToEdit)
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts/$($local:AccountId)/Enable"
+}
+
+<#
+.SYNOPSIS
+Disable an asset account in Safeguard via the Web API.
+
+.DESCRIPTION
+Disable an asset account in Safeguard.  This prevents the account from being used
+for access requests and automated password tasks.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+the asset account is in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID the asset account is in.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER AssetToEdit
+An integer containing the ID of the asset to disable the account of or a string containing the name.
+
+.PARAMETER AccountToEdit
+An integer containing the ID of the account to disable or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Disable-SafeguardAssetAccount -AccessToken $token -Appliance 10.5.32.54 -Insecure windows.blah.corp administrator
+
+.EXAMPLE
+Disable-SafeguardAssetAccount mysystem.domain.com root
+#>
+function Disable-SafeguardAssetAccount
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$AssetToEdit,
+        [Parameter(Mandatory=$true,Position=1)]
+        [object]$AccountToEdit
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToEdit -Account $AccountToEdit)
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts/$($local:AccountId)/Disable"
 }
 
 <#

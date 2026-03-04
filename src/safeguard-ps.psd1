@@ -186,6 +186,7 @@ FunctionsToExport = @(
     'Get-SafeguardAsset','Find-SafeguardAsset','New-SafeguardAsset','Test-SafeguardAsset',
     'Remove-SafeguardAsset','Edit-SafeguardAsset', 'Sync-SafeguardDirectoryAsset',
     'Get-SafeguardAssetAccount','Find-SafeguardAssetAccount','New-SafeguardAssetAccount','Edit-SafeguardAssetAccount',
+    'Enable-SafeguardAssetAccount','Disable-SafeguardAssetAccount',
     'Set-SafeguardAssetAccountPassword','Set-SafeguardAssetAccountSshKey','New-SafeguardAssetAccountRandomPassword',
     'Test-SafeguardAssetAccountPassword','Invoke-SafeguardAssetAccountPasswordChange',
     'Test-SafeguardAssetAccountSshKey','Invoke-SafeguardAssetAccountSshKeyChange',
