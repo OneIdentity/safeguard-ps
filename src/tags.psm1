@@ -287,7 +287,7 @@ function Get-SafeguardTagOccurrence {
         $local:Parameters = @{ fields = ($Fields -join ",")}
     } 
 
-    $local:TagId = (Resolve-SafeguardTagId-AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId ([ref]$AssetPartitionId) $Tag)
+    $local:TagId = (Resolve-SafeguardTagId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId ([ref]$AssetPartitionId) $Tag)
     $local:RelPath = "AssetPartitions/$AssetPartitionId/Tags"
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)/$($local:TagId)/Occurrences" -Parameters $local:Parameters
 }

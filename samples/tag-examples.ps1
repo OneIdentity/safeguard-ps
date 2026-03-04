@@ -51,7 +51,7 @@ Write-Host "Retrieved tag $($tagObject.Name) with description '$($tagObject.Desc
 
 
 # Example: Find a tag
-Find-SafeguardTag -QueryFilter "Name contains 'tag'" -Field Id,Name,Description -OrderBy Name
+Find-SafeguardTag -QueryFilter "Name contains 'tag'" -Fields Id,Name,Description -OrderBy Name
 
 
 # Example: Assign two tags to an Asset
@@ -81,11 +81,11 @@ Update-SafeguardAssetAccountTag -Account "root" -Tag @()
 
 
 # Example: Get the Tag occurrences for tag "prod"
-Get-SafeguardTagOccurence "prod"
+Get-SafeguardTagOccurrence "prod"
 
 
 # Example: Get the Tag occurrences for tag "prod" with specific fields specified
-Get-SafeguardTagOccurence "prod" -Field Id,Name,Description -OrderBy Name
+Get-SafeguardTagOccurrence "prod" -Fields Id,Name,Description
 
 
 # Example: Update a tag
