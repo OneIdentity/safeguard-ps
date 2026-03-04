@@ -1,4 +1,5 @@
-# Copyright (c) 2026 One Identity LLC. All rights reserved.
+<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
+
 <#
 .SYNOPSIS
 Upload trusted certificate to Safeguard via the Web API.

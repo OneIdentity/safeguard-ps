@@ -1,4 +1,5 @@
-# Copyright (c) 2026 One Identity LLC. All rights reserved.
+<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
+
 <#
 .SYNOPSIS
 Get the available cmdlets from the safeguard-ps module.
@@ -50,6 +51,22 @@ function Get-SafeguardCommand
     $local:Commands
 }
 
+<#
+.SYNOPSIS
+Display the welcome banner for the Safeguard PowerShell Management Shell.
+
+.DESCRIPTION
+Display the welcome banner with guidance on how to get help and list available cmdlets.
+
+.INPUTS
+None.
+
+.OUTPUTS
+None.
+
+.EXAMPLE
+Get-SafeguardBanner
+#>
 function Get-SafeguardBanner
 {
     [CmdletBinding()]

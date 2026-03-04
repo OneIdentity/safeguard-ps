@@ -1,4 +1,4 @@
-# Copyright (c) 2026 One Identity LLC. All rights reserved.
+<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
 # Helpers
 $script:SgAccessRequestFields = "Id","AccessRequestType","State","TicketNumber","IsEmergency","AssetId","AssetName","AssetNetworkAddress","AccountId","AccountDomainName","AccountName"
 function Resolve-SafeguardRequestableAssetId

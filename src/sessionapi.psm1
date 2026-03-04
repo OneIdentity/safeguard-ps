@@ -1,4 +1,4 @@
-# Copyright (c) 2026 One Identity LLC. All rights reserved.
+<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
 # Default UserAgent from powershell looks like a Mozilla browser. As of v7.5
 # SPS is requiring X-Token header include the user/info token value for all
 # PUT/POST/DELETE requests, but relaxes that requirement for non-browser
@@ -1416,6 +1416,7 @@ function Disable-SafeguardSpsRemoteAccess
 New-Alias -Name Disable-SafeguardSpsSra -Value Disable-SafeguardSpsRemoteAccess
 
 <#
+.SYNOPSIS
 Get Safeguard SPS appliance information via the Web API.
 
 .DESCRIPTION

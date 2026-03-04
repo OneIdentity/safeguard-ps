@@ -1,4 +1,5 @@
-# Copyright (c) 2026 One Identity LLC. All rights reserved.
+<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
+
 <#
 .SYNOPSIS
 Gets Safeguard debug log settings
@@ -27,7 +28,7 @@ JSON response from Safeguard Web API.
 Get-SafeguardDebugSettings -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
-Set-SafeguardDebugSettings 
+Get-SafeguardDebugSettings
 #>
 function Get-SafeguardDebugSettings
 {
