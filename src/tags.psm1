@@ -149,7 +149,7 @@ Note, tag names are not globally unique. They are only unique within an Asset Pa
 If you don't specify an Asset Partition, then all tags will be searched.
 If this value is empty, all tags on the Asset Partition will be returned.
 
-.PARAMETER Field
+.PARAMETER Fields
 An array of the tag property names to return.
 (can be one of the following Id, AssetPartitionId, AssetPartitionName, Name, Description, AssetTaggingRule, AssetAccountTaggingRule, ManagedBy)
 
@@ -163,7 +163,7 @@ JSON response from Safeguard Web API.
 Get-SafeguardTag -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
-Get-SafeguardTag "tagname" -Field "Id","Name","ManagedBy"
+Get-SafeguardTag "tagname" -Fields "Id","Name","ManagedBy"
 #>
 function Get-SafeguardTag {
     [CmdletBinding()]
@@ -181,15 +181,15 @@ function Get-SafeguardTag {
         [Parameter(Mandatory=$false,Position=0)]
         [object]$TagToGet,
         [Parameter(Mandatory=$false)]
-        [string[]]$Field
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:Parameters = $null
-    if ($Field) {
-        $local:Parameters = @{ fields = ($Field -join ",")}
+    if ($Fields) {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
     }
 
     Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
@@ -245,7 +245,7 @@ An integer containing the asset partition ID to get tags from.
 .PARAMETER Tag
 Mandatory parameter. An integer containing the ID of the tag to get or a string containing the name of the tag.
 
-.PARAMETER Field
+.PARAMETER Fields
 An array of the tag property names to return (can be one of the following Id, Name, DomainName, Type, AssetId, AssetName, IsStatic)
 
 .INPUTS
@@ -276,18 +276,18 @@ function Get-SafeguardTagOccurrence {
         [Parameter(Mandatory=$true,Position=0)]
         [object]$Tag,
         [Parameter(Mandatory=$false)]
-        [string[]]$Field
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:Parameters = $null
-    if ($Field) {
-        $local:Parameters = @{ fields = ($Field -join ",")}
+    if ($Fields) {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
     } 
 
-    $local:TagId = (Resolve-SafeguardTagId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId ([ref]$AssetPartitionId) $Tag)
+    $local:TagId = (Resolve-SafeguardTagId-AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId ([ref]$AssetPartitionId) $Tag)
     $local:RelPath = "AssetPartitions/$AssetPartitionId/Tags"
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)/$($local:TagId)/Occurrences" -Parameters $local:Parameters
 }
@@ -320,7 +320,7 @@ An integer containing the asset partition ID to get the asset's tags from.
 .PARAMETER Asset
 Required parameter. An integer containing the ID of the asset or a string containing the name of the asset to get the tags for.
 
-.PARAMETER Field
+.PARAMETER Fields
 An array of the tag property names to return.
 (Can be one of the following: Id, Name, Description, AdminAssigned)
 
@@ -337,7 +337,7 @@ Get-SafeguardAssetTag "assetname"
 Get-SafeguardAssetTag 14 
 
 .EXAMPLE
-Get-SafeguardAssetTag "assetname" -Field Id,Name,Description
+Get-SafeguardAssetTag "assetname" -Fields Id,Name,Description
 
 #>
 function Get-SafeguardAssetTag {
@@ -356,15 +356,15 @@ function Get-SafeguardAssetTag {
         [Parameter(Mandatory=$true,Position=0)]
         [object]$Asset,
         [Parameter(Mandatory=$false)]
-        [string[]]$Field
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:Parameters = $null
-    if ($Field) {
-        $local:Parameters = @{ fields = ($Field -join ",")}
+    if ($Fields) {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
     }
     
     Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
@@ -504,7 +504,12 @@ An integer containing the asset partition ID to get the asset account's tags fro
 .PARAMETER Account
 Mandatory parameter. An integer containing the ID of the account or a string containing the name of the account to get the tags for.
 
-.PARAMETER Field
+.PARAMETER Asset
+An integer containing the ID of the asset or a string containing the name of the asset
+that the account belongs to.  This can help disambiguate accounts with the same name on
+different assets.
+
+.PARAMETER Fields
 String array with the tag property names to return.
 (Can be one of the following: Id,Name,Description,AdminAssigned
 
@@ -518,7 +523,7 @@ JSON response from Safeguard Web API.
 Get-SafeguardAssetAccountTag "accountname" 
 
 .EXAMPLE
-Get-SafeguardAssetAccountTag "accountname" -Field Id,Name,Description
+Get-SafeguardAssetAccountTag "accountname" -Fields Id,Name,Description
 
 #>
 function Get-SafeguardAssetAccountTag {
@@ -537,19 +542,21 @@ function Get-SafeguardAssetAccountTag {
         [Parameter(Mandatory=$true,Position=0)]
         [object]$Account,
         [Parameter(Mandatory=$false)]
-        [string[]]$Field
+        [object]$Asset,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:Parameters = $null
-    if ($Field) {
-        $local:Parameters = @{ fields = ($Field -join ",")}
+    if ($Fields) {
+        $local:Parameters = @{ fields = ($Fields -join ",")}
     }
    
     Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
-    $local:AccountId = (Resolve-SafeguardAssetAccountId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Account $Account)
+    $local:AccountId = (Resolve-SafeguardAssetAccountId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $Asset -Account $Account)
 
     if (-not $local:AccountId) {
         throw "Unable to find account '$($Account)'."
@@ -586,6 +593,11 @@ An integer containing the asset partition ID to get the asset's tags from.
 
 .PARAMETER Account
 Mandatory parameter. An integer containing the ID of the account or a string containing the name of the account to update the tags for.
+
+.PARAMETER Asset
+An integer containing the ID of the asset or a string containing the name of the asset
+that the account belongs to.  This can help disambiguate accounts with the same name on
+different assets.
 
 .PARAMETER Tag
 Mandatory parameter. An array of integers with the Tag Ids or a string array with the Tag names to assign to the account.
@@ -624,6 +636,8 @@ function Update-SafeguardAssetAccountTag {
         [Parameter(Mandatory=$true,Position=0)]
         [object]$Account,
         [Parameter(Mandatory=$false)]
+        [object]$Asset,
+        [Parameter(Mandatory=$false)]
         [object[]]$Tag
     )
 
@@ -631,7 +645,7 @@ function Update-SafeguardAssetAccountTag {
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
    
     Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
-    $local:Account = (Get-SafeguardAssetAccount -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartitionId $AssetPartitionId -Fields Id,Asset.AssetPartitionId -Account $Account)
+    $local:Account = (Get-SafeguardAssetAccount -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartitionId $AssetPartitionId -AssetToGet $Asset -Fields Id,Asset.AssetPartitionId -AccountToGet $Account)
 
     if (-not $local:Account) {
         throw "Unable to find account '$($Account)'."
@@ -683,7 +697,7 @@ A string to pass to the -filter query parameter in the Safeguard Web API.
 Example: Name ieq 'prod'
 Available operators: eq, ne, gt, ge, lt, le, and, or, not, contains, ieq, icontains, sw, isw, ew, iew, in [ {item1}, {item2}, etc], (). Use \ to escape quotes, asterisks and backslashes in strings.
 
-.PARAMETER Field
+.PARAMETER Fields
 An array of the tag property names to return.
 (can be one of the following Id, AssetPartitionId, AssetPartitionName, Name, Description, AssetTaggingRule, AssetAccountTaggingRule, ManagedBy)
 
@@ -709,7 +723,7 @@ Find-SafeguardTag -QueryFilter "Description eq 'locations'"
 Find-SafeguardTag -QueryFilter "AssetTaggingRule.Description eq 'WindowsServers'"
 
 .EXAMPLE
-Find-SafeguardTag -QueryFilter "Name contains 'prod'" -Field Id,Name,Description -OrderBy Name
+Find-SafeguardTag -QueryFilter "Name contains 'prod'" -Fields Id,Name,Description -OrderBy Name
 #>
 function Find-SafeguardTag {
     [CmdletBinding(DefaultParameterSetName="Search")]
@@ -729,7 +743,7 @@ function Find-SafeguardTag {
         [Parameter(Mandatory=$true,Position=0,ParameterSetName="Query")]
         [string]$QueryFilter,
         [Parameter(Mandatory=$false)]
-        [string[]]$Field,
+        [string[]]$Fields,
         [Parameter(Mandatory=$false)]
         [string[]]$OrderBy
     )
@@ -756,8 +770,8 @@ function Find-SafeguardTag {
         $local:Parameters = @{ filter = $QueryFilter }
     }
 
-    if ($Field) {
-        $local:Parameters["fields"] = ($Field -join ",")
+    if ($Fields) {
+        $local:Parameters["fields"] = ($Fields -join ",")
     }
     if ($OrderBy) {
         $local:Parameters["orderby"] = ($OrderBy -join ",")
