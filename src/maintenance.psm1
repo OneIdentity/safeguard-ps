@@ -1222,8 +1222,8 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate
 
-.PARAMETER Name
-A string containing the name to give the appliance.
+.PARAMETER DnsSuffix
+A string containing the DNS suffix to give the appliance.
 
 .INPUTS
 None.

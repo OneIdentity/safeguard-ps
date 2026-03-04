@@ -498,7 +498,7 @@ An integer of the minimum number of uppercase characters (default: 1)
 .PARAMETER MaxConsecutiveUppercase
 An integer of the maximum number of consecutive uppercase characters (default: not set)
 
-.PARAMETER InvalidUppercase
+.PARAMETER InvalidUppercaseChars
 A string containing all of the invalid uppercase characters (default: not set)
 Example: "ATXYZ", meaning none of those characters will show up in passwords
 
@@ -733,7 +733,7 @@ An integer of the minimum number of uppercase characters (default: 1)
 .PARAMETER MaxConsecutiveUppercase
 An integer of the maximum number of consecutive uppercase characters (default: not set)
 
-.PARAMETER InvalidUppercase
+.PARAMETER InvalidUppercaseChars
 A string containing all of the invalid uppercase characters (default: not set)
 Example: "ATXYZ", meaning none of those characters will show up in passwords
 
@@ -1460,7 +1460,7 @@ to copy the password check schedule in.
 An integer containing the asset partition ID to copy the password check schedule in.
 (If specified, this will override the AssetPartition parameter)
 
-.PARAMETER CheckScheduleToEdit
+.PARAMETER CheckScheduleToCopy
 An integer containing the ID of the password check schedule to copy or a string containing the name.
 
 .PARAMETER CopyName
@@ -1962,7 +1962,7 @@ to copy the password change schedule in.
 An integer containing the asset partition ID to copy the password change schedule in.
 (If specified, this will override the AssetPartition parameter)
 
-.PARAMETER ChangeScheduleToEdit
+.PARAMETER ChangeScheduleToCopy
 An integer containing the ID of the password change schedule to copy or a string containing the name.
 
 .PARAMETER CopyName
@@ -2378,7 +2378,7 @@ to copy the password profile in.
 An integer containing the asset partition ID to copy the password profile in.
 (If specified, this will override the AssetPartition parameter)
 
-.PARAMETER ProfileToEdit
+.PARAMETER ProfileToCopy
 An integer containing the ID of the password profile to copy or a string containing the name.
 
 .PARAMETER CopyName

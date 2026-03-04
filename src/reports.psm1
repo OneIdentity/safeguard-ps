@@ -586,7 +586,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER UserList
-An integer containing the ID of the access policy to get or a string containing the name.
+An array of integers or strings containing the IDs or names of the users to include in the report.
 
 .PARAMETER OutputDirectory
 String containing the directory where to create the CSV file.

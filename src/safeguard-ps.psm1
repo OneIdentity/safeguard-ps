@@ -894,8 +894,8 @@ Client certificate thumbprint to use to authenticate the connection to the RSTS.
 .PARAMETER Version
 Version of the Web API you are using (default: 4).
 
-.PARAMETER Gui (Deprecated)
-Use -Browser instead.
+.PARAMETER Gui
+(Deprecated) Use -Browser instead.
 
 .PARAMETER Browser
 Launch redistributable STS login window in a native system browser.  Supports 2FA.
@@ -1851,9 +1851,6 @@ Refresh the access token in your current Safeguard session via the Web API.
 This utility calls the Safeguard Web API using the information in your Safeguard
 session variable to refresh your access token.  It can be made completely
 non-interactive when using the certificate provider.
-
-.PARAMETER Raw
-When provided this cmdlet returns a Timespan object rather than a message.
 
 .INPUTS
 None.

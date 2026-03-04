@@ -341,7 +341,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
-.PARAMETER ProviderToGet
+.PARAMETER ProviderToSet
 An integer containing an ID  or a string containing the name of the identity provider to set.
 
 .INPUTS

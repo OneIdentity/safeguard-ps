@@ -347,9 +347,6 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
-.PARAMETER Name
-A string containing the name of the Starling subscription.
-
 .INPUTS
 None.
 

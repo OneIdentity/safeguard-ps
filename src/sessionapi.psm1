@@ -829,9 +829,6 @@ Safeguard SPS Web API is implemented as HATEOAS. To get started crawling
 through the API, call Show-SafeguardSpsEndpoint.  Then, you can follow to
 the different API areas, such as configuration or health-status.
 
-.PARAMETER Appliance
-IP address or hostname of a Safeguard appliance.
-
 .PARAMETER Method
 HTTP method verb you would like to use: GET, PUT, POST, DELETE.
 
@@ -1189,7 +1186,7 @@ function Clear-SafeguardSpsTransaction
 
 <#
 .SYNOPSIS
-Call a method in the Safeguard SPS Web API.
+Display available endpoints from the Safeguard SPS Web API.
 
 .DESCRIPTION
 Safeguard SPS Web API is implemented as HATEOAS. This cmdlet is helpful for

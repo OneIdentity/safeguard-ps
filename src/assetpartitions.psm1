@@ -241,12 +241,12 @@ function New-SafeguardAssetPartition
 
 <#
 .SYNOPSIS
-Create a new asset partitions via the Web API.
+Remove an asset partition via the Web API.
 
 .DESCRIPTION
 Asset partitions are an administrative container for Safeguard assets.  Asset
 partitions may be given owners who can manage only the assets within that
-asset partition.  This cmdlet removes an asset partitions and can also assign
+asset partition.  This cmdlet removes an asset partition and can also assign
 any existing assets to another asset partition.
 
 .PARAMETER Appliance

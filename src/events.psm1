@@ -898,8 +898,8 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
-.PARAMETER SubscriptonId
-An integer containg the ID of an event subscription to be updated.
+.PARAMETER SubscriptionId
+An integer containing the ID of an event subscription to be updated.
 
 .PARAMETER SubscriptionObject
 An object containing the existing event subscription with desired properties set.

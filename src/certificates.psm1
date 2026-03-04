@@ -1097,8 +1097,8 @@ A string containing the subject base Dn (e.g. "").
 .PARAMETER KeySize
 An integer with the RSA key size.
 
-.PARAMETER Insecure
-Ignore verification of Safeguard appliance SSL certificate--will be ignored for entire session.
+.PARAMETER OutputDirectory
+A string containing the directory path where generated certificates will be saved.
 
 .INPUTS
 None.

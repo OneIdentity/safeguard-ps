@@ -714,8 +714,8 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
-.PARAMETER DirectoryToEdit
-An integer containing the ID of the directory identity provider to edit or a string containing the name.
+.PARAMETER DirectoryToGet
+An integer containing the ID of the directory identity provider to get or a string containing the name.
 
 .PARAMETER SchemaType
 A string containing which schema type to get.
@@ -777,8 +777,8 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
-.PARAMETER DirectoryToEdit
-An integer containing the ID of the directory identity provider to edit or a string containing the name.
+.PARAMETER DirectoryToGet
+An integer containing the ID of the directory identity provider to get or a string containing the name.
 
 .PARAMETER SchemaType
 A string containing which schema type to get.

@@ -534,9 +534,6 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
-.PARAMETER Member
-A string containing an ID, name, or network address for the member appliance.
-
 .INPUTS
 None.
 
