@@ -111,7 +111,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 String containing the directory where to create the CSV file.
 
 .PARAMETER Excel
-Automatically open the CSV file into excel after it is generation.
+Automatically open the CSV file into excel after it is generated.
 
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.
@@ -185,7 +185,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 String containing the directory where to create the CSV file.
 
 .PARAMETER Excel
-Automatically open the CSV file into excel after it is generation.
+Automatically open the CSV file into excel after it is generated.
 
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.
@@ -267,7 +267,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 String containing the directory where to create the CSV file.
 
 .PARAMETER Excel
-Automatically open the CSV file into excel after it is generation.
+Automatically open the CSV file into excel after it is generated.
 
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.
@@ -349,7 +349,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 String containing the directory where to create the CSV file.
 
 .PARAMETER Excel
-Automatically open the CSV file into excel after it is generation.
+Automatically open the CSV file into excel after it is generated.
 
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.
@@ -431,7 +431,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 String containing the directory where to create the CSV file.
 
 .PARAMETER Excel
-Automatically open the CSV file into excel after it is generation.
+Automatically open the CSV file into excel after it is generated.
 
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.
@@ -513,7 +513,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 String containing the directory where to create the CSV file.
 
 .PARAMETER Excel
-Automatically open the CSV file into excel after it is generation.
+Automatically open the CSV file into excel after it is generated.
 
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.
@@ -592,7 +592,7 @@ An array of integers or strings containing the IDs or names of the users to incl
 String containing the directory where to create the CSV file.
 
 .PARAMETER Excel
-Automatically open the CSV file into excel after it is generation.
+Automatically open the CSV file into excel after it is generated.
 
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.
@@ -684,7 +684,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 String containing the directory where to create the CSV file.
 
 .PARAMETER Excel
-Automatically open the CSV file into excel after it is generation.
+Automatically open the CSV file into excel after it is generated.
 
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.
@@ -787,7 +787,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 String containing the directory where to create the CSV file.
 
 .PARAMETER Excel
-Automatically open the CSV file into excel after it is generation.
+Automatically open the CSV file into excel after it is generated.
 
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.
@@ -895,7 +895,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 String containing the directory where to create the CSV file.
 
 .PARAMETER Excel
-Automatically open the CSV file into excel after it is generation.
+Automatically open the CSV file into excel after it is generated.
 
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.
@@ -1007,7 +1007,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 String containing the directory where to create the CSV file.
 
 .PARAMETER Excel
-Automatically open the CSV file into excel after it is generation.
+Automatically open the CSV file into excel after it is generated.
 
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.
@@ -1116,7 +1116,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 String containing the directory where to create the CSV file.
 
 .PARAMETER Excel
-Automatically open the CSV file into excel after it is generation.
+Automatically open the CSV file into excel after it is generated.
 
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.
@@ -1217,7 +1217,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 String containing the directory where to create the CSV file.
 
 .PARAMETER Excel
-Automatically open the CSV file into excel after it is generation.
+Automatically open the CSV file into excel after it is generated.
 
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.
@@ -1310,7 +1310,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 String containing the directory where to create the CSV file.
 
 .PARAMETER Excel
-Automatically open the CSV file into excel after it is generation.
+Automatically open the CSV file into excel after it is generated.
 
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.

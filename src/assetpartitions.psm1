@@ -161,7 +161,7 @@ function Get-SafeguardAssetPartition
 
 <#
 .SYNOPSIS
-Create a new asset partitions via the Web API.
+Create a new asset partition via the Web API.
 
 .DESCRIPTION
 Asset partitions are an administrative container for Safeguard assets.  Asset
