@@ -152,10 +152,11 @@ The name of the entitlement.
 A string containing the description of the entitlement.
 
 .PARAMETER MemberUsers
-Array of IDs or names of the users to be added to the entitlement.
+Array of IDs or names of the users to be added to the entitlement. Use 'provider\user' syntax
+to uniquely identify users from a specific identity provider (e.g. 'local\admin', 'ad.corp\jsmith').
 
 .PARAMETER MemberGroups
-Array of IDs or names of the users to be added to the entitlement.
+Array of IDs or names of the user groups to be added to the entitlement.
 
 .INPUTS
 None.
@@ -302,7 +303,8 @@ A string containing the new name for the entitlement.
 A string containing the new description for the entitlement.
 
 .PARAMETER MemberUsers
-Array of IDs or names of the users to set as members of the entitlement.
+Array of IDs or names of the users to set as members of the entitlement. Use 'provider\user' syntax
+to uniquely identify users from a specific identity provider (e.g. 'local\admin', 'ad.corp\jsmith').
 
 .PARAMETER MemberGroups
 Array of IDs or names of the user groups to set as members of the entitlement.
@@ -391,4 +393,198 @@ function Edit-SafeguardEntitlement
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Roles/$($EntitlementObject.Id)" -Body $EntitlementObject
+}
+
+<#
+.SYNOPSIS
+Add one or more users or groups to an entitlement in Safeguard via the Web API.
+
+.DESCRIPTION
+When entitlement membership changes, it affects which users can request access
+through the access policies attached to that entitlement.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Entitlement
+An integer containing the ID or a string containing the name of the entitlement.
+
+.PARAMETER Users
+An array of user IDs or names to add to the entitlement. Use 'provider\user' syntax
+to uniquely identify users from a specific identity provider (e.g. 'local\admin', 'ad.corp\jsmith').
+
+.PARAMETER Groups
+An array of user group IDs or names to add to the entitlement.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Add-SafeguardEntitlementMember "Lab Entitlement" -Users user1,user2
+
+.EXAMPLE
+Add-SafeguardEntitlementMember "Lab Entitlement" -Groups "Lab Users"
+
+.EXAMPLE
+Add-SafeguardEntitlementMember "Lab Entitlement" -Users user1 -Groups "Lab Users"
+
+.EXAMPLE
+Add-SafeguardEntitlementMember "Lab Entitlement" -Users "local\admin","ad.corp\jsmith"
+#>
+function Add-SafeguardEntitlementMember
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Entitlement,
+        [Parameter(Mandatory=$false)]
+        [object[]]$Users,
+        [Parameter(Mandatory=$false)]
+        [object[]]$Groups
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not $PSBoundParameters.ContainsKey("Users") -and -not $PSBoundParameters.ContainsKey("Groups"))
+    {
+        throw "You must specify -Users, -Groups, or both"
+    }
+
+    $local:EntitlementId = (Resolve-SafeguardEntitlementId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Entitlement)
+
+    [object[]]$local:Members = @()
+    foreach ($local:User in $Users)
+    {
+        $local:ResolvedUserId = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User).Id
+        $local:Members += @{
+            Id = $local:ResolvedUserId;
+            PrincipalKind = "User"
+        }
+    }
+    foreach ($local:Group in $Groups)
+    {
+        $local:ResolvedGroupId = (Get-SafeguardUserGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -GroupToGet $local:Group).Id
+        $local:Members += @{
+            Id = $local:ResolvedGroupId;
+            PrincipalKind = "Group"
+        }
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST `
+        "Roles/$($local:EntitlementId)/Members/Add" -Body $local:Members | Out-Null
+
+    Get-SafeguardEntitlement -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:EntitlementId
+}
+
+<#
+.SYNOPSIS
+Remove one or more users or groups from an entitlement in Safeguard via the Web API.
+
+.DESCRIPTION
+When entitlement membership changes, it affects which users can request access
+through the access policies attached to that entitlement.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Entitlement
+An integer containing the ID or a string containing the name of the entitlement.
+
+.PARAMETER Users
+An array of user IDs or names to remove from the entitlement. Use 'provider\user' syntax
+to uniquely identify users from a specific identity provider (e.g. 'local\admin', 'ad.corp\jsmith').
+
+.PARAMETER Groups
+An array of user group IDs or names to remove from the entitlement.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardEntitlementMember "Lab Entitlement" -Users user1,user2
+
+.EXAMPLE
+Remove-SafeguardEntitlementMember "Lab Entitlement" -Groups "Lab Users"
+
+.EXAMPLE
+Remove-SafeguardEntitlementMember "Lab Entitlement" -Users user1 -Groups "Lab Users"
+
+.EXAMPLE
+Remove-SafeguardEntitlementMember "Lab Entitlement" -Users "local\admin","ad.corp\jsmith"
+#>
+function Remove-SafeguardEntitlementMember
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Entitlement,
+        [Parameter(Mandatory=$false)]
+        [object[]]$Users,
+        [Parameter(Mandatory=$false)]
+        [object[]]$Groups
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not $PSBoundParameters.ContainsKey("Users") -and -not $PSBoundParameters.ContainsKey("Groups"))
+    {
+        throw "You must specify -Users, -Groups, or both"
+    }
+
+    $local:EntitlementId = (Resolve-SafeguardEntitlementId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Entitlement)
+
+    [object[]]$local:Members = @()
+    foreach ($local:User in $Users)
+    {
+        $local:ResolvedUserId = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User).Id
+        $local:Members += @{
+            Id = $local:ResolvedUserId;
+            PrincipalKind = "User"
+        }
+    }
+    foreach ($local:Group in $Groups)
+    {
+        $local:ResolvedGroupId = (Get-SafeguardUserGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -GroupToGet $local:Group).Id
+        $local:Members += @{
+            Id = $local:ResolvedGroupId;
+            PrincipalKind = "Group"
+        }
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST `
+        "Roles/$($local:EntitlementId)/Members/Remove" -Body $local:Members | Out-Null
+
+    Get-SafeguardEntitlement -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:EntitlementId
 }
