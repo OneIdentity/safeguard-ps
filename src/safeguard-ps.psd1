@@ -186,6 +186,7 @@ FunctionsToExport = @(
     'Get-SafeguardAsset','Find-SafeguardAsset','New-SafeguardAsset','Test-SafeguardAsset',
     'Remove-SafeguardAsset','Edit-SafeguardAsset', 'Sync-SafeguardDirectoryAsset',
     'Get-SafeguardAssetAccount','Find-SafeguardAssetAccount','New-SafeguardAssetAccount','Edit-SafeguardAssetAccount',
+    'Enable-SafeguardAssetAccount','Disable-SafeguardAssetAccount',
     'Set-SafeguardAssetAccountPassword','Set-SafeguardAssetAccountSshKey','New-SafeguardAssetAccountRandomPassword',
     'Test-SafeguardAssetAccountPassword','Invoke-SafeguardAssetAccountPasswordChange',
     'Test-SafeguardAssetAccountSshKey','Invoke-SafeguardAssetAccountSshKeyChange',
@@ -296,8 +297,11 @@ FunctionsToExport = @(
     # auditlog.psm1
     'Get-SafeguardAuditLog',
     # tags.psm1
-    'Get-SafeguardTag', 'Get-SafeguardTagOccurrence', 'Get-SafeguardAssetTag', 'Update-SafeguardAssetTag', 'Get-SafeguardAssetAccountTag',
-    'Update-SafeguardAssetAccountTag', 'Find-SafeguardTag', 'New-SafeguardTag', 'Update-SafeguardTag', 'Remove-SafeguardTag',
+    'Get-SafeguardTag', 'Get-SafeguardTagOccurrence', 'Get-SafeguardAssetTag', 'Update-SafeguardAssetTag',
+    'Add-SafeguardAssetTag', 'Remove-SafeguardAssetTag',
+    'Get-SafeguardAssetAccountTag', 'Update-SafeguardAssetAccountTag',
+    'Add-SafeguardAssetAccountTag', 'Remove-SafeguardAssetAccountTag',
+    'Find-SafeguardTag', 'New-SafeguardTag', 'Update-SafeguardTag', 'Remove-SafeguardTag',
     'Test-SafeguardAssetTaggingRule', 'Test-SafeguardAssetAccountTaggingRule'
 )
 
