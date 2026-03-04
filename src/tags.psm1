@@ -479,6 +479,177 @@ function Update-SafeguardAssetTag {
 
 <#
 .SYNOPSIS
+Add tags to a specific asset via the Web API.
+
+.DESCRIPTION
+Add one or more tags to a specific asset without affecting existing tags.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition.
+If this value is empty, the Macrocosm partition will be used.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER Asset
+Mandatory parameter. An integer containing the ID of the asset or a string containing the name of the asset to add tags to.
+
+.PARAMETER Tag
+Mandatory parameter. An array of integers with the tag Ids or a string array of tag names to add to the asset.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Add-SafeguardAssetTag "assetname" -Tag "Prod","DMZ"
+
+.EXAMPLE
+Add-SafeguardAssetTag 8 -Tag "NewTag"
+#>
+function Add-SafeguardAssetTag
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Asset,
+        [Parameter(Mandatory=$true)]
+        [object[]]$Tag
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
+    $local:Asset = (Get-SafeguardAsset -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                        -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Fields Id,AssetPartitionId $Asset)
+
+    if (-not $local:Asset)
+    {
+        throw "Unable to find asset '$($Asset)'."
+    }
+
+    $local:Body = @()
+    foreach ($local:TagObj in $Tag)
+    {
+        $local:TagId = (Resolve-SafeguardTagId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                            -AssetPartitionId ([ref]$local:Asset.AssetPartitionId) $local:TagObj)
+        $local:Body += [PSCustomObject]@{ Id = $local:TagId }
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Assets/$($local:Asset.Id)/Tags/Add" -Body $local:Body
+}
+
+<#
+.SYNOPSIS
+Remove tags from a specific asset via the Web API.
+
+.DESCRIPTION
+Remove one or more tags from a specific asset without affecting other existing tags.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition.
+If this value is empty, the Macrocosm partition will be used.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER Asset
+Mandatory parameter. An integer containing the ID of the asset or a string containing the name of the asset to remove tags from.
+
+.PARAMETER Tag
+Mandatory parameter. An array of integers with the tag Ids or a string array of tag names to remove from the asset.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardAssetTag "assetname" -Tag "Prod","DMZ"
+
+.EXAMPLE
+Remove-SafeguardAssetTag 8 -Tag "OldTag"
+#>
+function Remove-SafeguardAssetTag
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Asset,
+        [Parameter(Mandatory=$true)]
+        [object[]]$Tag
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
+    $local:Asset = (Get-SafeguardAsset -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                        -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Fields Id,AssetPartitionId $Asset)
+
+    if (-not $local:Asset)
+    {
+        throw "Unable to find asset '$($Asset)'."
+    }
+
+    $local:Body = @()
+    foreach ($local:TagObj in $Tag)
+    {
+        $local:TagId = (Resolve-SafeguardTagId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                            -AssetPartitionId ([ref]$local:Asset.AssetPartitionId) $local:TagObj)
+        $local:Body += [PSCustomObject]@{ Id = $local:TagId }
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "Assets/$($local:Asset.Id)/Tags/Remove" -Body $local:Body
+}
+
+
+<#
+.SYNOPSIS
 Get the tags from a specific account via the Web API.
 
 .DESCRIPTION
@@ -663,6 +834,190 @@ function Update-SafeguardAssetAccountTag {
         # No tags specified so remove all tags. Send empty json body.
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AssetAccounts/$($local:Account.Id)/Tags" -JsonBody "[]"
     }    
+}
+
+<#
+.SYNOPSIS
+Add tags to a specific asset account via the Web API.
+
+.DESCRIPTION
+Add one or more tags to a specific asset account without affecting existing tags.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition.
+If this value is empty, the Macrocosm partition will be used.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER Account
+Mandatory parameter. An integer containing the ID of the account or a string containing the name of the account to add tags to.
+
+.PARAMETER Asset
+An integer containing the ID of the asset or a string containing the name of the asset
+that the account belongs to.  This can help disambiguate accounts with the same name on
+different assets.
+
+.PARAMETER Tag
+Mandatory parameter. An array of integers with the tag Ids or a string array of tag names to add to the account.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Add-SafeguardAssetAccountTag "accountname" -Tag "Prod","DMZ"
+
+.EXAMPLE
+Add-SafeguardAssetAccountTag -Asset "assetname" -Account "svcuser" -Tag "NewTag"
+#>
+function Add-SafeguardAssetAccountTag
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Account,
+        [Parameter(Mandatory=$false)]
+        [object]$Asset,
+        [Parameter(Mandatory=$true)]
+        [object[]]$Tag
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
+    $local:Account = (Get-SafeguardAssetAccount -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                          -AssetPartitionId $AssetPartitionId -AssetToGet $Asset -Fields Id,Asset.AssetPartitionId -AccountToGet $Account)
+
+    if (-not $local:Account)
+    {
+        throw "Unable to find account '$($Account)'."
+    }
+
+    $local:Body = @()
+    foreach ($local:TagObj in $Tag)
+    {
+        $local:TagId = (Resolve-SafeguardTagId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                            -AssetPartitionId ([ref]$local:Account.Asset.AssetPartitionId) $local:TagObj)
+        $local:Body += [PSCustomObject]@{ Id = $local:TagId }
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts/$($local:Account.Id)/Tags/Add" -Body $local:Body
+}
+
+<#
+.SYNOPSIS
+Remove tags from a specific asset account via the Web API.
+
+.DESCRIPTION
+Remove one or more tags from a specific asset account without affecting other existing tags.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition.
+If this value is empty, the Macrocosm partition will be used.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER Account
+Mandatory parameter. An integer containing the ID of the account or a string containing the name of the account to remove tags from.
+
+.PARAMETER Asset
+An integer containing the ID of the asset or a string containing the name of the asset
+that the account belongs to.  This can help disambiguate accounts with the same name on
+different assets.
+
+.PARAMETER Tag
+Mandatory parameter. An array of integers with the tag Ids or a string array of tag names to remove from the account.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardAssetAccountTag "accountname" -Tag "Prod","DMZ"
+
+.EXAMPLE
+Remove-SafeguardAssetAccountTag -Asset "assetname" -Account "svcuser" -Tag "OldTag"
+#>
+function Remove-SafeguardAssetAccountTag
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Account,
+        [Parameter(Mandatory=$false)]
+        [object]$Asset,
+        [Parameter(Mandatory=$true)]
+        [object[]]$Tag
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
+    $local:Account = (Get-SafeguardAssetAccount -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                          -AssetPartitionId $AssetPartitionId -AssetToGet $Asset -Fields Id,Asset.AssetPartitionId -AccountToGet $Account)
+
+    if (-not $local:Account)
+    {
+        throw "Unable to find account '$($Account)'."
+    }
+
+    $local:Body = @()
+    foreach ($local:TagObj in $Tag)
+    {
+        $local:TagId = (Resolve-SafeguardTagId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                            -AssetPartitionId ([ref]$local:Account.Asset.AssetPartitionId) $local:TagObj)
+        $local:Body += [PSCustomObject]@{ Id = $local:TagId }
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts/$($local:Account.Id)/Tags/Remove" -Body $local:Body
 }
 
 
