@@ -484,6 +484,9 @@ An integer containing the ID of the certificate user or a string containing the 
 .PARAMETER Description
 A string containing a description for this A2A registration.
 
+.PARAMETER A2aToEdit
+An integer containing the ID or a string containing the name of the A2A registration to edit.
+
 .PARAMETER A2aObject
 An object containing the existing A2A registration with desired properties set.
 
@@ -1323,6 +1326,15 @@ A string containing the bearer token to be used with Safeguard Web API.
 
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetName
+A string to filter results by asset name (case-insensitive).
+
+.PARAMETER AccountName
+A string to filter results by account name (case-insensitive).
+
+.PARAMETER DomainName
+A string to filter results by domain name (case-insensitive).
 
 .INPUTS
 None.

@@ -381,6 +381,9 @@ A string containing the desired primary NTP server.
 .PARAMETER Timeout
 A timeout value in seconds to wait for SPS to complete (default: 600 seconds or 10 minutes).
 
+.PARAMETER PollOriginalIp
+When this switch is specified, poll the original appliance IP address after an IP change instead of the new address.
+
 .INPUTS
 None.
 
@@ -863,6 +866,9 @@ Path to an input file for upload.
 .PARAMETER OutFile
 Name of output file for downloads.
 
+.PARAMETER ExtraHeaders
+A hashtable containing additional HTTP headers to include in the request.
+
 .INPUTS
 None.
 
@@ -1241,6 +1247,9 @@ Credentials will not be echoed to the screen.
 .PARAMETER Environment
 Which Starling environment to join (default: prod)
 
+.PARAMETER DataCenter
+Which Starling data center region to use (default: us). Valid values are "us" and "eu".
+
 .EXAMPLE
 Invoke-SafeguardSpsStarlingJoinBrowser
 #>
@@ -1522,6 +1531,9 @@ Tests a firmware slot.
 
 .DESCRIPTION
 This command tests that the firmware slot contains valid firmware that can be installed and returns a boolean result.
+
+.PARAMETER Slot
+An integer containing the firmware slot ID to test.
 
 .EXAMPLE
 Test-SafeguardSpsFirmware -Slot 3

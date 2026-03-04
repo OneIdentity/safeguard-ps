@@ -82,6 +82,12 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER ServerToGet
+An integer containing the ID of the syslog server to get or a string containing the name.
+
+.PARAMETER Fields
+An array of strings containing the field names to return in the response.
+
 .INPUTS
 None.
 

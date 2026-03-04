@@ -393,6 +393,9 @@ A string containing the thumbprint of a certificate the system certificate store
 .PARAMETER ApiKey
 A string containing the API key that identifies the account being requested.
 
+.PARAMETER NewPassword
+A SecureString containing the new password to set. If not provided, you will be prompted to enter it.
+
 .PARAMETER Version
 Version of the Web API you are using (default: 4).
 
@@ -585,6 +588,12 @@ A string containing which format to use for the private key.  The options are:
   - OpenSsh: OpenSSH legacy PEM format (default)
   - Ssh2: Tectia format for use with tools from SSH.com
   - Putty: Putty format for use with PuTTY tools
+
+.PARAMETER PrivateKey
+A string containing the private key to set.
+
+.PARAMETER PrivateKeyPassphrase
+A SecureString containing the passphrase for the private key (optional).
 
 .PARAMETER Version
 Version of the Web API you are using (default: 4).

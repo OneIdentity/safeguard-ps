@@ -1517,6 +1517,12 @@ A switch to specify that this method call should be handled synchronously as a l
 .PARAMETER JsonOutput
 A switch to return data as pretty JSON string.
 
+.PARAMETER Anonymous
+When this switch is specified, no Bearer token authorization header is included in the request.
+
+.PARAMETER ExtraHeaders
+A hashtable containing additional HTTP headers to include in the request.
+
 .INPUTS
 None.
 

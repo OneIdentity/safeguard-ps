@@ -1222,6 +1222,9 @@ Automatically open the CSV file into excel after it is generated.
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.
 
+.PARAMETER LocalDate
+A DateTime object specifying the local date to use for the report (default: current date).
+
 .INPUTS
 None.
 
@@ -1330,6 +1333,9 @@ a string containing the name.
 .PARAMETER AccountToGet
 An integer containing the ID of the account to get asset account password history from or
 a string containing the name.
+
+.PARAMETER Days
+An integer containing the number of days of history to include (default: 30).
 
 .INPUTS
 None.

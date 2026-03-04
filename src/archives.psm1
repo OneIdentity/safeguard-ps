@@ -149,6 +149,9 @@ A SecureString containing the password to use for the service account
 .PARAMETER AcceptSshHostKey
 Whether or not to auto-accept SSH host key for Scp and Sftp.
 
+.PARAMETER ServiceAccountCredentialType
+A string containing the service account credential type (e.g. Password, SshKey, etc.).
+
 .INPUTS
 None.
 
@@ -460,6 +463,12 @@ Whether or not to auto-accept SSH host key for Scp and Sftp.
 
 .PARAMETER ArchiveServerObject
 An object containing the existing archive server with desired properties set.
+
+.PARAMETER ArchiveServerId
+An integer containing the ID of the archive server to edit.
+
+.PARAMETER ServiceAccountCredentialType
+A string containing the service account credential type (e.g. Password, SshKey, etc.).
 
 .INPUTS
 None.

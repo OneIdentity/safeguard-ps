@@ -173,6 +173,9 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER Key
+A string containing the license key to retrieve a specific license.
+
 .INPUTS
 None.
 

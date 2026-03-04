@@ -550,6 +550,9 @@ A string containing a description for this directory identity provider.
 .PARAMETER DirectoryObject
 An object containing the existing directory identity provider with desired properties set.
 
+.PARAMETER DisplayName
+A string containing the display name for this directory identity provider.
+
 .INPUTS
 None.
 
@@ -657,6 +660,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER DirectoryToSync
 An integer containing the ID of the directory identity provider to synchronize or a string containing the name.
+
+.PARAMETER FullSync
+When this switch is specified, a full synchronization is performed instead of a delta sync.
 
 .INPUTS
 None.
@@ -1332,6 +1338,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER DirectoryToSync
 An integer containing the ID of the directory to synchronize or a string containing the name.
 
+.PARAMETER AssetPartition
+An integer containing the asset partition ID or an object containing the asset partition (default: -1 for all partitions).
+
 .INPUTS
 None.
 
@@ -1568,6 +1577,9 @@ A string containing the domain name for the account if different from parent dir
 
 .PARAMETER DistinguishedName
 A string containing the distinguished name of the new account in LDAP.
+
+.PARAMETER Description
+A string containing the description for the account.
 
 .INPUTS
 None.

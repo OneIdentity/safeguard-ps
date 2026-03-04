@@ -108,6 +108,9 @@ An array of strings containing addresses for DNS servers.
 .PARAMETER NetworkObject
 An object containing the existing network interface object with desired properties set.
 
+.PARAMETER NoWait
+When this switch is specified, do not wait for Safeguard to come back online after the interface change.
+
 .INPUTS
 None.
 

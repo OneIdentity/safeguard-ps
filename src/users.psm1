@@ -1017,6 +1017,9 @@ group.  You may also specify 'All' to grant all permissions. Other permissions a
 .PARAMETER UserObject
 An object containing the existing user with desired properties set.
 
+.PARAMETER AuthProvider
+A string containing the name of the authentication provider to set as the primary authentication provider.
+
 .INPUTS
 None.
 

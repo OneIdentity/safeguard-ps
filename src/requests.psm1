@@ -358,6 +358,18 @@ The number of minutes requested for password access. The sum of Requested Days/H
 Do not copy the access request ID to the clipboard. By default, when running interactively, the
 access request ID is copied to the clipboard automatically.
 
+.PARAMETER Emergency
+When this switch is specified, the access request is created as an emergency request.
+
+.PARAMETER ReasonCode
+An integer containing the ID or a string containing the name of the reason code for the request.
+
+.PARAMETER ReasonComment
+A string containing the reason comment for the access request.
+
+.PARAMETER TicketNumber
+A string containing the ticket number associated with the access request.
+
 .INPUTS
 None.
 
@@ -527,6 +539,9 @@ An optional string to comment on the action being performed.
 
 .PARAMETER AllFields
 Return all properties that can be displayed.
+
+.PARAMETER Parameters
+A hashtable containing additional parameters to pass to the API call.
 
 .INPUTS
 None.
@@ -1445,6 +1460,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER RequestId
 A string containing the ID of the access request.
+
+.PARAMETER OutFile
+A string containing the file path to save the RDP file (default: "$RequestId.rdp").
 
 .INPUTS
 None.

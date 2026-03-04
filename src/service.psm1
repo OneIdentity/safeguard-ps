@@ -65,6 +65,9 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
+.PARAMETER DebugSettings
+An object containing the debug settings to apply to the service.
+
 .INPUTS
 None.
 
