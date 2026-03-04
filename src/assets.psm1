@@ -1885,10 +1885,10 @@ the asset account is in.
 An integer containing the asset partition ID the asset account is in.
 (If specified, this will override the AssetPartition parameter)
 
-.PARAMETER AssetToEdit
+.PARAMETER Asset
 An integer containing the ID of the asset to enable the account of or a string containing the name.
 
-.PARAMETER AccountToEdit
+.PARAMETER Account
 An integer containing the ID of the account to enable or a string containing the name.
 
 .INPUTS
@@ -1918,16 +1918,16 @@ function Enable-SafeguardAssetAccount
         [Parameter(Mandatory=$false)]
         [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$false,Position=0)]
-        [object]$AssetToEdit,
+        [object]$Asset,
         [Parameter(Mandatory=$true,Position=1)]
-        [object]$AccountToEdit
+        [object]$Account
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToEdit -Account $AccountToEdit)
+                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $Asset -Account $Account)
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts/$($local:AccountId)/Enable"
 }
 
@@ -1956,10 +1956,10 @@ the asset account is in.
 An integer containing the asset partition ID the asset account is in.
 (If specified, this will override the AssetPartition parameter)
 
-.PARAMETER AssetToEdit
+.PARAMETER Asset
 An integer containing the ID of the asset to disable the account of or a string containing the name.
 
-.PARAMETER AccountToEdit
+.PARAMETER Account
 An integer containing the ID of the account to disable or a string containing the name.
 
 .INPUTS
@@ -1989,16 +1989,16 @@ function Disable-SafeguardAssetAccount
         [Parameter(Mandatory=$false)]
         [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$false,Position=0)]
-        [object]$AssetToEdit,
+        [object]$Asset,
         [Parameter(Mandatory=$true,Position=1)]
-        [object]$AccountToEdit
+        [object]$Account
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToEdit -Account $AccountToEdit)
+                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $Asset -Account $Account)
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts/$($local:AccountId)/Disable"
 }
 
