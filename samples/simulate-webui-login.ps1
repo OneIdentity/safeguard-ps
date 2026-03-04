@@ -19,11 +19,11 @@ Param(
 
 if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
 
-# GET notification/v3/Status
+# GET notification/v4/Status
 Write-Host -ForegroundColor Yellow  "GET status"
 $status = Get-SafeguardStatus -Appliance $Appliance -Insecure:$Insecure
 
-# GET appliance/v3/Version
+# GET appliance/v4/Version
 Write-Host -ForegroundColor Yellow  "GET version"
 $ver = Get-SafeguardVersion -Appliance $Appliance -Insecure:$Insecure
 
@@ -31,35 +31,35 @@ $ver = Get-SafeguardVersion -Appliance $Appliance -Insecure:$Insecure
 Write-Host -ForegroundColor Yellow  "login"
 Connect-Safeguard -Appliance $Appliance -IdentityProvider $IdentityProvider -Username $UserName -Password $Password -Insecure:$Insecure
 
-# GET core/v3/ClusterStatus
+# GET core/v4/ClusterStatus
 Write-Host -ForegroundColor Yellow  "GET Cluster Status:"
 $status = Invoke-SafeguardMethod Core GET "Cluster/Status"
 
-# GET core/v3/Me
+# GET core/v4/Me
 Write-Host -ForegroundColor Yellow  "GET Me"
 $me = Invoke-SafeguardMethod Core GET "Me"
 
-# GET core/v3/DailyMessage
+# GET core/v4/DailyMessage
 Write-Host -ForegroundColor Yellow  "GET Daily Message:"
 $dm = Invoke-SafeguardMethod Core GET "DailyMessage"
 
-# GET core/v3/LoginMessage
+# GET core/v4/LoginMessage
 Write-Host -ForegroundColor Yellow  "GET Login Message:"
 $lm = Invoke-SafeguardMethod Core GET "LoginMessage"
 
-# GET core/v3/RequestFavorites
+# GET core/v4/RequestFavorites
 Write-Host -ForegroundColor Yellow  "GET Request Favorites:"
 $requestFavorites = Invoke-SafeguardMethod Core GET "Me/RequestFavorites"
 
-# GET core/v3/Me/ActionableRequests
+# GET core/v4/Me/ActionableRequests
 Write-Host -ForegroundColor Yellow  "GET Actionable Requests:"
 $actionableRequests = Invoke-SafeguardMethod Core GET "Me/ActionableRequests"
 
-# GET core/v3/Me?fields=Id
+# GET core/v4/Me?fields=Id
 Write-Host -ForegroundColor Yellow  "GET Me.Id"
 $userId = Invoke-SafeguardMethod Core GET "Me?fields=Id"
 
-# GET core/v3/Me/AccessRequestAssets?filter=Disabled%20eq%20false&fields=Id,Name,NetworkAddress,PlatformDisplayName&orderby=Name
+# GET core/v4/Me/AccessRequestAssets?filter=Disabled%20eq%20false&fields=Id,Name,NetworkAddress,PlatformDisplayName&orderby=Name
 Write-Host -ForegroundColor Yellow  "GET Requestable Assets"
 $accessRequestAssets = Invoke-SafeguardMethod Core GET "Me/AccessRequestAssets?filter=Disabled%20eq%20false&fields=Id,Name,NetworkAddress,PlatformDisplayName&orderby=Name"
 
@@ -71,7 +71,7 @@ if($selectedAsset -eq $null)
     throw "Specified asset is not a Requestable Asset"
 }
 
-# GET core/v3/Me/RequestEntitlements?assetIds=<num>
+# GET core/v4/Me/RequestEntitlements?assetIds=<num>
 Write-Host -ForegroundColor Yellow  "GET Request Entitlements"
 $requestEntitlements = Invoke-SafeguardMethod Core GET "Me/RequestEntitlements?assetIds=[$($selectedAsset.Id)]"
 
@@ -85,7 +85,7 @@ if($selectedAccount -eq $null)
 }
 
 
-# POST core/v3/AccessRequests/BatchCreate
+# POST core/v4/AccessRequests/BatchCreate
 
 $body = @( @{
     IsEmergency = $false
@@ -100,31 +100,31 @@ $body = @( @{
 Write-Host -ForegroundColor Yellow  "POST BatchCreate"
 $batchCreateResponse = Invoke-SafeguardMethod Core POST "AccessRequests/BatchCreate" -Body $body
 
-# GET core/v3/Me/ActionableRequests
+# GET core/v4/Me/ActionableRequests
 Write-Host -ForegroundColor Yellow  "GET Actionable Requests"
 $actionableRequests = Invoke-SafeguardMethod Core GET "Me/ActionableRequests"
 
-# GET core/v3/Me/RequestableAssets/<num>/Accounts/<num>/Policies
+# GET core/v4/Me/RequestableAssets/<num>/Accounts/<num>/Policies
 Write-Host -ForegroundColor Yellow  "GET Policies"
-$Policies = Invoke-SafeguardMethod -Version 3 Core GET "Me/RequestableAssets/$($selectedAsset.Id)/Accounts/$($selectedAccount.Id)/Policies"
+$Policies = Invoke-SafeguardMethod Core GET "Me/RequestableAssets/$($selectedAsset.Id)/Accounts/$($selectedAccount.Id)/Policies"
 
-# POST core/v3/AccessRequests/<request_id>/CheckoutPassword
+# POST core/v4/AccessRequests/<request_id>/CheckoutPassword
 Write-Host -ForegroundColor Yellow  "POST CheckoutPassword"
 $accountPassword = Invoke-SafeguardMethod Core POST "AccessRequests/$($batchCreateResponse.Response.Id)/CheckoutPassword"
 
-# GET core/v3/Me/ActionableRequests
+# GET core/v4/Me/ActionableRequests
 Write-Host -ForegroundColor Yellow  "GET ActionableRequests"
 $actionableRequests = Invoke-SafeguardMethod Core GET "Me/ActionableRequests"
 
-# GET core/v3/Me/RequestableAssets/<num>/Accounts/<num>/Policies
+# GET core/v4/Me/RequestableAssets/<num>/Accounts/<num>/Policies
 Write-Host -ForegroundColor Yellow  "GET Policies"
-$Policies = Invoke-SafeguardMethod -Version 3 Core GET "Me/RequestableAssets/$($selectedAsset.Id)/Accounts/$($selectedAccount.Id)/Policies"
+$Policies = Invoke-SafeguardMethod Core GET "Me/RequestableAssets/$($selectedAsset.Id)/Accounts/$($selectedAccount.Id)/Policies"
 
-# POST core/v3/AccessRequests/<request_id>/CheckIn
+# POST core/v4/AccessRequests/<request_id>/CheckIn
 Write-Host -ForegroundColor Yellow  "POST CheckIn"
 $checkInResponse = Invoke-SafeguardMethod Core POST "AccessRequests/$($batchCreateResponse.Response.Id)/CheckIn"
 
-# GET core/v3/Me/ActionableRequests
+# GET core/v4/Me/ActionableRequests
 Write-Host -ForegroundColor Yellow  "GET Actionable Request"
 $actionableRequests = Invoke-SafeguardMethod Core GET "Me/ActionableRequests"
 
