@@ -1,4 +1,4 @@
-# Copyright (c) 2026 One Identity LLC. All rights reserved.
+<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
 # Global session variable for login information, including SPS
 Remove-Variable -Name "SafeguardSession" -Scope Global -ErrorAction "SilentlyContinue"
 New-Variable -Name "SafeguardSession" -Scope Global -Value $null
@@ -894,8 +894,8 @@ Client certificate thumbprint to use to authenticate the connection to the RSTS.
 .PARAMETER Version
 Version of the Web API you are using (default: 4).
 
-.PARAMETER Gui (Deprecated)
-Use -Browser instead.
+.PARAMETER Gui
+(Deprecated) Use -Browser instead.
 
 .PARAMETER Browser
 Launch redistributable STS login window in a native system browser.  Supports 2FA.
@@ -1517,6 +1517,12 @@ A switch to specify that this method call should be handled synchronously as a l
 .PARAMETER JsonOutput
 A switch to return data as pretty JSON string.
 
+.PARAMETER Anonymous
+When this switch is specified, no Bearer token authorization header is included in the request.
+
+.PARAMETER ExtraHeaders
+A hashtable containing additional HTTP headers to include in the request.
+
 .INPUTS
 None.
 
@@ -1851,9 +1857,6 @@ Refresh the access token in your current Safeguard session via the Web API.
 This utility calls the Safeguard Web API using the information in your Safeguard
 session variable to refresh your access token.  It can be made completely
 non-interactive when using the certificate provider.
-
-.PARAMETER Raw
-When provided this cmdlet returns a Timespan object rather than a message.
 
 .INPUTS
 None.

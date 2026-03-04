@@ -284,7 +284,7 @@ FunctionsToExport = @(
     'Get-SafeguardReportA2aEntitlement','Get-SafeguardReportPasswordLastChanged',
     'Get-SafeguardReportAssetAccountPasswordHistory',
     # setting.psm1
-    'Get-SafeguardApplianceSetting','Set-SafeguardApplianceSetting','Get-SafeguardCoreSetting','Set-SafeguardCoreSetting'
+    'Get-SafeguardApplianceSetting','Set-SafeguardApplianceSetting','Get-SafeguardCoreSetting','Set-SafeguardCoreSetting',
     # deleted.psm1
     'Get-SafeguardDeletedAsset','Remove-SafeguardDeletedAsset','Restore-SafeguardDeletedAsset',
     'Get-SafeguardDeletedAssetAccount','Remove-SafeguardDeletedAssetAccount','Restore-SafeguardDeletedAssetAccount',

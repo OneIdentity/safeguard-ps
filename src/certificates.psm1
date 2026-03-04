@@ -1,4 +1,5 @@
-# Copyright (c) 2026 One Identity LLC. All rights reserved.
+<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
+
 <#
 .SYNOPSIS
 Upload trusted certificate to Safeguard via the Web API.
@@ -955,6 +956,9 @@ An array of strings containing IP addresses to use in subject alternative names.
 .PARAMETER DnsNames
 An array of strings containing DNS names to use in subject alternative names.
 
+.PARAMETER OutFile
+A string containing the file path to save the CSR output.
+
 .INPUTS
 None.
 
@@ -1097,8 +1101,8 @@ A string containing the subject base Dn (e.g. "").
 .PARAMETER KeySize
 An integer with the RSA key size.
 
-.PARAMETER Insecure
-Ignore verification of Safeguard appliance SSL certificate--will be ignored for entire session.
+.PARAMETER OutputDirectory
+A string containing the directory path where generated certificates will be saved.
 
 .INPUTS
 None.

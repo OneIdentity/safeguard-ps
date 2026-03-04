@@ -1,4 +1,4 @@
-# Copyright (c) 2026 One Identity LLC. All rights reserved.
+<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
 # Helpers
 function Test-SupportForClusterPatch
 {
@@ -495,6 +495,9 @@ IP address or hostname of a Safeguard appliance.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate
 
+.PARAMETER Version
+An integer containing the API version to use (default: 4).
+
 .INPUTS
 None.
 
@@ -602,6 +605,9 @@ Ignore verification of Safeguard appliance SSL certificate
 
 .PARAMETER Timeout
 Number of seconds to wait before timing out (Default: 30 minutes)
+
+.PARAMETER Version
+An integer containing the API version to use (default: 4).
 
 .INPUTS
 None.
@@ -1222,8 +1228,8 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate
 
-.PARAMETER Name
-A string containing the name to give the appliance.
+.PARAMETER DnsSuffix
+A string containing the DNS suffix to give the appliance.
 
 .INPUTS
 None.
@@ -2987,6 +2993,9 @@ A string containing the bearer token to be used with Safeguard Web API.
 
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate
+
+.PARAMETER BackupId
+A string containing the ID of a specific backup to retrieve.
 
 .INPUTS
 None.

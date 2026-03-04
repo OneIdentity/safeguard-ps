@@ -1,4 +1,4 @@
-# Copyright (c) 2026 One Identity LLC. All rights reserved.
+<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
 # Helpers
 function Show-JoinWindow
 {
@@ -346,9 +346,6 @@ A string containing the bearer token to be used with Safeguard Web API.
 
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
-
-.PARAMETER Name
-A string containing the name of the Starling subscription.
 
 .INPUTS
 None.

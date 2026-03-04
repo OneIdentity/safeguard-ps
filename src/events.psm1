@@ -1,4 +1,4 @@
-# Copyright (c) 2026 One Identity LLC. All rights reserved.
+<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
 # Helper
 function Resolve-Event
 {
@@ -218,6 +218,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER TypeofEvent
 A string containing the type of events for which to return the names of the events that belong to this type.
+
+.PARAMETER Category
+A string containing the category to filter events by (case-insensitive).
 
 .INPUTS
 None.
@@ -732,6 +735,9 @@ An integer containing port of the Syslog server. The default port is 514.
 .PARAMETER SyslogFacility
 A string containing the Facility name of the Syslog server. THe default name of the Syslog Facility is "User"
 
+.PARAMETER IsSignalrEvent
+When this switch is specified, creates a SignalR event subscription type.
+
 .INPUTS
 None.
 
@@ -898,8 +904,8 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
-.PARAMETER SubscriptonId
-An integer containg the ID of an event subscription to be updated.
+.PARAMETER SubscriptionId
+An integer containing the ID of an event subscription to be updated.
 
 .PARAMETER SubscriptionObject
 An object containing the existing event subscription with desired properties set.

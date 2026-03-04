@@ -1,4 +1,5 @@
-# Copyright (c) 2026 One Identity LLC. All rights reserved.
+<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
+
 <#
 .SYNOPSIS
 Upload Safeguard license file and install it via the Web API.
@@ -172,6 +173,9 @@ A string containing the bearer token to be used with Safeguard Web API.
 
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Key
+A string containing the license key to retrieve a specific license.
 
 .INPUTS
 None.

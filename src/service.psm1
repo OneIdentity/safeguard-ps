@@ -1,4 +1,5 @@
-# Copyright (c) 2026 One Identity LLC. All rights reserved.
+<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
+
 <#
 .SYNOPSIS
 Gets Safeguard debug log settings
@@ -27,7 +28,7 @@ JSON response from Safeguard Web API.
 Get-SafeguardDebugSettings -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
-Set-SafeguardDebugSettings 
+Get-SafeguardDebugSettings
 #>
 function Get-SafeguardDebugSettings
 {
@@ -64,6 +65,9 @@ A string containing the bearer token to be used with Safeguard Web API.
 
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER DebugSettings
+An object containing the debug settings to apply to the service.
 
 .INPUTS
 None.

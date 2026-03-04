@@ -1,4 +1,5 @@
-# Copyright (c) 2026 One Identity LLC. All rights reserved.
+<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
+
 <#
 .SYNOPSIS
 Get audit log data from Safeguard via the web API.

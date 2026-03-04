@@ -1,4 +1,4 @@
-# Copyright (c) 2026 One Identity LLC. All rights reserved.
+<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
 # Helpers
 function Wait-ForDiagnosticComplete
 {
@@ -400,6 +400,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER OutFile
 A string containing the path where the downloaded log file will be saved on the local appliance.
+
+.PARAMETER StdOut
+When this switch is specified, the log content is sent to standard output instead of being saved to a file.
 
 .INPUTS
 None.

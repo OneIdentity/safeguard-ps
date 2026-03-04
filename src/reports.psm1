@@ -1,4 +1,4 @@
-# Copyright (c) 2026 One Identity LLC. All rights reserved.
+<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
 # Helpers
 function Get-OutFileForParam
 {
@@ -111,7 +111,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 String containing the directory where to create the CSV file.
 
 .PARAMETER Excel
-Automatically open the CSV file into excel after it is generation.
+Automatically open the CSV file into excel after it is generated.
 
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.
@@ -185,7 +185,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 String containing the directory where to create the CSV file.
 
 .PARAMETER Excel
-Automatically open the CSV file into excel after it is generation.
+Automatically open the CSV file into excel after it is generated.
 
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.
@@ -267,7 +267,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 String containing the directory where to create the CSV file.
 
 .PARAMETER Excel
-Automatically open the CSV file into excel after it is generation.
+Automatically open the CSV file into excel after it is generated.
 
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.
@@ -349,7 +349,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 String containing the directory where to create the CSV file.
 
 .PARAMETER Excel
-Automatically open the CSV file into excel after it is generation.
+Automatically open the CSV file into excel after it is generated.
 
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.
@@ -431,7 +431,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 String containing the directory where to create the CSV file.
 
 .PARAMETER Excel
-Automatically open the CSV file into excel after it is generation.
+Automatically open the CSV file into excel after it is generated.
 
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.
@@ -513,7 +513,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 String containing the directory where to create the CSV file.
 
 .PARAMETER Excel
-Automatically open the CSV file into excel after it is generation.
+Automatically open the CSV file into excel after it is generated.
 
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.
@@ -586,13 +586,13 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER UserList
-An integer containing the ID of the access policy to get or a string containing the name.
+An array of integers or strings containing the IDs or names of the users to include in the report.
 
 .PARAMETER OutputDirectory
 String containing the directory where to create the CSV file.
 
 .PARAMETER Excel
-Automatically open the CSV file into excel after it is generation.
+Automatically open the CSV file into excel after it is generated.
 
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.
@@ -684,7 +684,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 String containing the directory where to create the CSV file.
 
 .PARAMETER Excel
-Automatically open the CSV file into excel after it is generation.
+Automatically open the CSV file into excel after it is generated.
 
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.
@@ -787,7 +787,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 String containing the directory where to create the CSV file.
 
 .PARAMETER Excel
-Automatically open the CSV file into excel after it is generation.
+Automatically open the CSV file into excel after it is generated.
 
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.
@@ -895,7 +895,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 String containing the directory where to create the CSV file.
 
 .PARAMETER Excel
-Automatically open the CSV file into excel after it is generation.
+Automatically open the CSV file into excel after it is generated.
 
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.
@@ -1007,7 +1007,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 String containing the directory where to create the CSV file.
 
 .PARAMETER Excel
-Automatically open the CSV file into excel after it is generation.
+Automatically open the CSV file into excel after it is generated.
 
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.
@@ -1116,7 +1116,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 String containing the directory where to create the CSV file.
 
 .PARAMETER Excel
-Automatically open the CSV file into excel after it is generation.
+Automatically open the CSV file into excel after it is generated.
 
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.
@@ -1217,10 +1217,13 @@ Ignore verification of Safeguard appliance SSL certificate.
 String containing the directory where to create the CSV file.
 
 .PARAMETER Excel
-Automatically open the CSV file into excel after it is generation.
+Automatically open the CSV file into excel after it is generated.
 
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.
+
+.PARAMETER LocalDate
+A DateTime object specifying the local date to use for the report (default: current date).
 
 .INPUTS
 None.
@@ -1310,7 +1313,7 @@ Ignore verification of Safeguard appliance SSL certificate.
 String containing the directory where to create the CSV file.
 
 .PARAMETER Excel
-Automatically open the CSV file into excel after it is generation.
+Automatically open the CSV file into excel after it is generated.
 
 .PARAMETER StdOut
 Send CSV to standard out instead of generating a file.
@@ -1330,6 +1333,9 @@ a string containing the name.
 .PARAMETER AccountToGet
 An integer containing the ID of the account to get asset account password history from or
 a string containing the name.
+
+.PARAMETER Days
+An integer containing the number of days of history to include (default: 30).
 
 .INPUTS
 None.

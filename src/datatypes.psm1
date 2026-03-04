@@ -1,4 +1,4 @@
-# Copyright (c) 2026 One Identity LLC. All rights reserved.
+<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
 # Helpers (also imported locally and used in other modules)
 function Resolve-SafeguardPlatform
 {

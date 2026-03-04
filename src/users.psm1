@@ -1,4 +1,4 @@
-# Copyright (c) 2026 One Identity LLC. All rights reserved.
+<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
 # Helpers
 function Resolve-SafeguardUserObject
 {
@@ -341,7 +341,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
 
-.PARAMETER ProviderToGet
+.PARAMETER ProviderToSet
 An integer containing an ID  or a string containing the name of the identity provider to set.
 
 .INPUTS
@@ -1016,6 +1016,9 @@ group.  You may also specify 'All' to grant all permissions. Other permissions a
 
 .PARAMETER UserObject
 An object containing the existing user with desired properties set.
+
+.PARAMETER AuthProvider
+A string containing the name of the authentication provider to set as the primary authentication provider.
 
 .INPUTS
 None.

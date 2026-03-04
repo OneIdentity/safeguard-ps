@@ -1,4 +1,4 @@
-# Copyright (c) 2026 One Identity LLC. All rights reserved.
+<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
 # Helper
 function Resolve-SafeguardAsset
 {
@@ -1651,6 +1651,9 @@ A string containing the description for the account.
 
 .PARAMETER DomainName
 A string containing the domain name for the account.
+
+.PARAMETER DistinguishedName
+A string containing the distinguished name for the account.
 
 .INPUTS
 None.

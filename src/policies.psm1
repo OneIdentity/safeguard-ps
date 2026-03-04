@@ -1,4 +1,4 @@
-# Copyright (c) 2026 One Identity LLC. All rights reserved.
+<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
 # Helper
 function Resolve-SafeguardPolicyAssetId
 {
@@ -854,6 +854,12 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER UserToSet
 An integer containing an ID or a string containing the name of the user for which to add a linked account.
 
+.PARAMETER DirectoryToAdd
+An integer containing the ID of the directory or a string containing the name of the directory for the account to add.
+
+.PARAMETER AccountToAdd
+An integer containing the ID of the account or a string containing the name of the account to add.
+
 .INPUTS
 None.
 
@@ -923,6 +929,12 @@ Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER UserToSet
 An integer containing an ID or a string containing the name of the user for which to add a linked account.
+
+.PARAMETER DirectoryToRemove
+An integer containing the ID of the directory or a string containing the name of the directory for the account to remove.
+
+.PARAMETER AccountToRemove
+An integer containing the ID of the account or a string containing the name of the account to remove.
 
 .INPUTS
 None.

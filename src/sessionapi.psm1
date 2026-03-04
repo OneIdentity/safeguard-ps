@@ -1,4 +1,4 @@
-# Copyright (c) 2026 One Identity LLC. All rights reserved.
+<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
 # Default UserAgent from powershell looks like a Mozilla browser. As of v7.5
 # SPS is requiring X-Token header include the user/info token value for all
 # PUT/POST/DELETE requests, but relaxes that requirement for non-browser
@@ -380,6 +380,9 @@ A string containing the desired primary NTP server.
 
 .PARAMETER Timeout
 A timeout value in seconds to wait for SPS to complete (default: 600 seconds or 10 minutes).
+
+.PARAMETER PollOriginalIp
+When this switch is specified, poll the original appliance IP address after an IP change instead of the new address.
 
 .INPUTS
 None.
@@ -829,9 +832,6 @@ Safeguard SPS Web API is implemented as HATEOAS. To get started crawling
 through the API, call Show-SafeguardSpsEndpoint.  Then, you can follow to
 the different API areas, such as configuration or health-status.
 
-.PARAMETER Appliance
-IP address or hostname of a Safeguard appliance.
-
 .PARAMETER Method
 HTTP method verb you would like to use: GET, PUT, POST, DELETE.
 
@@ -865,6 +865,9 @@ Path to an input file for upload.
 
 .PARAMETER OutFile
 Name of output file for downloads.
+
+.PARAMETER ExtraHeaders
+A hashtable containing additional HTTP headers to include in the request.
 
 .INPUTS
 None.
@@ -1189,7 +1192,7 @@ function Clear-SafeguardSpsTransaction
 
 <#
 .SYNOPSIS
-Call a method in the Safeguard SPS Web API.
+Display available endpoints from the Safeguard SPS Web API.
 
 .DESCRIPTION
 Safeguard SPS Web API is implemented as HATEOAS. This cmdlet is helpful for
@@ -1243,6 +1246,9 @@ Credentials will not be echoed to the screen.
 
 .PARAMETER Environment
 Which Starling environment to join (default: prod)
+
+.PARAMETER DataCenter
+Which Starling data center region to use (default: us). Valid values are "us" and "eu".
 
 .EXAMPLE
 Invoke-SafeguardSpsStarlingJoinBrowser
@@ -1410,6 +1416,7 @@ function Disable-SafeguardSpsRemoteAccess
 New-Alias -Name Disable-SafeguardSpsSra -Value Disable-SafeguardSpsRemoteAccess
 
 <#
+.SYNOPSIS
 Get Safeguard SPS appliance information via the Web API.
 
 .DESCRIPTION
@@ -1525,6 +1532,9 @@ Tests a firmware slot.
 
 .DESCRIPTION
 This command tests that the firmware slot contains valid firmware that can be installed and returns a boolean result.
+
+.PARAMETER Slot
+An integer containing the firmware slot ID to test.
 
 .EXAMPLE
 Test-SafeguardSpsFirmware -Slot 3
