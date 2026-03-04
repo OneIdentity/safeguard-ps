@@ -2,6 +2,6 @@ variables:
   - name: version
     value: "8.2"
   - name: isPrerelease
-    value: ${{ true }}
+    value: ${{ false }}
   - name: shouldPublishDocker
     value: $[ eq( variables.isPrerelease, false ) ]
