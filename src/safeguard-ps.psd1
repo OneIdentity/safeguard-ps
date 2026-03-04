@@ -235,7 +235,8 @@ FunctionsToExport = @(
     # policies.psm1
     'Get-SafeguardPolicyAsset','Find-SafeguardPolicyAsset','Get-SafeguardPolicyAccount','Find-SafeguardPolicyAccount',
     'Get-SafeguardAccessPolicy','Get-SafeguardAccessPolicyScopeItem','Get-SafeguardAccessPolicyAccessRequestProperty',
-    'Get-SafeguardAccessPolicySessionProperty','Get-SafeguardUserLinkedAccount','Add-SafeguardUserLinkedAccount',
+    'Get-SafeguardAccessPolicySessionProperty','Add-SafeguardAccessPolicy','Remove-SafeguardAccessPolicy','Edit-SafeguardAccessPolicy',
+    'Get-SafeguardUserLinkedAccount','Add-SafeguardUserLinkedAccount',
     'Remove-SafeguardUserLinkedAccount',
     # events.psm1
     'Get-SafeguardEvent','Get-SafeguardEventCategory','Get-SafeguardEventName','Get-SafeguardEventProperty','Find-SafeguardEvent',
@@ -270,7 +271,8 @@ FunctionsToExport = @(
     # managementShell.psm1
     'Get-SafeguardCommand', 'Get-SafeguardBanner',
     # entitlements.psm1
-    'New-SafeguardEntitlement','Get-SafeguardEntitlement','Remove-SafeguardEntitlement',
+    'New-SafeguardEntitlement','Get-SafeguardEntitlement','Remove-SafeguardEntitlement','Edit-SafeguardEntitlement',
+    'Add-SafeguardEntitlementMember','Remove-SafeguardEntitlementMember',
     # reports.psm1
     'Get-SafeguardReportAccountWithoutPassword','Get-SafeguardReportDailyAccessRequest',
     'Get-SafeguardReportDailyPasswordCheckFail','Get-SafeguardReportDailyPasswordCheckSuccess',

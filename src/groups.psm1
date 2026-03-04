@@ -1071,6 +1071,9 @@ String of type of operation to be perfomed on the asset group. 'Add' to add asse
 .PARAMETER AssetList
 An array of names or IDs of the assets to be added or removed in the asset group.
 
+.PARAMETER Description
+A string containing the new description for the asset group.
+
 .INPUTS
 None.
 
@@ -1082,6 +1085,9 @@ Edit-SafeguardAssetGroup testassetgroup add testasset1,testasset2
 
 .EXAMPLE
 Edit-SafeguardAssetGroup testassetgroup remove testasset1
+
+.EXAMPLE
+Edit-SafeguardAssetGroup testassetgroup -Description "Updated description"
 #>
 function Edit-SafeguardAssetGroup
 {
@@ -1095,24 +1101,44 @@ function Edit-SafeguardAssetGroup
         [switch]$Insecure,
         [Parameter(Mandatory=$true, Position=0)]
         [object]$GroupToEdit,
-        [Parameter(Mandatory=$true, Position=1)]
+        [Parameter(Mandatory=$false, Position=1)]
         [ValidateSet("Add", "Remove", IgnoreCase=$true)]
         [string]$Operation,
-        [Parameter(Mandatory=$true, Position=2)]
-        [object[]]$AssetList
+        [Parameter(Mandatory=$false, Position=2)]
+        [object[]]$AssetList,
+        [Parameter(Mandatory=$false)]
+        [string]$Description
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    [object[]]$local:Assets = $null
-    foreach ($local:Asset in $AssetList)
+    if ($PSBoundParameters.ContainsKey("Description"))
     {
-        $local:ResolvedAsset = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetToGet $local:Asset -Fields Id,Name)
-        $local:Assets += $($local:ResolvedAsset)
+        $local:GroupId = (Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $GroupToEdit)
+        $local:GroupObject = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetGroups/$($local:GroupId)")
+        $local:GroupObject.Description = $Description
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AssetGroups/$($local:GroupId)" -Body $local:GroupObject
     }
 
-    Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $GroupToEdit $Operation $local:Assets
+    if ($PSBoundParameters.ContainsKey("Operation"))
+    {
+        if (-not $PSBoundParameters.ContainsKey("AssetList"))
+        {
+            throw "AssetList is required when specifying an Operation"
+        }
+        [object[]]$local:Assets = $null
+        foreach ($local:Asset in $AssetList)
+        {
+            $local:ResolvedAsset = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetToGet $local:Asset -Fields Id,Name)
+            $local:Assets += $($local:ResolvedAsset)
+        }
+        Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $GroupToEdit $Operation $local:Assets
+    }
+    elseif (-not $PSBoundParameters.ContainsKey("Description"))
+    {
+        throw "You must specify either -Operation with -AssetList, or -Description, or both"
+    }
 }
 
 <#
@@ -1489,6 +1515,9 @@ String of type of operation to be perfomed on the account group. 'Add' to add ac
 An array of ID or name pairs of the format '<asset>\<account>' to be added or removed in the account group.
 For example: 23\55,asset1\account1,asset1\342
 
+.PARAMETER Description
+A string containing the new description for the account group.
+
 .INPUTS
 None.
 
@@ -1500,6 +1529,9 @@ Edit-SafeguardAccountGroup testaccountgroup add testasset1.domain.corp\testaccou
 
 .EXAMPLE
 Edit-SafeguardAccountGroup testaccountgroup remove testasset1.domain.corp\testaccount1
+
+.EXAMPLE
+Edit-SafeguardAccountGroup testaccountgroup -Description "Updated description"
 #>
 function Edit-SafeguardAccountGroup
 {
@@ -1513,30 +1545,50 @@ function Edit-SafeguardAccountGroup
         [switch]$Insecure,
         [Parameter(Mandatory=$true, Position=0)]
         [object]$GroupToEdit,
-        [Parameter(Mandatory=$true, Position=1)]
+        [Parameter(Mandatory=$false, Position=1)]
         [ValidateSet("Add", "Remove", IgnoreCase=$true)]
         [string]$Operation,
-        [Parameter(Mandatory=$true, Position=2)]
-        [object[]]$AccountList
+        [Parameter(Mandatory=$false, Position=2)]
+        [object[]]$AccountList,
+        [Parameter(Mandatory=$false)]
+        [string]$Description
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    [object[]]$local:Accounts = $null
-    foreach ($local:AccountPair in $AccountList)
+    if ($PSBoundParameters.ContainsKey("Description"))
     {
-        $local:Pair = ($local:AccountPair -split "\\")
-        if ($local:Pair.Length -ne 2)
-        {
-            throw "Unable to parse '$($local:AccountPair)' using expected format of 'asset\account'."
-        }
-        $local:ResolvedAccount = (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-            -AssetToGet $local:Pair[0] -AccountToGet $local:Pair[1] -Fields Asset.Id,Id,Asset.Name,Name)
-        $local:Accounts += $($local:ResolvedAccount)
+        $local:GroupId = (Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToEdit)
+        $local:GroupObject = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AccountGroups/$($local:GroupId)")
+        $local:GroupObject.Description = $Description
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AccountGroups/$($local:GroupId)" -Body $local:GroupObject
     }
 
-    Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToEdit $Operation $local:Accounts
+    if ($PSBoundParameters.ContainsKey("Operation"))
+    {
+        if (-not $PSBoundParameters.ContainsKey("AccountList"))
+        {
+            throw "AccountList is required when specifying an Operation"
+        }
+        [object[]]$local:Accounts = $null
+        foreach ($local:AccountPair in $AccountList)
+        {
+            $local:Pair = ($local:AccountPair -split "\\")
+            if ($local:Pair.Length -ne 2)
+            {
+                throw "Unable to parse '$($local:AccountPair)' using expected format of 'asset\account'."
+            }
+            $local:ResolvedAccount = (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                -AssetToGet $local:Pair[0] -AccountToGet $local:Pair[1] -Fields Asset.Id,Id,Asset.Name,Name)
+            $local:Accounts += $($local:ResolvedAccount)
+        }
+        Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToEdit $Operation $local:Accounts
+    }
+    elseif (-not $PSBoundParameters.ContainsKey("Description"))
+    {
+        throw "You must specify either -Operation with -AccountList, or -Description, or both"
+    }
 }
 
 <#
