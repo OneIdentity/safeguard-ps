@@ -424,6 +424,15 @@ An integer containing the ID of the account password rule to get or a string con
 
 .PARAMETER Fields
 An array of the account password rule property names to return.
+
+.EXAMPLE
+Get-SafeguardAccountPasswordRule
+
+.EXAMPLE
+Get-SafeguardAccountPasswordRule -AssetPartition "Unix Servers" "Default Rule"
+
+.EXAMPLE
+Get-SafeguardAccountPasswordRule -AllPartitions
 #>
 function Get-SafeguardAccountPasswordRule
 {
@@ -560,6 +569,12 @@ An integer of the maximum number of consecutive alphanumeric characters (default
 
 .PARAMETER RepeatedCharRestriction
 A string containing the repeated character restriction setting for new passwords (default: "NoConsecutiveRepeatedCharacters")
+
+.EXAMPLE
+New-SafeguardAccountPasswordRule "My New Rule"
+
+.EXAMPLE
+New-SafeguardAccountPasswordRule -AssetPartition "Unix Servers" -Name "Strong Rule" -MinCharacters 16
 #>
 function New-SafeguardAccountPasswordRule
 {
@@ -795,6 +810,12 @@ An integer of the maximum number of consecutive alphanumeric characters (default
 
 .PARAMETER RepeatedCharRestriction
 A string containing the repeated character restriction setting for new passwords (default: "NoConsecutiveRepeatedCharacters")
+
+.EXAMPLE
+Edit-SafeguardAccountPasswordRule "Default Rule" -MinCharacters 12
+
+.EXAMPLE
+Edit-SafeguardAccountPasswordRule -AssetPartition "Unix Servers" -PasswordRuleToEdit "Strong Rule" -MaxCharacters 64
 #>
 function Edit-SafeguardAccountPasswordRule
 {
@@ -945,6 +966,12 @@ An integer containing the asset partition ID to delete the account password rule
 
 .PARAMETER PasswordRuleToDelete
 An integer containing the ID of the account password rule to delete or a string containing the name.
+
+.EXAMPLE
+Remove-SafeguardAccountPasswordRule "Old Rule"
+
+.EXAMPLE
+Remove-SafeguardAccountPasswordRule -AssetPartition "Unix Servers" "Deprecated Rule"
 #>
 function Remove-SafeguardAccountPasswordRule
 {
@@ -1000,6 +1027,12 @@ An integer containing the ID of the account password rule to rename or a string 
 
 .PARAMETER NewName
 A string containing the new name for the account password rule.
+
+.EXAMPLE
+Rename-SafeguardAccountPasswordRule "Old Name" -NewName "New Name"
+
+.EXAMPLE
+Rename-SafeguardAccountPasswordRule -AssetPartition "Unix Servers" "Old Name" -NewName "New Name"
 #>
 function Rename-SafeguardAccountPasswordRule
 {
@@ -1057,6 +1090,12 @@ An integer containing the ID of the account password rule to copy or a string co
 
 .PARAMETER CopyName
 A string containing the name for the new account password rule.
+
+.EXAMPLE
+Copy-SafeguardAccountPasswordRule "Existing Rule" -CopyName "Copy of Rule"
+
+.EXAMPLE
+Copy-SafeguardAccountPasswordRule -AssetPartition "Unix Servers" "Source Rule" -CopyName "New Rule"
 #>
 function Copy-SafeguardAccountPasswordRule
 {
@@ -1117,6 +1156,15 @@ An integer containing the ID of the password check schedule to get or a string c
 
 .PARAMETER Fields
 An array of the password check schedule property names to return.
+
+.EXAMPLE
+Get-SafeguardPasswordCheckSchedule
+
+.EXAMPLE
+Get-SafeguardPasswordCheckSchedule -AssetPartition "Unix Servers" "Default Schedule"
+
+.EXAMPLE
+Get-SafeguardPasswordCheckSchedule -AllPartitions
 #>
 function Get-SafeguardPasswordCheckSchedule
 {
@@ -1353,6 +1401,12 @@ An integer containing the asset partition ID to the delete password check schedu
 
 .PARAMETER CheckScheduleToDelete
 An integer containing the ID of the password check schedule to delete or a string containing the name.
+
+.EXAMPLE
+Remove-SafeguardPasswordCheckSchedule "Old Schedule"
+
+.EXAMPLE
+Remove-SafeguardPasswordCheckSchedule -AssetPartition "Unix Servers" "Deprecated Schedule"
 #>
 function Remove-SafeguardPasswordCheckSchedule
 {
@@ -1408,6 +1462,12 @@ An integer containing the ID of the password check schedule to rename or a strin
 
 .PARAMETER NewName
 A string containing the new name for the password check schedule.
+
+.EXAMPLE
+Rename-SafeguardPasswordCheckSchedule "Old Name" -NewName "New Name"
+
+.EXAMPLE
+Rename-SafeguardPasswordCheckSchedule -AssetPartition "Unix Servers" "Old Name" -NewName "New Name"
 #>
 function Rename-SafeguardPasswordCheckSchedule
 {
@@ -1465,6 +1525,12 @@ An integer containing the ID of the password check schedule to copy or a string 
 
 .PARAMETER CopyName
 A string containing the name for the new password check schedule.
+
+.EXAMPLE
+Copy-SafeguardPasswordCheckSchedule "Existing Schedule" -CopyName "Copy of Schedule"
+
+.EXAMPLE
+Copy-SafeguardPasswordCheckSchedule -AssetPartition "Unix Servers" "Source Schedule" -CopyName "New Schedule"
 #>
 function Copy-SafeguardPasswordCheckSchedule
 {
@@ -1525,6 +1591,15 @@ An integer containing the ID of the password change schedule to get or a string 
 
 .PARAMETER Fields
 An array of the password change schedule property names to return.
+
+.EXAMPLE
+Get-SafeguardPasswordChangeSchedule
+
+.EXAMPLE
+Get-SafeguardPasswordChangeSchedule -AssetPartition "Unix Servers" "Default Schedule"
+
+.EXAMPLE
+Get-SafeguardPasswordChangeSchedule -AllPartitions
 #>
 function Get-SafeguardPasswordChangeSchedule
 {
@@ -1856,6 +1931,12 @@ An integer containing the asset partition ID to the delete password change sched
 
 .PARAMETER ChangeScheduleToDelete
 An integer containing the ID of the password change schedule to delete or a string containing the name.
+
+.EXAMPLE
+Remove-SafeguardPasswordChangeSchedule "Old Schedule"
+
+.EXAMPLE
+Remove-SafeguardPasswordChangeSchedule -AssetPartition "Unix Servers" "Deprecated Schedule"
 #>
 function Remove-SafeguardPasswordChangeSchedule
 {
@@ -1911,6 +1992,12 @@ An integer containing the ID of the password change schedule to rename or a stri
 
 .PARAMETER NewName
 A string containing the new name for the password change schedule.
+
+.EXAMPLE
+Rename-SafeguardPasswordChangeSchedule "Old Name" -NewName "New Name"
+
+.EXAMPLE
+Rename-SafeguardPasswordChangeSchedule -AssetPartition "Unix Servers" "Old Name" -NewName "New Name"
 #>
 function Rename-SafeguardPasswordChangeSchedule
 {
@@ -1967,6 +2054,12 @@ An integer containing the ID of the password change schedule to copy or a string
 
 .PARAMETER CopyName
 A string containing the name for the new password change schedule.
+
+.EXAMPLE
+Copy-SafeguardPasswordChangeSchedule "Existing Schedule" -CopyName "Copy of Schedule"
+
+.EXAMPLE
+Copy-SafeguardPasswordChangeSchedule -AssetPartition "Unix Servers" "Source Schedule" -CopyName "New Schedule"
 #>
 function Copy-SafeguardPasswordChangeSchedule
 {
@@ -2026,6 +2119,15 @@ An integer containing the ID of the password profiles to get or a string contain
 
 .PARAMETER Fields
 An array of the password profile property names to return.
+
+.EXAMPLE
+Get-SafeguardPasswordProfile
+
+.EXAMPLE
+Get-SafeguardPasswordProfile -AssetPartition "Unix Servers" "Default Profile"
+
+.EXAMPLE
+Get-SafeguardPasswordProfile -AllPartitions
 #>
 function Get-SafeguardPasswordProfile
 {
@@ -2097,6 +2199,12 @@ or a string containing the name.
 .PARAMETER ChangeScheduleToSet
 An integer containing the ID of the password change schedule to set in the new profile
 or a string containing the name.
+
+.EXAMPLE
+New-SafeguardPasswordProfile "My New Profile"
+
+.EXAMPLE
+New-SafeguardPasswordProfile -AssetPartition "Unix Servers" -Name "Custom Profile" -PasswordRuleToUse "Strong Rule"
 #>
 function New-SafeguardPasswordProfile
 {
@@ -2189,6 +2297,12 @@ or a string containing the name.
 .PARAMETER ChangeScheduleToSet
 An integer containing the ID of the password change schedule to set in the profile
 or a string containing the name.
+
+.EXAMPLE
+Edit-SafeguardPasswordProfile "Default Profile" -PasswordRuleToUse "Strong Rule"
+
+.EXAMPLE
+Edit-SafeguardPasswordProfile -AssetPartition "Unix Servers" -ProfileToEdit "Custom Profile" -CheckScheduleToUse "Daily Check"
 #>
 function Edit-SafeguardPasswordProfile
 {
@@ -2271,6 +2385,12 @@ An integer containing the asset partition ID to the delete password profile from
 
 .PARAMETER ProfileToDelete
 An integer containing the ID of the password profile to delete or a string containing the name.
+
+.EXAMPLE
+Remove-SafeguardPasswordProfile "Old Profile"
+
+.EXAMPLE
+Remove-SafeguardPasswordProfile -AssetPartition "Unix Servers" "Deprecated Profile"
 #>
 function Remove-SafeguardPasswordProfile
 {
@@ -2326,6 +2446,12 @@ An integer containing the ID of the password profile to rename or a string conta
 
 .PARAMETER NewName
 A string containing the new name for the password profile.
+
+.EXAMPLE
+Rename-SafeguardPasswordProfile "Old Name" -NewName "New Name"
+
+.EXAMPLE
+Rename-SafeguardPasswordProfile -AssetPartition "Unix Servers" "Old Name" -NewName "New Name"
 #>
 function Rename-SafeguardPasswordProfile
 {
@@ -2388,6 +2514,12 @@ A string containing the name for the new password profile.
 Whether to deep copy the profile, meaning make a copy of the account password rule, check password
 schedule, and change password schedule, which will be given names based on the CopyName parameter
 that is provided.
+
+.EXAMPLE
+Copy-SafeguardPasswordProfile "Existing Profile" -CopyName "Copy of Profile"
+
+.EXAMPLE
+Copy-SafeguardPasswordProfile -AssetPartition "Unix Servers" "Source Profile" -CopyName "New Profile"
 #>
 function Copy-SafeguardPasswordProfile
 {
