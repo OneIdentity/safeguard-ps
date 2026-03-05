@@ -1,5 +1,5 @@
-FROM mcr.microsoft.com/powershell:centos-7
-MAINTAINER support@oneidentity.com
+FROM mcr.microsoft.com/powershell:ubuntu-24.04
+LABEL maintainer="support@oneidentity.com"
 
 RUN groupadd -r safeguard \
     && useradd -r -g safeguard -s /bin/bash safeguard \
