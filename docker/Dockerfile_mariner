@@ -1,7 +1,9 @@
 FROM mcr.microsoft.com/powershell:lts-mariner-2.0
 LABEL maintainer="support@oneidentity.com"
 
-RUN groupadd -r safeguard \
+RUN tdnf install -y shadow-utils \
+    && tdnf clean all \
+    && groupadd -r safeguard \
     && useradd -r -g safeguard -s /bin/bash safeguard \
     && mkdir -p /home/safeguard \
     && chown -R safeguard:safeguard /home/safeguard
