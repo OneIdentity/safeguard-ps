@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/powershell:ubuntu-16.04
+FROM mcr.microsoft.com/powershell:lts-mariner-2.0
 MAINTAINER support@oneidentity.com
 
 RUN groupadd -r safeguard \

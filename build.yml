@@ -136,7 +136,7 @@ jobs:
           docker login -u danpetersonoi --password-stdin <<<$(DockerHubAccessToken) 2>/dev/null
           docker push oneidentity/safeguard-ps:$(VersionString)-nanoserver
           docker logout
-      displayName: 'Pushing Docker Windows Nano Server image to Docker Hub'
+      displayName: 'Pushing Docker Windows Server Core image to Docker Hub'
       condition: and( succeeded(), eq( variables.shouldPublishDocker, true ) )
 
 # Job 4: Build and Publish Linux - runs only on successful merges (not PRs)

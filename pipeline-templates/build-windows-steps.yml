@@ -51,6 +51,6 @@ steps:
     failOnStderr: true
     script: |
       $env:VERSION_STRING = "$(VersionString)"
-      & $(System.DefaultWorkingDirectory)\invoke-docker-build.ps1 nanoserver $(VersionString)
-      docker tag oneidentity/safeguard-ps:$(VersionString)-nanoserver oneidentity/safeguard-ps:$(VersionString)-windows
+      & $(System.DefaultWorkingDirectory)\invoke-docker-build.ps1 windowsservercore $(VersionString)
+      docker tag oneidentity/safeguard-ps:$(VersionString)-windowsservercore oneidentity/safeguard-ps:$(VersionString)-windows
   displayName: 'Building Windows Docker image'

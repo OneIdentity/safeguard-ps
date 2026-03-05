@@ -13,18 +13,13 @@ function Get-SafeguardDockerFileName
     switch ($ImageType)
     {
         # Ubuntu
-        {$_ -ieq "ubuntu" -or $_ -ieq "ubuntu18.04"} {"Dockerfile_ubuntu18.04"}
-        "ubuntu16.04" {"Dockerfile_ubuntu16.04"}
-        # CentOS
-        {$_ -ieq "centos" -or $_ -ieq "centos7"} {"Dockerfile_centos7"}
+        {$_ -ieq "ubuntu" -or $_ -ieq "ubuntu-24.04"} {"Dockerfile_ubuntu"}
+        # Mariner
+        {$_ -ieq "mariner" -or $_ -ieq "mariner-2.0"} {"Dockerfile_mariner"}
         # Alpine
-        {$_ -ieq "alpine" -or $_ -ieq "alpine3.8"} {"Dockerfile_alpine3.8"}
-        # OpenSuSE
-        {$_ -ieq "opensuse" -or $_ -ieq "opensuse42.3"} {"Dockerfile_opensuse42.3"}
-        # Fedora
-        {$_ -ieq "fedora" -or $_ -ieq "fedora28"} {"Dockerfile_fedora28"}
-        # Nanoserver
-        "nanoserver" {"Dockerfile_nanoserver"}
+        {$_ -ieq "alpine" -or $_ -ieq "alpine-3.20"} {"Dockerfile_alpine"}
+        # Windows Server Core LTSC
+        "windowsservercore" {"Dockerfile_windowsservercore"}
         # Unknown
         default { throw "Invalid ImageType specified."}
     }
@@ -36,12 +31,10 @@ function Get-SafeguardDockerFile
     Param(
         [Parameter(Mandatory=$false,Position=0)]
         [ValidateSet(
-            "ubuntu","ubuntu18.04","ubuntu16.04",
-            "centos","centos7",
-            "alpine","alpine3.8",
-            "opensuse","opensuse42.3",
-            "fedora","fedora28",
-            "nanoserver",
+            "ubuntu","ubuntu-24.04",
+            "mariner","mariner-2.0",
+            "alpine","alpine-3.20",
+            "windowsservercore",
             IgnoreCase=$true)]
         [string]$ImageType = "alpine"
     )

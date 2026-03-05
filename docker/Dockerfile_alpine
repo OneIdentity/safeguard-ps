@@ -1,7 +1,9 @@
-FROM mcr.microsoft.com/powershell:fedora-28
+FROM mcr.microsoft.com/powershell:alpine-3.20
 MAINTAINER support@oneidentity.com
 
-RUN groupadd -r safeguard \
+RUN apk -U --no-cache add \
+        shadow \
+    && groupadd -r safeguard \
     && useradd -r -g safeguard -s /bin/bash safeguard \
     && mkdir -p /home/safeguard \
     && chown -R safeguard:safeguard /home/safeguard
