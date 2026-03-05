@@ -41,11 +41,8 @@ steps:
       targetType: inline
       failOnStderr: true
       script: |
-        $(System.DefaultWorkingDirectory)/build-docker.sh ubuntu18.04 $(VersionString)
-        $(System.DefaultWorkingDirectory)/build-docker.sh ubuntu16.04 $(VersionString)
-        $(System.DefaultWorkingDirectory)/build-docker.sh centos7 $(VersionString)
-        $(System.DefaultWorkingDirectory)/build-docker.sh alpine3.8 $(VersionString)
-        $(System.DefaultWorkingDirectory)/build-docker.sh opensuse42.3 $(VersionString)
-        $(System.DefaultWorkingDirectory)/build-docker.sh fedora28 $(VersionString)
-        docker tag oneidentity/safeguard-ps:$(VersionString)-alpine3.8 oneidentity/safeguard-ps:latest
+        $(System.DefaultWorkingDirectory)/build-docker.sh ubuntu $(VersionString)
+        $(System.DefaultWorkingDirectory)/build-docker.sh mariner $(VersionString)
+        $(System.DefaultWorkingDirectory)/build-docker.sh alpine $(VersionString)
+        docker tag oneidentity/safeguard-ps:$(VersionString)-alpine oneidentity/safeguard-ps:latest
     displayName: 'Build Linux Docker images'

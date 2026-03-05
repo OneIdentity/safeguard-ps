@@ -76,21 +76,21 @@ jobs:
         Remove-Item eSigner_CKA_Setup.zip
         Move-Item -Path "eSigner_CKA_*\*.exe" -Destination "eSigner_CKA_Installer.exe"
       displayName: "Download and Unzip eSignerCKA Setup"
-    
+
     - powershell: |
         .\eSigner_CKA_Installer.exe /CURRENTUSER /VERYSILENT /SUPPRESSMSGBOXES /DIR="$(Build.SourcesDirectory)\eSignerCKA" | Out-Null
         dir $(Build.SourcesDirectory)\eSignerCKA
       displayName: "Setup eSignerCKA in silent mode and output installation directory"
-    
+
     - powershell: |
         $(Build.SourcesDirectory)\eSignerCKA\eSignerCKATool.exe config -mode "product" -user "ssl.oid.safeguardpp@groups.quest.com" -pass "$(SPPCodeSigning-Password)" -totp "$(SPPCodeSigning-TotpPrivateKey)" -key "$(Build.SourcesDirectory)\eSignerCKA\master.key" -r
       displayName: "Configure account information on eSignerCKA using Azure Key Vault values"
-    
+
     - powershell: |
         $(Build.SourcesDirectory)\eSignerCKA\eSignerCKATool.exe unload
         $(Build.SourcesDirectory)\eSignerCKA\eSignerCKATool.exe load
       displayName: "Unload and load certificate into Windows Certificate Store"
-    
+
     # We should now be able to access the certificate using the standard Windows signtool.exe from the Windows SDK,
     # which should be installed on the build agent images being used.
     #
@@ -98,7 +98,7 @@ jobs:
     # And in fact, the sample SSL.com code includes a bunch of extra PowerShell script to get the thumbprint. The
     # signtool.exe can sign catalog files, but we'll stick with the Set-AuthenticodeSignature cmdlet for now.
     # "signtool.exe" sign /fd sha256 /tr http://ts.ssl.com /td sha256 /n "One Identity LLC" "C:\path\to\program.exe"
-    
+
     - powershell: |
         $cert = Get-ChildItem -Path Cert:\CurrentUser\My -CodeSigningCert
         Write-Verbose -Verbose "Subject: $($cert.Subject)"
@@ -134,9 +134,9 @@ jobs:
         failOnStderr: true
         script: |
           docker login -u danpetersonoi --password-stdin <<<$(DockerHubAccessToken) 2>/dev/null
-          docker push oneidentity/safeguard-ps:$(VersionString)-nanoserver
+          docker push oneidentity/safeguard-ps:$(VersionString)-windowsservercore
           docker logout
-      displayName: 'Pushing Docker Windows Nano Server image to Docker Hub'
+      displayName: 'Pushing Docker Windows Server Core image to Docker Hub'
       condition: and( succeeded(), eq( variables.shouldPublishDocker, true ) )
 
 # Job 4: Build and Publish Linux - runs only on successful merges (not PRs)
@@ -160,12 +160,9 @@ jobs:
         failOnStderr: true
         script: |
           docker login -u danpetersonoi --password-stdin <<<$(DockerHubAccessToken) 2>/dev/null
-          docker push oneidentity/safeguard-ps:$(VersionString)-ubuntu18.04
-          docker push oneidentity/safeguard-ps:$(VersionString)-ubuntu16.04
-          docker push oneidentity/safeguard-ps:$(VersionString)-centos7
-          docker push oneidentity/safeguard-ps:$(VersionString)-alpine3.8
-          docker push oneidentity/safeguard-ps:$(VersionString)-opensuse42.3
-          docker push oneidentity/safeguard-ps:$(VersionString)-fedora28
+          docker push oneidentity/safeguard-ps:$(VersionString)-ubuntu
+          docker push oneidentity/safeguard-ps:$(VersionString)-mariner
+          docker push oneidentity/safeguard-ps:$(VersionString)-alpine
           docker push oneidentity/safeguard-ps:latest
           docker logout
       condition: and( succeeded(), eq(variables.shouldPublishDocker, true) )
