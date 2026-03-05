@@ -28,7 +28,7 @@ get_safeguard_dockerfile()
         DockerFile="Dockerfile_alpine"
         ;;
     mariner | mariner-2.0)
-        DockerFile="Dockerfile_fedora28"
+        DockerFile="Dockerfile_mariner"
         ;;
     *)
         print_usage
