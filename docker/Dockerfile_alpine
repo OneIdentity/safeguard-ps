@@ -1,5 +1,5 @@
 FROM mcr.microsoft.com/powershell:alpine-3.20
-MAINTAINER support@oneidentity.com
+LABEL maintainer="support@oneidentity.com"
 
 RUN apk -U --no-cache add \
         shadow \

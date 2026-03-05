@@ -1,5 +1,5 @@
 FROM mcr.microsoft.com/powershell:ubuntu-24.04
-MAINTAINER support@oneidentity.com
+LABEL maintainer="support@oneidentity.com"
 
 RUN groupadd -r safeguard \
     && useradd -r -g safeguard -s /bin/bash safeguard \

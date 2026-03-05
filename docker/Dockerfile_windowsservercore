@@ -1,5 +1,5 @@
 FROM mcr.microsoft.com/powershell:lts-windowsservercore-ltsc2022
-MAINTAINER support@oneidentity.com
+LABEL maintainer="support@oneidentity.com"
 
 COPY ["*.ps1", "c:/temp/safeguard/"]
 COPY ["src/", "c:/temp/safeguard/src/"]
