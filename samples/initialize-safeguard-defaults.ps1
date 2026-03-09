@@ -16,9 +16,16 @@ if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference
 
 if (-not (Get-Module safeguard-ps)) { Import-Module safeguard-ps }
 
-# Browser-based login
-Connect-Safeguard -Appliance $Appliance -Insecure:$Insecure -Gui
-Write-Host -ForegroundColor Green "Connected to Safeguard -- $Appliance"
+# Reuse existing session if it matches the target appliance, otherwise connect via browser
+if ($SafeguardSession -and $SafeguardSession.Appliance -eq $Appliance)
+{
+    Write-Host -ForegroundColor Green "Using existing session for $Appliance"
+}
+else
+{
+    Connect-Safeguard -Appliance $Appliance -Insecure:$Insecure -Gui
+    Write-Host -ForegroundColor Green "Connected to Safeguard -- $Appliance"
+}
 
 # --- Helper to find an item by old name or new name ---
 function Find-OrVerify
@@ -34,43 +41,37 @@ function Find-OrVerify
     if ($local:Item)
     {
         Write-Host "Found $ItemType '$OldName' -- will rename to '$NewName'"
-        return @{ Item = $local:Item; NeedsRename = $true }
+        return @{ Item = $local:Item; NeedsRename = $true; NeedsCreate = $false }
     }
     try { $local:Item = (& $GetBlock $NewName) } catch {}
     if ($local:Item)
     {
         Write-Host "$ItemType '$NewName' already exists -- skipping"
-        return @{ Item = $local:Item; NeedsRename = $false }
+        return @{ Item = $local:Item; NeedsRename = $false; NeedsCreate = $false }
     }
-    throw "Could not find $ItemType as '$OldName' or '$NewName'"
+    Write-Host "$ItemType not found as '$OldName' or '$NewName' -- will create '$NewName'"
+    return @{ Item = $null; NeedsRename = $false; NeedsCreate = $true }
 }
 
 # ============================================================
-# 1. Rename the default asset partition
+# 1. Rename or create the default asset partition
 # ============================================================
 $local:PartitionResult = Find-OrVerify -GetBlock { param($n) Get-SafeguardAssetPartition $n } `
     -OldName "Macrocosm" -NewName "Default Partition" -ItemType "Asset Partition"
-$local:PartitionId = $local:PartitionResult.Item.Id
 if ($local:PartitionResult.NeedsRename)
 {
-    Edit-SafeguardAssetPartition $local:PartitionId -Name "Default Partition" | Out-Null
+    Edit-SafeguardAssetPartition $local:PartitionResult.Item.Id -Name "Default Partition" | Out-Null
     Write-Host -ForegroundColor Cyan "  Renamed asset partition to 'Default Partition'"
 }
-
-# ============================================================
-# 2. Rename the linked password profile
-# ============================================================
-$local:ProfileResult = Find-OrVerify `
-    -GetBlock { param($n) Get-SafeguardPasswordProfile -AssetPartitionId $local:PartitionId $n } `
-    -OldName "Macrocosm Profile" -NewName "Default Partition Profile" -ItemType "Password Profile"
-if ($local:ProfileResult.NeedsRename)
+elseif ($local:PartitionResult.NeedsCreate)
 {
-    Rename-SafeguardPasswordProfile -AssetPartitionId $local:PartitionId $local:ProfileResult.Item.Id "Default Partition Profile" | Out-Null
-    Write-Host -ForegroundColor Cyan "  Renamed password profile to 'Default Partition Profile'"
+    $local:PartitionResult.Item = (New-SafeguardAssetPartition -Name "Default Partition")
+    Write-Host -ForegroundColor Cyan "  Created asset partition 'Default Partition'"
 }
+$local:PartitionId = $local:PartitionResult.Item.Id
 
 # ============================================================
-# 3. Rename the check schedule
+# 2. Rename or create the check schedule
 # ============================================================
 $local:CheckResult = Find-OrVerify `
     -GetBlock { param($n) Get-SafeguardPasswordCheckSchedule -AssetPartitionId $local:PartitionId $n } `
@@ -80,9 +81,14 @@ if ($local:CheckResult.NeedsRename)
     Rename-SafeguardPasswordCheckSchedule -AssetPartitionId $local:PartitionId $local:CheckResult.Item.Id "Never Check Schedule" | Out-Null
     Write-Host -ForegroundColor Cyan "  Renamed check schedule to 'Never Check Schedule'"
 }
+elseif ($local:CheckResult.NeedsCreate)
+{
+    New-SafeguardPasswordCheckSchedule -AssetPartitionId $local:PartitionId "Never Check Schedule" | Out-Null
+    Write-Host -ForegroundColor Cyan "  Created password check schedule 'Never Check Schedule'"
+}
 
 # ============================================================
-# 4. Rename the change schedule
+# 3. Rename or create the change schedule
 # ============================================================
 $local:ChangeResult = Find-OrVerify `
     -GetBlock { param($n) Get-SafeguardPasswordChangeSchedule -AssetPartitionId $local:PartitionId $n } `
@@ -92,9 +98,14 @@ if ($local:ChangeResult.NeedsRename)
     Rename-SafeguardPasswordChangeSchedule -AssetPartitionId $local:PartitionId $local:ChangeResult.Item.Id "Never Change Schedule" | Out-Null
     Write-Host -ForegroundColor Cyan "  Renamed change schedule to 'Never Change Schedule'"
 }
+elseif ($local:ChangeResult.NeedsCreate)
+{
+    New-SafeguardPasswordChangeSchedule -AssetPartitionId $local:PartitionId "Never Change Schedule" | Out-Null
+    Write-Host -ForegroundColor Cyan "  Created password change schedule 'Never Change Schedule'"
+}
 
 # ============================================================
-# 5. Rename the password rule
+# 4. Rename or create the password rule
 # ============================================================
 $local:RuleResult = Find-OrVerify `
     -GetBlock { param($n) Get-SafeguardAccountPasswordRule -AssetPartitionId $local:PartitionId $n } `
@@ -104,9 +115,14 @@ if ($local:RuleResult.NeedsRename)
     Rename-SafeguardAccountPasswordRule -AssetPartitionId $local:PartitionId $local:RuleResult.Item.Id "Default Basic Password Rule" | Out-Null
     Write-Host -ForegroundColor Cyan "  Renamed password rule to 'Default Basic Password Rule'"
 }
+elseif ($local:RuleResult.NeedsCreate)
+{
+    New-SafeguardAccountPasswordRule -AssetPartitionId $local:PartitionId -Name "Default Basic Password Rule" | Out-Null
+    Write-Host -ForegroundColor Cyan "  Created password rule 'Default Basic Password Rule'"
+}
 
 # ============================================================
-# 6. Configure the password rule: 10-16 chars, 1 letter,
+# 5. Configure the password rule: 10-16 chars, 1 letter,
 #    1 number, 1 symbol from: !@#$%^&*-=+
 # ============================================================
 $local:Rule = (Get-SafeguardAccountPasswordRule -AssetPartitionId $local:PartitionId "Default Basic Password Rule")
@@ -136,6 +152,27 @@ if ($local:Rule.MinCharacters -ne 10 -or $local:Rule.MaxCharacters -ne 16 -or `
 else
 {
     Write-Host "Password Rule 'Default Basic Password Rule' already configured -- skipping"
+}
+
+# ============================================================
+# 6. Rename or create the default partition profile
+# ============================================================
+$local:ProfileResult = Find-OrVerify `
+    -GetBlock { param($n) Get-SafeguardPasswordProfile -AssetPartitionId $local:PartitionId $n } `
+    -OldName "Macrocosm Profile" -NewName "Default Partition Profile" -ItemType "Password Profile"
+if ($local:ProfileResult.NeedsRename)
+{
+    Rename-SafeguardPasswordProfile -AssetPartitionId $local:PartitionId $local:ProfileResult.Item.Id "Default Partition Profile" | Out-Null
+    Write-Host -ForegroundColor Cyan "  Renamed password profile to 'Default Partition Profile'"
+}
+elseif ($local:ProfileResult.NeedsCreate)
+{
+    New-SafeguardPasswordProfile -AssetPartitionId $local:PartitionId `
+        -Name "Default Partition Profile" `
+        -PasswordRuleToSet "Default Basic Password Rule" `
+        -CheckScheduleToSet "Never Check Schedule" `
+        -ChangeScheduleToSet "Never Change Schedule" | Out-Null
+    Write-Host -ForegroundColor Cyan "  Created password profile 'Default Partition Profile'"
 }
 
 # ============================================================
