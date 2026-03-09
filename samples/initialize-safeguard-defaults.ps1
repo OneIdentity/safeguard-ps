@@ -9,7 +9,9 @@ Param(
     [Parameter(Mandatory=$true,Position=0)]
     [string]$Appliance,
     [Parameter(Mandatory=$false)]
-    [switch]$Insecure
+    [switch]$Insecure,
+    [Parameter(Mandatory=$false)]
+    [string]$TimeZone = "Mountain Standard Time"
 )
 
 if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -183,7 +185,7 @@ try { $local:DailyExists = (Get-SafeguardPasswordCheckSchedule -AssetPartitionId
 if (-not $local:DailyExists)
 {
     Write-Host "Creating 'Check Daily' check schedule..."
-    $local:DailySchedule = (New-SafeguardScheduleDaily -StartHour 7 -StartMinute 0 -TimeZone "Mountain Standard Time")
+    $local:DailySchedule = (New-SafeguardScheduleDaily -StartHour 7 -StartMinute 0 -TimeZone $TimeZone)
     New-SafeguardPasswordCheckSchedule -AssetPartitionId $local:PartitionId "Check Daily" -Schedule $local:DailySchedule | Out-Null
     Write-Host -ForegroundColor Cyan "  Created 'Check Daily' -- runs every day at 7:00 AM Mountain Time"
 }
@@ -200,7 +202,7 @@ try { $local:WeeklyExists = (Get-SafeguardPasswordChangeSchedule -AssetPartition
 if (-not $local:WeeklyExists)
 {
     Write-Host "Creating 'Change Weekly' change schedule..."
-    $local:WeeklySchedule = (New-SafeguardScheduleWeekly -RepeatDaysOfWeek "Saturday" -StartHour 2 -StartMinute 0 -TimeZone "Mountain Standard Time")
+    $local:WeeklySchedule = (New-SafeguardScheduleWeekly -RepeatDaysOfWeek "Saturday" -StartHour 2 -StartMinute 0 -TimeZone $TimeZone)
     New-SafeguardPasswordChangeSchedule -AssetPartitionId $local:PartitionId "Change Weekly" -Schedule $local:WeeklySchedule | Out-Null
     Write-Host -ForegroundColor Cyan "  Created 'Change Weekly' -- runs every Saturday at 2:00 AM Mountain Time"
 }
