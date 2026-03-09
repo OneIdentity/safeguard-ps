@@ -211,6 +211,8 @@ FunctionsToExport = @(
     'Rename-SafeguardPasswordChangeSchedule','Copy-SafeguardPasswordChangeSchedule','Edit-SafeguardPasswordChangeSchedule',
     'Get-SafeguardPasswordProfile','New-SafeguardPasswordProfile','Remove-SafeguardPasswordProfile',
     'Rename-SafeguardPasswordProfile','Copy-SafeguardPasswordProfile','Edit-SafeguardPasswordProfile',
+    'Get-SafeguardPasswordProfileAsset','Add-SafeguardPasswordProfileAsset','Remove-SafeguardPasswordProfileAsset',
+    'Get-SafeguardPasswordProfileAccount','Add-SafeguardPasswordProfileAccount','Remove-SafeguardPasswordProfileAccount',
     # directories.psm1
     'Get-SafeguardDirectoryIdentityProvider','New-SafeguardDirectoryIdentityProvider',
     'Remove-SafeguardDirectoryIdentityProvider','Edit-SafeguardDirectoryIdentityProvider',
