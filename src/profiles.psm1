@@ -2564,6 +2564,50 @@ function Copy-SafeguardPasswordProfile
     $local:Copy
 }
 
+<#
+.SYNOPSIS
+Get assets directly assigned to a password profile in Safeguard via the Web API.
+
+.DESCRIPTION
+Password profiles control how Safeguard manages passwords for assets and accounts.
+This cmdlet gets the list of assets that are directly assigned to a specific
+password profile.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to find the password profile in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to find the password profile in.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER ProfileToGet
+An integer containing the ID of the password profile or a string containing the name.
+
+.PARAMETER Fields
+An array of the asset property names to return.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardPasswordProfileAsset "Default Partition Profile"
+
+.EXAMPLE
+Get-SafeguardPasswordProfileAsset -AssetPartition "Unix Servers" "Custom Profile"
+#>
 function Get-SafeguardPasswordProfileAsset
 {
     [CmdletBinding()]
@@ -2603,6 +2647,50 @@ function Get-SafeguardPasswordProfileAsset
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core GET `
         "AssetPartitions/$AssetPartitionId/Profiles/$($local:ProfileId)/Assets" -Parameters $local:Parameters
 }
+<#
+.SYNOPSIS
+Add assets to a password profile in Safeguard via the Web API.
+
+.DESCRIPTION
+Password profiles control how Safeguard manages passwords for assets and accounts.
+This cmdlet adds assets to a specific password profile so the profile settings
+apply to those assets.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to find the password profile in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to find the password profile in.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER ProfileToEdit
+An integer containing the ID of the password profile or a string containing the name.
+
+.PARAMETER AssetList
+A list of integers or strings containing the IDs or names of the assets to add.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Add-SafeguardPasswordProfileAsset "Daily Check Profile" -AssetList "linux-server1","linux-server2"
+
+.EXAMPLE
+Add-SafeguardPasswordProfileAsset -AssetPartition "Unix Servers" "Custom Profile" "my-asset"
+#>
 function Add-SafeguardPasswordProfileAsset
 {
     [CmdletBinding()]
@@ -2643,6 +2731,50 @@ function Add-SafeguardPasswordProfileAsset
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core POST `
         "AssetPartitions/$AssetPartitionId/Profiles/$($local:ProfileId)/Assets/Add" -Body $local:Assets
 }
+<#
+.SYNOPSIS
+Remove assets from a password profile in Safeguard via the Web API.
+
+.DESCRIPTION
+Password profiles control how Safeguard manages passwords for assets and accounts.
+This cmdlet removes assets from a specific password profile so the profile settings
+no longer apply to those assets.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to find the password profile in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to find the password profile in.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER ProfileToEdit
+An integer containing the ID of the password profile or a string containing the name.
+
+.PARAMETER AssetList
+A list of integers or strings containing the IDs or names of the assets to remove.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardPasswordProfileAsset "Daily Check Profile" -AssetList "linux-server1"
+
+.EXAMPLE
+Remove-SafeguardPasswordProfileAsset -AssetPartition "Unix Servers" "Custom Profile" "my-asset"
+#>
 function Remove-SafeguardPasswordProfileAsset
 {
     [CmdletBinding()]
@@ -2683,6 +2815,50 @@ function Remove-SafeguardPasswordProfileAsset
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core POST `
         "AssetPartitions/$AssetPartitionId/Profiles/$($local:ProfileId)/Assets/Remove" -Body $local:Assets
 }
+<#
+.SYNOPSIS
+Get accounts directly assigned to a password profile in Safeguard via the Web API.
+
+.DESCRIPTION
+Password profiles control how Safeguard manages passwords for assets and accounts.
+This cmdlet gets the list of accounts that are directly assigned to a specific
+password profile.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to find the password profile in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to find the password profile in.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER ProfileToGet
+An integer containing the ID of the password profile or a string containing the name.
+
+.PARAMETER Fields
+An array of the account property names to return.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardPasswordProfileAccount "Default Partition Profile"
+
+.EXAMPLE
+Get-SafeguardPasswordProfileAccount -AssetPartition "Unix Servers" "Custom Profile"
+#>
 function Get-SafeguardPasswordProfileAccount
 {
     [CmdletBinding()]
@@ -2722,6 +2898,50 @@ function Get-SafeguardPasswordProfileAccount
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core GET `
         "AssetPartitions/$AssetPartitionId/Profiles/$($local:ProfileId)/Accounts" -Parameters $local:Parameters
 }
+<#
+.SYNOPSIS
+Add accounts to a password profile in Safeguard via the Web API.
+
+.DESCRIPTION
+Password profiles control how Safeguard manages passwords for assets and accounts.
+This cmdlet adds accounts to a specific password profile so the profile settings
+apply to those accounts.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to find the password profile in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to find the password profile in.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER ProfileToEdit
+An integer containing the ID of the password profile or a string containing the name.
+
+.PARAMETER AccountList
+A list of integers or strings containing the IDs or names of the accounts to add.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Add-SafeguardPasswordProfileAccount "Daily Check Profile" -AccountList 123,456
+
+.EXAMPLE
+Add-SafeguardPasswordProfileAccount -AssetPartition "Unix Servers" "Custom Profile" 789
+#>
 function Add-SafeguardPasswordProfileAccount
 {
     [CmdletBinding()]
@@ -2763,6 +2983,50 @@ function Add-SafeguardPasswordProfileAccount
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core POST `
         "AssetPartitions/$AssetPartitionId/Profiles/$($local:ProfileId)/Accounts/Add" -Body $local:Accounts
 }
+<#
+.SYNOPSIS
+Remove accounts from a password profile in Safeguard via the Web API.
+
+.DESCRIPTION
+Password profiles control how Safeguard manages passwords for assets and accounts.
+This cmdlet removes accounts from a specific password profile so the profile settings
+no longer apply to those accounts.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to find the password profile in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to find the password profile in.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER ProfileToEdit
+An integer containing the ID of the password profile or a string containing the name.
+
+.PARAMETER AccountList
+A list of integers or strings containing the IDs or names of the accounts to remove.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardPasswordProfileAccount "Daily Check Profile" -AccountList 123
+
+.EXAMPLE
+Remove-SafeguardPasswordProfileAccount -AssetPartition "Unix Servers" "Custom Profile" 789
+#>
 function Remove-SafeguardPasswordProfileAccount
 {
     [CmdletBinding()]
