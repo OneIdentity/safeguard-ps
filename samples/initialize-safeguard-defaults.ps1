@@ -39,7 +39,7 @@ function Find-OrVerify
     try { $local:Item = (& $GetBlock $NewName) } catch {}
     if ($local:Item)
     {
-        Write-Host "$ItemType '$NewName' already exists -- skipping rename"
+        Write-Host "$ItemType '$NewName' already exists -- skipping"
         return @{ Item = $local:Item; NeedsRename = $false }
     }
     throw "Could not find $ItemType as '$OldName' or '$NewName'"
@@ -74,7 +74,7 @@ if ($local:ProfileResult.NeedsRename)
 # ============================================================
 $local:CheckResult = Find-OrVerify `
     -GetBlock { param($n) Get-SafeguardPasswordCheckSchedule -AssetPartitionId $local:PartitionId $n } `
-    -OldName "Macrocosm Check Schedule" -NewName "Never Check Schedule" -ItemType "Check Schedule"
+    -OldName "Macrocosm Check Schedule" -NewName "Never Check Schedule" -ItemType "Password Check Schedule"
 if ($local:CheckResult.NeedsRename)
 {
     Rename-SafeguardPasswordCheckSchedule -AssetPartitionId $local:PartitionId $local:CheckResult.Item.Id "Never Check Schedule" | Out-Null
@@ -86,7 +86,7 @@ if ($local:CheckResult.NeedsRename)
 # ============================================================
 $local:ChangeResult = Find-OrVerify `
     -GetBlock { param($n) Get-SafeguardPasswordChangeSchedule -AssetPartitionId $local:PartitionId $n } `
-    -OldName "Macrocosm Change Schedule" -NewName "Never Change Schedule" -ItemType "Change Schedule"
+    -OldName "Macrocosm Change Schedule" -NewName "Never Change Schedule" -ItemType "Password Change Schedule"
 if ($local:ChangeResult.NeedsRename)
 {
     Rename-SafeguardPasswordChangeSchedule -AssetPartitionId $local:PartitionId $local:ChangeResult.Item.Id "Never Change Schedule" | Out-Null
@@ -109,20 +109,34 @@ if ($local:RuleResult.NeedsRename)
 # 6. Configure the password rule: 10-16 chars, 1 letter,
 #    1 number, 1 symbol from: !@#$%^&*-=+
 # ============================================================
-Write-Host "Updating password rule settings..."
-Edit-SafeguardAccountPasswordRule -AssetPartitionId $local:PartitionId "Default Basic Password Rule" `
-    -MinCharacters 10 `
-    -MaxCharacters 16 `
-    -AllowUppercase $true `
-    -MinUppercase 0 `
-    -AllowLowercase $true `
-    -MinLowercase 1 `
-    -AllowNumeric $true `
-    -MinNumeric 1 `
-    -AllowSymbols $true `
-    -MinSymbols 1 `
-    -AllowedSymbolChars '!@#$%^&*-=+' | Out-Null
-Write-Host -ForegroundColor Cyan "  Password rule configured (10-16 chars, requires letter + number + symbol)"
+$local:Rule = (Get-SafeguardAccountPasswordRule -AssetPartitionId $local:PartitionId "Default Basic Password Rule")
+$local:AllowedSymbols = ($local:Rule.AllowedNonAlphaNumericCharacters -join "")
+if ($local:Rule.MinCharacters -ne 10 -or $local:Rule.MaxCharacters -ne 16 -or `
+    $local:Rule.AllowUppercaseCharacters -ne $true -or $local:Rule.MinUppercaseCharacters -ne 0 -or `
+    $local:Rule.AllowLowercaseCharacters -ne $true -or $local:Rule.MinLowercaseCharacters -ne 1 -or `
+    $local:Rule.AllowNumericCharacters -ne $true -or $local:Rule.MinNumericCharacters -ne 1 -or `
+    $local:Rule.AllowNonAlphaNumericCharacters -ne $true -or $local:Rule.MinNonAlphaNumericCharacters -ne 1 -or `
+    $local:AllowedSymbols -ne '!@#$%^&*-=+')
+{
+    Write-Host "Updating password rule settings..."
+    Edit-SafeguardAccountPasswordRule -AssetPartitionId $local:PartitionId "Default Basic Password Rule" `
+        -MinCharacters 10 `
+        -MaxCharacters 16 `
+        -AllowUppercase $true `
+        -MinUppercase 0 `
+        -AllowLowercase $true `
+        -MinLowercase 1 `
+        -AllowNumeric $true `
+        -MinNumeric 1 `
+        -AllowSymbols $true `
+        -MinSymbols 1 `
+        -AllowedSymbolChars '!@#$%^&*-=+' | Out-Null
+    Write-Host -ForegroundColor Cyan "  Password rule configured (10-16 chars, requires letter + number + symbol)"
+}
+else
+{
+    Write-Host "Password Rule 'Default Basic Password Rule' already configured -- skipping"
+}
 
 # ============================================================
 # 7. Add "Check Daily" schedule -- every day at 7:00 AM MT
@@ -138,7 +152,7 @@ if (-not $local:DailyExists)
 }
 else
 {
-    Write-Host "'Check Daily' check schedule already exists -- skipping"
+    Write-Host "Password Check Schedule 'Check Daily' already exists -- skipping"
 }
 
 # ============================================================
@@ -155,7 +169,28 @@ if (-not $local:WeeklyExists)
 }
 else
 {
-    Write-Host "'Change Weekly' change schedule already exists -- skipping"
+    Write-Host "Password Change Schedule 'Change Weekly' already exists -- skipping"
+}
+
+# ============================================================
+# 9. Add "Daily Check with Weekly Change Profile" password
+#    profile using the rule and schedules from above
+# ============================================================
+$local:ProfileExists = $null
+try { $local:ProfileExists = (Get-SafeguardPasswordProfile -AssetPartitionId $local:PartitionId "Daily Check with Weekly Change Profile") } catch {}
+if (-not $local:ProfileExists)
+{
+    Write-Host "Creating 'Daily Check with Weekly Change Profile'..."
+    New-SafeguardPasswordProfile -AssetPartitionId $local:PartitionId `
+        -Name "Daily Check with Weekly Change Profile" `
+        -PasswordRuleToSet "Default Basic Password Rule" `
+        -CheckScheduleToSet "Check Daily" `
+        -ChangeScheduleToSet "Change Weekly" | Out-Null
+    Write-Host -ForegroundColor Cyan "  Created 'Daily Check with Weekly Change Profile'"
+}
+else
+{
+    Write-Host "Password Profile 'Daily Check with Weekly Change Profile' already exists -- skipping"
 }
 
 Write-Host ""
