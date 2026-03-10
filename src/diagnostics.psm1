@@ -183,7 +183,364 @@ function Invoke-SafeguardTelnet
 
 <#
 .SYNOPSIS
-Get the currently staged safeguard diagnostic package if any exists
+Perform a DNS lookup from a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Resolve a network address using nslookup from Safeguard. Used to diagnose
+DNS problems from Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER NetworkAddress
+A string containing the network address to look up.
+
+.PARAMETER RecordType
+A string containing the DNS record type to query (e.g. A, Aaaa, Cname, Mx, Ns, Ptr, Soa, Srv, Txt, Any).
+
+.PARAMETER QueryOption
+A string containing the query option to use (e.g. Standard, UseTcpOnly, NoRecursion, BypassCache).
+
+.INPUTS
+None.
+
+.OUTPUTS
+String output from nslookup command.
+
+.EXAMPLE
+Invoke-SafeguardNsLookup myserver.example.com
+
+.EXAMPLE
+Invoke-SafeguardNsLookup myserver.example.com -RecordType Mx
+
+.EXAMPLE
+Invoke-SafeguardNsLookup -AccessToken $token -Appliance 10.5.32.54 -Insecure myserver.example.com -RecordType Aaaa -QueryOption UseTcpOnly
+#>
+function Invoke-SafeguardNsLookup
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$NetworkAddress,
+        [Parameter(Mandatory=$false)]
+        [ValidateSet("A","Ns","Md","Mf","Cname","Soa","Mb","Mg","Mr","Null","Wks","Ptr","Hinfo","Minfo",
+            "Mx","Text","Txt","Rp","Afsdb","X25","Isdn","Rt","Sig","Key","Aaaa","Nxt","Srv","Atma","Naptr",
+            "Dname","Opt","Ds","Rrsig","Nsec","Dnskey","Dhcid","Tkey","Tsig","Any")]
+        [string]$RecordType,
+        [Parameter(Mandatory=$false)]
+        [ValidateSet("Standard","AcceptTruncatedResponse","UseTcpOnly","NoRecursion","BypassCache","NoWireQuery",
+            "NoLocalName","NoHostsFile","NoNetbt","WireOnly","ReturnMessage","MulticastOnly","NoMulticast",
+            "TreatAsFqdn","MulticastWait","MulticastVerify","DontResetTtlValues","DisableIdnEncoding","AppendMultilabel")]
+        [string]$QueryOption
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Body = @{
+        NetworkAddress = "$NetworkAddress"
+    }
+
+    if ($PSBoundParameters.ContainsKey("RecordType")) { $local:Body["RecordType"] = $RecordType }
+    if ($PSBoundParameters.ContainsKey("QueryOption")) { $local:Body["QueryOption"] = $QueryOption }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST NetworkDiagnostics/Nslookup `
+        -Body $local:Body
+}
+
+<#
+.SYNOPSIS
+Show the ARP table from a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Get the ARP (Address Resolution Protocol) table from Safeguard. Used to diagnose
+network connectivity problems from Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+String output from ARP command.
+
+.EXAMPLE
+Invoke-SafeguardArp
+
+.EXAMPLE
+Invoke-SafeguardArp -AccessToken $token -Appliance 10.5.32.54 -Insecure
+#>
+function Invoke-SafeguardArp
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST NetworkDiagnostics/Arp
+}
+
+<#
+.SYNOPSIS
+Show network statistics from a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Get network connection statistics from Safeguard. Used to diagnose network
+problems from Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+String output from netstat command.
+
+.EXAMPLE
+Invoke-SafeguardNetstat
+
+.EXAMPLE
+Invoke-SafeguardNetstat -AccessToken $token -Appliance 10.5.32.54 -Insecure
+#>
+function Invoke-SafeguardNetstat
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST NetworkDiagnostics/Netstat
+}
+
+<#
+.SYNOPSIS
+Show the routing table from a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Get the network routing table from Safeguard. Used to diagnose network
+routing problems from Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+String output from routes command.
+
+.EXAMPLE
+Invoke-SafeguardShowRoutes
+
+.EXAMPLE
+Invoke-SafeguardShowRoutes -AccessToken $token -Appliance 10.5.32.54 -Insecure
+#>
+function Invoke-SafeguardShowRoutes
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST NetworkDiagnostics/Routes
+}
+
+<#
+.SYNOPSIS
+Perform a CLDAP ping against an Active Directory domain from a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Run a connectionless LDAP (CLDAP) ping to locate a domain controller for the specified
+domain from Safeguard. Used to diagnose Active Directory connectivity and site assignment
+problems from Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER DomainDnsName
+A string containing the domain DNS name to look up.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response containing domain controller information including ClientSiteName,
+DnsForestName, DcSiteName, DomainName, DomainControllerName, and DomainControllerAddress.
+
+.EXAMPLE
+Invoke-SafeguardCldapPing example.com
+
+.EXAMPLE
+Invoke-SafeguardCldapPing -AccessToken $token -Appliance 10.5.32.54 -Insecure example.com
+#>
+function Invoke-SafeguardCldapPing
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$DomainDnsName
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST NetworkDiagnostics/CldapPing -Body @{
+        NetworkAddress = "$DomainDnsName"
+    }
+}
+
+<#
+.SYNOPSIS
+Perform a traceroute from a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Trace the network route to a host from Safeguard. Used to diagnose network
+routing and connectivity problems from Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER NetworkAddress
+A string containing the network address of the host to trace the route to.
+
+.PARAMETER MaxHops
+An integer for the maximum number of hops to search for the target (1-255).
+
+.PARAMETER Timeout
+An integer for the timeout in milliseconds to wait for each reply.
+
+.PARAMETER ResolveNames
+Whether to resolve addresses to hostnames.
+
+.INPUTS
+None.
+
+.OUTPUTS
+String output from traceroute command.
+
+.EXAMPLE
+Invoke-SafeguardTraceroute 10.5.33.100
+
+.EXAMPLE
+Invoke-SafeguardTraceroute myserver.example.com -MaxHops 15 -Timeout 3000
+
+.EXAMPLE
+Invoke-SafeguardTraceroute -AccessToken $token -Appliance 10.5.32.54 -Insecure 10.5.33.100 -ResolveNames
+#>
+function Invoke-SafeguardTraceroute
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$NetworkAddress,
+        [Parameter(Mandatory=$false)]
+        [ValidateRange(1,255)]
+        [int]$MaxHops,
+        [Parameter(Mandatory=$false)]
+        [ValidateRange(1,2147483647)]
+        [int]$Timeout,
+        [Parameter(Mandatory=$false)]
+        [switch]$ResolveNames
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Body = @{
+        NetworkAddress = "$NetworkAddress"
+    }
+
+    if ($PSBoundParameters.ContainsKey("MaxHops")) { $local:Body["CountHops"] = $MaxHops }
+    if ($PSBoundParameters.ContainsKey("Timeout")) { $local:Body["MillisecondTimeout"] = $Timeout }
+    if ($ResolveNames) { $local:Body["ResolveAddressesToHostnames"] = $true }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST NetworkDiagnostics/Traceroute `
+        -Body $local:Body
+}
+
+<#
+.SYNOPSIS
+Get the currently staged safeguard diagnostic packageif any exists
 
 .DESCRIPTION
 If no package is currently staged, returns null.
