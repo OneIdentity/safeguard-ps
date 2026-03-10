@@ -37,50 +37,31 @@ jobs:
         KeyVaultName: "SPPCodeSigning"
         SecretsFilter: "SPPCodeSigning-Password, SPPCodeSigning-TotpPrivateKey"
 
+    # Download and extract CodeSignTool — SSL.com's standalone signing tool that talks directly
+    # to the eSigner cloud API, bypassing eSignerCKA and the Windows certificate store entirely.
     - powershell: |
-        Invoke-WebRequest -OutFile eSigner_CKA_Setup.zip "https://www.ssl.com/download/ssl-com-esigner-cka"
-        Expand-Archive -Force eSigner_CKA_Setup.zip
-        Remove-Item eSigner_CKA_Setup.zip
-        Move-Item -Path "eSigner_CKA_*\*.exe" -Destination "eSigner_CKA_Installer.exe"
-      displayName: "Download and Unzip eSignerCKA Setup"
-
-    - powershell: |
-        .\eSigner_CKA_Installer.exe /CURRENTUSER /VERYSILENT /SUPPRESSMSGBOXES /DIR="$(Build.SourcesDirectory)\eSignerCKA" | Out-Null
-        dir $(Build.SourcesDirectory)\eSignerCKA
-      displayName: "Setup eSignerCKA in silent mode and output installation directory"
-
-    - powershell: |
-        $(Build.SourcesDirectory)\eSignerCKA\eSignerCKATool.exe config -mode "product" -user "ssl.oid.safeguardpp@groups.quest.com" -pass "$(SPPCodeSigning-Password)" -totp "$(SPPCodeSigning-TotpPrivateKey)" -key "$(Build.SourcesDirectory)\eSignerCKA\master.key" -r
-      displayName: "Configure account information on eSignerCKA using Azure Key Vault values"
-
-    - powershell: |
-        $(Build.SourcesDirectory)\eSignerCKA\eSignerCKATool.exe unload
-        $(Build.SourcesDirectory)\eSignerCKA\eSignerCKATool.exe load
-      displayName: "Unload and load certificate into Windows Certificate Store"
+        $ErrorActionPreference = "Stop"
+        Invoke-WebRequest -OutFile CodeSignTool.zip "https://www.ssl.com/download/codesigntool-for-windows/"
+        Expand-Archive -Force CodeSignTool.zip -DestinationPath CodeSignTool
+        Remove-Item CodeSignTool.zip
+        $bat = Get-ChildItem -Path CodeSignTool -Recurse -Filter "CodeSignTool.bat" | Select-Object -First 1
+        if (-not $bat) {
+            throw "CodeSignTool.bat not found after extraction"
+        }
+        Write-Verbose -Verbose "CodeSignTool located at: $($bat.FullName)"
+      displayName: "Download and extract CodeSignTool"
 
     - powershell: |
         $ErrorActionPreference = "Stop"
-        $CodeSigningCert = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert | Select-Object -First 1
-        if (-not $CodeSigningCert) {
-            throw "No code signing certificate found in CurrentUser\My store"
-        }
-        Write-Verbose -Verbose "Thumbprint: $($CodeSigningCert.Thumbprint)"
         $catalogfile = (Get-Module safeguard-ps -ListAvailable)[0].Path -replace "psd1","cat"
         if (-not (Test-Path $catalogfile)) {
             throw "Catalog file not found: $catalogfile"
         }
         Write-Verbose -Verbose "Signing catalog file: $catalogfile"
-        $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits" -Recurse -Filter "signtool.exe" |
-            Where-Object { $_.FullName -match "\\x86\\" } |
-            Sort-Object -Property FullName -Descending |
-            Select-Object -First 1
-        if (-not $signtool) {
-            throw "x86 signtool.exe not found in Windows SDK"
-        }
-        Write-Verbose -Verbose "Using signtool: $($signtool.FullName)"
-        & $signtool.FullName sign /debug /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 $CodeSigningCert.Thumbprint $catalogfile
+        $bat = Get-ChildItem -Path CodeSignTool -Recurse -Filter "CodeSignTool.bat" | Select-Object -First 1
+        & $bat.FullName sign -username "ssl.oid.safeguardpp@groups.quest.com" -password "$(SPPCodeSigning-Password)" -totp_secret "$(SPPCodeSigning-TotpPrivateKey)" -input_file_path "$catalogfile"
         if ($LASTEXITCODE -ne 0) {
-            throw "signtool.exe failed with exit code $LASTEXITCODE"
+            throw "CodeSignTool failed with exit code $LASTEXITCODE"
         }
         # Verify the signature independently
         $verify = Get-AuthenticodeSignature -FilePath $catalogfile
@@ -127,58 +108,32 @@ jobs:
         SecretsFilter: "SPPCodeSigning-Password, SPPCodeSigning-TotpPrivateKey"
         # PRs from repository forks are not allowed to access secrets in the pipeline. For more information see https://learn.microsoft.com/en-us/azure/devops/pipelines/repos/github?view=azure-devops&tabs=yaml#access-restrictions
 
-    # SSL.com example:
-    # https://www.ssl.com/how-to/how-to-integrate-esigner-cka-with-ci-cd-tools-for-automated-code-signing/#ftoc-heading-1
-    # and click on the Azure Pipeline tab.
+    # SSL.com CodeSignTool: standalone signing tool that talks directly to the eSigner cloud API,
+    # bypassing eSignerCKA and the Windows certificate store entirely.
+    # https://www.ssl.com/guide/azure-devops-cloud-signing-integration-guide/
     - powershell: |
-        # Download and unzip eSignerCKA setup. This downloads their latest version, which when unzipped has
-        # a file name that also contains the version number. So we need to move it to a known name.
-        Invoke-WebRequest -OutFile eSigner_CKA_Setup.zip "https://www.ssl.com/download/ssl-com-esigner-cka"
-        Expand-Archive -Force eSigner_CKA_Setup.zip
-        Remove-Item eSigner_CKA_Setup.zip
-        Move-Item -Path "eSigner_CKA_*\*.exe" -Destination "eSigner_CKA_Installer.exe"
-      displayName: "Download and Unzip eSignerCKA Setup"
-
-    - powershell: |
-        .\eSigner_CKA_Installer.exe /CURRENTUSER /VERYSILENT /SUPPRESSMSGBOXES /DIR="$(Build.SourcesDirectory)\eSignerCKA" | Out-Null
-        dir $(Build.SourcesDirectory)\eSignerCKA
-      displayName: "Setup eSignerCKA in silent mode and output installation directory"
-
-    - powershell: |
-        $(Build.SourcesDirectory)\eSignerCKA\eSignerCKATool.exe config -mode "product" -user "ssl.oid.safeguardpp@groups.quest.com" -pass "$(SPPCodeSigning-Password)" -totp "$(SPPCodeSigning-TotpPrivateKey)" -key "$(Build.SourcesDirectory)\eSignerCKA\master.key" -r
-      displayName: "Configure account information on eSignerCKA using Azure Key Vault values"
-
-    - powershell: |
-        $(Build.SourcesDirectory)\eSignerCKA\eSignerCKATool.exe unload
-        $(Build.SourcesDirectory)\eSignerCKA\eSignerCKATool.exe load
-      displayName: "Unload and load certificate into Windows Certificate Store"
-
-    # We should now be able to access the certificate using the standard Windows signtool.exe from the Windows SDK,
-    # which should be installed on the build agent images being used.
+        $ErrorActionPreference = "Stop"
+        Invoke-WebRequest -OutFile CodeSignTool.zip "https://www.ssl.com/download/codesigntool-for-windows/"
+        Expand-Archive -Force CodeSignTool.zip -DestinationPath CodeSignTool
+        Remove-Item CodeSignTool.zip
+        $bat = Get-ChildItem -Path CodeSignTool -Recurse -Filter "CodeSignTool.bat" | Select-Object -First 1
+        if (-not $bat) {
+            throw "CodeSignTool.bat not found after extraction"
+        }
+        Write-Verbose -Verbose "CodeSignTool located at: $($bat.FullName)"
+      displayName: "Download and extract CodeSignTool"
 
     - powershell: |
         $ErrorActionPreference = "Stop"
-        $CodeSigningCert = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert | Select-Object -First 1
-        if (-not $CodeSigningCert) {
-            throw "No code signing certificate found in CurrentUser\My store"
-        }
-        Write-Verbose -Verbose "Thumbprint: $($CodeSigningCert.Thumbprint)"
         $catalogfile = (Get-Module safeguard-ps -ListAvailable)[0].Path -replace "psd1","cat"
         if (-not (Test-Path $catalogfile)) {
             throw "Catalog file not found: $catalogfile"
         }
         Write-Verbose -Verbose "Signing catalog file: $catalogfile"
-        $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits" -Recurse -Filter "signtool.exe" |
-            Where-Object { $_.FullName -match "\\x86\\" } |
-            Sort-Object -Property FullName -Descending |
-            Select-Object -First 1
-        if (-not $signtool) {
-            throw "x86 signtool.exe not found in Windows SDK"
-        }
-        Write-Verbose -Verbose "Using signtool: $($signtool.FullName)"
-        & $signtool.FullName sign /debug /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 $CodeSigningCert.Thumbprint $catalogfile
+        $bat = Get-ChildItem -Path CodeSignTool -Recurse -Filter "CodeSignTool.bat" | Select-Object -First 1
+        & $bat.FullName sign -username "ssl.oid.safeguardpp@groups.quest.com" -password "$(SPPCodeSigning-Password)" -totp_secret "$(SPPCodeSigning-TotpPrivateKey)" -input_file_path "$catalogfile"
         if ($LASTEXITCODE -ne 0) {
-            throw "signtool.exe failed with exit code $LASTEXITCODE"
+            throw "CodeSignTool failed with exit code $LASTEXITCODE"
         }
         # Verify the signature independently
         $verify = Get-AuthenticodeSignature -FilePath $catalogfile
