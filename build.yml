@@ -63,9 +63,12 @@ jobs:
             throw "CodeSignTool.bat not found"
         }
         Write-Verbose -Verbose "Using CodeSignTool: $($bat.FullName)"
-        & $bat.FullName sign -username "ssl.oid.safeguardpp@groups.quest.com" -password "$(SPPCodeSigning-Password)" -totp_secret "$(SPPCodeSigning-TotpPrivateKey)" -input_file_path "$catalogfile"
-        if ($LASTEXITCODE -ne 0) {
-            throw "CodeSignTool failed with exit code $LASTEXITCODE"
+        Push-Location $bat.DirectoryName
+        & .\CodeSignTool.bat sign -username="ssl.oid.safeguardpp@groups.quest.com" -password="$(SPPCodeSigning-Password)" -totp_secret="$(SPPCodeSigning-TotpPrivateKey)" -input_file_path="$catalogfile"
+        $exitCode = $LASTEXITCODE
+        Pop-Location
+        if ($exitCode -ne 0) {
+            throw "CodeSignTool failed with exit code $exitCode"
         }
         # Verify the signature independently
         $verify = Get-AuthenticodeSignature -FilePath $catalogfile
@@ -139,9 +142,12 @@ jobs:
             throw "CodeSignTool.bat not found"
         }
         Write-Verbose -Verbose "Using CodeSignTool: $($bat.FullName)"
-        & $bat.FullName sign -username "ssl.oid.safeguardpp@groups.quest.com" -password "$(SPPCodeSigning-Password)" -totp_secret "$(SPPCodeSigning-TotpPrivateKey)" -input_file_path "$catalogfile"
-        if ($LASTEXITCODE -ne 0) {
-            throw "CodeSignTool failed with exit code $LASTEXITCODE"
+        Push-Location $bat.DirectoryName
+        & .\CodeSignTool.bat sign -username="ssl.oid.safeguardpp@groups.quest.com" -password="$(SPPCodeSigning-Password)" -totp_secret="$(SPPCodeSigning-TotpPrivateKey)" -input_file_path="$catalogfile"
+        $exitCode = $LASTEXITCODE
+        Pop-Location
+        if ($exitCode -ne 0) {
+            throw "CodeSignTool failed with exit code $exitCode"
         }
         # Verify the signature independently
         $verify = Get-AuthenticodeSignature -FilePath $catalogfile
