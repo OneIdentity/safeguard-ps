@@ -42,9 +42,9 @@ jobs:
     - powershell: |
         $ErrorActionPreference = "Stop"
         Invoke-WebRequest -OutFile CodeSignTool.zip "https://www.ssl.com/download/codesigntool-for-windows/"
-        Expand-Archive -Force CodeSignTool.zip -DestinationPath CodeSignTool
+        Expand-Archive -Force CodeSignTool.zip -DestinationPath "$(Build.SourcesDirectory)\CodeSignTool"
         Remove-Item CodeSignTool.zip
-        $bat = Get-ChildItem -Path CodeSignTool -Recurse -Filter "CodeSignTool.bat" | Select-Object -First 1
+        $bat = Get-ChildItem -Path "$(Build.SourcesDirectory)\CodeSignTool" -Recurse -Filter "CodeSignTool.bat" | Select-Object -First 1
         if (-not $bat) {
             throw "CodeSignTool.bat not found after extraction"
         }
@@ -58,7 +58,11 @@ jobs:
             throw "Catalog file not found: $catalogfile"
         }
         Write-Verbose -Verbose "Signing catalog file: $catalogfile"
-        $bat = Get-ChildItem -Path CodeSignTool -Recurse -Filter "CodeSignTool.bat" | Select-Object -First 1
+        $bat = Get-ChildItem -Path "$(Build.SourcesDirectory)\CodeSignTool" -Recurse -Filter "CodeSignTool.bat" | Select-Object -First 1
+        if (-not $bat) {
+            throw "CodeSignTool.bat not found"
+        }
+        Write-Verbose -Verbose "Using CodeSignTool: $($bat.FullName)"
         & $bat.FullName sign -username "ssl.oid.safeguardpp@groups.quest.com" -password "$(SPPCodeSigning-Password)" -totp_secret "$(SPPCodeSigning-TotpPrivateKey)" -input_file_path "$catalogfile"
         if ($LASTEXITCODE -ne 0) {
             throw "CodeSignTool failed with exit code $LASTEXITCODE"
@@ -114,9 +118,9 @@ jobs:
     - powershell: |
         $ErrorActionPreference = "Stop"
         Invoke-WebRequest -OutFile CodeSignTool.zip "https://www.ssl.com/download/codesigntool-for-windows/"
-        Expand-Archive -Force CodeSignTool.zip -DestinationPath CodeSignTool
+        Expand-Archive -Force CodeSignTool.zip -DestinationPath "$(Build.SourcesDirectory)\CodeSignTool"
         Remove-Item CodeSignTool.zip
-        $bat = Get-ChildItem -Path CodeSignTool -Recurse -Filter "CodeSignTool.bat" | Select-Object -First 1
+        $bat = Get-ChildItem -Path "$(Build.SourcesDirectory)\CodeSignTool" -Recurse -Filter "CodeSignTool.bat" | Select-Object -First 1
         if (-not $bat) {
             throw "CodeSignTool.bat not found after extraction"
         }
@@ -130,7 +134,11 @@ jobs:
             throw "Catalog file not found: $catalogfile"
         }
         Write-Verbose -Verbose "Signing catalog file: $catalogfile"
-        $bat = Get-ChildItem -Path CodeSignTool -Recurse -Filter "CodeSignTool.bat" | Select-Object -First 1
+        $bat = Get-ChildItem -Path "$(Build.SourcesDirectory)\CodeSignTool" -Recurse -Filter "CodeSignTool.bat" | Select-Object -First 1
+        if (-not $bat) {
+            throw "CodeSignTool.bat not found"
+        }
+        Write-Verbose -Verbose "Using CodeSignTool: $($bat.FullName)"
         & $bat.FullName sign -username "ssl.oid.safeguardpp@groups.quest.com" -password "$(SPPCodeSigning-Password)" -totp_secret "$(SPPCodeSigning-TotpPrivateKey)" -input_file_path "$catalogfile"
         if ($LASTEXITCODE -ne 0) {
             throw "CodeSignTool failed with exit code $LASTEXITCODE"
