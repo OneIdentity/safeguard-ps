@@ -262,6 +262,147 @@ function Invoke-SafeguardNsLookup
 
 <#
 .SYNOPSIS
+Show the ARP table from a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Get the ARP (Address Resolution Protocol) table from Safeguard. Used to diagnose
+network connectivity problems from Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+String output from ARP command.
+
+.EXAMPLE
+Invoke-SafeguardArp
+
+.EXAMPLE
+Invoke-SafeguardArp -AccessToken $token -Appliance 10.5.32.54 -Insecure
+#>
+function Invoke-SafeguardArp
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST NetworkDiagnostics/Arp
+}
+
+<#
+.SYNOPSIS
+Show network statistics from a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Get network connection statistics from Safeguard. Used to diagnose network
+problems from Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+String output from netstat command.
+
+.EXAMPLE
+Invoke-SafeguardNetstat
+
+.EXAMPLE
+Invoke-SafeguardNetstat -AccessToken $token -Appliance 10.5.32.54 -Insecure
+#>
+function Invoke-SafeguardNetstat
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST NetworkDiagnostics/Netstat
+}
+
+<#
+.SYNOPSIS
+Show the routing table from a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Get the network routing table from Safeguard. Used to diagnose network
+routing problems from Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+String output from routes command.
+
+.EXAMPLE
+Invoke-SafeguardShowRoutes
+
+.EXAMPLE
+Invoke-SafeguardShowRoutes -AccessToken $token -Appliance 10.5.32.54 -Insecure
+#>
+function Invoke-SafeguardShowRoutes
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST NetworkDiagnostics/Routes
+}
+
+<#
+.SYNOPSIS
 Get the currently staged safeguard diagnostic packageif any exists
 
 .DESCRIPTION
