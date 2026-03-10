@@ -100,12 +100,31 @@ jobs:
     # "signtool.exe" sign /fd sha256 /tr http://ts.ssl.com /td sha256 /n "One Identity LLC" "C:\path\to\program.exe"
 
     - powershell: |
+        $ErrorActionPreference = "Stop"
         $cert = Get-ChildItem -Path Cert:\CurrentUser\My -CodeSigningCert
+        if (-not $cert) {
+            throw "No code signing certificate found in CurrentUser\My store"
+        }
         Write-Verbose -Verbose "Subject: $($cert.Subject)"
         Write-Verbose -Verbose "Issuer: $($cert.Issuer)"
         $catalogfile = (Get-Module safeguard-ps -ListAvailable)[0].Path -replace "psd1","cat"
-        Write-Verbose -Verbose $catalogfile
-        Set-AuthenticodeSignature -Certificate $cert -FilePath $catalogfile -HashAlgorithm SHA256 -TimestampServer "http://ts.ssl.com"
+        if (-not (Test-Path $catalogfile)) {
+            throw "Catalog file not found: $catalogfile"
+        }
+        Write-Verbose -Verbose "Signing catalog file: $catalogfile"
+        $result = Set-AuthenticodeSignature -Certificate $cert -FilePath $catalogfile -HashAlgorithm SHA256 -TimestampServer "http://ts.ssl.com"
+        Write-Verbose -Verbose "Signature status: $($result.Status)"
+        Write-Verbose -Verbose "Status message: $($result.StatusMessage)"
+        if ($result.Status -ne "Valid") {
+            throw "Code signing failed with status '$($result.Status)': $($result.StatusMessage)"
+        }
+        # Verify the signature independently
+        $verify = Get-AuthenticodeSignature -FilePath $catalogfile
+        Write-Verbose -Verbose "Verification status: $($verify.Status)"
+        if ($verify.Status -ne "Valid") {
+            throw "Signature verification failed with status '$($verify.Status)': $($verify.StatusMessage)"
+        }
+        Write-Host "Catalog file signed and verified successfully"
       displayName: 'Signing PowerShell module catalog file'
 
     - task: PowerShell@2
