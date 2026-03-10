@@ -142,7 +142,8 @@ FunctionsToExport = @(
     'Get-SafeguardTls12OnlyStatus',
     'Test-SafeguardAuditLogArchive',
     # diagnostics.psm1
-    'Invoke-SafeguardPing','Invoke-SafeguardTelnet',
+    'Invoke-SafeguardPing','Invoke-SafeguardTelnet','Invoke-SafeguardNsLookup',
+    'Invoke-SafeguardArp','Invoke-SafeguardNetstat','Invoke-SafeguardShowRoutes','Invoke-SafeguardCldapPing','Invoke-SafeguardTraceroute',
     'Get-SafeguardDiagnosticPackage','Set-SafeguardDiagnosticPackage','Clear-SafeguardDiagnosticPackage',
     'Invoke-SafeguardDiagnosticPackage','Get-SafeguardDiagnosticPackageStatus','Get-SafeguardDiagnosticPackageLog',
     'Invoke-SafeguardMemberThroughput','Invoke-SafeguardClusterThroughput',
@@ -211,6 +212,8 @@ FunctionsToExport = @(
     'Rename-SafeguardPasswordChangeSchedule','Copy-SafeguardPasswordChangeSchedule','Edit-SafeguardPasswordChangeSchedule',
     'Get-SafeguardPasswordProfile','New-SafeguardPasswordProfile','Remove-SafeguardPasswordProfile',
     'Rename-SafeguardPasswordProfile','Copy-SafeguardPasswordProfile','Edit-SafeguardPasswordProfile',
+    'Get-SafeguardPasswordProfileAsset','Add-SafeguardPasswordProfileAsset','Remove-SafeguardPasswordProfileAsset',
+    'Get-SafeguardPasswordProfileAccount','Add-SafeguardPasswordProfileAccount','Remove-SafeguardPasswordProfileAccount',
     # directories.psm1
     'Get-SafeguardDirectoryIdentityProvider','New-SafeguardDirectoryIdentityProvider',
     'Remove-SafeguardDirectoryIdentityProvider','Edit-SafeguardDirectoryIdentityProvider',
