@@ -60,23 +60,24 @@ jobs:
 
     - powershell: |
         $ErrorActionPreference = "Stop"
-        $cert = Get-ChildItem -Path Cert:\CurrentUser\My -CodeSigningCert
-        if (-not $cert) {
-            throw "No code signing certificate found in CurrentUser\My store"
-        }
-        Write-Verbose -Verbose "Subject: $($cert.Subject)"
-        Write-Verbose -Verbose "Issuer: $($cert.Issuer)"
         $catalogfile = (Get-Module safeguard-ps -ListAvailable)[0].Path -replace "psd1","cat"
         if (-not (Test-Path $catalogfile)) {
             throw "Catalog file not found: $catalogfile"
         }
         Write-Verbose -Verbose "Signing catalog file: $catalogfile"
-        $result = Set-AuthenticodeSignature -Certificate $cert -FilePath $catalogfile -HashAlgorithm SHA256 -TimestampServer "http://ts.ssl.com"
-        Write-Verbose -Verbose "Signature status: $($result.Status)"
-        Write-Verbose -Verbose "Status message: $($result.StatusMessage)"
-        if ($result.Status -ne "Valid") {
-            throw "Code signing failed with status '$($result.Status)': $($result.StatusMessage)"
+        $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits" -Recurse -Filter "signtool.exe" |
+            Where-Object { $_.FullName -match "\\x64\\" } |
+            Sort-Object -Property FullName -Descending |
+            Select-Object -First 1
+        if (-not $signtool) {
+            throw "signtool.exe not found in Windows SDK"
         }
+        Write-Verbose -Verbose "Using signtool: $($signtool.FullName)"
+        & $signtool.FullName sign /fd sha256 /tr http://ts.ssl.com /td sha256 /n "One Identity LLC" $catalogfile
+        if ($LASTEXITCODE -ne 0) {
+            throw "signtool.exe failed with exit code $LASTEXITCODE"
+        }
+        # Verify the signature independently
         $verify = Get-AuthenticodeSignature -FilePath $catalogfile
         Write-Verbose -Verbose "Verification status: $($verify.Status)"
         if ($verify.Status -ne "Valid") {
@@ -149,30 +150,25 @@ jobs:
 
     # We should now be able to access the certificate using the standard Windows signtool.exe from the Windows SDK,
     # which should be installed on the build agent images being used.
-    #
-    # Typically, you often see examples of signtool.exe and other things accessing the certificate by the thumbprint.
-    # And in fact, the sample SSL.com code includes a bunch of extra PowerShell script to get the thumbprint. The
-    # signtool.exe can sign catalog files, but we'll stick with the Set-AuthenticodeSignature cmdlet for now.
-    # "signtool.exe" sign /fd sha256 /tr http://ts.ssl.com /td sha256 /n "One Identity LLC" "C:\path\to\program.exe"
 
     - powershell: |
         $ErrorActionPreference = "Stop"
-        $cert = Get-ChildItem -Path Cert:\CurrentUser\My -CodeSigningCert
-        if (-not $cert) {
-            throw "No code signing certificate found in CurrentUser\My store"
-        }
-        Write-Verbose -Verbose "Subject: $($cert.Subject)"
-        Write-Verbose -Verbose "Issuer: $($cert.Issuer)"
         $catalogfile = (Get-Module safeguard-ps -ListAvailable)[0].Path -replace "psd1","cat"
         if (-not (Test-Path $catalogfile)) {
             throw "Catalog file not found: $catalogfile"
         }
         Write-Verbose -Verbose "Signing catalog file: $catalogfile"
-        $result = Set-AuthenticodeSignature -Certificate $cert -FilePath $catalogfile -HashAlgorithm SHA256 -TimestampServer "http://ts.ssl.com"
-        Write-Verbose -Verbose "Signature status: $($result.Status)"
-        Write-Verbose -Verbose "Status message: $($result.StatusMessage)"
-        if ($result.Status -ne "Valid") {
-            throw "Code signing failed with status '$($result.Status)': $($result.StatusMessage)"
+        $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits" -Recurse -Filter "signtool.exe" |
+            Where-Object { $_.FullName -match "\\x64\\" } |
+            Sort-Object -Property FullName -Descending |
+            Select-Object -First 1
+        if (-not $signtool) {
+            throw "signtool.exe not found in Windows SDK"
+        }
+        Write-Verbose -Verbose "Using signtool: $($signtool.FullName)"
+        & $signtool.FullName sign /fd sha256 /tr http://ts.ssl.com /td sha256 /n "One Identity LLC" $catalogfile
+        if ($LASTEXITCODE -ne 0) {
+            throw "signtool.exe failed with exit code $LASTEXITCODE"
         }
         # Verify the signature independently
         $verify = Get-AuthenticodeSignature -FilePath $catalogfile
