@@ -60,47 +60,17 @@ jobs:
 
     - powershell: |
         $ErrorActionPreference = "Stop"
-        $cert = Get-ChildItem -Path Cert:\CurrentUser\My -CodeSigningCert
-        if (-not $cert) {
-            Write-Verbose -Verbose "No code signing cert in CurrentUser\My, checking LocalMachine\My"
-            $cert = Get-ChildItem -Path Cert:\LocalMachine\My -CodeSigningCert
-        }
-        if (-not $cert) {
-            throw "No code signing certificate found in CurrentUser\My or LocalMachine\My store"
-        }
-        Write-Verbose -Verbose "Subject: $($cert.Subject)"
-        Write-Verbose -Verbose "Thumbprint: $($cert.Thumbprint)"
-        Write-Verbose -Verbose "HasPrivateKey: $($cert.HasPrivateKey)"
-        # Get the private key provider info for signtool
-        $privateKey = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPrivateKey($cert)
-        if ($privateKey -is [System.Security.Cryptography.RSACng]) {
-            $providerName = $privateKey.Key.Provider.Provider
-            $keyName = $privateKey.Key.KeyName
-            Write-Verbose -Verbose "CNG Provider: $providerName"
-            Write-Verbose -Verbose "CNG Key Name: $keyName"
-        } elseif ($privateKey -is [System.Security.Cryptography.RSACryptoServiceProvider]) {
-            $providerName = $privateKey.CspKeyContainerInfo.ProviderName
-            $keyName = $privateKey.CspKeyContainerInfo.KeyContainerName
-            Write-Verbose -Verbose "CSP Provider: $providerName"
-            Write-Verbose -Verbose "CSP Key Container: $keyName"
-        } else {
-            Write-Verbose -Verbose "Private key type: $($privateKey.GetType().FullName)"
-            throw "Unsupported private key type: $($privateKey.GetType().FullName)"
+        $signtool = "C:\Program Files (x86)\Microsoft SDKs\ClickOnce\SignTool\signtool.exe"
+        if (-not (Test-Path $signtool)) {
+            throw "ClickOnce signtool.exe not found at: $signtool"
         }
         $catalogfile = (Get-Module safeguard-ps -ListAvailable)[0].Path -replace "psd1","cat"
         if (-not (Test-Path $catalogfile)) {
             throw "Catalog file not found: $catalogfile"
         }
         Write-Verbose -Verbose "Signing catalog file: $catalogfile"
-        $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits" -Recurse -Filter "signtool.exe" |
-            Where-Object { $_.FullName -match "\\x64\\" } |
-            Sort-Object -Property FullName -Descending |
-            Select-Object -First 1
-        if (-not $signtool) {
-            throw "signtool.exe not found in Windows SDK"
-        }
-        Write-Verbose -Verbose "Using signtool: $($signtool.FullName)"
-        & $signtool.FullName sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 $cert.Thumbprint /csp $providerName /kc $keyName $catalogfile
+        Write-Verbose -Verbose "Using signtool: $signtool"
+        & $signtool sign /v /debug /fd sha256 /tr http://ts.ssl.com /td sha256 /n "One Identity LLC" $catalogfile
         if ($LASTEXITCODE -ne 0) {
             throw "signtool.exe failed with exit code $LASTEXITCODE"
         }
@@ -180,47 +150,17 @@ jobs:
 
     - powershell: |
         $ErrorActionPreference = "Stop"
-        $cert = Get-ChildItem -Path Cert:\CurrentUser\My -CodeSigningCert
-        if (-not $cert) {
-            Write-Verbose -Verbose "No code signing cert in CurrentUser\My, checking LocalMachine\My"
-            $cert = Get-ChildItem -Path Cert:\LocalMachine\My -CodeSigningCert
-        }
-        if (-not $cert) {
-            throw "No code signing certificate found in CurrentUser\My or LocalMachine\My store"
-        }
-        Write-Verbose -Verbose "Subject: $($cert.Subject)"
-        Write-Verbose -Verbose "Thumbprint: $($cert.Thumbprint)"
-        Write-Verbose -Verbose "HasPrivateKey: $($cert.HasPrivateKey)"
-        # Get the private key provider info for signtool
-        $privateKey = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPrivateKey($cert)
-        if ($privateKey -is [System.Security.Cryptography.RSACng]) {
-            $providerName = $privateKey.Key.Provider.Provider
-            $keyName = $privateKey.Key.KeyName
-            Write-Verbose -Verbose "CNG Provider: $providerName"
-            Write-Verbose -Verbose "CNG Key Name: $keyName"
-        } elseif ($privateKey -is [System.Security.Cryptography.RSACryptoServiceProvider]) {
-            $providerName = $privateKey.CspKeyContainerInfo.ProviderName
-            $keyName = $privateKey.CspKeyContainerInfo.KeyContainerName
-            Write-Verbose -Verbose "CSP Provider: $providerName"
-            Write-Verbose -Verbose "CSP Key Container: $keyName"
-        } else {
-            Write-Verbose -Verbose "Private key type: $($privateKey.GetType().FullName)"
-            throw "Unsupported private key type: $($privateKey.GetType().FullName)"
+        $signtool = "C:\Program Files (x86)\Microsoft SDKs\ClickOnce\SignTool\signtool.exe"
+        if (-not (Test-Path $signtool)) {
+            throw "ClickOnce signtool.exe not found at: $signtool"
         }
         $catalogfile = (Get-Module safeguard-ps -ListAvailable)[0].Path -replace "psd1","cat"
         if (-not (Test-Path $catalogfile)) {
             throw "Catalog file not found: $catalogfile"
         }
         Write-Verbose -Verbose "Signing catalog file: $catalogfile"
-        $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits" -Recurse -Filter "signtool.exe" |
-            Where-Object { $_.FullName -match "\\x64\\" } |
-            Sort-Object -Property FullName -Descending |
-            Select-Object -First 1
-        if (-not $signtool) {
-            throw "signtool.exe not found in Windows SDK"
-        }
-        Write-Verbose -Verbose "Using signtool: $($signtool.FullName)"
-        & $signtool.FullName sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 $cert.Thumbprint /csp $providerName /kc $keyName $catalogfile
+        Write-Verbose -Verbose "Using signtool: $signtool"
+        & $signtool sign /v /debug /fd sha256 /tr http://ts.ssl.com /td sha256 /n "One Identity LLC" $catalogfile
         if ($LASTEXITCODE -ne 0) {
             throw "signtool.exe failed with exit code $LASTEXITCODE"
         }
