@@ -45,7 +45,9 @@ steps:
       Get-PSRepository
   displayName: 'Ensure that PowerShell module loads'
 
+# TEMPORARY: Disabled to speed up PR validation - re-enable when signing testing is complete
 - task: PowerShell@2
+  condition: false
   inputs:
     targetType: inline
     failOnStderr: true
