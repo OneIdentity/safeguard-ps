@@ -183,7 +183,86 @@ function Invoke-SafeguardTelnet
 
 <#
 .SYNOPSIS
-Get the currently staged safeguard diagnostic package if any exists
+Perform a DNS lookup from a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Resolve a network address using nslookup from Safeguard. Used to diagnose
+DNS problems from Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER NetworkAddress
+A string containing the network address to look up.
+
+.PARAMETER RecordType
+A string containing the DNS record type to query (e.g. A, Aaaa, Cname, Mx, Ns, Ptr, Soa, Srv, Txt, Any).
+
+.PARAMETER QueryOption
+A string containing the query option to use (e.g. Standard, UseTcpOnly, NoRecursion, BypassCache).
+
+.INPUTS
+None.
+
+.OUTPUTS
+String output from nslookup command.
+
+.EXAMPLE
+Invoke-SafeguardNsLookup myserver.example.com
+
+.EXAMPLE
+Invoke-SafeguardNsLookup myserver.example.com -RecordType Mx
+
+.EXAMPLE
+Invoke-SafeguardNsLookup -AccessToken $token -Appliance 10.5.32.54 -Insecure myserver.example.com -RecordType Aaaa -QueryOption UseTcpOnly
+#>
+function Invoke-SafeguardNsLookup
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$NetworkAddress,
+        [Parameter(Mandatory=$false)]
+        [ValidateSet("A","Ns","Md","Mf","Cname","Soa","Mb","Mg","Mr","Null","Wks","Ptr","Hinfo","Minfo",
+            "Mx","Text","Txt","Rp","Afsdb","X25","Isdn","Rt","Sig","Key","Aaaa","Nxt","Srv","Atma","Naptr",
+            "Dname","Opt","Ds","Rrsig","Nsec","Dnskey","Dhcid","Tkey","Tsig","Any")]
+        [string]$RecordType,
+        [Parameter(Mandatory=$false)]
+        [ValidateSet("Standard","AcceptTruncatedResponse","UseTcpOnly","NoRecursion","BypassCache","NoWireQuery",
+            "NoLocalName","NoHostsFile","NoNetbt","WireOnly","ReturnMessage","MulticastOnly","NoMulticast",
+            "TreatAsFqdn","MulticastWait","MulticastVerify","DontResetTtlValues","DisableIdnEncoding","AppendMultilabel")]
+        [string]$QueryOption
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Body = @{
+        NetworkAddress = "$NetworkAddress"
+    }
+
+    if ($PSBoundParameters.ContainsKey("RecordType")) { $local:Body["RecordType"] = $RecordType }
+    if ($PSBoundParameters.ContainsKey("QueryOption")) { $local:Body["QueryOption"] = $QueryOption }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST NetworkDiagnostics/Nslookup `
+        -Body $local:Body
+}
+
+<#
+.SYNOPSIS
+Get the currently staged safeguard diagnostic packageif any exists
 
 .DESCRIPTION
 If no package is currently staged, returns null.
