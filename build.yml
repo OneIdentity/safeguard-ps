@@ -29,6 +29,62 @@ jobs:
   steps:
     - template: pipeline-templates/build-windows-steps.yml
 
+    # TEMPORARY: Signing steps added for PR testing - revert once signing is confirmed working
+    - task: AzureKeyVault@2
+      displayName: 'Get code signing certificate from Azure Key Vault'
+      inputs:
+        ConnectedServiceName: "OneIdentity.Infrastructure.SPPCodeSigning"
+        KeyVaultName: "SPPCodeSigning"
+        SecretsFilter: "SPPCodeSigning-Password, SPPCodeSigning-TotpPrivateKey"
+
+    - powershell: |
+        Invoke-WebRequest -OutFile eSigner_CKA_Setup.zip "https://www.ssl.com/download/ssl-com-esigner-cka"
+        Expand-Archive -Force eSigner_CKA_Setup.zip
+        Remove-Item eSigner_CKA_Setup.zip
+        Move-Item -Path "eSigner_CKA_*\*.exe" -Destination "eSigner_CKA_Installer.exe"
+      displayName: "Download and Unzip eSignerCKA Setup"
+
+    - powershell: |
+        .\eSigner_CKA_Installer.exe /CURRENTUSER /VERYSILENT /SUPPRESSMSGBOXES /DIR="$(Build.SourcesDirectory)\eSignerCKA" | Out-Null
+        dir $(Build.SourcesDirectory)\eSignerCKA
+      displayName: "Setup eSignerCKA in silent mode and output installation directory"
+
+    - powershell: |
+        $(Build.SourcesDirectory)\eSignerCKA\eSignerCKATool.exe config -mode "product" -user "ssl.oid.safeguardpp@groups.quest.com" -pass "$(SPPCodeSigning-Password)" -totp "$(SPPCodeSigning-TotpPrivateKey)" -key "$(Build.SourcesDirectory)\eSignerCKA\master.key" -r
+      displayName: "Configure account information on eSignerCKA using Azure Key Vault values"
+
+    - powershell: |
+        $(Build.SourcesDirectory)\eSignerCKA\eSignerCKATool.exe unload
+        $(Build.SourcesDirectory)\eSignerCKA\eSignerCKATool.exe load
+      displayName: "Unload and load certificate into Windows Certificate Store"
+
+    - powershell: |
+        $ErrorActionPreference = "Stop"
+        $cert = Get-ChildItem -Path Cert:\CurrentUser\My -CodeSigningCert
+        if (-not $cert) {
+            throw "No code signing certificate found in CurrentUser\My store"
+        }
+        Write-Verbose -Verbose "Subject: $($cert.Subject)"
+        Write-Verbose -Verbose "Issuer: $($cert.Issuer)"
+        $catalogfile = (Get-Module safeguard-ps -ListAvailable)[0].Path -replace "psd1","cat"
+        if (-not (Test-Path $catalogfile)) {
+            throw "Catalog file not found: $catalogfile"
+        }
+        Write-Verbose -Verbose "Signing catalog file: $catalogfile"
+        $result = Set-AuthenticodeSignature -Certificate $cert -FilePath $catalogfile -HashAlgorithm SHA256 -TimestampServer "http://ts.ssl.com"
+        Write-Verbose -Verbose "Signature status: $($result.Status)"
+        Write-Verbose -Verbose "Status message: $($result.StatusMessage)"
+        if ($result.Status -ne "Valid") {
+            throw "Code signing failed with status '$($result.Status)': $($result.StatusMessage)"
+        }
+        $verify = Get-AuthenticodeSignature -FilePath $catalogfile
+        Write-Verbose -Verbose "Verification status: $($verify.Status)"
+        if ($verify.Status -ne "Valid") {
+            throw "Signature verification failed with status '$($verify.Status)': $($verify.StatusMessage)"
+        }
+        Write-Host "Catalog file signed and verified successfully"
+      displayName: 'Signing PowerShell module catalog file'
+
 # Job 2: PR Validation Linux - runs only on pull requests
 - job: PRValidation_Linux
   displayName: "PR Validation: Linux - Build module and Docker images"
