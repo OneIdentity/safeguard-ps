@@ -403,6 +403,62 @@ function Invoke-SafeguardShowRoutes
 
 <#
 .SYNOPSIS
+Perform a CLDAP ping against an Active Directory domain from a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Run a connectionless LDAP (CLDAP) ping to locate a domain controller for the specified
+domain from Safeguard. Used to diagnose Active Directory connectivity and site assignment
+problems from Safeguard.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER DomainDnsName
+A string containing the domain DNS name to look up.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response containing domain controller information including ClientSiteName,
+DnsForestName, DcSiteName, DomainName, DomainControllerName, and DomainControllerAddress.
+
+.EXAMPLE
+Invoke-SafeguardCldapPing example.com
+
+.EXAMPLE
+Invoke-SafeguardCldapPing -AccessToken $token -Appliance 10.5.32.54 -Insecure example.com
+#>
+function Invoke-SafeguardCldapPing
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$DomainDnsName
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance POST NetworkDiagnostics/CldapPing -Body @{
+        NetworkAddress = "$DomainDnsName"
+    }
+}
+
+<#
+.SYNOPSIS
 Get the currently staged safeguard diagnostic packageif any exists
 
 .DESCRIPTION
