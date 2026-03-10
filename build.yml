@@ -60,17 +60,25 @@ jobs:
 
     - powershell: |
         $ErrorActionPreference = "Stop"
-        $signtool = "C:\Program Files (x86)\Microsoft SDKs\ClickOnce\SignTool\signtool.exe"
-        if (-not (Test-Path $signtool)) {
-            throw "ClickOnce signtool.exe not found at: $signtool"
+        $CodeSigningCert = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert | Select-Object -First 1
+        if (-not $CodeSigningCert) {
+            throw "No code signing certificate found in CurrentUser\My store"
         }
+        Write-Verbose -Verbose "Thumbprint: $($CodeSigningCert.Thumbprint)"
         $catalogfile = (Get-Module safeguard-ps -ListAvailable)[0].Path -replace "psd1","cat"
         if (-not (Test-Path $catalogfile)) {
             throw "Catalog file not found: $catalogfile"
         }
         Write-Verbose -Verbose "Signing catalog file: $catalogfile"
-        Write-Verbose -Verbose "Using signtool: $signtool"
-        & $signtool sign /v /debug /fd sha256 /tr http://ts.ssl.com /td sha256 /n "One Identity LLC" $catalogfile
+        $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits" -Recurse -Filter "signtool.exe" |
+            Where-Object { $_.FullName -match "\\x86\\" } |
+            Sort-Object -Property FullName -Descending |
+            Select-Object -First 1
+        if (-not $signtool) {
+            throw "x86 signtool.exe not found in Windows SDK"
+        }
+        Write-Verbose -Verbose "Using signtool: $($signtool.FullName)"
+        & $signtool.FullName sign /debug /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 $CodeSigningCert.Thumbprint $catalogfile
         if ($LASTEXITCODE -ne 0) {
             throw "signtool.exe failed with exit code $LASTEXITCODE"
         }
@@ -150,17 +158,25 @@ jobs:
 
     - powershell: |
         $ErrorActionPreference = "Stop"
-        $signtool = "C:\Program Files (x86)\Microsoft SDKs\ClickOnce\SignTool\signtool.exe"
-        if (-not (Test-Path $signtool)) {
-            throw "ClickOnce signtool.exe not found at: $signtool"
+        $CodeSigningCert = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert | Select-Object -First 1
+        if (-not $CodeSigningCert) {
+            throw "No code signing certificate found in CurrentUser\My store"
         }
+        Write-Verbose -Verbose "Thumbprint: $($CodeSigningCert.Thumbprint)"
         $catalogfile = (Get-Module safeguard-ps -ListAvailable)[0].Path -replace "psd1","cat"
         if (-not (Test-Path $catalogfile)) {
             throw "Catalog file not found: $catalogfile"
         }
         Write-Verbose -Verbose "Signing catalog file: $catalogfile"
-        Write-Verbose -Verbose "Using signtool: $signtool"
-        & $signtool sign /v /debug /fd sha256 /tr http://ts.ssl.com /td sha256 /n "One Identity LLC" $catalogfile
+        $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits" -Recurse -Filter "signtool.exe" |
+            Where-Object { $_.FullName -match "\\x86\\" } |
+            Sort-Object -Property FullName -Descending |
+            Select-Object -First 1
+        if (-not $signtool) {
+            throw "x86 signtool.exe not found in Windows SDK"
+        }
+        Write-Verbose -Verbose "Using signtool: $($signtool.FullName)"
+        & $signtool.FullName sign /debug /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 $CodeSigningCert.Thumbprint $catalogfile
         if ($LASTEXITCODE -ne 0) {
             throw "signtool.exe failed with exit code $LASTEXITCODE"
         }
