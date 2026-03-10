@@ -60,6 +60,12 @@ jobs:
 
     - powershell: |
         $ErrorActionPreference = "Stop"
+        $cert = Get-ChildItem -Path Cert:\CurrentUser\My -CodeSigningCert
+        if (-not $cert) {
+            throw "No code signing certificate found in CurrentUser\My store"
+        }
+        Write-Verbose -Verbose "Subject: $($cert.Subject)"
+        Write-Verbose -Verbose "Thumbprint: $($cert.Thumbprint)"
         $catalogfile = (Get-Module safeguard-ps -ListAvailable)[0].Path -replace "psd1","cat"
         if (-not (Test-Path $catalogfile)) {
             throw "Catalog file not found: $catalogfile"
@@ -73,7 +79,7 @@ jobs:
             throw "signtool.exe not found in Windows SDK"
         }
         Write-Verbose -Verbose "Using signtool: $($signtool.FullName)"
-        & $signtool.FullName sign /fd sha256 /tr http://ts.ssl.com /td sha256 /n "One Identity LLC" $catalogfile
+        & $signtool.FullName sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 $cert.Thumbprint $catalogfile
         if ($LASTEXITCODE -ne 0) {
             throw "signtool.exe failed with exit code $LASTEXITCODE"
         }
@@ -153,6 +159,12 @@ jobs:
 
     - powershell: |
         $ErrorActionPreference = "Stop"
+        $cert = Get-ChildItem -Path Cert:\CurrentUser\My -CodeSigningCert
+        if (-not $cert) {
+            throw "No code signing certificate found in CurrentUser\My store"
+        }
+        Write-Verbose -Verbose "Subject: $($cert.Subject)"
+        Write-Verbose -Verbose "Thumbprint: $($cert.Thumbprint)"
         $catalogfile = (Get-Module safeguard-ps -ListAvailable)[0].Path -replace "psd1","cat"
         if (-not (Test-Path $catalogfile)) {
             throw "Catalog file not found: $catalogfile"
@@ -166,7 +178,7 @@ jobs:
             throw "signtool.exe not found in Windows SDK"
         }
         Write-Verbose -Verbose "Using signtool: $($signtool.FullName)"
-        & $signtool.FullName sign /fd sha256 /tr http://ts.ssl.com /td sha256 /n "One Identity LLC" $catalogfile
+        & $signtool.FullName sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 $cert.Thumbprint $catalogfile
         if ($LASTEXITCODE -ne 0) {
             throw "signtool.exe failed with exit code $LASTEXITCODE"
         }
