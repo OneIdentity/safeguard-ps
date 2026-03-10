@@ -71,6 +71,22 @@ jobs:
         Write-Verbose -Verbose "Subject: $($cert.Subject)"
         Write-Verbose -Verbose "Thumbprint: $($cert.Thumbprint)"
         Write-Verbose -Verbose "HasPrivateKey: $($cert.HasPrivateKey)"
+        # Get the private key provider info for signtool
+        $privateKey = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPrivateKey($cert)
+        if ($privateKey -is [System.Security.Cryptography.RSACng]) {
+            $providerName = $privateKey.Key.Provider.Provider
+            $keyName = $privateKey.Key.KeyName
+            Write-Verbose -Verbose "CNG Provider: $providerName"
+            Write-Verbose -Verbose "CNG Key Name: $keyName"
+        } elseif ($privateKey -is [System.Security.Cryptography.RSACryptoServiceProvider]) {
+            $providerName = $privateKey.CspKeyContainerInfo.ProviderName
+            $keyName = $privateKey.CspKeyContainerInfo.KeyContainerName
+            Write-Verbose -Verbose "CSP Provider: $providerName"
+            Write-Verbose -Verbose "CSP Key Container: $keyName"
+        } else {
+            Write-Verbose -Verbose "Private key type: $($privateKey.GetType().FullName)"
+            throw "Unsupported private key type: $($privateKey.GetType().FullName)"
+        }
         $catalogfile = (Get-Module safeguard-ps -ListAvailable)[0].Path -replace "psd1","cat"
         if (-not (Test-Path $catalogfile)) {
             throw "Catalog file not found: $catalogfile"
@@ -84,7 +100,7 @@ jobs:
             throw "signtool.exe not found in Windows SDK"
         }
         Write-Verbose -Verbose "Using signtool: $($signtool.FullName)"
-        & $signtool.FullName sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 $cert.Thumbprint /debug $catalogfile
+        & $signtool.FullName sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 $cert.Thumbprint /csp $providerName /kc $keyName $catalogfile
         if ($LASTEXITCODE -ne 0) {
             throw "signtool.exe failed with exit code $LASTEXITCODE"
         }
@@ -175,6 +191,22 @@ jobs:
         Write-Verbose -Verbose "Subject: $($cert.Subject)"
         Write-Verbose -Verbose "Thumbprint: $($cert.Thumbprint)"
         Write-Verbose -Verbose "HasPrivateKey: $($cert.HasPrivateKey)"
+        # Get the private key provider info for signtool
+        $privateKey = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPrivateKey($cert)
+        if ($privateKey -is [System.Security.Cryptography.RSACng]) {
+            $providerName = $privateKey.Key.Provider.Provider
+            $keyName = $privateKey.Key.KeyName
+            Write-Verbose -Verbose "CNG Provider: $providerName"
+            Write-Verbose -Verbose "CNG Key Name: $keyName"
+        } elseif ($privateKey -is [System.Security.Cryptography.RSACryptoServiceProvider]) {
+            $providerName = $privateKey.CspKeyContainerInfo.ProviderName
+            $keyName = $privateKey.CspKeyContainerInfo.KeyContainerName
+            Write-Verbose -Verbose "CSP Provider: $providerName"
+            Write-Verbose -Verbose "CSP Key Container: $keyName"
+        } else {
+            Write-Verbose -Verbose "Private key type: $($privateKey.GetType().FullName)"
+            throw "Unsupported private key type: $($privateKey.GetType().FullName)"
+        }
         $catalogfile = (Get-Module safeguard-ps -ListAvailable)[0].Path -replace "psd1","cat"
         if (-not (Test-Path $catalogfile)) {
             throw "Catalog file not found: $catalogfile"
@@ -188,7 +220,7 @@ jobs:
             throw "signtool.exe not found in Windows SDK"
         }
         Write-Verbose -Verbose "Using signtool: $($signtool.FullName)"
-        & $signtool.FullName sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 $cert.Thumbprint /debug $catalogfile
+        & $signtool.FullName sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 $cert.Thumbprint /csp $providerName /kc $keyName $catalogfile
         if ($LASTEXITCODE -ne 0) {
             throw "signtool.exe failed with exit code $LASTEXITCODE"
         }
