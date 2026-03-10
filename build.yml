@@ -91,21 +91,33 @@ jobs:
         $(Build.SourcesDirectory)\eSignerCKA\eSignerCKATool.exe load
       displayName: "Unload and load certificate into Windows Certificate Store"
 
-    # We should now be able to access the certificate using the standard Windows signtool.exe from the Windows SDK,
-    # which should be installed on the build agent images being used.
-    #
-    # Typically, you often see examples of signtool.exe and other things accessing the certificate by the thumbprint.
-    # And in fact, the sample SSL.com code includes a bunch of extra PowerShell script to get the thumbprint. The
-    # signtool.exe can sign catalog files, but we'll stick with the Set-AuthenticodeSignature cmdlet for now.
-    # "signtool.exe" sign /fd sha256 /tr http://ts.ssl.com /td sha256 /n "One Identity LLC" "C:\path\to\program.exe"
+    # Sign the catalog file using signtool.exe from the ClickOnce SDK. The eSignerCKA PKCS#11 bridge
+    # is incompatible with Set-AuthenticodeSignature and the Windows Kits signtool (they cannot access
+    # the cloud HSM private key). The ClickOnce SDK signtool works correctly with eSignerCKA.
 
     - powershell: |
-        $cert = Get-ChildItem -Path Cert:\CurrentUser\My -CodeSigningCert
-        Write-Verbose -Verbose "Subject: $($cert.Subject)"
-        Write-Verbose -Verbose "Issuer: $($cert.Issuer)"
+        $ErrorActionPreference = "Stop"
+        $signtool = "C:\Program Files (x86)\Microsoft SDKs\ClickOnce\SignTool\signtool.exe"
+        if (-not (Test-Path $signtool)) {
+            throw "ClickOnce signtool.exe not found at: $signtool"
+        }
         $catalogfile = (Get-Module safeguard-ps -ListAvailable)[0].Path -replace "psd1","cat"
-        Write-Verbose -Verbose $catalogfile
-        Set-AuthenticodeSignature -Certificate $cert -FilePath $catalogfile -HashAlgorithm SHA256 -TimestampServer "http://ts.ssl.com"
+        if (-not (Test-Path $catalogfile)) {
+            throw "Catalog file not found: $catalogfile"
+        }
+        Write-Verbose -Verbose "Signing catalog file: $catalogfile"
+        Write-Verbose -Verbose "Using signtool: $signtool"
+        & $signtool sign /v /debug /fd sha256 /tr http://ts.ssl.com /td sha256 /n "One Identity LLC" $catalogfile
+        if ($LASTEXITCODE -ne 0) {
+            throw "signtool.exe failed with exit code $LASTEXITCODE"
+        }
+        # Verify the signature independently
+        $verify = Get-AuthenticodeSignature -FilePath $catalogfile
+        Write-Verbose -Verbose "Verification status: $($verify.Status)"
+        if ($verify.Status -ne "Valid") {
+            throw "Signature verification failed with status '$($verify.Status)': $($verify.StatusMessage)"
+        }
+        Write-Host "Catalog file signed and verified successfully"
       displayName: 'Signing PowerShell module catalog file'
 
     - task: PowerShell@2
