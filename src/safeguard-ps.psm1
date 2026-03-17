@@ -1856,21 +1856,31 @@ Refresh the access token in your current Safeguard session via the Web API.
 .DESCRIPTION
 This utility calls the Safeguard Web API using the information in your Safeguard
 session variable to refresh your access token.  It can be made completely
-non-interactive when using the certificate provider.
+non-interactive when using the certificate provider or when providing the
+Password parameter for username/password sessions.
+
+.PARAMETER Password
+SecureString password for non-interactive token refresh with username/password sessions.
+If not provided and the session uses username/password auth, you will be prompted.
 
 .INPUTS
 None.
 
 .OUTPUTS
-Text or Timespan object for Raw option.
+None.
 
 .EXAMPLE
 Update-SafeguardAccessToken
+
+.EXAMPLE
+Update-SafeguardAccessToken -Password (ConvertTo-SecureString "MyPassword" -AsPlainText -Force)
 #>
 function Update-SafeguardAccessToken
 {
     [CmdletBinding()]
     Param(
+        [Parameter(Mandatory=$false)]
+        [SecureString]$Password
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -1900,8 +1910,16 @@ function Update-SafeguardAccessToken
     }
     else
     {
-        Connect-Safeguard -Appliance $SafeguardSession.Appliance -Insecure:$SafeguardSession.Insecure -Version $SafeguardSession.Version `
-            -IdentityProvider $SafeguardSession.IdentityProvider -Username $SafeguardSession.Username
+        if ($Password)
+        {
+            Connect-Safeguard -Appliance $SafeguardSession.Appliance -Insecure:$SafeguardSession.Insecure -Version $SafeguardSession.Version `
+                -IdentityProvider $SafeguardSession.IdentityProvider -Username $SafeguardSession.Username -Password $Password
+        }
+        else
+        {
+            Connect-Safeguard -Appliance $SafeguardSession.Appliance -Insecure:$SafeguardSession.Insecure -Version $SafeguardSession.Version `
+                -IdentityProvider $SafeguardSession.IdentityProvider -Username $SafeguardSession.Username
+        }
     }
 }
 
