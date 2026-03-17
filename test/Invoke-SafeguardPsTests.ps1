@@ -126,6 +126,7 @@ if (-not $Appliance) {
 # Filter suites
 $selectedSuites = $suiteFiles
 if ($Suite) {
+    # Explicit selection — include exactly what was requested (even optional suites)
     $selectedSuites = $selectedSuites | Where-Object {
         $shortName = $_.BaseName -replace '^Suite-', ''
         $matched = $false
@@ -133,6 +134,17 @@ if ($Suite) {
             if ($shortName -like $pattern) { $matched = $true; break }
         }
         $matched
+    }
+} else {
+    # Default run — auto-exclude suites tagged "optional"
+    $selectedSuites = $selectedSuites | Where-Object {
+        $def = & $_.FullName
+        if ($def.Tags -and ($def.Tags -contains "optional")) {
+            Write-Host "  Skipping optional suite: $($_.BaseName -replace '^Suite-', '') (use -Suite to include)" -ForegroundColor DarkYellow
+            $false
+        } else {
+            $true
+        }
     }
 }
 if ($ExcludeSuite) {
