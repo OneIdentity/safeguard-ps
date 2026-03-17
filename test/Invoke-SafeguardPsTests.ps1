@@ -190,10 +190,48 @@ catch {
     exit 1
 }
 
-# --- Global pre-cleanup ---
+# --- Global pre-cleanup (runs BEFORE RunAdmin creation to avoid deleting it) ---
 Write-Host ""
 Write-Host "Pre-cleanup: removing stale objects from previous runs..." -ForegroundColor Yellow
 Clear-SgPsStaleTestEnvironment -Context $context
+
+# --- Ensure full admin privileges ---
+# The bootstrap admin may not have all roles (e.g., AssetAdmin, PolicyAdmin).
+# Create a temporary full-admin user and reconnect as that user for the test run.
+Write-Host ""
+Write-Host "Ensuring full admin privileges..." -ForegroundColor Yellow
+$testAdminName = "$($context.TestPrefix)_RunAdmin"
+$testAdminPassword = "RunAdmin9876!xyzQWE"
+$testAdminCreated = $false
+try {
+    # Check if current user has AssetAdmin role
+    $me = Get-SafeguardLoggedInUser -Insecure
+    $hasAllRoles = ($me.AdminRoles -contains "AssetAdmin") -and ($me.AdminRoles -contains "PolicyAdmin")
+    if (-not $hasAllRoles) {
+        Write-Host "  Bootstrap admin missing roles — creating full-admin user..." -ForegroundColor Yellow
+        $secPwd = ConvertTo-SecureString $testAdminPassword -AsPlainText -Force
+        $runAdmin = New-SafeguardUser -Insecure -Provider -1 -NewUserName $testAdminName `
+            -AdminRoles @('GlobalAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin') `
+            -Password $secPwd
+        $context | Add-Member -NotePropertyName RunAdminId -NotePropertyValue $runAdmin.Id -Force
+        $context | Add-Member -NotePropertyName RunAdminName -NotePropertyValue $testAdminName -Force
+        $context | Add-Member -NotePropertyName RunAdminPassword -NotePropertyValue $testAdminPassword -Force
+        $testAdminCreated = $true
+
+        # Reconnect as the full-admin user
+        Disconnect-Safeguard
+        $secPwd = ConvertTo-SecureString $testAdminPassword -AsPlainText -Force
+        Connect-Safeguard -Appliance $context.Appliance -IdentityProvider "Local" `
+            -Username $testAdminName -Password $secPwd -Insecure
+        Write-Host "  Connected as full-admin: $testAdminName" -ForegroundColor Green
+    } else {
+        Write-Host "  Admin has full roles." -ForegroundColor Green
+    }
+}
+catch {
+    Write-Host "  Warning: could not create full-admin user: $($_.Exception.Message)" -ForegroundColor DarkYellow
+    Write-Host "  Continuing with bootstrap admin — some tests may fail." -ForegroundColor DarkYellow
+}
 
 # --- Run suites ---
 foreach ($suiteFile in $selectedSuites) {
@@ -207,7 +245,22 @@ if ($ReportPath) {
     Export-SgPsTestReport -OutputPath $ReportPath -Context $context
 }
 
-# --- Disconnect ---
+# --- Cleanup run admin and disconnect ---
+if ($testAdminCreated) {
+    try {
+        # Reconnect as original admin to delete the run admin
+        Disconnect-Safeguard
+        $secPwd = ConvertTo-SecureString $context.AdminPassword -AsPlainText -Force
+        Connect-Safeguard -Appliance $context.Appliance -IdentityProvider "Local" `
+            -Username $context.AdminUserName -Password $secPwd -Insecure
+        Remove-SafeguardUser -Insecure $context.RunAdminId
+        Write-Host "Cleaned up run admin user." -ForegroundColor DarkGray
+    }
+    catch {
+        Write-Host "Warning: could not delete run admin: $($_.Exception.Message)" -ForegroundColor DarkYellow
+    }
+}
+
 try {
     Disconnect-Safeguard
 }

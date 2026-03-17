@@ -105,6 +105,7 @@
         # --- Update-SafeguardAccessToken ---
         Test-SgPsAssert "Update-SafeguardAccessToken refreshes the token" {
             $oldToken = $SafeguardSession.AccessToken
+            # We're connected as bootstrap Admin at this point in the suite
             $secPwd = ConvertTo-SecureString $Context.AdminPassword -AsPlainText -Force
             Update-SafeguardAccessToken -Password $secPwd
             $newToken = $SafeguardSession.AccessToken
@@ -115,13 +116,23 @@
 
     Cleanup = {
         param($Context)
-        # Ensure we're still connected for subsequent suites
-        try {
-            $null = Get-SafeguardLoggedInUser -Insecure -ErrorAction Stop
-        }
-        catch {
-            # Reconnect if needed
-            Connect-SgPsTestSession -Context $Context
+        # The Connect suite reconnects as bootstrap Admin during tests.
+        # Reconnect as RunAdmin (if used) so subsequent suites have full privileges.
+        if ($Context.RunAdminName) {
+            try { Disconnect-Safeguard } catch {}
+            $secPwd = ConvertTo-SecureString $Context.RunAdminPassword -AsPlainText -Force
+            Connect-Safeguard -Appliance $Context.Appliance -IdentityProvider "Local" `
+                -Username $Context.RunAdminName -Password $secPwd -Insecure
+        } else {
+            # Not using RunAdmin — just ensure we're still connected
+            try {
+                $null = Get-SafeguardLoggedInUser -Insecure -ErrorAction Stop
+            }
+            catch {
+                $secPwd = ConvertTo-SecureString $Context.AdminPassword -AsPlainText -Force
+                Connect-Safeguard -Appliance $Context.Appliance -IdentityProvider "Local" `
+                    -Username $Context.AdminUserName -Password $secPwd -Insecure
+            }
         }
     }
 }
