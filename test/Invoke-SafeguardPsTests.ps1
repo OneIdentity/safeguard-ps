@@ -17,6 +17,15 @@
 .PARAMETER AdminPassword
     Bootstrap admin password. Default: "Admin123".
 
+.PARAMETER SpsAppliance
+    Optional Safeguard for Privileged Sessions appliance address.
+
+.PARAMETER SpsUser
+    SPS admin username. Default: "admin".
+
+.PARAMETER SpsPassword
+    SPS admin password. Required if SpsAppliance is specified.
+
 .PARAMETER Suite
     Run only the specified suite(s) by name. Accepts wildcards.
     Example: -Suite "Connect","Users"
@@ -55,6 +64,15 @@ param(
 
     [Parameter()]
     [string]$AdminPassword = "Admin123",
+
+    [Parameter()]
+    [string]$SpsAppliance,
+
+    [Parameter()]
+    [string]$SpsUser = "admin",
+
+    [Parameter()]
+    [string]$SpsPassword,
 
     [Parameter()]
     [string[]]$Suite,
@@ -176,6 +194,9 @@ $context = New-SgPsTestContext `
     -Appliance $Appliance `
     -AdminUserName $AdminUserName `
     -AdminPassword $AdminPassword `
+    -SpsAppliance $SpsAppliance `
+    -SpsUser $SpsUser `
+    -SpsPassword $SpsPassword `
     -TestPrefix $TestPrefix
 
 # --- Import safeguard-ps module ---

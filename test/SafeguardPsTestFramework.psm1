@@ -38,6 +38,15 @@ function New-SgPsTestContext {
     .PARAMETER AdminPassword
         Bootstrap admin password. Default: "Admin123".
 
+    .PARAMETER SpsAppliance
+        Optional network address of a Safeguard for Privileged Sessions appliance.
+
+    .PARAMETER SpsUser
+        SPS admin username. Default: "admin".
+
+    .PARAMETER SpsPassword
+        SPS admin password. Required if SpsAppliance is specified.
+
     .PARAMETER TestPrefix
         Prefix used for naming test objects on the appliance. Default: "SgPsTest".
 
@@ -56,6 +65,15 @@ function New-SgPsTestContext {
         [string]$AdminPassword = "Admin123",
 
         [Parameter()]
+        [string]$SpsAppliance,
+
+        [Parameter()]
+        [string]$SpsUser = "admin",
+
+        [Parameter()]
+        [string]$SpsPassword,
+
+        [Parameter()]
         [string]$TestPrefix = "SgPsTest"
     )
 
@@ -64,6 +82,11 @@ function New-SgPsTestContext {
         Appliance       = $Appliance
         AdminUserName   = $AdminUserName
         AdminPassword   = $AdminPassword
+
+        # SPS connection info
+        SpsAppliance    = $SpsAppliance
+        SpsUser         = $SpsUser
+        SpsPassword     = $SpsPassword
 
         # Naming
         TestPrefix      = $TestPrefix
@@ -1155,6 +1178,22 @@ function Clear-SgPsStaleTestEnvironment {
 }
 
 # ============================================================================
+# SPS Configuration Check
+# ============================================================================
+
+function Test-SgPsSpsConfigured {
+    <#
+    .SYNOPSIS
+        Returns $true if the test context has SPS appliance connection info configured.
+    #>
+    [CmdletBinding()]
+    param()
+
+    $ctx = Get-SgPsTestContext
+    return ($ctx.SpsAppliance -and $ctx.SpsUser -and $ctx.SpsPassword)
+}
+
+# ============================================================================
 # Module Exports
 # ============================================================================
 
@@ -1197,4 +1236,5 @@ Export-ModuleMember -Function @(
     'Remove-SgPsTestObject'
     'Remove-SgPsStaleTestObject'
     'Clear-SgPsStaleTestEnvironment'
+    'Test-SgPsSpsConfigured'
 )
