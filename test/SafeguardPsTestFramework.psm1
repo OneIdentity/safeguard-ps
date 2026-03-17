@@ -1054,6 +1054,32 @@ function Clear-SgPsStaleTestEnvironment {
 
     $foundAny = $false
 
+    # Close any stale access requests first (they block user/account deletion)
+    try {
+        $staleRequests = Invoke-SgPsApi -Service Core -Method Get `
+            -RelativeUrl "AccessRequests" `
+            -AccessToken $cleanupToken
+        foreach ($req in @($staleRequests)) {
+            if ($req.Id -and $req.AccountName -and $req.AccountName -match $prefix) {
+                if ($req.State -notin @('Closed','Complete','Expired')) {
+                    if (-not $foundAny) {
+                        $foundAny = $true
+                        Write-Host "  Found stale test objects — removing..." -ForegroundColor Yellow
+                    }
+                    Write-Host "    Closing stale access request: $($req.Id)" -ForegroundColor DarkYellow
+                    try {
+                        Invoke-SgPsApi -Service Core -Method Post `
+                            -RelativeUrl "AccessRequests/$($req.Id)/Close" `
+                            -AccessToken $cleanupToken
+                    } catch {}
+                }
+            }
+        }
+    }
+    catch {
+        # Silently ignore
+    }
+
     # Delete in dependency order: event subscriptions → policies → entitlements → A2A → accounts → assets → groups → users
     $collections = @(
         @{ Collection = "EventSubscriptions"; NameField = "Name" },

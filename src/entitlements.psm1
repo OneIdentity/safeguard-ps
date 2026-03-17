@@ -152,11 +152,16 @@ The name of the entitlement.
 A string containing the description of the entitlement.
 
 .PARAMETER MemberUsers
-Array of IDs or names of the users to be added to the entitlement. Use 'provider\user' syntax
-to uniquely identify users from a specific identity provider (e.g. 'local\admin', 'ad.corp\jsmith').
+Array of IDs or names of the users to set as the initial members of the entitlement.
+This sets the complete member list. To incrementally add or remove members after creation,
+use Add-SafeguardEntitlementMember and Remove-SafeguardEntitlementMember.
+Use 'provider\user' syntax to uniquely identify users from a specific identity provider
+(e.g. 'local\admin', 'ad.corp\jsmith').
 
 .PARAMETER MemberGroups
-Array of IDs or names of the user groups to be added to the entitlement.
+Array of IDs or names of the user groups to set as the initial members of the entitlement.
+This sets the complete member list. To incrementally add or remove members after creation,
+use Add-SafeguardEntitlementMember and Remove-SafeguardEntitlementMember.
 
 .INPUTS
 None.
@@ -303,11 +308,17 @@ A string containing the new name for the entitlement.
 A string containing the new description for the entitlement.
 
 .PARAMETER MemberUsers
-Array of IDs or names of the users to set as members of the entitlement. Use 'provider\user' syntax
-to uniquely identify users from a specific identity provider (e.g. 'local\admin', 'ad.corp\jsmith').
+Array of IDs or names of the users to set as members of the entitlement. This replaces the
+entire member list — any existing members not included will be removed. Use 'provider\user'
+syntax to uniquely identify users from a specific identity provider (e.g. 'local\admin',
+'ad.corp\jsmith'). To incrementally add or remove individual members, use
+Add-SafeguardEntitlementMember and Remove-SafeguardEntitlementMember instead.
 
 .PARAMETER MemberGroups
-Array of IDs or names of the user groups to set as members of the entitlement.
+Array of IDs or names of the user groups to set as members of the entitlement. This replaces
+the entire member list — any existing members not included will be removed. To incrementally
+add or remove individual members, use Add-SafeguardEntitlementMember and
+Remove-SafeguardEntitlementMember instead.
 
 .PARAMETER EntitlementObject
 An object containing the existing entitlement with desired properties set.
@@ -400,8 +411,10 @@ function Edit-SafeguardEntitlement
 Add one or more users or groups to an entitlement in Safeguard via the Web API.
 
 .DESCRIPTION
-When entitlement membership changes, it affects which users can request access
-through the access policies attached to that entitlement.
+Incrementally add members to an entitlement without affecting existing members. When
+entitlement membership changes, it affects which users can request access through the
+access policies attached to that entitlement. To replace the entire member list at once,
+use Edit-SafeguardEntitlement with -MemberUsers and -MemberGroups instead.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -416,11 +429,12 @@ Ignore verification of Safeguard appliance SSL certificate.
 An integer containing the ID or a string containing the name of the entitlement.
 
 .PARAMETER Users
-An array of user IDs or names to add to the entitlement. Use 'provider\user' syntax
-to uniquely identify users from a specific identity provider (e.g. 'local\admin', 'ad.corp\jsmith').
+An array of user IDs or names to add to the entitlement. Existing members are not affected.
+Use 'provider\user' syntax to uniquely identify users from a specific identity provider
+(e.g. 'local\admin', 'ad.corp\jsmith').
 
 .PARAMETER Groups
-An array of user group IDs or names to add to the entitlement.
+An array of user group IDs or names to add to the entitlement. Existing members are not affected.
 
 .INPUTS
 None.
@@ -497,8 +511,10 @@ function Add-SafeguardEntitlementMember
 Remove one or more users or groups from an entitlement in Safeguard via the Web API.
 
 .DESCRIPTION
-When entitlement membership changes, it affects which users can request access
-through the access policies attached to that entitlement.
+Incrementally remove members from an entitlement without affecting other existing members.
+When entitlement membership changes, it affects which users can request access through the
+access policies attached to that entitlement. To replace the entire member list at once,
+use Edit-SafeguardEntitlement with -MemberUsers and -MemberGroups instead.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -513,11 +529,12 @@ Ignore verification of Safeguard appliance SSL certificate.
 An integer containing the ID or a string containing the name of the entitlement.
 
 .PARAMETER Users
-An array of user IDs or names to remove from the entitlement. Use 'provider\user' syntax
-to uniquely identify users from a specific identity provider (e.g. 'local\admin', 'ad.corp\jsmith').
+An array of user IDs or names to remove from the entitlement. Other members are not affected.
+Use 'provider\user' syntax to uniquely identify users from a specific identity provider
+(e.g. 'local\admin', 'ad.corp\jsmith').
 
 .PARAMETER Groups
-An array of user group IDs or names to remove from the entitlement.
+An array of user group IDs or names to remove from the entitlement. Other members are not affected.
 
 .INPUTS
 None.
