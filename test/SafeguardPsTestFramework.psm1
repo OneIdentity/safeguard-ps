@@ -1114,7 +1114,8 @@ function Clear-SgPsStaleTestEnvironment {
         @{ Collection = "UserGroups"; NameField = "Name" },
         @{ Collection = "AssetGroups"; NameField = "Name" },
         @{ Collection = "AccountGroups"; NameField = "Name" },
-        @{ Collection = "AssetPartitions"; NameField = "Name" }
+        @{ Collection = "AssetPartitions"; NameField = "Name" },
+        @{ Collection = "Tags"; NameField = "Name" }
     )
 
     foreach ($col in $collections) {
@@ -1161,6 +1162,32 @@ function Clear-SgPsStaleTestEnvironment {
     }
     catch {
         # Silently ignore
+    }
+
+    # Purge soft-deleted objects left by DeletedObjects suite
+    foreach ($deletedType in @("Assets", "AssetAccounts", "Users")) {
+        try {
+            $deletedItems = Invoke-SgPsApi -Service Core -Method Get `
+                -RelativeUrl "Deleted${deletedType}?filter=Name contains '${prefix}'" `
+                -AccessToken $cleanupToken
+            foreach ($item in @($deletedItems)) {
+                if ($item.Id) {
+                    if (-not $foundAny) {
+                        $foundAny = $true
+                        Write-Host "  Found stale test objects — removing..." -ForegroundColor Yellow
+                    }
+                    Write-Host "    Purging deleted $deletedType`: $($item.Name) (Id=$($item.Id))" -ForegroundColor DarkYellow
+                    try {
+                        Invoke-SgPsApi -Service Core -Method Delete `
+                            -RelativeUrl "Deleted${deletedType}/$($item.Id)" `
+                            -AccessToken $cleanupToken
+                    } catch {}
+                }
+            }
+        }
+        catch {
+            # Silently ignore
+        }
     }
 
     # Delete the cleanup admin

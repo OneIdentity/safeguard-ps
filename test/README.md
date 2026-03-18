@@ -21,6 +21,14 @@ lifecycle with structured reporting.
 ./test/Invoke-SafeguardPsTests.ps1 -Appliance 192.168.117.15 -AdminPassword root4EDMZ `
     -Suite Connect,Users
 
+# Run with SPS appliance
+./test/Invoke-SafeguardPsTests.ps1 -Appliance 192.168.117.15 -AdminPassword root4EDMZ `
+    -SpsAppliance 192.168.117.16 -SpsUser admin -SpsPassword secret
+
+# Include optional suites (e.g., BackupRestore)
+./test/Invoke-SafeguardPsTests.ps1 -Appliance 192.168.117.15 -AdminPassword root4EDMZ `
+    -Suite BackupRestore
+
 # List available suites
 ./test/Invoke-SafeguardPsTests.ps1 -ListSuites
 
@@ -154,3 +162,52 @@ Register-SgPsTestCleanup -Description "Delete test user" -Action {
 | Function prefix | `SgDn` | `SgPs` |
 | Object prefix | `SgDnTest` | `SgPsTest` |
 | PKCE preflight | Yes (resource owner grant check) | No |
+
+## Test Suite Inventory
+
+29 suites, 306 tests (298 default + 8 SPS-conditional), plus 6 optional (BackupRestore).
+
+| Suite | Tests | Module | Description |
+|-------|-------|--------|-------------|
+| **Framework Smoke Test** | 4 | — | Verifies test framework itself works |
+| **Connect & Core** | 14 | safeguard-ps.psm1 | Connect/Disconnect, tokens, Invoke-SafeguardMethod |
+| **User Management** | 14 | users.psm1 | User CRUD, enable/disable, password, search |
+| **Data Types** | 8 | safeguard-ps.psm1 | Platforms, timezones, transfer protocols, providers |
+| **Management Shell** | 4 | safeguard-ps.psm1 | Get-SafeguardCommand, Get-SafeguardBanner |
+| **Asset Management** | 11 | assets.psm1 | Asset CRUD, search, edit |
+| **Asset Accounts** | 14 | assets.psm1 | Account CRUD, password, enable/disable, search |
+| **Asset Partitions** | 13 | assetpartitions.psm1 | Partition CRUD, owners, enter/exit context |
+| **Tags** | 14 | tags.psm1 | Tag CRUD, asset/account tagging |
+| **User Groups** | 11 | usergroups.psm1 | Group CRUD, membership |
+| **Asset Groups** | 10 | assetgroups.psm1 | Group CRUD, membership |
+| **Account Groups** | 10 | accountgroups.psm1 | Group CRUD, membership |
+| **Entitlements** | 14 | entitlements.psm1 | Entitlement CRUD, user/group membership |
+| **Access Policies** | 14 | accesspolicies.psm1 | Policy CRUD, scope, properties |
+| **Access Requests** | 11 | accessrequests.psm1 | Request lifecycle: create, approve, checkout, close, deny |
+| **Certificates** | 14 | certificates.psm1 | Trusted/SSL certs, CSR lifecycle, audit log signing |
+| **A2A Registrations** | 15 | a2a.psm1 | A2A CRUD, credential retrieval config, API keys |
+| **A2A Credentials** | 5 | a2a.psm1 | PFX cert auth, password retrieval/set, API key secrets |
+| **Settings** | 7 | settings.psm1 | Appliance/core settings read/write/restore |
+| **Events** | 12 | events.psm1 | Event names/categories/properties, subscriptions |
+| **Appliance Status** | 13 | safeguard-ps.psm1 | Status, version, health, time, state, TLS |
+| **Password Profiles** | 22 | assetpartitions.psm1 | Profiles, rules, check/change schedules |
+| **Diagnostics** | 10 | diagnostics.psm1 | Ping, nslookup, traceroute, netstat, ARP, telnet |
+| **Deleted Objects** | 13 | deleted.psm1 | Delete/restore/purge assets, accounts, users; purge settings |
+| **Reports** | 13 | reports.psm1 | All report cmdlets (daily, membership, entitlement, A2A) |
+| **Networking** | 5 | networking.psm1 | Network interfaces, DNS suffix (read-only) |
+| **Licensing** | 3 | licensing.psm1 | License listing (read-only) |
+| **SPS Integration** | 8 | sessionapi.psm1 | SPS connect/disconnect, version, info, firmware (conditional) |
+| **Backup & Restore** | 6 | maintenance.psm1 | Backup CRUD, export/import (optional, tagged) |
+
+### Optional / Conditional Suites
+
+- **BackupRestore** — Tagged `optional`, auto-skipped unless explicitly requested via `-Suite BackupRestore`. Puts appliance in maintenance mode.
+- **SPS Integration** — Requires `-SpsAppliance`, `-SpsUser`, `-SpsPassword` parameters. Gracefully skips all tests when SPS is not configured.
+
+### Test Data
+
+Test certificates are stored in `test/TestData/CERTS/`:
+- `RootCA.pem/.pfx/.cer` — Self-signed root CA
+- `IntermediateCA.pem/.pfx/.cer` — Intermediate CA signed by RootCA
+- `UserCert.pem/.pfx/.cer/.pvk` — End-entity cert signed by IntermediateCA
+- All PFX files use password: `a`
