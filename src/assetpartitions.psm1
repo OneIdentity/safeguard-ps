@@ -653,6 +653,15 @@ partitions may be given owners who can manage only the assets within that
 asset partition.  This cmdlet places the session in the context of an asset
 partition so that subsequent operations are done in that context.
 
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
 .PARAMETER AssetPartitionToEnter
 An integer containing the ID of the asset partition to enter or a string containing the name.
 
@@ -672,6 +681,12 @@ function Enter-SafeguardAssetPartition
 {
     [CmdletBinding()]
     Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
         [object]$AssetPartitionToEnter
     )
@@ -689,7 +704,7 @@ function Enter-SafeguardAssetPartition
         $AssetPartitionToEnter = (Read-Host "AssetPartitionToEnter")
     }
 
-    $local:Partition = (Get-SafeguardAssetPartition -Appliance $AccessToken -AccessToken $AccessToken -Insecure:$Insecure $AssetPartitionToEnter)
+    $local:Partition = (Get-SafeguardAssetPartition -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $AssetPartitionToEnter)
     if ($local:Partition)
     {
         $SafeguardSession["AssetPartitionId"] = $local:Partition.Id
@@ -711,6 +726,15 @@ partitions may be given owners who can manage only the assets within that
 asset partition.  This cmdlet moves the session back out of  the context of an
 asset partition so that subsequent operations are done globally.
 
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
 .INPUTS
 None.
 
@@ -724,6 +748,12 @@ function Exit-SafeguardAssetPartition
 {
     [CmdletBinding()]
     Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -739,7 +769,7 @@ function Exit-SafeguardAssetPartition
         throw "You have not entered an asset partition"
     }
 
-    $local:Partition = (Get-SafeguardCurrentAssetPartition)
+    $local:Partition = (Get-SafeguardCurrentAssetPartition -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure)
     Write-Host "Leaving [$($local:Partition.Id)] $($local:Partition.Name)"
     $SafeguardSession["AssetPartitionId"] = $null
 }
@@ -754,6 +784,15 @@ partitions may be given owners who can manage only the assets within that
 asset partition.  This cmdlet reports on the asset partition that has been
 entered or it returns nothing if you have not entered an asset partition.
 
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
 .INPUTS
 None.
 
@@ -767,6 +806,12 @@ function Get-SafeguardCurrentAssetPartition
 {
     [CmdletBinding()]
     Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -779,6 +824,6 @@ function Get-SafeguardCurrentAssetPartition
 
     if ($SafeguardSession["AssetPartitionId"])
     {
-        Get-SafeguardAssetPartition $SafeguardSession["AssetPartitionId"]
+        Get-SafeguardAssetPartition -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $SafeguardSession["AssetPartitionId"]
     }
 }
