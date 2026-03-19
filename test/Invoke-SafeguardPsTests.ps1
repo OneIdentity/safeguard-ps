@@ -211,6 +211,48 @@ catch {
     exit 1
 }
 
+# --- Ensure Resource Owner grant is enabled ---
+# Modern SPP versions disable the Resource Owner grant by default. The test runner
+# and most test suites rely on it for Connect-Safeguard. Use PKCE (which doesn't
+# need ROG) to connect, check the setting, and enable it if necessary.
+Write-Host ""
+Write-Host "Checking Resource Owner grant type..." -ForegroundColor Yellow
+$resourceOwnerWasDisabled = $false
+$originalGrantTypes = $null
+try {
+    $secPwd = ConvertTo-SecureString $context.AdminPassword -AsPlainText -Force
+    Connect-Safeguard -Appliance $context.Appliance -IdentityProvider "Local" `
+        -Username $context.AdminUserName -Password $secPwd -Insecure -Pkce
+
+    $settings = Invoke-SafeguardMethod -Insecure Core GET Settings
+    $grantTypeSetting = $settings | Where-Object { $_.Name -eq "Allowed OAuth2 Grant Types" }
+    if ($grantTypeSetting) {
+        $originalGrantTypes = $grantTypeSetting.Value
+        $grantTypes = ($originalGrantTypes -split ',') | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' }
+        $hasResourceOwner = $grantTypes | Where-Object { $_ -ieq "ResourceOwner" }
+        if (-not $hasResourceOwner) {
+            Write-Host "  Resource Owner grant is disabled — enabling for test run..." -ForegroundColor Yellow
+            $grantTypes += "ResourceOwner"
+            $newValue = ($grantTypes -join ", ")
+            $body = @{ Value = $newValue }
+            Invoke-SafeguardMethod -Insecure Core PUT "Settings/$($grantTypeSetting.Name)" -Body $body | Out-Null
+            $resourceOwnerWasDisabled = $true
+            Write-Host "  Enabled Resource Owner grant (was: '$originalGrantTypes')." -ForegroundColor Green
+        } else {
+            Write-Host "  Resource Owner grant is already enabled." -ForegroundColor Green
+        }
+    } else {
+        Write-Host "  Warning: 'Allowed OAuth2 Grant Types' setting not found — skipping." -ForegroundColor DarkYellow
+    }
+
+    Disconnect-Safeguard
+}
+catch {
+    Write-Host "  Warning: could not check/enable Resource Owner grant: $($_.Exception.Message)" -ForegroundColor DarkYellow
+    Write-Host "  Attempting to continue — Resource Owner grant may already be enabled." -ForegroundColor DarkYellow
+    try { Disconnect-Safeguard } catch { }
+}
+
 # --- Connect to appliance ---
 Write-Host ""
 Write-Host "Connecting to appliance..." -ForegroundColor Yellow
@@ -291,6 +333,23 @@ if ($testAdminCreated) {
     }
     catch {
         Write-Host "Warning: could not delete run admin: $($_.Exception.Message)" -ForegroundColor DarkYellow
+    }
+}
+
+# --- Restore Resource Owner grant setting if we changed it ---
+if ($resourceOwnerWasDisabled) {
+    Write-Host "Restoring: disabling Resource Owner grant (was disabled before tests)..." -ForegroundColor Yellow
+    try {
+        Disconnect-Safeguard
+        $secPwd = ConvertTo-SecureString $context.AdminPassword -AsPlainText -Force
+        Connect-Safeguard -Appliance $context.Appliance -IdentityProvider "Local" `
+            -Username $context.AdminUserName -Password $secPwd -Insecure -Pkce
+        $body = @{ Value = $originalGrantTypes }
+        Invoke-SafeguardMethod -Insecure Core PUT "Settings/Allowed OAuth2 Grant Types" -Body $body | Out-Null
+        Write-Host "  Resource Owner grant restored to: '$originalGrantTypes'" -ForegroundColor Green
+    }
+    catch {
+        Write-Host "  Warning: could not restore Resource Owner grant: $($_.Exception.Message)" -ForegroundColor DarkYellow
     }
 }
 
