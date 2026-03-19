@@ -562,6 +562,269 @@ function Get-RstsTokenWith2fa
         Clear-Variable -Name HttpSession
     }
 }
+function Get-RstsPkceErrorMessage
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$ErrorRecord,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$Context
+    )
+
+    $local:ErrorBody = $null
+
+    # PowerShell Core: HttpResponseException with Response containing body
+    if ($ErrorRecord.Exception.Response)
+    {
+        try
+        {
+            # Try to read response content from the exception
+            if ($ErrorRecord.ErrorDetails -and $ErrorRecord.ErrorDetails.Message)
+            {
+                $local:ErrorBody = $ErrorRecord.ErrorDetails.Message.Trim()
+            }
+        }
+        catch { }
+    }
+
+    # Try the ErrorDetails directly (works in both PS editions)
+    if (-not $local:ErrorBody -and $ErrorRecord.ErrorDetails -and $ErrorRecord.ErrorDetails.Message)
+    {
+        $local:ErrorBody = $ErrorRecord.ErrorDetails.Message.Trim()
+    }
+
+    if ($local:ErrorBody)
+    {
+        # Try to parse as JSON for structured error
+        try
+        {
+            $local:Json = $local:ErrorBody | ConvertFrom-Json
+            if ($local:Json.Message) { return "$Context`: $($local:Json.Message)" }
+            if ($local:Json.error_description) { return "$Context`: $($local:Json.error_description)" }
+        }
+        catch { }
+
+        # rSTS often returns plain text error messages (e.g. "Invalid password.")
+        if ($local:ErrorBody.Length -gt 0 -and $local:ErrorBody.Length -lt 500)
+        {
+            return "$Context`: $local:ErrorBody"
+        }
+    }
+
+    # Fallback to the original exception message
+    return "$Context`: $($ErrorRecord.Exception.Message)"
+}
+function Get-RstsTokenWithPkce
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$PrimaryProviderId,
+        [Parameter(Mandatory=$true,Position=2)]
+        [string]$Username,
+        [Parameter(Mandatory=$true,Position=3)]
+        [SecureString]$Password,
+        [Parameter(Mandatory=$false,Position=4)]
+        [SecureString]$SecondaryPassword
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Add-Type -AssemblyName System.Web
+
+    # Generate PKCE code_verifier (60 random bytes, base64url-encoded)
+    $local:VerifierBytes = [byte[]]::new(60)
+    [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($local:VerifierBytes)
+    $local:CodeVerifier = [Convert]::ToBase64String($local:VerifierBytes).TrimEnd('=').Replace('+', '-').Replace('/', '_')
+
+    # Generate PKCE code_challenge (SHA256 of verifier, base64url-encoded)
+    $local:Sha256 = [System.Security.Cryptography.SHA256]::Create()
+    $local:ChallengeHash = $local:Sha256.ComputeHash([System.Text.Encoding]::ASCII.GetBytes($local:CodeVerifier))
+    $local:CodeChallenge = [Convert]::ToBase64String($local:ChallengeHash).TrimEnd('=').Replace('+', '-').Replace('/', '_')
+
+    # Generate CSRF token (32 random bytes, base64url-encoded)
+    $local:CsrfBytes = [byte[]]::new(32)
+    [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($local:CsrfBytes)
+    $local:CsrfToken = [Convert]::ToBase64String($local:CsrfBytes).TrimEnd('=').Replace('+', '-').Replace('/', '_')
+
+    $local:RedirectUri = "urn:InstalledApplication"
+    $local:PkceBase = "https://$Appliance/RSTS/UserLogin/LoginController?response_type=code" +
+        "&code_challenge_method=S256&code_challenge=$($local:CodeChallenge)" +
+        "&redirect_uri=$([Uri]::EscapeDataString($local:RedirectUri))&loginRequestStep="
+
+    $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $Password).Password
+
+    $local:FormData = @{
+        directoryComboBox = "$PrimaryProviderId"
+        usernameTextbox = "$Username"
+        passwordTextbox = "$($local:PasswordPlainText)"
+        csrfTokenTextbox = "$($local:CsrfToken)"
+    }
+
+    # Create web session with CSRF cookie pre-set
+    $local:PkceSession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+    $local:Cookie = New-Object System.Net.Cookie("CsrfToken", $local:CsrfToken, "/RSTS", $Appliance)
+    $local:PkceSession.Cookies.Add((New-Object System.Uri("https://$Appliance")), $local:Cookie)
+
+    # Step 1: Initialize rSTS session
+    Write-Verbose "PKCE: Initializing rSTS session..."
+    try
+    {
+        $null = Invoke-WebRequest -Method POST -Uri ($local:PkceBase + "1") `
+            -WebSession $local:PkceSession `
+            -Headers @{ "Accept" = "application/json" } `
+            -ContentType "application/x-www-form-urlencoded" `
+            -Body $local:FormData
+    }
+    catch
+    {
+        throw (Get-RstsPkceErrorMessage $_ "rSTS initialization failed")
+    }
+
+    # Step 3: Primary authentication
+    Write-Verbose "PKCE: Submitting primary credentials..."
+    try
+    {
+        $local:PrimaryResponse = Invoke-WebRequest -Method POST -Uri ($local:PkceBase + "3") `
+            -WebSession $local:PkceSession `
+            -Headers @{ "Accept" = "application/json" } `
+            -ContentType "application/x-www-form-urlencoded" `
+            -Body $local:FormData
+    }
+    catch
+    {
+        throw (Get-RstsPkceErrorMessage $_ "rSTS primary authentication failed")
+    }
+
+    # Check for secondary authentication requirement
+    try
+    {
+        $local:PrimaryJson = $local:PrimaryResponse.Content | ConvertFrom-Json
+        if ($local:PrimaryJson.SecondaryProviderID)
+        {
+            Write-Verbose "PKCE: Secondary authentication required (provider: $($local:PrimaryJson.SecondaryProviderID))"
+
+            if (-not $SecondaryPassword)
+            {
+                $SecondaryPassword = (Read-Host "SecondaryPassword" -AsSecureString)
+            }
+
+            # Step 7: Secondary provider init
+            Write-Verbose "PKCE: Initializing secondary authentication..."
+            $local:SecondaryInitResponse = Invoke-WebRequest -Method POST -Uri ($local:PkceBase + "7") `
+                -WebSession $local:PkceSession `
+                -Headers @{ "Accept" = "application/json" } `
+                -ContentType "application/x-www-form-urlencoded" `
+                -Body $local:FormData
+
+            $local:MfaState = ""
+            try
+            {
+                $local:SecondaryInitJson = $local:SecondaryInitResponse.Content | ConvertFrom-Json
+                $local:MfaState = if ($local:SecondaryInitJson.State) { $local:SecondaryInitJson.State } else { "" }
+                if ($local:SecondaryInitJson.Message)
+                {
+                    Write-Verbose "PKCE: MFA prompt: $($local:SecondaryInitJson.Message)"
+                }
+            }
+            catch { }
+
+            # Step 5: Secondary authentication with OTP/secondary password
+            $local:SecondaryPasswordPlain = [System.Net.NetworkCredential]::new("", $SecondaryPassword).Password
+            $local:MfaFormData = @{
+                directoryComboBox = "$PrimaryProviderId"
+                usernameTextbox = "$Username"
+                passwordTextbox = "$($local:PasswordPlainText)"
+                csrfTokenTextbox = "$($local:CsrfToken)"
+                secondaryLoginTextbox = "$($local:SecondaryPasswordPlain)"
+                secondaryAuthenticationStateTextbox = "$($local:MfaState)"
+            }
+
+            Write-Verbose "PKCE: Submitting secondary credentials..."
+            $local:MfaResponse = Invoke-WebRequest -Method POST -Uri ($local:PkceBase + "5") `
+                -WebSession $local:PkceSession `
+                -Headers @{ "Accept" = "application/json" } `
+                -ContentType "application/x-www-form-urlencoded" `
+                -Body $local:MfaFormData
+
+            if ([int]$local:MfaResponse.StatusCode -eq 203)
+            {
+                $local:ErrorMessage = "Secondary authentication failed."
+                try
+                {
+                    $local:MfaJson = $local:MfaResponse.Content | ConvertFrom-Json
+                    if ($local:MfaJson.Message) { $local:ErrorMessage = $local:MfaJson.Message }
+                }
+                catch { }
+                throw "Multi-factor authentication failed: $($local:ErrorMessage)"
+            }
+
+            Write-Verbose "PKCE: Secondary authentication completed successfully"
+        }
+    }
+    catch [System.ArgumentException]
+    {
+        # Non-JSON response from primary auth — no secondary auth required
+    }
+
+    # Step 6: Generate claims and get authorization code
+    Write-Verbose "PKCE: Generating claims..."
+    try
+    {
+        $local:ClaimsResponse = Invoke-WebRequest -Method POST -Uri ($local:PkceBase + "6") `
+            -WebSession $local:PkceSession `
+            -Headers @{ "Accept" = "application/json" } `
+            -ContentType "application/x-www-form-urlencoded" `
+            -Body $local:FormData
+    }
+    catch
+    {
+        throw (Get-RstsPkceErrorMessage $_ "rSTS claims generation failed")
+    }
+
+    $local:ClaimsJson = $local:ClaimsResponse.Content | ConvertFrom-Json
+
+    if (-not $local:ClaimsJson.RelyingPartyUrl)
+    {
+        throw "rSTS response did not contain a RelyingPartyUrl. Authentication may be incomplete."
+    }
+
+    # Extract authorization code from RelyingPartyUrl query string
+    $local:RelyingUri = [Uri]$local:ClaimsJson.RelyingPartyUrl
+    $local:QueryParams = [System.Web.HttpUtility]::ParseQueryString($local:RelyingUri.Query)
+    $local:AuthorizationCode = $local:QueryParams["code"]
+
+    if (-not $local:AuthorizationCode)
+    {
+        throw "rSTS response did not contain an authorization code"
+    }
+
+    # Exchange authorization code for RSTS access token
+    Write-Verbose "PKCE: Exchanging authorization code for RSTS token..."
+    $local:RstsResponse = (Invoke-RestMethod -Method POST -Headers @{
+        "Accept" = "application/json";
+        "Content-type" = "application/json"
+    } -Uri "https://$Appliance/RSTS/oauth2/token" -Body ([System.Text.Encoding]::UTF8.GetBytes(@"
+{
+    "grant_type": "authorization_code",
+    "redirect_uri": "$($local:RedirectUri)",
+    "code": "$($local:AuthorizationCode)",
+    "code_verifier": "$($local:CodeVerifier)"
+}
+"@)))
+
+    if (-not $local:RstsResponse.access_token)
+    {
+        throw "PKCE token exchange did not return an access token"
+    }
+
+    # Return as hashtable for compatibility with Connect-Safeguard flow
+    @{ access_token = $local:RstsResponse.access_token }
+}
 function New-SafeguardUrl
 {
     [CmdletBinding()]
@@ -904,6 +1167,15 @@ If neither the -Gui nor -Browser switches are specified, then the OAuth2 Resourc
 will be used to programmatically submit the provided credentials. Ensure that Safeguard has been configured to allow
 this grant type by checking the Safeguard Access settings in Appliance Management.
 
+.PARAMETER Pkce
+Use PKCE (Proof Key for Code Exchange) non-interactive authentication. This programmatically simulates
+the browser-based OAuth2/PKCE flow without launching a browser, which does not require that the Resource
+Owner password grant type be enabled. Supports MFA via -SecondaryPassword.
+
+.PARAMETER SecondaryPassword
+SecureString containing the secondary password or one-time code for multi-factor authentication
+(e.g. TOTP code). Only used with -Pkce when the identity provider requires a second factor.
+
 .PARAMETER TwoFactor
 Attempt to authenticate using multiple factors via the command line.  Supports Starling 2FA.
 
@@ -965,6 +1237,20 @@ Connect-Safeguard 10.5.32.162 -Browser -IdentityProvider extf14 -Username floyd.
 [Opens browser window for normal Safeguard login experience, including 2FA, using the specified
 identity provider. Which may automatically redirect if it is to an external federation provider.]
 
+.EXAMPLE
+Connect-Safeguard 10.5.32.54 local Admin -Pkce -Password (ConvertTo-SecureString "pass" -AsPlainText -Force)
+
+Login Successful.
+
+Uses PKCE non-interactive authentication without requiring the Resource Owner password grant type.
+
+.EXAMPLE
+Connect-Safeguard 10.5.32.54 local Admin -Pkce -Password $pass -SecondaryPassword $otpCode
+
+Login Successful.
+
+Uses PKCE non-interactive with multi-factor authentication (e.g. TOTP one-time code).
+
 #>
 function Connect-Safeguard
 {
@@ -978,9 +1264,9 @@ function Connect-Safeguard
         [string]$IdentityProvider,
         [Parameter(ParameterSetName="PSCredential",Position=2)]
         [PSCredential]$Credential,
-        [Parameter(ParameterSetName="Username",Mandatory=$false,Position=2)][Parameter(ParameterSetName="Browser",Mandatory=$false)]
+        [Parameter(ParameterSetName="Username",Mandatory=$false,Position=2)][Parameter(ParameterSetName="Browser",Mandatory=$false)][Parameter(ParameterSetName="Pkce",Mandatory=$false,Position=2)]
         [string]$Username,
-        [Parameter(ParameterSetName="Username",Position=3)]
+        [Parameter(ParameterSetName="Username",Position=3)][Parameter(ParameterSetName="Pkce",Position=3)]
         [SecureString]$Password,
         [Parameter(ParameterSetName="Certificate",Mandatory=$false)]
         [string]$CertificateFile,
@@ -990,6 +1276,10 @@ function Connect-Safeguard
         [switch]$Gui,
         [Parameter(ParameterSetName="Browser",Mandatory=$false)]
         [switch]$Browser,
+        [Parameter(ParameterSetName="Pkce",Mandatory=$true)]
+        [switch]$Pkce,
+        [Parameter(ParameterSetName="Pkce",Mandatory=$false)]
+        [SecureString]$SecondaryPassword,
         [Parameter(ParameterSetName="Username",Mandatory=$false)]
         [switch]$TwoFactor,
         [Parameter(Mandatory=$false)]
@@ -1129,6 +1419,18 @@ function Connect-Safeguard
                         $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $Password).Password
                         break
                     }
+                    "Pkce" {
+                        if (-not $Username)
+                        {
+                            $Username = (Read-Host "Username")
+                        }
+                        if (-not $Password)
+                        {
+                            $Password = (Read-Host "Password" -AsSecureString)
+                        }
+                        $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $Password).Password
+                        break
+                    }
                     "PSCredential" {
                         $Username = $Credential.UserName
                         $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $Credential.Password).Password
@@ -1152,7 +1454,19 @@ function Connect-Safeguard
 
             if ($Username)
             {
-                if ($TwoFactor)
+                if ($Pkce)
+                {
+                    try
+                    {
+                        Write-Verbose "Calling RSTS for PKCE non-interactive authentication..."
+                        $local:RstsResponse = (Get-RstsTokenWithPkce $Appliance $IdentityProvider $Username $Password $SecondaryPassword)
+                    }
+                    catch
+                    {
+                        throw
+                    }
+                }
+                elseif ($TwoFactor)
                 {
                     $local:RstsResponse = (Get-RstsTokenWith2fa $Appliance $IdentityProvider $Username (ConvertTo-SecureString -AsPlainText -Force $local:PasswordPlainText))
                 }
