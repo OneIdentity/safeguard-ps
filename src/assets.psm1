@@ -2778,6 +2778,10 @@ Import-SafeguardAsset -Path '<path to csv file>'
 #>
 function Import-SafeguardAsset
 {
+    # Suppress PSAvoidOverwritingBuiltInCmdlets: Read-Host is intentionally overridden
+    # to return "" so that batch CSV import doesn't pause for interactive prompts when
+    # downstream cmdlets call Read-Host for optional parameters.
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidOverwritingBuiltInCmdlets','')]
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
@@ -3028,6 +3032,8 @@ Import-SafeguardAssetAccount -Path '<path to csv file>'
 #>
 function Import-SafeguardAssetAccount
 {
+    # Suppress: Read-Host override is intentional for non-interactive batch CSV import
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidOverwritingBuiltInCmdlets','')]
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
@@ -3194,6 +3200,8 @@ Import-SafeguardAssetAccountPassword -Path '<path to csv file>'
 #>
 function Import-SafeguardAssetAccountPassword
 {
+    # Suppress: Read-Host override is intentional for non-interactive batch CSV import
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidOverwritingBuiltInCmdlets','')]
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
@@ -3355,6 +3363,8 @@ Import-SafeguardAssetAccountSshKey -Path '<path to csv file>'
 #>
 function Import-SafeguardAssetAccountSshKey
 {
+    # Suppress: Read-Host override is intentional for non-interactive batch CSV import
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidOverwritingBuiltInCmdlets','')]
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]

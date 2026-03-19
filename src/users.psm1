@@ -1686,6 +1686,8 @@ Import-SafeguardUser -Path '<path to csv file>'
 #>
 function Import-SafeguardUser
 {
+    # Suppress: Read-Host override is intentional for non-interactive batch CSV import
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidOverwritingBuiltInCmdlets','')]
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
