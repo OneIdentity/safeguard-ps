@@ -562,6 +562,59 @@ function Get-RstsTokenWith2fa
         Clear-Variable -Name HttpSession
     }
 }
+function Get-RstsPkceErrorMessage
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$ErrorRecord,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$Context
+    )
+
+    $local:ErrorBody = $null
+
+    # PowerShell Core: HttpResponseException with Response containing body
+    if ($ErrorRecord.Exception.Response)
+    {
+        try
+        {
+            # Try to read response content from the exception
+            if ($ErrorRecord.ErrorDetails -and $ErrorRecord.ErrorDetails.Message)
+            {
+                $local:ErrorBody = $ErrorRecord.ErrorDetails.Message.Trim()
+            }
+        }
+        catch { }
+    }
+
+    # Try the ErrorDetails directly (works in both PS editions)
+    if (-not $local:ErrorBody -and $ErrorRecord.ErrorDetails -and $ErrorRecord.ErrorDetails.Message)
+    {
+        $local:ErrorBody = $ErrorRecord.ErrorDetails.Message.Trim()
+    }
+
+    if ($local:ErrorBody)
+    {
+        # Try to parse as JSON for structured error
+        try
+        {
+            $local:Json = $local:ErrorBody | ConvertFrom-Json
+            if ($local:Json.Message) { return "$Context`: $($local:Json.Message)" }
+            if ($local:Json.error_description) { return "$Context`: $($local:Json.error_description)" }
+        }
+        catch { }
+
+        # rSTS often returns plain text error messages (e.g. "Invalid password.")
+        if ($local:ErrorBody.Length -gt 0 -and $local:ErrorBody.Length -lt 500)
+        {
+            return "$Context`: $local:ErrorBody"
+        }
+    }
+
+    # Fallback to the original exception message
+    return "$Context`: $($ErrorRecord.Exception.Message)"
+}
 function Get-RstsTokenWithPkce
 {
     [CmdletBinding()]
@@ -619,19 +672,33 @@ function Get-RstsTokenWithPkce
 
     # Step 1: Initialize rSTS session
     Write-Verbose "PKCE: Initializing rSTS session..."
-    $null = Invoke-WebRequest -Method POST -Uri ($local:PkceBase + "1") `
-        -WebSession $local:PkceSession `
-        -Headers @{ "Accept" = "application/json" } `
-        -ContentType "application/x-www-form-urlencoded" `
-        -Body $local:FormData
+    try
+    {
+        $null = Invoke-WebRequest -Method POST -Uri ($local:PkceBase + "1") `
+            -WebSession $local:PkceSession `
+            -Headers @{ "Accept" = "application/json" } `
+            -ContentType "application/x-www-form-urlencoded" `
+            -Body $local:FormData
+    }
+    catch
+    {
+        throw (Get-RstsPkceErrorMessage $_ "rSTS initialization failed")
+    }
 
     # Step 3: Primary authentication
     Write-Verbose "PKCE: Submitting primary credentials..."
-    $local:PrimaryResponse = Invoke-WebRequest -Method POST -Uri ($local:PkceBase + "3") `
-        -WebSession $local:PkceSession `
-        -Headers @{ "Accept" = "application/json" } `
-        -ContentType "application/x-www-form-urlencoded" `
-        -Body $local:FormData
+    try
+    {
+        $local:PrimaryResponse = Invoke-WebRequest -Method POST -Uri ($local:PkceBase + "3") `
+            -WebSession $local:PkceSession `
+            -Headers @{ "Accept" = "application/json" } `
+            -ContentType "application/x-www-form-urlencoded" `
+            -Body $local:FormData
+    }
+    catch
+    {
+        throw (Get-RstsPkceErrorMessage $_ "rSTS primary authentication failed")
+    }
 
     # Check for secondary authentication requirement
     try
@@ -706,11 +773,18 @@ function Get-RstsTokenWithPkce
 
     # Step 6: Generate claims and get authorization code
     Write-Verbose "PKCE: Generating claims..."
-    $local:ClaimsResponse = Invoke-WebRequest -Method POST -Uri ($local:PkceBase + "6") `
-        -WebSession $local:PkceSession `
-        -Headers @{ "Accept" = "application/json" } `
-        -ContentType "application/x-www-form-urlencoded" `
-        -Body $local:FormData
+    try
+    {
+        $local:ClaimsResponse = Invoke-WebRequest -Method POST -Uri ($local:PkceBase + "6") `
+            -WebSession $local:PkceSession `
+            -Headers @{ "Accept" = "application/json" } `
+            -ContentType "application/x-www-form-urlencoded" `
+            -Body $local:FormData
+    }
+    catch
+    {
+        throw (Get-RstsPkceErrorMessage $_ "rSTS claims generation failed")
+    }
 
     $local:ClaimsJson = $local:ClaimsResponse.Content | ConvertFrom-Json
 
@@ -1389,8 +1463,7 @@ function Connect-Safeguard
                     }
                     catch
                     {
-                        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-                        Out-SafeguardExceptionIfPossible $_
+                        throw
                     }
                 }
                 elseif ($TwoFactor)
