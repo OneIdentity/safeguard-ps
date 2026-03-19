@@ -643,8 +643,7 @@ function Get-RstsTokenWithPkce
 
             if (-not $SecondaryPassword)
             {
-                throw "Multi-factor authentication is required (provider: $($local:PrimaryJson.SecondaryProviderID))" +
-                    " but no -SecondaryPassword was provided."
+                $SecondaryPassword = (Read-Host "SecondaryPassword" -AsSecureString)
             }
 
             # Step 7: Secondary provider init
