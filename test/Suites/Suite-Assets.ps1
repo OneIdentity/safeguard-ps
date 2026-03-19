@@ -21,7 +21,6 @@
     Execute = {
         param($Context)
 
-        $prefix = $Context.TestPrefix
         $testAsset = $Context.SuiteData["TestAsset"]
         $testAsset2 = $Context.SuiteData["TestAsset2"]
 

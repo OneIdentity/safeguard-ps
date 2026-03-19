@@ -110,7 +110,7 @@
             Update-SafeguardAccessToken -Password $secPwd
             $newToken = $SafeguardSession.AccessToken
             # New token should be valid (may or may not differ depending on timing)
-            $null -ne $newToken -and $newToken.Length -gt 0
+            $null -ne $newToken -and $newToken.Length -gt 0 -and $newToken -ne $oldToken
         }
     }
 

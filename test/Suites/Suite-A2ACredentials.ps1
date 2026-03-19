@@ -47,13 +47,13 @@
         try { Uninstall-SafeguardTrustedCertificate -Insecure $Context.SuiteData["RootThumbprint"] } catch {}
 
         # 1. Install trusted cert chain (required for cert user auth)
-        $rootInstalled = Install-SafeguardTrustedCertificate -Insecure $Context.SuiteData["RootCaPem"]
+        $null = Install-SafeguardTrustedCertificate -Insecure $Context.SuiteData["RootCaPem"]
         Register-SgPsTestCleanup -Description "Uninstall RootCA" -Action {
             param($Ctx)
             try { Uninstall-SafeguardTrustedCertificate -Insecure $Ctx.SuiteData['RootThumbprint'] } catch {}
         }
 
-        $intInstalled = Install-SafeguardTrustedCertificate -Insecure $Context.SuiteData["IntCaPem"]
+        $null = Install-SafeguardTrustedCertificate -Insecure $Context.SuiteData["IntCaPem"]
         Register-SgPsTestCleanup -Description "Uninstall IntermediateCA" -Action {
             param($Ctx)
             try { Uninstall-SafeguardTrustedCertificate -Insecure $Ctx.SuiteData['IntThumbprint'] } catch {}
@@ -147,9 +147,9 @@
 
         # --- Get-SafeguardA2aPassword via PFX ---
         Test-SgPsAssert "Get-SafeguardA2aPassword retrieves password via PFX" {
-            $pwd = Get-SafeguardA2aPassword -Appliance $appliance -Insecure `
+            $a2aPassword = Get-SafeguardA2aPassword -Appliance $appliance -Insecure `
                 -CertificateFile $pfx -Password $pfxPwd -ApiKey $apiKey
-            $null -ne $pwd
+            $null -ne $a2aPassword
         }
 
         # --- Get-SafeguardA2aApiKeySecret via PFX ---

@@ -2,7 +2,9 @@
 [CmdletBinding()]
 Param(
     [Parameter(Mandatory=$false,Position=0)]
-    [string]$TargetDir
+    [string]$TargetDir,
+    [Parameter(Mandatory=$false)]
+    [switch]$WithLinting
 )
 
 if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -73,3 +75,18 @@ if (-not (Test-Path $VersionDir))
 $Sources = (Join-Path $PSScriptRoot (Join-Path "src" "*"))
 Write-Host "Copying '$Sources' to '$VersionDir'"
 Copy-Item -Recurse -Path $Sources -Destination $VersionDir
+
+# --- Run PSScriptAnalyzer lint ---
+if ($WithLinting)
+{
+    $LintScript = (Join-Path $PSScriptRoot "Invoke-PsLint.ps1")
+    if (Test-Path $LintScript)
+    {
+        Write-Host ""
+        & $LintScript
+        if ($LASTEXITCODE -ne 0)
+        {
+            Write-Warning "Linting reported errors — see output above."
+        }
+    }
+}
