@@ -252,17 +252,17 @@ function Invoke-SpsInternal
         switch ($Method.ToLower())
         {
             {$_ -in "get","delete"} {
-                Invoke-SpsWithoutBody $Method $RelativeUrl $Headers -Parameters $Parameters -OutFile $OutFile
+                Invoke-SpsWithoutBody -Method $Method -RelativeUrl $RelativeUrl -Headers $Headers -Parameters $Parameters -OutFile $OutFile
                 break
             }
             {$_ -in "put","post"} {
                 if($InFile)
                 {
-                    Invoke-SpsWithoutBody $Method $RelativeUrl $Headers -Parameters $Parameters -InFile $InFile
+                    Invoke-SpsWithoutBody -Method $Method -RelativeUrl $RelativeUrl -Headers $Headers -Parameters $Parameters -InFile $InFile
                 }
                 else
                 {
-                    Invoke-SpsWithBody $Method $RelativeUrl $Headers `
+                    Invoke-SpsWithBody -Method $Method -RelativeUrl $RelativeUrl -Headers $Headers `
                         -Body $Body -JsonBody $JsonBody -Parameters $Parameters
                 }
                 break

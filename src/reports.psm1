@@ -234,9 +234,9 @@ function Get-SafeguardReportDailyAccessRequest
     $local:DayOnly = (New-Object "System.DateTime" -ArgumentList $LocalDate.Year, $LocalDate.Month, $LocalDate.Day)
     $local:OutFile = (Get-OutFileForParam -OutputDirectory $OutputDirectory -FileName "sg-daily-access-request-$(($local:DayOnly).ToString("yyyy-MM-dd")).csv" -StdOut:$StdOut)
 
-    Invoke-AuditLogMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure "AuditLog/AccessRequests/Activities" $local:DayOnly `
-        "Action eq 'CheckOutPassword' or Action eq 'InitializeSession'" `
-        ("LogTime,RequestId,RequesterId,RequesterName,AssetId,AccountId,AssetName,AccountName,AccountDomainName,AccessRequestType,Action," + `
+    Invoke-AuditLogMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -RelativeUrl "AuditLog/AccessRequests/Activities" -DayOnly $local:DayOnly `
+        -Filter "Action eq 'CheckOutPassword' or Action eq 'InitializeSession'" `
+        -Fields ("LogTime,RequestId,RequesterId,RequesterName,AssetId,AccountId,AssetName,AccountName,AccountDomainName,AccessRequestType,Action," + `
         "SessionId,ApplianceId,ApplianceName") `
         -OutFile $local:OutFile -Excel:$Excel
 }
@@ -316,9 +316,9 @@ function Get-SafeguardReportDailyPasswordCheckFail
     $local:DayOnly = (New-Object "System.DateTime" -ArgumentList $LocalDate.Year, $LocalDate.Month, $LocalDate.Day)
     $local:OutFile = (Get-OutFileForParam -OutputDirectory $OutputDirectory -FileName "sg-daily-pwcheck-fail-$(($local:DayOnly).ToString("yyyy-MM-dd")).csv" -StdOut:$StdOut)
 
-    Invoke-AuditLogMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure "AuditLog/Passwords/CheckPassword" $local:DayOnly `
-        "EventName eq 'PasswordCheckFailed'" `
-        ("LogTime,AssetId,AccountId,AssetName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
+    Invoke-AuditLogMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -RelativeUrl "AuditLog/Passwords/CheckPassword" -DayOnly $local:DayOnly `
+        -Filter "EventName eq 'PasswordCheckFailed'" `
+        -Fields ("LogTime,AssetId,AccountId,AssetName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
         "RequestStatus.Message,AssetPartitionId,AssetPartitionName,ProfileId,ProfileName,SyncGroupId,SyncGroupName,ApplianceId,ApplianceName") `
         -OutFile $local:OutFile -Excel:$Excel
 }
@@ -398,9 +398,9 @@ function Get-SafeguardReportDailyPasswordCheckSuccess
     $local:DayOnly = (New-Object "System.DateTime" -ArgumentList $LocalDate.Year, $LocalDate.Month, $LocalDate.Day)
     $local:OutFile = (Get-OutFileForParam -OutputDirectory $OutputDirectory -FileName "sg-daily-pwcheck-success-$(($local:DayOnly).ToString("yyyy-MM-dd")).csv" -StdOut:$StdOut)
 
-    Invoke-AuditLogMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure "AuditLog/Passwords/CheckPassword" $local:DayOnly `
-        "EventName eq 'PasswordCheckSucceeded'" `
-        ("LogTime,AssetId,AccountId,AssetName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
+    Invoke-AuditLogMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -RelativeUrl "AuditLog/Passwords/CheckPassword" -DayOnly $local:DayOnly `
+        -Filter "EventName eq 'PasswordCheckSucceeded'" `
+        -Fields ("LogTime,AssetId,AccountId,AssetName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
         "AssetPartitionId,AssetPartitionName,ProfileId,ProfileName,SyncGroupId,SyncGroupName,ApplianceId,ApplianceName") `
         -OutFile $local:OutFile -Excel:$Excel
 }
@@ -480,9 +480,9 @@ function Get-SafeguardReportDailyPasswordChangeFail
     $local:DayOnly = (New-Object "System.DateTime" -ArgumentList $LocalDate.Year, $LocalDate.Month, $LocalDate.Day)
     $local:OutFile = (Get-OutFileForParam -OutputDirectory $OutputDirectory -FileName "sg-daily-pwchange-fail-$(($local:DayOnly).ToString("yyyy-MM-dd")).csv" -StdOut:$StdOut)
 
-    Invoke-AuditLogMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure "AuditLog/Passwords/ChangePassword" $local:DayOnly `
-        "EventName eq 'PasswordChangeFailed'" `
-        ("LogTime,AssetId,AccountId,AssetName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
+    Invoke-AuditLogMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -RelativeUrl "AuditLog/Passwords/ChangePassword" -DayOnly $local:DayOnly `
+        -Filter "EventName eq 'PasswordChangeFailed'" `
+        -Fields ("LogTime,AssetId,AccountId,AssetName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
         "RequestStatus.Message,AssetPartitionId,AssetPartitionName,ProfileId,ProfileName,SyncGroupId,SyncGroupName,ApplianceId,ApplianceName") `
         -OutFile $local:OutFile -Excel:$Excel
 }
@@ -562,9 +562,9 @@ function Get-SafeguardReportDailyPasswordChangeSuccess
     $local:DayOnly = (New-Object "System.DateTime" -ArgumentList $LocalDate.Year, $LocalDate.Month, $LocalDate.Day)
     $local:OutFile = (Get-OutFileForParam -OutputDirectory $OutputDirectory -FileName "sg-daily-pwchange-success-$(($local:DayOnly).ToString("yyyy-MM-dd")).csv" -StdOut:$StdOut)
 
-    Invoke-AuditLogMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure "AuditLog/Passwords/ChangePassword" $local:DayOnly `
-        "EventName eq 'PasswordChangeSucceeded'" `
-        ("LogTime,AssetId,AccountId,AssetName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
+    Invoke-AuditLogMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -RelativeUrl "AuditLog/Passwords/ChangePassword" -DayOnly $local:DayOnly `
+        -Filter "EventName eq 'PasswordChangeSucceeded'" `
+        -Fields ("LogTime,AssetId,AccountId,AssetName,AccountName,AccountDomainName,NetworkAddress,PlatformDisplayName,EventName," + `
         "AssetPartitionId,AssetPartitionName,ProfileId,ProfileName,SyncGroupId,SyncGroupName,ApplianceId,ApplianceName") `
         -OutFile $local:OutFile -Excel:$Excel
 }

@@ -640,7 +640,7 @@ function Edit-SafeguardUserGroup
             $local:Users += $($local:ResolvedUser)
         }
 
-        Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure User $GroupToEdit $Operation $local:Users
+        Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -GroupType User -GroupToEdit $GroupToEdit -Operation $Operation -ObjectToOperate $local:Users
     }
 }
 
@@ -1133,7 +1133,7 @@ function Edit-SafeguardAssetGroup
             $local:ResolvedAsset = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetToGet $local:Asset -Fields Id,Name)
             $local:Assets += $($local:ResolvedAsset)
         }
-        Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $GroupToEdit $Operation $local:Assets
+        Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -GroupType Asset -GroupToEdit $GroupToEdit -Operation $Operation -ObjectToOperate $local:Assets
     }
     elseif (-not $PSBoundParameters.ContainsKey("Description"))
     {
@@ -1583,7 +1583,7 @@ function Edit-SafeguardAccountGroup
                 -AssetToGet $local:Pair[0] -AccountToGet $local:Pair[1] -Fields Asset.Id,Id,Asset.Name,Name)
             $local:Accounts += $($local:ResolvedAccount)
         }
-        Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToEdit $Operation $local:Accounts
+        Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -GroupType Account -GroupToEdit $GroupToEdit -Operation $Operation -ObjectToOperate $local:Accounts
     }
     elseif (-not $PSBoundParameters.ContainsKey("Description"))
     {

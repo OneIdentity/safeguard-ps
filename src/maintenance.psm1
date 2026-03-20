@@ -2380,7 +2380,7 @@ function Set-SafeguardPatch
     }
     elseif($PSCmdlet.ParameterSetName -eq 'NewPatch')
     {
-        Send-PatchFile $Patch $Appliance $AccessToken $Version -Insecure:$Insecure
+        Send-PatchFile -Patch $Patch -Appliance $Appliance -AccessToken $AccessToken -Version $Version -Insecure:$Insecure
     }
 
     $local:StagedPatch = (Get-SafeguardPatch -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
