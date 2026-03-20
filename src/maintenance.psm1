@@ -2127,12 +2127,15 @@ function Install-SafeguardPatch
         $local:Preconditions = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
                                     core GET "Cluster/Patch/PreconditionCheck").ClusterResults
 
+        # Check for warnings/errors across all cluster members before displaying details
+        $local:Warnings = ($local:Preconditions | Where-Object { $_.Warnings }) -ne $null
+        $local:Errors = ($local:Preconditions | Where-Object { $_.Errors }) -ne $null
+
         $local:Preconditions | ForEach-Object {
             Write-Host "Appliance ID: $($_.ApplianceId)"
             Write-Host -NoNewline "Warnings: "
             if ($_.Warnings)
             {
-                $local:Warnings = $true
                 Write-Host " "
                 $_.Warnings | ForEach-Object { Write-Warning $_ }
             }
@@ -2143,7 +2146,6 @@ function Install-SafeguardPatch
             Write-Host -NoNewline "Errors: "
             if ($_.Errors)
             {
-                $local:Errors = $true
                 Write-Host " "
                 # Note, we don't use the Write-Error commandlet because in all of our methods we set the
                 # $ErrorActionPreference to Stop. So if there was more than one error, we'd only see the
