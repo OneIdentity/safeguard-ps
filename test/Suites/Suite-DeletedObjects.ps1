@@ -61,8 +61,8 @@
         # ===== DELETED USERS =====
 
         Test-SgPsAssert "Get-SafeguardDeletedUser returns empty or list before delete" {
-            $deleted = Get-SafeguardDeletedUser -Insecure
-            # May or may not have items — just verify it doesn't throw
+            $null = Get-SafeguardDeletedUser -Insecure
+            # May or may not have items -- just verify it doesn't throw
             $true
         }
 
@@ -89,7 +89,7 @@
         # ===== DELETED ASSET ACCOUNTS =====
 
         Test-SgPsAssert "Get-SafeguardDeletedAssetAccount returns list before delete" {
-            $deleted = Get-SafeguardDeletedAssetAccount -Insecure
+            $null = Get-SafeguardDeletedAssetAccount -Insecure
             $true
         }
 
@@ -118,7 +118,7 @@
         $Context.SuiteData["AccountDeleted"] = $true
 
         Test-SgPsAssert "Get-SafeguardDeletedAsset returns list before delete" {
-            $deleted = Get-SafeguardDeletedAsset -Insecure
+            $null = Get-SafeguardDeletedAsset -Insecure
             $true
         }
 
@@ -161,7 +161,7 @@
         $accountId = $Context.SuiteData["AccountId"]
         $userId    = $Context.SuiteData["UserId"]
 
-        # Clean up account — try active removal first, then purge if in deleted state
+        # Clean up account -- try active removal first, then purge if in deleted state
         if ($accountId) {
             if (-not $Context.SuiteData["AccountDeleted"]) {
                 try { Remove-SafeguardAssetAccount -Insecure $assetId $accountId } catch {}

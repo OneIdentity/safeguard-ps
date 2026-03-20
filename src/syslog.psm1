@@ -1,4 +1,4 @@
-<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
+﻿<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
 #Helper
 function Resolve-SafeguardSyslogServerId
 {
@@ -128,7 +128,7 @@ function Get-SafeguardSyslogServer
 
     if($PSBoundParameters.ContainsKey("ServerToGet"))
     {
-        $local:id = Resolve-SafeguardSyslogServerId $ServerToGet -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure 
+        $local:id = Resolve-SafeguardSyslogServerId $ServerToGet -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)/$($local:id)" -Parameters $local:Parameters
     }
     else
@@ -172,7 +172,7 @@ The syslog protocol and format to use. The options are 'LegacyUdp', 'Udp' and 'T
 
 .PARAMETER UseTls
 Whether to use TLS when sending messages to the syslog server. This requires that
-the server is configured to accept TLS connections. This option is only supported for 
+the server is configured to accept TLS connections. This option is only supported for
 'Tcp' protocol.
 
 .PARAMETER UseClientCertificate
@@ -324,7 +324,7 @@ Edits an existing syslog server configuration
 
 .DESCRIPTION
 Edits an existing syslog server configuration. To get the current configuration
-use Get-SafeguardSyslogServer. Modify the properties of the syslog server 
+use Get-SafeguardSyslogServer. Modify the properties of the syslog server
 configuration and pass the object as the -SyslogServer parameter.
 
 .PARAMETER Appliance

@@ -14,6 +14,7 @@ Edit-SslVersionSupport
 function Get-SessionConnectionIdentifier
 {
     [CmdletBinding()]
+    [OutputType([string])]
     Param(
     )
 
@@ -53,6 +54,7 @@ function Get-SessionConnectionIdentifier
 function Resolve-ProviderToRstsId
 {
     [CmdletBinding()]
+    [OutputType([string])]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Appliance,
@@ -114,6 +116,7 @@ function Resolve-ProviderToRstsId
 function Get-RstsTokenFromBrowser
 {
     [CmdletBinding()]
+    [OutputType([hashtable])]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Appliance,
@@ -385,7 +388,7 @@ function Submit-RstsMultiFactorCredential
     # Looping is to handle push to authenticate
     while ($local:SecondaryAuthState -or $local:SecondaryLogin)
     {
-        $local:Response = (Submit-RstsMultifactorPost $Appliance $PrimaryProviderId $Username $Password $CsrfToken $local:SecondaryAuthState $local:SecondaryLogin)
+        $local:Response = (Submit-RstsMultifactorPost -Appliance $Appliance -PrimaryProviderId $PrimaryProviderId -Username $Username -Password $Password -CsrfToken $CsrfToken -SecondaryAuthState $local:SecondaryAuthState -SecondaryLogin $local:SecondaryLogin)
         $local:SecondaryAuthState = $local:Response.State
         $local:Message = $local:Response.Message
         $local:ShouldEcho = $local:Response.Echo
@@ -496,7 +499,7 @@ function Submit-RstsPrimaryCredential
 
     if ($local:Response.SecondaryProviderID)
     {
-        $local:Response = (Submit-RstsMultiFactorCredential $Appliance $PrimaryProviderId $Username $Password $CsrfToken)
+        $local:Response = (Submit-RstsMultiFactorCredential -Appliance $Appliance -PrimaryProviderId $PrimaryProviderId -Username $Username -Password $Password -CsrfToken $CsrfToken)
         $local:Response
     }
     else
@@ -554,7 +557,7 @@ function Get-RstsTokenWith2fa
     {
         New-Variable -Name "HttpSession" -Scope Script -Value $null -Force
         $local:CsrfToken = (Get-RstsCsrfTokenAndSession $Appliance)
-        $local:RstsResponse = (Submit-RstsPrimaryCredential $Appliance $PrimaryProviderId $Username $Password $local:CsrfToken)
+        $local:RstsResponse = (Submit-RstsPrimaryCredential -Appliance $Appliance -PrimaryProviderId $PrimaryProviderId -Username $Username -Password $Password -CsrfToken $local:CsrfToken)
         $local:RstsResponse
     }
     finally
@@ -565,6 +568,7 @@ function Get-RstsTokenWith2fa
 function Get-RstsPkceErrorMessage
 {
     [CmdletBinding()]
+    [OutputType([string])]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ErrorRecord,
@@ -618,6 +622,7 @@ function Get-RstsPkceErrorMessage
 function Get-RstsTokenWithPkce
 {
     [CmdletBinding()]
+    [OutputType([hashtable])]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Appliance,
@@ -768,7 +773,7 @@ function Get-RstsTokenWithPkce
     }
     catch [System.ArgumentException]
     {
-        # Non-JSON response from primary auth — no secondary auth required
+        # Non-JSON response from primary auth -- no secondary auth required
     }
 
     # Step 6: Generate claims and get authorization code
@@ -945,7 +950,7 @@ function Invoke-WithoutBody
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:Url = (New-SafeguardUrl $Appliance $Service $Version $RelativeUrl -Parameters $Parameters)
+    $local:Url = (New-SafeguardUrl -Appliance $Appliance -Service $Service -Version $Version -RelativeUrl $RelativeUrl -Parameters $Parameters)
     Write-Verbose "Url=$($local:Url)"
     Write-Verbose "Parameters=$(ConvertTo-Json -InputObject $Parameters)"
     $arguments = @{
@@ -968,7 +973,7 @@ function Invoke-WithoutBody
     if ($LongRunningTask)
     {
         $local:Response = (Invoke-WebRequest @arguments)
-        Wait-LongRunningTask $local:Response $Headers $Timeout
+        Wait-LongRunningTask -Response $local:Response -Headers $Headers -Timeout $Timeout
     }
     else
     {
@@ -1013,7 +1018,7 @@ function Invoke-WithBody
     {
         $local:BodyInternal = (ConvertTo-Json -Depth 100 -InputObject $Body)
     }
-    $local:Url = (New-SafeguardUrl $Appliance $Service $Version $RelativeUrl -Parameters $Parameters)
+    $local:Url = (New-SafeguardUrl -Appliance $Appliance -Service $Service -Version $Version -RelativeUrl $RelativeUrl -Parameters $Parameters)
     Write-Verbose "Url=$($local:Url)"
     Write-Verbose "Parameters=$(ConvertTo-Json -InputObject $Parameters)"
     Write-Verbose "---Request Body---"
@@ -1035,7 +1040,7 @@ function Invoke-WithBody
     if ($LongRunningTask)
     {
         $local:Response = (Invoke-WebRequest @arguments)
-        Wait-LongRunningTask $local:Response $Headers $Timeout
+        Wait-LongRunningTask -Response $local:Response -Headers $Headers -Timeout $Timeout
     }
     else
     {
@@ -1083,19 +1088,19 @@ function Invoke-Internal
         switch ($Method.ToLower())
         {
             {$_ -in "get","delete"} {
-                Invoke-WithoutBody $Appliance $Service $Method $Version $RelativeUrl $Headers `
+                Invoke-WithoutBody -Appliance $Appliance -Service $Service -Method $Method -Version $Version -RelativeUrl $RelativeUrl -Headers $Headers `
                     -Parameters $Parameters -InFile $InFile -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout
                 break
             }
             {$_ -in "put","post"} {
                 if ($InFile)
                 {
-                    Invoke-WithoutBody $Appliance $Service $Method $Version $RelativeUrl $Headers `
+                    Invoke-WithoutBody -Appliance $Appliance -Service $Service -Method $Method -Version $Version -RelativeUrl $RelativeUrl -Headers $Headers `
                         -Parameters $Parameters -InFile $InFile -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout
                 }
                 else
                 {
-                    Invoke-WithBody $Appliance $Service $Method $Version $RelativeUrl $Headers `
+                    Invoke-WithBody -Appliance $Appliance -Service $Service -Method $Method -Version $Version -RelativeUrl $RelativeUrl -Headers $Headers `
                         -Body $Body -JsonBody $JsonBody `
                         -Parameters $Parameters -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout
                 }
@@ -1306,9 +1311,9 @@ function Connect-Safeguard
         {
             if ($IdentityProvider)
             {
-                $IdentityProvider = (Resolve-ProviderToRstsId $Appliance $Version $IdentityProvider)
+                $IdentityProvider = (Resolve-ProviderToRstsId -Appliance $Appliance -Version $Version -Provider $IdentityProvider)
             }
-            $local:RstsResponse = (Get-RstsTokenFromBrowser $Appliance $Username $IdentityProvider)
+            $local:RstsResponse = (Get-RstsTokenFromBrowser -Appliance $Appliance -Username $Username -IdentityProvider $IdentityProvider)
         }
         else
         {
@@ -1459,7 +1464,7 @@ function Connect-Safeguard
                     try
                     {
                         Write-Verbose "Calling RSTS for PKCE non-interactive authentication..."
-                        $local:RstsResponse = (Get-RstsTokenWithPkce $Appliance $IdentityProvider $Username $Password $SecondaryPassword)
+                        $local:RstsResponse = (Get-RstsTokenWithPkce -Appliance $Appliance -PrimaryProviderId $IdentityProvider -Username $Username -Password $Password -SecondaryPassword $SecondaryPassword)
                     }
                     catch
                     {
@@ -1468,7 +1473,7 @@ function Connect-Safeguard
                 }
                 elseif ($TwoFactor)
                 {
-                    $local:RstsResponse = (Get-RstsTokenWith2fa $Appliance $IdentityProvider $Username (ConvertTo-SecureString -AsPlainText -Force $local:PasswordPlainText))
+                    $local:RstsResponse = (Get-RstsTokenWith2fa -Appliance $Appliance -PrimaryProviderId $IdentityProvider -Username $Username -Password (ConvertTo-SecureString -AsPlainText -Force $local:PasswordPlainText))
                 }
                 else
                 {
@@ -2012,13 +2017,13 @@ function Invoke-SafeguardMethod
     {
         if ($JsonOutput)
         {
-            (Invoke-Internal $Appliance $Service $Method $Version $RelativeUrl $local:Headers `
+            (Invoke-Internal -Appliance $Appliance -Service $Service -Method $Method -Version $Version -RelativeUrl $RelativeUrl -Headers $local:Headers `
                              -Body $Body -JsonBody $JsonBody -Parameters $Parameters -InFile $InFile -OutFile $OutFile `
                              -LongRunningTask:$LongRunningTask -Timeout $Timeout) | ConvertTo-Json -Depth 100
         }
         else
         {
-            Invoke-Internal $Appliance $Service $Method $Version $RelativeUrl $local:Headers `
+            Invoke-Internal -Appliance $Appliance -Service $Service -Method $Method -Version $Version -RelativeUrl $RelativeUrl -Headers $local:Headers `
                             -Body $Body -JsonBody $JsonBody -Parameters $Parameters -InFile $InFile -OutFile $OutFile `
                             -LongRunningTask:$LongRunningTask -Timeout $Timeout
         }
@@ -2032,13 +2037,13 @@ function Invoke-SafeguardMethod
             Write-Verbose "Trying to use RetryVersion: $RetryVersion, and RetryUrl: $RetryUrl"
             if ($JsonOutput)
             {
-                (Invoke-Internal $Appliance $Service $Method $RetryVersion $RetryUrl $local:Headers `
+                (Invoke-Internal -Appliance $Appliance -Service $Service -Method $Method -Version $RetryVersion -RelativeUrl $RetryUrl -Headers $local:Headers `
                                  -Body $Body -JsonBody $JsonBody -Parameters $Parameters -InFile $InFile -OutFile $OutFile `
                                  -LongRunningTask:$LongRunningTask -Timeout $Timeout) | ConvertTo-Json -Depth 100
             }
             else
             {
-                Invoke-Internal $Appliance $Service $Method $RetryVersion $RetryUrl $local:Headers `
+                Invoke-Internal -Appliance $Appliance -Service $Service -Method $Method -Version $RetryVersion -RelativeUrl $RetryUrl -Headers $local:Headers `
                                 -Body $Body -JsonBody $JsonBody -Parameters $Parameters -InFile $InFile -OutFile $OutFile `
                                 -LongRunningTask:$LongRunningTask -Timeout $Timeout
             }

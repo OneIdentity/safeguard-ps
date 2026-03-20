@@ -535,37 +535,40 @@ function Edit-SafeguardA2a
         [object]$A2aObject
     )
 
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-
-    if ($PSCmdlet.ParameterSetName -eq "Attributes")
+    process
     {
-        $local:A2aId = (Resolve-SafeguardA2aId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $A2aToEdit)
-        $A2aObject = (Get-SafeguardA2a $local:A2aId)
-        if ($PSBoundParameters.ContainsKey("Name")) { $A2aObject.AppName = $Name }
-        if ($PSBoundParameters.ContainsKey("Description")) { $A2aObject.Description = $Description }
-        if ($PSBoundParameters.ContainsKey("CertificateUser"))
-        {
-            $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $CertificateUser)
-            $A2aObject.CertificateUserId = $local:UserId;
-        }
-        if ($PSBoundParameters.ContainsKey("VisibleToCertificateUsers"))
-        {
-            if ($VisibleToCertificateUsers) { $A2aObject.VisibleToCertificateUsers = $true }
-            else { $A2aObject.VisibleToCertificateUsers = $false }
-        }
-    }
-    else
-    {
-        if (-not $A2aObject)
-        {
-            throw "A2aObject must not be null"
-        }
-    }
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-        Core PUT "A2ARegistrations/$($A2aObject.Id)" -Body $A2aObject
+
+        if ($PSCmdlet.ParameterSetName -eq "Attributes")
+        {
+            $local:A2aId = (Resolve-SafeguardA2aId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $A2aToEdit)
+            $A2aObject = (Get-SafeguardA2a $local:A2aId)
+            if ($PSBoundParameters.ContainsKey("Name")) { $A2aObject.AppName = $Name }
+            if ($PSBoundParameters.ContainsKey("Description")) { $A2aObject.Description = $Description }
+            if ($PSBoundParameters.ContainsKey("CertificateUser"))
+            {
+                $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $CertificateUser)
+                $A2aObject.CertificateUserId = $local:UserId;
+            }
+            if ($PSBoundParameters.ContainsKey("VisibleToCertificateUsers"))
+            {
+                if ($VisibleToCertificateUsers) { $A2aObject.VisibleToCertificateUsers = $true }
+                else { $A2aObject.VisibleToCertificateUsers = $false }
+            }
+        }
+        else
+        {
+            if (-not $A2aObject)
+            {
+                throw "A2aObject must not be null"
+            }
+        }
+
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+            Core PUT "A2ARegistrations/$($A2aObject.Id)" -Body $A2aObject
+    }
 }
 
 <#

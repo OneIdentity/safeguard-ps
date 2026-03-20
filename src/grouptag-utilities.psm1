@@ -14,6 +14,7 @@
 function Resolve-ObjectAttributeForAccount
 {
     [CmdletBinding()]
+    [OutputType([string])]
     Param(
         [Parameter(Mandatory=$true)]
         [ValidateSet("AllowPasswordRequests","AllowSessionRequests","AllowSSHKeyRequests","AssetName","AssetTag","Description",
@@ -31,6 +32,7 @@ function Resolve-ObjectAttributeForAccount
 function Resolve-ObjectAttributeForAsset
 {
     [CmdletBinding()]
+    [OutputType([string])]
     Param(
         [Parameter(Mandatory=$true)]
         [ValidateSet("AllowSessionRequests","Description","DirectoryContainer","Disabled","DiscoveredGroupDistinguishedName",
@@ -47,6 +49,7 @@ function Resolve-ObjectAttributeForAsset
 function Resolve-LogicalJoinType
 {
     [CmdletBinding()]
+    [OutputType([string])]
     Param(
         [Parameter(Mandatory=$true)]
         [ValidateSet("And","Or",IgnoreCase=$true)]
@@ -63,6 +66,7 @@ function Resolve-LogicalJoinType
 function Convert-PredicateObjectToString
 {
     [CmdletBinding()]
+    [OutputType([string])]
     Param(
         [Parameter(Mandatory=$true)]
         [ValidateSet("IsTrue","IsFalse","Contains","DoesNotContain","StartsWith","EndsWith","EqualTo","NotEqualTo","RegexCompare",IgnoreCase=$true)]
@@ -263,6 +267,7 @@ function Convert-StringToCompareValue
 function Convert-StringToPredicateObject
 {
     [CmdletBinding()]
+    [OutputType([hashtable])]
     Param(
         [Parameter(Mandatory=$true)]
         [string]$String1,

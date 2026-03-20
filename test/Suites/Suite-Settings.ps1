@@ -41,7 +41,7 @@
                 } catch {}
             }
 
-            # Set same value (safe roundtrip — avoids changing behavior)
+            # Set same value (safe roundtrip -- avoids changing behavior)
             $result = Set-SafeguardApplianceSetting -Insecure $name $origValue
             $result.Name -eq $name
         }

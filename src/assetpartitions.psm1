@@ -385,40 +385,43 @@ function Edit-SafeguardAssetPartition
         [object]$AssetPartitionObject
     )
 
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $AssetPartitionObject)
+    process
     {
-        throw "AssetPartitionObject must not be null"
-    }
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($PsCmdlet.ParameterSetName -eq "Attributes")
-    {
-        if (-not $PSBoundParameters.ContainsKey("AssetPartitionToEdit"))
+        if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $AssetPartitionObject)
         {
-            $AssetPartitionToEdit = (Read-Host "AssetPartitionToEdit")
+            throw "AssetPartitionObject must not be null"
         }
-        $local:AssetPartitionId = Resolve-SafeguardAssetPartitionId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetPartitionToEdit
-    }
 
-    if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
-    {
-        $AssetPartitionObject = (Get-SafeguardAssetPartition -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:AssetPartitionId)
-
-        if ($PSBoundParameters.ContainsKey("Name")) { $AssetPartitionObject.Name = $Name }
-        if ($PSBoundParameters.ContainsKey("Description")) { $AssetPartitionObject.Description = $Description }
-        if ($PSBoundParameters.ContainsKey("Owners"))
+        if ($PsCmdlet.ParameterSetName -eq "Attributes")
         {
-            Import-Module -Name "$PSScriptRoot\users.psm1" -Scope Local
-            $AssetPartitionObject.ManagedBy = @()
-            $Owners | ForEach-Object {
-                $AssetPartitionObject.ManagedBy += (Resolve-SafeguardUserObject -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $_)
+            if (-not $PSBoundParameters.ContainsKey("AssetPartitionToEdit"))
+            {
+                $AssetPartitionToEdit = (Read-Host "AssetPartitionToEdit")
+            }
+            $local:AssetPartitionId = Resolve-SafeguardAssetPartitionId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetPartitionToEdit
+        }
+
+        if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
+        {
+            $AssetPartitionObject = (Get-SafeguardAssetPartition -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:AssetPartitionId)
+
+            if ($PSBoundParameters.ContainsKey("Name")) { $AssetPartitionObject.Name = $Name }
+            if ($PSBoundParameters.ContainsKey("Description")) { $AssetPartitionObject.Description = $Description }
+            if ($PSBoundParameters.ContainsKey("Owners"))
+            {
+                Import-Module -Name "$PSScriptRoot\users.psm1" -Scope Local
+                $AssetPartitionObject.ManagedBy = @()
+                $Owners | ForEach-Object {
+                    $AssetPartitionObject.ManagedBy += (Resolve-SafeguardUserObject -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $_)
+                }
             }
         }
-    }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AssetPartitions/$($AssetPartitionObject.Id)" -Body $AssetPartitionObject
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AssetPartitions/$($AssetPartitionObject.Id)" -Body $AssetPartitionObject
+    }
 }
 
 <#

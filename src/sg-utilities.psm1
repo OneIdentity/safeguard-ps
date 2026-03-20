@@ -247,6 +247,7 @@ namespace Ex
 function Test-SafeguardMinVersionInternal
 {
     [CmdletBinding()]
+    [OutputType([bool])]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -706,7 +707,10 @@ function Resolve-DomainNameFromIdentityProvider
             {
                 Write-Host "Domains in Directory ($IdentityProvider):"
                 Write-Host "["
-                $local:Domains | ForEach-Object -Begin { $index = 0 } -Process {  Write-Host ("    {0,3} - {1}" -f $index,$_.DomainName); $index++ }
+                for ($local:i = 0; $local:i -lt $local:Domains.Count; $local:i++)
+                {
+                    Write-Host ("    {0,3} - {1}" -f $local:i, $local:Domains[$local:i].DomainName)
+                }
                 Write-Host "]"
                 $local:DomainNameIndex = (Read-Host "Select a DomainName by number")
                 $local:DomainName = $local:Domains[$local:DomainNameIndex].DomainName
@@ -720,6 +724,7 @@ function Resolve-DomainNameFromIdentityProvider
 function Format-UtcDateTimeAsString
 {
     [CmdletBinding()]
+    [OutputType([string])]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [DateTime]$DateTime
@@ -730,6 +735,7 @@ function Format-UtcDateTimeAsString
 function Format-DateTimeAsString
 {
     [CmdletBinding()]
+    [OutputType([string])]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [DateTime]$DateTime

@@ -1,6 +1,6 @@
-<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
+﻿<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
 ########################################################################################
-# ASSETS 
+# ASSETS
 ########################################################################################
 
 # Helper
@@ -162,7 +162,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER AssetToDelete
-An object representing the deleted asset to purge or an integer 
+An object representing the deleted asset to purge or an integer
 containing the ID of the asset or a string containing the name.
 
 .INPUTS
@@ -216,9 +216,9 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER AssetToRestore
-An object representing the deleted asset to restore or an integer 
+An object representing the deleted asset to restore or an integer
 containing the ID of the asset account or a string containing the name. When
-AssetToRestore is an object returned by Get-SafeguardDeletedAsset, any modifications 
+AssetToRestore is an object returned by Get-SafeguardDeletedAsset, any modifications
 to property values will take precedent when restoring the asset.
 
 .INPUTS
@@ -415,7 +415,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER AccountToDelete
-An object representing the deleted asset account to delete or an integer 
+An object representing the deleted asset account to delete or an integer
 containing the ID of the asset account or a string containing the name.
 
 .INPUTS
@@ -457,7 +457,7 @@ Restore a soft-deleted asset account to its previous (un-deleted) state.
 
 .DESCRIPTION
 Restore a soft-deleted asset account to its previous (un-deleted) state. An asset account can only be
-restored if it's parent asset exists. You may need to restore the asset first if it was 
+restored if it's parent asset exists. You may need to restore the asset first if it was
 previously deleted.
 
 .PARAMETER Appliance
@@ -470,9 +470,9 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER AccountToRestore
-An object representing the deleted asset account to restore or an integer 
+An object representing the deleted asset account to restore or an integer
 containing the ID of the asset account or a string containing the name. When
-AccountToRestore is an object returned by Get-SafeguardDeletedAssetAccount, any modifications 
+AccountToRestore is an object returned by Get-SafeguardDeletedAssetAccount, any modifications
 to property values will take precedent when restoring the asset account.
 
 .INPUTS
@@ -669,7 +669,7 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER UserToDelete
-An object representing the deleted user to remove or an integer 
+An object representing the deleted user to remove or an integer
 containing the ID of the user or a string containing the name.
 
 .INPUTS
@@ -702,7 +702,7 @@ function Remove-SafeguardDeletedUser
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:UserId = (Resolve-SafeguardDeletedUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToDelete)
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Deleted/Users/$($local:UserId)" 
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "Deleted/Users/$($local:UserId)"
 }
 
 <#
@@ -710,7 +710,7 @@ function Remove-SafeguardDeletedUser
 Restore a deleted user to its previous (un-deleted) state.
 
 .DESCRIPTION
-Restore a deleted user to its previous (un-deleted) state. 
+Restore a deleted user to its previous (un-deleted) state.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -722,9 +722,9 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER UserToRestore
-An object representing the deleted user to remove or an integer 
+An object representing the deleted user to remove or an integer
 containing the ID of the user or a string containing the name. When
-UserToRestore is an object returned by Get-SafeguardDeletedUser, any modifications 
+UserToRestore is an object returned by Get-SafeguardDeletedUser, any modifications
 to property values will take precedent when restoring the user.
 
 .INPUTS
@@ -795,7 +795,7 @@ JSON response from Safeguard Web API.
 Get-SafeguardPurgeSettings -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
-Get-SafeguardPurgeSettings 
+Get-SafeguardPurgeSettings
 #>
 function Get-SafeguardPurgeSettings
 {
@@ -822,7 +822,7 @@ function Get-SafeguardPurgeSettings
 Update the current automatic purge settings.
 
 .DESCRIPTION
-Update the current automatic purge settings as specified. 
+Update the current automatic purge settings as specified.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -839,15 +839,15 @@ Get-SafeguardPurgeSettings command to obtain the settings and
 adjust the properties as desired.
 
 .PARAMETER AutoPurgeAssets
-Indicates whether to automatically purge deleted asset objects 
+Indicates whether to automatically purge deleted asset objects
 after the corresponding retention period expires.
 
 .PARAMETER AutoPurgeAssetAccounts
-Indicates whether to automatically purge deleted asset account objects 
+Indicates whether to automatically purge deleted asset account objects
 after the corresponding retention period expires.
 
 .PARAMETER AutoPurgeUsers
-Indicates whether to automatically purge deleted users objects 
+Indicates whether to automatically purge deleted users objects
 after the corresponding retention period expires.
 
 .PARAMETER DeletedAssetRetentionInDays

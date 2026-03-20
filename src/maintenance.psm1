@@ -1,8 +1,9 @@
-<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
+﻿<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
 # Helpers
 function Test-SupportForClusterPatch
 {
     [CmdletBinding()]
+    [OutputType([bool])]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -62,7 +63,7 @@ function Add-SendFileStreamCmdletType
         {
             $referenceAssemblies = ("System.dll", "System.Management.Automation.dll", "System.Net.Http.dll", "System.Net.Primitives", "System.Security.Cryptography.dll")
         }
-        
+
         # Use the PassThru parameter to return the type that gets generated so we can assign it to
         # a variable and access it next in order to load/import it, making it available directly in
         # the PowerShell script, usable/callable like any other Cmdlet.
@@ -366,7 +367,7 @@ public class ReceiveFileStreamCmdlet : PSCmdlet
                                         int percentDone = (int)((totalBytes - bytesLeft) / (double)totalBytes * 100);
 
                                         progressRecord.StatusDescription = string.Format("{0}% Complete", percentDone);
-                                        
+
                                         progressRecord.PercentComplete = percentDone;
                                         Host.UI.WriteProgress(1, progressRecord);
 
@@ -407,6 +408,7 @@ public class ReceiveFileStreamCmdlet : PSCmdlet
 function Send-PatchFile
 {
     [CmdletBinding()]
+    [OutputType([bool])]
     Param(
         [Parameter(Mandatory=$true)]
         [string]$Patch,
@@ -1290,6 +1292,7 @@ Get-SafeguardApplianceDnsName -Appliance 10.5.32.54 -Insecure
 function Get-SafeguardApplianceDnsName
 {
     [CmdletBinding()]
+    [OutputType([string])]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -1999,7 +2002,7 @@ A boolean indicating whether or not the TLS certificate of the server should be 
 $false for internal servers with self-signed certificates.
 
 .PARAMETER CifsPath
-A string containing a CIFS/SMB/UNC path to a Safeguard patch file. 
+A string containing a CIFS/SMB/UNC path to a Safeguard patch file.
 
 Ex. \\server.hostname\folder\patch.sgp
 
@@ -2127,12 +2130,15 @@ function Install-SafeguardPatch
         $local:Preconditions = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
                                     core GET "Cluster/Patch/PreconditionCheck").ClusterResults
 
+        # Check for warnings/errors across all cluster members before displaying details
+        $local:Warnings = $null -ne ($local:Preconditions | Where-Object { $_.Warnings })
+        $local:Errors = $null -ne ($local:Preconditions | Where-Object { $_.Errors })
+
         $local:Preconditions | ForEach-Object {
             Write-Host "Appliance ID: $($_.ApplianceId)"
             Write-Host -NoNewline "Warnings: "
             if ($_.Warnings)
             {
-                $local:Warnings = $true
                 Write-Host " "
                 $_.Warnings | ForEach-Object { Write-Warning $_ }
             }
@@ -2143,7 +2149,6 @@ function Install-SafeguardPatch
             Write-Host -NoNewline "Errors: "
             if ($_.Errors)
             {
-                $local:Errors = $true
                 Write-Host " "
                 # Note, we don't use the Write-Error commandlet because in all of our methods we set the
                 # $ErrorActionPreference to Stop. So if there was more than one error, we'd only see the
@@ -2247,7 +2252,7 @@ A boolean indicating whether or not the TLS certificate of the server should be 
 $false for internal servers with self-signed certificates.
 
 .PARAMETER CifsPath
-A string containing a CIFS/SMB/UNC path to a Safeguard patch file. 
+A string containing a CIFS/SMB/UNC path to a Safeguard patch file.
 
 Ex. \\server.hostname\folder\patch.sgp
 
@@ -2375,7 +2380,7 @@ function Set-SafeguardPatch
     }
     elseif($PSCmdlet.ParameterSetName -eq 'NewPatch')
     {
-        Send-PatchFile $Patch $Appliance $AccessToken $Version -Insecure:$Insecure
+        Send-PatchFile -Patch $Patch -Appliance $Appliance -AccessToken $AccessToken -Version $Version -Insecure:$Insecure
     }
 
     $local:StagedPatch = (Get-SafeguardPatch -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)

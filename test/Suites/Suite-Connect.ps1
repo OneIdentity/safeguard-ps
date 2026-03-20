@@ -5,7 +5,7 @@
 
     Setup = {
         param($Context)
-        # Nothing to set up — we already have a session from the runner
+        # Nothing to set up -- we already have a session from the runner
     }
 
     Execute = {
@@ -110,7 +110,7 @@
             Update-SafeguardAccessToken -Password $secPwd
             $newToken = $SafeguardSession.AccessToken
             # New token should be valid (may or may not differ depending on timing)
-            $null -ne $newToken -and $newToken.Length -gt 0
+            $null -ne $newToken -and $newToken.Length -gt 0 -and $newToken -ne $oldToken
         }
     }
 
@@ -124,7 +124,7 @@
             Connect-Safeguard -Appliance $Context.Appliance -IdentityProvider "Local" `
                 -Username $Context.RunAdminName -Password $secPwd -Insecure
         } else {
-            # Not using RunAdmin — just ensure we're still connected
+            # Not using RunAdmin -- just ensure we're still connected
             try {
                 $null = Get-SafeguardLoggedInUser -Insecure -ErrorAction Stop
             }

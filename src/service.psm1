@@ -1,12 +1,12 @@
-<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
+﻿<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
 
 <#
 .SYNOPSIS
 Gets Safeguard debug log settings
 
 .DESCRIPTION
-Gets Safeguard debug log settings. Debug settings allow you to specify which Safeguard 
-services should log to which syslog server, at which log level, and whether to log TLS 
+Gets Safeguard debug log settings. Debug settings allow you to specify which Safeguard
+services should log to which syslog server, at which log level, and whether to log TLS
 connection details.
 
 .PARAMETER Appliance
@@ -53,8 +53,8 @@ function Get-SafeguardDebugSettings
 Sets Safeguard debug log settings
 
 .DESCRIPTION
-Sets Safeguard debug log settings. Debug settings allow you to specify which Safeguard 
-services should log to which syslog server, at which log level, and whether to log TLS 
+Sets Safeguard debug log settings. Debug settings allow you to specify which Safeguard
+services should log to which syslog server, at which log level, and whether to log TLS
 connection details. Use Get-SafeguardDebugSettings to get the current settings.
 
 .PARAMETER Appliance
@@ -79,7 +79,7 @@ JSON response from Safeguard Web API.
 Get-SafeguardDebugSettings -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
-Set-SafeguardDebugSettings 
+Set-SafeguardDebugSettings
 #>
 function Set-SafeguardDebugSettings
 {
@@ -106,7 +106,7 @@ function Set-SafeguardDebugSettings
 Enables TLS connection logging in Safeguard debug logs
 
 .DESCRIPTION
-Enables TLS connection logging in Safeguard debug logs. Outgoing TLS connections and 
+Enables TLS connection logging in Safeguard debug logs. Outgoing TLS connections and
 incoming connections will be logged. It is recommended to disable this unless you are
 auditing or troubleshooting TLS connections.
 
@@ -155,7 +155,7 @@ function Enable-SafeguardTlsLogging
 Disables TLS connection logging in Safeguard debug logs
 
 .DESCRIPTION
-Disables TLS connection logging in Safeguard debug logs. Outgoing TLS connections and 
+Disables TLS connection logging in Safeguard debug logs. Outgoing TLS connections and
 incoming connections will not be logged. It is recommended to disable this unless you are
 auditing or troubleshooting TLS connections.
 

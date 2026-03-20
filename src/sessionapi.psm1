@@ -252,17 +252,17 @@ function Invoke-SpsInternal
         switch ($Method.ToLower())
         {
             {$_ -in "get","delete"} {
-                Invoke-SpsWithoutBody $Method $RelativeUrl $Headers -Parameters $Parameters -OutFile $OutFile
+                Invoke-SpsWithoutBody -Method $Method -RelativeUrl $RelativeUrl -Headers $Headers -Parameters $Parameters -OutFile $OutFile
                 break
             }
             {$_ -in "put","post"} {
                 if($InFile)
                 {
-                    Invoke-SpsWithoutBody $Method $RelativeUrl $Headers -Parameters $Parameters -InFile $InFile
+                    Invoke-SpsWithoutBody -Method $Method -RelativeUrl $RelativeUrl -Headers $Headers -Parameters $Parameters -InFile $InFile
                 }
                 else
                 {
-                    Invoke-SpsWithBody $Method $RelativeUrl $Headers `
+                    Invoke-SpsWithBody -Method $Method -RelativeUrl $RelativeUrl -Headers $Headers `
                         -Body $Body -JsonBody $JsonBody -Parameters $Parameters
                 }
                 break
@@ -1375,7 +1375,7 @@ function Enable-SafeguardSpsRemoteAccess
         $local:Info.remote_access.enabled = $true
         Open-SafeguardSpsTransaction
         Invoke-SafeguardSpsMethod PUT configuration/starling -Body $local:Info
-        Save-SafeguardSpsTransaction
+        Close-SafeguardSpsTransaction
     }
 }
 New-Alias -Name Enable-SafeguardSpsSra -Value Enable-SafeguardSpsRemoteAccess
@@ -1406,7 +1406,7 @@ function Disable-SafeguardSpsRemoteAccess
         $local:Info.remote_access.enabled = $false
         Open-SafeguardSpsTransaction
         Invoke-SafeguardSpsMethod PUT configuration/starling -Body $local:Info
-        Save-SafeguardSpsTransaction
+        Close-SafeguardSpsTransaction
     }
     else
     {
@@ -1542,6 +1542,7 @@ Test-SafeguardSpsFirmware -Slot 3
 function Test-SafeguardSpsFirmware
 {
     [CmdletBinding()]
+    [OutputType([bool])]
     Param(
         [parameter(Mandatory)]
         [int]$Slot

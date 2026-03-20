@@ -309,14 +309,14 @@ A string containing the new description for the entitlement.
 
 .PARAMETER MemberUsers
 Array of IDs or names of the users to set as members of the entitlement. This replaces the
-entire member list — any existing members not included will be removed. Use 'provider\user'
+entire member list -- any existing members not included will be removed. Use 'provider\user'
 syntax to uniquely identify users from a specific identity provider (e.g. 'local\admin',
 'ad.corp\jsmith'). To incrementally add or remove individual members, use
 Add-SafeguardEntitlementMember and Remove-SafeguardEntitlementMember instead.
 
 .PARAMETER MemberGroups
 Array of IDs or names of the user groups to set as members of the entitlement. This replaces
-the entire member list — any existing members not included will be removed. To incrementally
+the entire member list -- any existing members not included will be removed. To incrementally
 add or remove individual members, use Add-SafeguardEntitlementMember and
 Remove-SafeguardEntitlementMember instead.
 
@@ -362,48 +362,51 @@ function Edit-SafeguardEntitlement
         [object]$EntitlementObject
     )
 
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $EntitlementObject)
+    process
     {
-        throw "EntitlementObject must not be null"
-    }
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($PsCmdlet.ParameterSetName -eq "Attributes")
-    {
-        $local:EntitlementId = Resolve-SafeguardEntitlementId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $EntitlementToEdit
-        $EntitlementObject = (Get-SafeguardEntitlement -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:EntitlementId)
-
-        if ($PSBoundParameters.ContainsKey("Name")) { $EntitlementObject.Name = $Name }
-        if ($PSBoundParameters.ContainsKey("Description")) { $EntitlementObject.Description = $Description }
-
-        if ($PSBoundParameters.ContainsKey("MemberUsers") -or $PSBoundParameters.ContainsKey("MemberGroups"))
+        if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $EntitlementObject)
         {
-            [object[]]$local:Members = $null
-            foreach ($local:User in $MemberUsers)
-            {
-                $local:ResolvedUserId = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User).Id
-                $local:Member = @{
-                    Id = $local:ResolvedUserId;
-                    PrincipalKind = "User"
-                }
-                $local:Members += $($local:Member)
-            }
-            foreach ($local:Group in $MemberGroups)
-            {
-                $local:ResolvedGroupId = (Get-SafeguardUserGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -GroupToGet $local:Group).Id
-                $local:Member = @{
-                    Id = $local:ResolvedGroupId;
-                    PrincipalKind = "Group"
-                }
-                $local:Members += $($local:Member)
-            }
-            $EntitlementObject.Members = $local:Members
+            throw "EntitlementObject must not be null"
         }
-    }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Roles/$($EntitlementObject.Id)" -Body $EntitlementObject
+        if ($PsCmdlet.ParameterSetName -eq "Attributes")
+        {
+            $local:EntitlementId = Resolve-SafeguardEntitlementId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $EntitlementToEdit
+            $EntitlementObject = (Get-SafeguardEntitlement -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:EntitlementId)
+
+            if ($PSBoundParameters.ContainsKey("Name")) { $EntitlementObject.Name = $Name }
+            if ($PSBoundParameters.ContainsKey("Description")) { $EntitlementObject.Description = $Description }
+
+            if ($PSBoundParameters.ContainsKey("MemberUsers") -or $PSBoundParameters.ContainsKey("MemberGroups"))
+            {
+                [object[]]$local:Members = $null
+                foreach ($local:User in $MemberUsers)
+                {
+                    $local:ResolvedUserId = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User).Id
+                    $local:Member = @{
+                        Id = $local:ResolvedUserId;
+                        PrincipalKind = "User"
+                    }
+                    $local:Members += $($local:Member)
+                }
+                foreach ($local:Group in $MemberGroups)
+                {
+                    $local:ResolvedGroupId = (Get-SafeguardUserGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -GroupToGet $local:Group).Id
+                    $local:Member = @{
+                        Id = $local:ResolvedGroupId;
+                        PrincipalKind = "Group"
+                    }
+                    $local:Members += $($local:Member)
+                }
+                $EntitlementObject.Members = $local:Members
+            }
+        }
+
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Roles/$($EntitlementObject.Id)" -Body $EntitlementObject
+    }
 }
 
 <#

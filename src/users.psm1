@@ -1,4 +1,4 @@
-<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
+﻿<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
 # Helpers
 function Resolve-SafeguardUserObject
 {
@@ -1555,7 +1555,7 @@ A string containing the path of the template file.
 Adds all headers to the template file.
 
 .PARAMETER FirstName
-Adds the FirstName header to the template file. 
+Adds the FirstName header to the template file.
 Value - A string containing the first name of the user.  Combined with last name to form a user's DisplayName.
 
 .PARAMETER LastName
@@ -1583,7 +1583,7 @@ Adds the MobilePhone header to the template file.
 Value - A string containing a mobile phone number for the user.
 
 .PARAMETER AdminRoles
-An array of strings containing the permissions (admin roles) to assign to the user.  
+An array of strings containing the permissions (admin roles) to assign to the user.
 You may also specify 'All' to grant all permissions. Other permissions are: 'GlobalAdmin',
 'ApplicationAuditor', 'SystemAuditor', 'Auditor', 'AssetAdmin', 'ApplianceAdmin', 'PolicyAdmin', 'UserAdmin',
 'HelpdeskAdmin', 'OperationsAdmin'.
@@ -1686,6 +1686,8 @@ Import-SafeguardUser -Path '<path to csv file>'
 #>
 function Import-SafeguardUser
 {
+    # Suppress: Read-Host override is intentional for non-interactive batch CSV import
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidOverwritingBuiltInCmdlets','')]
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$false)]
@@ -1705,7 +1707,7 @@ function Import-SafeguardUser
 
     $local:Users = Import-Csv -Path $Path
     $local:UsersCount = 1;
-    if($null -ne $local:Users.Count) 
+    if($null -ne $local:Users.Count)
     {
         $local:UsersCount = $local:Users.Count
     }
@@ -1717,7 +1719,7 @@ function Import-SafeguardUser
     $local:CurrUser = 1;
     foreach($local:User in $local:Users)
     {
-        try 
+        try
         {
             $local:Args = @{
                 AccessToken = $AccessToken
@@ -1727,12 +1729,12 @@ function Import-SafeguardUser
                 NewUserName = $local:User.NewUserName
             }
 
-            if(![string]::IsNullOrEmpty($local:User.FirstName)) 
+            if(![string]::IsNullOrEmpty($local:User.FirstName))
             {
                 $local:Args.Add("FirstName", $local:User.FirstName)
             }
 
-            if(![string]::IsNullOrEmpty($local:User.LastName)) 
+            if(![string]::IsNullOrEmpty($local:User.LastName))
             {
                 $local:Args.Add("LastName", $local:User.LastName)
             }
@@ -1752,17 +1754,17 @@ function Import-SafeguardUser
                 $local:Args.Add("EmailAddress", $local:User.EmailAddress)
             }
 
-            if(![string]::IsNullOrEmpty($local:User.WorkPhone)) 
+            if(![string]::IsNullOrEmpty($local:User.WorkPhone))
             {
                 $local:Args.Add("WorkPhone", $local:User.WorkPhone)
             }
 
-            if(![string]::IsNullOrEmpty($local:User.MobilePhone)) 
+            if(![string]::IsNullOrEmpty($local:User.MobilePhone))
             {
                 $local:Args.Add("MobilePhone", $local:User.MobilePhone)
             }
 
-            if(![string]::IsNullOrEmpty($local:User.AdminRoles)) 
+            if(![string]::IsNullOrEmpty($local:User.AdminRoles))
             {
                 $local:Args.Add("AdminRoles", $local:User.AdminRoles.split(","))
             }
@@ -1776,33 +1778,33 @@ function Import-SafeguardUser
                 $local:Args.Add("Password", $local:SecurePassword)
             }
 
-            if(![string]::IsNullOrEmpty($local:User.Thumbprint)) 
+            if(![string]::IsNullOrEmpty($local:User.Thumbprint))
             {
                 $local:Args.Add("Thumbprint", $local:User.Thumbprint)
             }
 
             New-SafeguardUser @local:Args
         }
-        catch 
+        catch
         {
             if ($local:User.PSobject.Properties.Name -contains "Error")
             {
                 $local:User.Error = $_
             }
-            else 
+            else
             {
                 $local:User | Add-Member -MemberType NoteProperty -Name "Error" -Value  $_
             }
             $local:FailedImports.Add($local:User)
         }
-        
+
         Write-Progress -Activity "Importing Users ..." -PercentComplete (($local:CurrUser/$local:UsersCount)*100)
         $local:CurrUser++
     }
 
-    Write-Host ($local:UsersCount - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
-    
-    if ($local:FailedImports.Count -gt 0) 
+    Write-Host -Object "$(($local:UsersCount - $local:FailedImports.Count)) Successful Imports, $($local:FailedImports.Count) Failed Imports"
+
+    if ($local:FailedImports.Count -gt 0)
     {
         Write-Host "Please refer to UserImportResults.csv for more information on failures."
         $local:FailedImports | Export-Csv -Path ".\UserImportResults.csv" -NoTypeInformation -Force

@@ -23,7 +23,6 @@
     Execute = {
         param($Context)
 
-        $prefix = $Context.TestPrefix
         $testUser = $Context.SuiteData["TestUser"]
         $testUser2 = $Context.SuiteData["TestUser2"]
         $testPassword = $Context.SuiteData["TestPassword"]

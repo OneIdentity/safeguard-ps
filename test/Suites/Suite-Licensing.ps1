@@ -5,7 +5,7 @@
 
     Setup = {
         param($Context)
-        # Read-only suite — no setup needed
+        # Read-only suite -- no setup needed
     }
 
     Execute = {
@@ -21,7 +21,7 @@
             if ($licenses.Count -gt 0) {
                 $null -ne $licenses[0].Key
             } else {
-                # No licenses installed — still valid
+                # No licenses installed -- still valid
                 $true
             }
         }
@@ -39,6 +39,6 @@
 
     Cleanup = {
         param($Context)
-        # Read-only suite — no cleanup needed
+        # Read-only suite -- no cleanup needed
     }
 }

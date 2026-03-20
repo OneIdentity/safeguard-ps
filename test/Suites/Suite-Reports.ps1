@@ -5,7 +5,7 @@
 
     Setup = {
         param($Context)
-        # Reports are all read-only — no setup needed
+        # Reports are all read-only -- no setup needed
     }
 
     Execute = {
@@ -13,79 +13,79 @@
 
         # --- Account reports ---
         Test-SgPsAssert "Get-SafeguardReportAccountWithoutPassword returns data" {
-            $result = Get-SafeguardReportAccountWithoutPassword -Insecure -StdOut
+            $null = Get-SafeguardReportAccountWithoutPassword -Insecure -StdOut
             # May be empty but should not throw
             $true
         }
 
         # --- Daily reports (use today's date) ---
         Test-SgPsAssert "Get-SafeguardReportDailyAccessRequest returns data" {
-            $result = Get-SafeguardReportDailyAccessRequest -Insecure -StdOut
+            $null = Get-SafeguardReportDailyAccessRequest -Insecure -StdOut
             $true
         }
 
         Test-SgPsAssert "Get-SafeguardReportDailyPasswordCheckFail returns data" {
-            $result = Get-SafeguardReportDailyPasswordCheckFail -Insecure -StdOut
+            $null = Get-SafeguardReportDailyPasswordCheckFail -Insecure -StdOut
             $true
         }
 
         Test-SgPsAssert "Get-SafeguardReportDailyPasswordCheckSuccess returns data" {
-            $result = Get-SafeguardReportDailyPasswordCheckSuccess -Insecure -StdOut
+            $null = Get-SafeguardReportDailyPasswordCheckSuccess -Insecure -StdOut
             $true
         }
 
         Test-SgPsAssert "Get-SafeguardReportDailyPasswordChangeFail returns data" {
-            $result = Get-SafeguardReportDailyPasswordChangeFail -Insecure -StdOut
+            $null = Get-SafeguardReportDailyPasswordChangeFail -Insecure -StdOut
             $true
         }
 
         Test-SgPsAssert "Get-SafeguardReportDailyPasswordChangeSuccess returns data" {
-            $result = Get-SafeguardReportDailyPasswordChangeSuccess -Insecure -StdOut
+            $null = Get-SafeguardReportDailyPasswordChangeSuccess -Insecure -StdOut
             $true
         }
 
         # --- Membership reports ---
         Test-SgPsAssert "Get-SafeguardReportUserGroupMembership returns data" {
-            $result = Get-SafeguardReportUserGroupMembership -Insecure -StdOut
+            $null = Get-SafeguardReportUserGroupMembership -Insecure -StdOut
             $true
         }
 
         Test-SgPsAssert "Get-SafeguardReportAssetGroupMembership returns data" {
-            $result = Get-SafeguardReportAssetGroupMembership -Insecure -StdOut
+            $null = Get-SafeguardReportAssetGroupMembership -Insecure -StdOut
             $true
         }
 
         Test-SgPsAssert "Get-SafeguardReportAccountGroupMembership returns data" {
-            $result = Get-SafeguardReportAccountGroupMembership -Insecure -StdOut
+            $null = Get-SafeguardReportAccountGroupMembership -Insecure -StdOut
             $true
         }
 
         # --- Configuration reports ---
         Test-SgPsAssert "Get-SafeguardReportAssetManagementConfiguration returns data" {
-            $result = Get-SafeguardReportAssetManagementConfiguration -Insecure -StdOut
+            $null = Get-SafeguardReportAssetManagementConfiguration -Insecure -StdOut
             $true
         }
 
         # --- Entitlement reports ---
         Test-SgPsAssert "Get-SafeguardReportUserEntitlement returns data" {
-            $result = Get-SafeguardReportUserEntitlement -Insecure -StdOut
+            $null = Get-SafeguardReportUserEntitlement -Insecure -StdOut
             $true
         }
 
         Test-SgPsAssert "Get-SafeguardReportA2aEntitlement returns data" {
-            $result = Get-SafeguardReportA2aEntitlement -Insecure -StdOut
+            $null = Get-SafeguardReportA2aEntitlement -Insecure -StdOut
             $true
         }
 
         # --- Password reports ---
         Test-SgPsAssert "Get-SafeguardReportPasswordLastChanged returns data" {
-            $result = Get-SafeguardReportPasswordLastChanged -Insecure -StdOut
+            $null = Get-SafeguardReportPasswordLastChanged -Insecure -StdOut
             $true
         }
     }
 
     Cleanup = {
         param($Context)
-        # Reports are read-only — no cleanup needed
+        # Reports are read-only -- no cleanup needed
     }
 }

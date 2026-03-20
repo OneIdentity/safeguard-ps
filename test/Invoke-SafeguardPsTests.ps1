@@ -5,7 +5,7 @@
 
 .DESCRIPTION
     Discovers and runs test suites from the Suites/ directory against a live
-    Safeguard appliance. Each suite follows Setup → Execute → Cleanup lifecycle
+    Safeguard appliance. Each suite follows Setup -> Execute -> Cleanup lifecycle
     with continue-on-failure semantics and structured reporting.
 
 .PARAMETER Appliance
@@ -90,6 +90,11 @@ param(
     [string]$TestPrefix = "SgPsTest"
 )
 
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    Write-Error "This test runner requires PowerShell 7 or later. Install pwsh from https://aka.ms/powershell"
+    exit 1
+}
+
 $ErrorActionPreference = "Continue"
 
 # Import the framework module
@@ -144,7 +149,7 @@ if (-not $Appliance) {
 # Filter suites
 $selectedSuites = $suiteFiles
 if ($Suite) {
-    # Explicit selection — include exactly what was requested (even optional suites)
+    # Explicit selection -- include exactly what was requested (even optional suites)
     $selectedSuites = $selectedSuites | Where-Object {
         $shortName = $_.BaseName -replace '^Suite-', ''
         $matched = $false
@@ -154,7 +159,7 @@ if ($Suite) {
         $matched
     }
 } else {
-    # Default run — auto-exclude suites tagged "optional"
+    # Default run -- auto-exclude suites tagged "optional"
     $selectedSuites = $selectedSuites | Where-Object {
         $def = & $_.FullName
         if ($def.Tags -and ($def.Tags -contains "optional")) {
@@ -231,7 +236,7 @@ try {
         $grantTypes = ($originalGrantTypes -split ',') | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' }
         $hasResourceOwner = $grantTypes | Where-Object { $_ -ieq "ResourceOwner" }
         if (-not $hasResourceOwner) {
-            Write-Host "  Resource Owner grant is disabled — enabling for test run..." -ForegroundColor Yellow
+            Write-Host "  Resource Owner grant is disabled -- enabling for test run..." -ForegroundColor Yellow
             $grantTypes += "ResourceOwner"
             $newValue = ($grantTypes -join ", ")
             $body = @{ Value = $newValue }
@@ -242,14 +247,14 @@ try {
             Write-Host "  Resource Owner grant is already enabled." -ForegroundColor Green
         }
     } else {
-        Write-Host "  Warning: 'Allowed OAuth2 Grant Types' setting not found — skipping." -ForegroundColor DarkYellow
+        Write-Host "  Warning: 'Allowed OAuth2 Grant Types' setting not found -- skipping." -ForegroundColor DarkYellow
     }
 
     Disconnect-Safeguard
 }
 catch {
     Write-Host "  Warning: could not check/enable Resource Owner grant: $($_.Exception.Message)" -ForegroundColor DarkYellow
-    Write-Host "  Attempting to continue — Resource Owner grant may already be enabled." -ForegroundColor DarkYellow
+    Write-Host "  Attempting to continue -- Resource Owner grant may already be enabled." -ForegroundColor DarkYellow
     try { Disconnect-Safeguard } catch { }
 }
 
@@ -283,7 +288,7 @@ try {
     $me = Get-SafeguardLoggedInUser -Insecure
     $hasAllRoles = ($me.AdminRoles -contains "AssetAdmin") -and ($me.AdminRoles -contains "PolicyAdmin")
     if (-not $hasAllRoles) {
-        Write-Host "  Bootstrap admin missing roles — creating full-admin user..." -ForegroundColor Yellow
+        Write-Host "  Bootstrap admin missing roles -- creating full-admin user..." -ForegroundColor Yellow
         $secPwd = ConvertTo-SecureString $testAdminPassword -AsPlainText -Force
         $runAdmin = New-SafeguardUser -Insecure -Provider -1 -NewUserName $testAdminName `
             -AdminRoles @('GlobalAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin') `
@@ -305,7 +310,7 @@ try {
 }
 catch {
     Write-Host "  Warning: could not create full-admin user: $($_.Exception.Message)" -ForegroundColor DarkYellow
-    Write-Host "  Continuing with bootstrap admin — some tests may fail." -ForegroundColor DarkYellow
+    Write-Host "  Continuing with bootstrap admin -- some tests may fail." -ForegroundColor DarkYellow
 }
 
 # --- Run suites ---

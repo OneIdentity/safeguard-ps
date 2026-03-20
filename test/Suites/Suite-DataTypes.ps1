@@ -5,7 +5,7 @@
 
     Setup = {
         param($Context)
-        # No setup needed — all read-only operations
+        # No setup needed -- all read-only operations
     }
 
     Execute = {
@@ -65,6 +65,6 @@
 
     Cleanup = {
         param($Context)
-        # Nothing to clean up — all read-only
+        # Nothing to clean up -- all read-only
     }
 }

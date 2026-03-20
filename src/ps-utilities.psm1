@@ -1,4 +1,4 @@
-<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
+﻿<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
 # This file contains random Powershell utilities required by some modules
 # Nothing is exported from here
 
@@ -6,6 +6,7 @@
 function Get-Confirmation
 {
     [CmdletBinding()]
+    [OutputType([bool])]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Title,
@@ -41,13 +42,14 @@ function Show-SshHostKeyPrompt
     Write-Host "$PublicKey"
     Write-Host "Fingerprint:"
     Write-Host "$Fingerprint"
-    Get-Confirmation "SSH Host Key" "Would you like to accept this SSH host key?" `
-        "Accept SSH host key and add complete operation." "Deny SSH host key and revert operation."
+    Get-Confirmation -Title "SSH Host Key" -Message "Would you like to accept this SSH host key?" `
+        -YesDescription "Accept SSH host key and add complete operation." -NoDescription "Deny SSH host key and revert operation."
 }
 # Test whether a string is an IP address
 function Test-IpAddress
 {
     [CmdletBinding()]
+    [OutputType([bool])]
     Param(
         [Parameter(Mandatory=$true)]
         [string]$IpAddress
@@ -60,6 +62,7 @@ function Test-IpAddress
 function Get-CertificateFileContents
 {
     [CmdletBinding()]
+    [OutputType([string])]
     Param(
         [Parameter(Mandatory=$true, Position=0)]
         [string]$CertificateFile
@@ -129,7 +132,7 @@ function Use-CertificateFile
 
     # Resolve relative paths to full paths
     $local:ResolvedPath = (Resolve-Path $CertificateFile).Path
-    
+
     if (-not $Password)
     {
         Get-PfxCertificate -FilePath $local:ResolvedPath

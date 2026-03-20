@@ -1283,134 +1283,137 @@ function Add-SafeguardAccessPolicy
         [object]$AccessPolicyObject
     )
 
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    if ($PsCmdlet.ParameterSetName -eq "Object")
+    process
     {
-        if (-not $AccessPolicyObject)
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+        if ($PsCmdlet.ParameterSetName -eq "Object")
         {
-            throw "AccessPolicyObject must not be null"
-        }
-    }
-    else
-    {
-        Import-Module -Name "$PSScriptRoot\entitlements.psm1" -Scope Local
-        $local:EntitlementId = Resolve-SafeguardEntitlementId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Entitlement
-
-        # Normalize access request type aliases
-        if ($AccessRequestType -ieq "RDP") { $AccessRequestType = "RemoteDesktop" }
-        elseif ($AccessRequestType -ieq "RDPApplication" -or $AccessRequestType -ieq "RDPApp") { $AccessRequestType = "RemoteDesktopApplication" }
-        elseif ($AccessRequestType -ieq "SSH") { $AccessRequestType = "Ssh" }
-        elseif ($AccessRequestType -ieq "SSHKey") { $AccessRequestType = "SshKey" }
-        elseif ($AccessRequestType -ieq "APIKey") { $AccessRequestType = "ApiKey" }
-
-        $AccessPolicyObject = @{
-            Name = $Name;
-            RoleId = $local:EntitlementId;
-            AccessRequestProperties = @{
-                AccessRequestType = $AccessRequestType
-            }
-        }
-
-        if ($PSBoundParameters.ContainsKey("Description")) { $AccessPolicyObject.Description = $Description }
-        if ($PSBoundParameters.ContainsKey("Priority")) { $AccessPolicyObject.Priority = $Priority }
-
-        if ($PSBoundParameters.ContainsKey("ScopeAccounts") -or $PSBoundParameters.ContainsKey("ScopeAssets") -or `
-            $PSBoundParameters.ContainsKey("ScopeAccountGroups") -or $PSBoundParameters.ContainsKey("ScopeAssetGroups"))
-        {
-            $AccessPolicyObject.ScopeItems = @(Resolve-SafeguardAccessPolicyScopeItems -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                -ScopeAccounts $ScopeAccounts -ScopeAssets $ScopeAssets -ScopeAccountGroups $ScopeAccountGroups -ScopeAssetGroups $ScopeAssetGroups)
-        }
-
-        if ($PSBoundParameters.ContainsKey("SessionAccessAccountType"))
-        {
-            $AccessPolicyObject.AccessRequestProperties.SessionAccessAccountType = $SessionAccessAccountType
-        }
-        if ($PSBoundParameters.ContainsKey("SessionAccessAccounts"))
-        {
-            [object[]]$local:SessionAccounts = @()
-            foreach ($local:SessionAccount in $SessionAccessAccounts)
+            if (-not $AccessPolicyObject)
             {
-                $local:AccountId = (Resolve-SafeguardPolicyAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:SessionAccount)
-                $local:SessionAccounts += @{ Id = $local:AccountId }
+                throw "AccessPolicyObject must not be null"
             }
-            $AccessPolicyObject.AccessRequestProperties.SessionAccessAccountType = "PolicySpecific"
-            $AccessPolicyObject.AccessRequestProperties.SessionAccessAccounts = @($local:SessionAccounts)
-        }
-        if ($AllowLinkedAccountPasswordAccess)
-        {
-            $AccessPolicyObject.AccessRequestProperties.AllowLinkedAccountPasswordAccess = $true
-        }
-        if ($PSBoundParameters.ContainsKey("AllowSimultaneousAccess")) { $AccessPolicyObject.AccessRequestProperties.AllowSimultaneousAccess = $AllowSimultaneousAccess }
-        if ($PSBoundParameters.ContainsKey("MaximumSimultaneousReleases")) { $AccessPolicyObject.AccessRequestProperties.MaximumSimultaneousReleases = $MaximumSimultaneousReleases }
-        if ($PSBoundParameters.ContainsKey("ChangePasswordAfterCheckin")) { $AccessPolicyObject.AccessRequestProperties.ChangePasswordAfterCheckin = $ChangePasswordAfterCheckin }
-        if ($PSBoundParameters.ContainsKey("ChangeSshKeyAfterCheckin")) { $AccessPolicyObject.AccessRequestProperties.ChangeSshKeyAfterCheckin = $ChangeSshKeyAfterCheckin }
-        if ($PSBoundParameters.ContainsKey("IncludePasswordRelease")) { $AccessPolicyObject.AccessRequestProperties.IncludePasswordRelease = $IncludePasswordRelease }
-        if ($PSBoundParameters.ContainsKey("IncludeSshKeyRelease")) { $AccessPolicyObject.AccessRequestProperties.IncludeSshKeyRelease = $IncludeSshKeyRelease }
-        if ($PSBoundParameters.ContainsKey("TerminateExpiredSessions")) { $AccessPolicyObject.AccessRequestProperties.TerminateExpiredSessions = $TerminateExpiredSessions }
-        if ($PSBoundParameters.ContainsKey("PassphraseProtectSshKey")) { $AccessPolicyObject.AccessRequestProperties.PassphraseProtectSshKey = $PassphraseProtectSshKey }
-        if ($PSBoundParameters.ContainsKey("UseAltLoginName")) { $AccessPolicyObject.AccessRequestProperties.UseAltLoginName = $UseAltLoginName }
-        if ($PSBoundParameters.ContainsKey("LinkedAccountScopeFiltering")) { $AccessPolicyObject.AccessRequestProperties.LinkedAccountScopeFiltering = $LinkedAccountScopeFiltering }
-
-        # Remote Desktop Application properties
-        if ($PSBoundParameters.ContainsKey("RdpApplicationHostAsset") -or $PSBoundParameters.ContainsKey("RdpApplicationHostAccount") -or `
-            $PSBoundParameters.ContainsKey("RdpApplicationDisplayName") -or $PSBoundParameters.ContainsKey("RdpApplicationAlias") -or `
-            $PSBoundParameters.ContainsKey("RdpApplicationProgram") -or $PSBoundParameters.ContainsKey("RdpApplicationCmdLine") -or `
-            $RdpApplicationHostUserSupplied)
-        {
-            if ($AccessRequestType -ne "RemoteDesktopApplication")
-            {
-                throw "RDP application properties can only be set when AccessRequestType is RemoteDesktopApplication (or RDPApplication/RDPApp)"
-            }
-            $local:RdpAppProps = @{}
-            if ($PSBoundParameters.ContainsKey("RdpApplicationHostAsset"))
-            {
-                $local:RdpAppProps.ApplicationHostAssetId = (Resolve-SafeguardPolicyAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RdpApplicationHostAsset)
-            }
-            if ($PSBoundParameters.ContainsKey("RdpApplicationHostAccount"))
-            {
-                $local:RdpAppProps.ApplicationHostAccountId = (Resolve-SafeguardPolicyAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RdpApplicationHostAccount)
-            }
-            if ($RdpApplicationHostUserSupplied) { $local:RdpAppProps.ApplicationHostUserSupplied = $true }
-            if ($PSBoundParameters.ContainsKey("RdpApplicationDisplayName")) { $local:RdpAppProps.ApplicationDisplayName = $RdpApplicationDisplayName }
-            if ($PSBoundParameters.ContainsKey("RdpApplicationAlias")) { $local:RdpAppProps.ApplicationAlias = $RdpApplicationAlias }
-            if ($PSBoundParameters.ContainsKey("RdpApplicationProgram")) { $local:RdpAppProps.ApplicationProgram = $RdpApplicationProgram }
-            if ($PSBoundParameters.ContainsKey("RdpApplicationCmdLine")) { $local:RdpAppProps.ApplicationCmdLine = $RdpApplicationCmdLine }
-            $AccessPolicyObject.SessionProperties = @{
-                RemoteDesktopApplicationProperties = $local:RdpAppProps
-            }
-        }
-
-        if ($PSBoundParameters.ContainsKey("ApproverUsers") -or $PSBoundParameters.ContainsKey("ApproverGroups"))
-        {
-            # Build a single approver set from all specified users and groups
-            [object[]]$local:Approvers = @()
-            foreach ($local:User in $ApproverUsers)
-            {
-                $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User)
-                $local:Approvers += @{ Id = $local:ResolvedUser.Id; PrincipalKind = "User" }
-            }
-            foreach ($local:Group in $ApproverGroups)
-            {
-                Import-Module -Name "$PSScriptRoot\groups.psm1" -Scope Local
-                $local:ResolvedGroup = (Get-SafeguardUserGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -GroupToGet $local:Group)
-                $local:Approvers += @{ Id = $local:ResolvedGroup.Id; PrincipalKind = "Group" }
-            }
-            $AccessPolicyObject.ApproverProperties = @{ RequireApproval = $true }
-            $AccessPolicyObject.ApproverSets = @(@{
-                RequiredApprovers = 1;
-                Approvers = @($local:Approvers)
-            })
         }
         else
         {
-            # Default to automatic approval when no approvers are specified
-            $AccessPolicyObject.ApproverProperties = @{ RequireApproval = $false }
-        }
-    }
+            Import-Module -Name "$PSScriptRoot\entitlements.psm1" -Scope Local
+            $local:EntitlementId = Resolve-SafeguardEntitlementId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Entitlement
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST AccessPolicies -Body $AccessPolicyObject
+            # Normalize access request type aliases
+            if ($AccessRequestType -ieq "RDP") { $AccessRequestType = "RemoteDesktop" }
+            elseif ($AccessRequestType -ieq "RDPApplication" -or $AccessRequestType -ieq "RDPApp") { $AccessRequestType = "RemoteDesktopApplication" }
+            elseif ($AccessRequestType -ieq "SSH") { $AccessRequestType = "Ssh" }
+            elseif ($AccessRequestType -ieq "SSHKey") { $AccessRequestType = "SshKey" }
+            elseif ($AccessRequestType -ieq "APIKey") { $AccessRequestType = "ApiKey" }
+
+            $AccessPolicyObject = @{
+                Name = $Name;
+                RoleId = $local:EntitlementId;
+                AccessRequestProperties = @{
+                    AccessRequestType = $AccessRequestType
+                }
+            }
+
+            if ($PSBoundParameters.ContainsKey("Description")) { $AccessPolicyObject.Description = $Description }
+            if ($PSBoundParameters.ContainsKey("Priority")) { $AccessPolicyObject.Priority = $Priority }
+
+            if ($PSBoundParameters.ContainsKey("ScopeAccounts") -or $PSBoundParameters.ContainsKey("ScopeAssets") -or `
+                $PSBoundParameters.ContainsKey("ScopeAccountGroups") -or $PSBoundParameters.ContainsKey("ScopeAssetGroups"))
+            {
+                $AccessPolicyObject.ScopeItems = @(Resolve-SafeguardAccessPolicyScopeItems -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                    -ScopeAccounts $ScopeAccounts -ScopeAssets $ScopeAssets -ScopeAccountGroups $ScopeAccountGroups -ScopeAssetGroups $ScopeAssetGroups)
+            }
+
+            if ($PSBoundParameters.ContainsKey("SessionAccessAccountType"))
+            {
+                $AccessPolicyObject.AccessRequestProperties.SessionAccessAccountType = $SessionAccessAccountType
+            }
+            if ($PSBoundParameters.ContainsKey("SessionAccessAccounts"))
+            {
+                [object[]]$local:SessionAccounts = @()
+                foreach ($local:SessionAccount in $SessionAccessAccounts)
+                {
+                    $local:AccountId = (Resolve-SafeguardPolicyAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:SessionAccount)
+                    $local:SessionAccounts += @{ Id = $local:AccountId }
+                }
+                $AccessPolicyObject.AccessRequestProperties.SessionAccessAccountType = "PolicySpecific"
+                $AccessPolicyObject.AccessRequestProperties.SessionAccessAccounts = @($local:SessionAccounts)
+            }
+            if ($AllowLinkedAccountPasswordAccess)
+            {
+                $AccessPolicyObject.AccessRequestProperties.AllowLinkedAccountPasswordAccess = $true
+            }
+            if ($PSBoundParameters.ContainsKey("AllowSimultaneousAccess")) { $AccessPolicyObject.AccessRequestProperties.AllowSimultaneousAccess = $AllowSimultaneousAccess }
+            if ($PSBoundParameters.ContainsKey("MaximumSimultaneousReleases")) { $AccessPolicyObject.AccessRequestProperties.MaximumSimultaneousReleases = $MaximumSimultaneousReleases }
+            if ($PSBoundParameters.ContainsKey("ChangePasswordAfterCheckin")) { $AccessPolicyObject.AccessRequestProperties.ChangePasswordAfterCheckin = $ChangePasswordAfterCheckin }
+            if ($PSBoundParameters.ContainsKey("ChangeSshKeyAfterCheckin")) { $AccessPolicyObject.AccessRequestProperties.ChangeSshKeyAfterCheckin = $ChangeSshKeyAfterCheckin }
+            if ($PSBoundParameters.ContainsKey("IncludePasswordRelease")) { $AccessPolicyObject.AccessRequestProperties.IncludePasswordRelease = $IncludePasswordRelease }
+            if ($PSBoundParameters.ContainsKey("IncludeSshKeyRelease")) { $AccessPolicyObject.AccessRequestProperties.IncludeSshKeyRelease = $IncludeSshKeyRelease }
+            if ($PSBoundParameters.ContainsKey("TerminateExpiredSessions")) { $AccessPolicyObject.AccessRequestProperties.TerminateExpiredSessions = $TerminateExpiredSessions }
+            if ($PSBoundParameters.ContainsKey("PassphraseProtectSshKey")) { $AccessPolicyObject.AccessRequestProperties.PassphraseProtectSshKey = $PassphraseProtectSshKey }
+            if ($PSBoundParameters.ContainsKey("UseAltLoginName")) { $AccessPolicyObject.AccessRequestProperties.UseAltLoginName = $UseAltLoginName }
+            if ($PSBoundParameters.ContainsKey("LinkedAccountScopeFiltering")) { $AccessPolicyObject.AccessRequestProperties.LinkedAccountScopeFiltering = $LinkedAccountScopeFiltering }
+
+            # Remote Desktop Application properties
+            if ($PSBoundParameters.ContainsKey("RdpApplicationHostAsset") -or $PSBoundParameters.ContainsKey("RdpApplicationHostAccount") -or `
+                $PSBoundParameters.ContainsKey("RdpApplicationDisplayName") -or $PSBoundParameters.ContainsKey("RdpApplicationAlias") -or `
+                $PSBoundParameters.ContainsKey("RdpApplicationProgram") -or $PSBoundParameters.ContainsKey("RdpApplicationCmdLine") -or `
+                $RdpApplicationHostUserSupplied)
+            {
+                if ($AccessRequestType -ne "RemoteDesktopApplication")
+                {
+                    throw "RDP application properties can only be set when AccessRequestType is RemoteDesktopApplication (or RDPApplication/RDPApp)"
+                }
+                $local:RdpAppProps = @{}
+                if ($PSBoundParameters.ContainsKey("RdpApplicationHostAsset"))
+                {
+                    $local:RdpAppProps.ApplicationHostAssetId = (Resolve-SafeguardPolicyAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RdpApplicationHostAsset)
+                }
+                if ($PSBoundParameters.ContainsKey("RdpApplicationHostAccount"))
+                {
+                    $local:RdpAppProps.ApplicationHostAccountId = (Resolve-SafeguardPolicyAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RdpApplicationHostAccount)
+                }
+                if ($RdpApplicationHostUserSupplied) { $local:RdpAppProps.ApplicationHostUserSupplied = $true }
+                if ($PSBoundParameters.ContainsKey("RdpApplicationDisplayName")) { $local:RdpAppProps.ApplicationDisplayName = $RdpApplicationDisplayName }
+                if ($PSBoundParameters.ContainsKey("RdpApplicationAlias")) { $local:RdpAppProps.ApplicationAlias = $RdpApplicationAlias }
+                if ($PSBoundParameters.ContainsKey("RdpApplicationProgram")) { $local:RdpAppProps.ApplicationProgram = $RdpApplicationProgram }
+                if ($PSBoundParameters.ContainsKey("RdpApplicationCmdLine")) { $local:RdpAppProps.ApplicationCmdLine = $RdpApplicationCmdLine }
+                $AccessPolicyObject.SessionProperties = @{
+                    RemoteDesktopApplicationProperties = $local:RdpAppProps
+                }
+            }
+
+            if ($PSBoundParameters.ContainsKey("ApproverUsers") -or $PSBoundParameters.ContainsKey("ApproverGroups"))
+            {
+                # Build a single approver set from all specified users and groups
+                [object[]]$local:Approvers = @()
+                foreach ($local:User in $ApproverUsers)
+                {
+                    $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User)
+                    $local:Approvers += @{ Id = $local:ResolvedUser.Id; PrincipalKind = "User" }
+                }
+                foreach ($local:Group in $ApproverGroups)
+                {
+                    Import-Module -Name "$PSScriptRoot\groups.psm1" -Scope Local
+                    $local:ResolvedGroup = (Get-SafeguardUserGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -GroupToGet $local:Group)
+                    $local:Approvers += @{ Id = $local:ResolvedGroup.Id; PrincipalKind = "Group" }
+                }
+                $AccessPolicyObject.ApproverProperties = @{ RequireApproval = $true }
+                $AccessPolicyObject.ApproverSets = @(@{
+                    RequiredApprovers = 1;
+                    Approvers = @($local:Approvers)
+                })
+            }
+            else
+            {
+                # Default to automatic approval when no approvers are specified
+                $AccessPolicyObject.ApproverProperties = @{ RequireApproval = $false }
+            }
+        }
+
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST AccessPolicies -Body $AccessPolicyObject
+    }
 }
 
 <#
@@ -1715,138 +1718,141 @@ function Edit-SafeguardAccessPolicy
         [object]$AccessPolicyObject
     )
 
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $AccessPolicyObject)
+    process
     {
-        throw "AccessPolicyObject must not be null"
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+        if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $AccessPolicyObject)
+        {
+            throw "AccessPolicyObject must not be null"
+        }
+
+        if ($PsCmdlet.ParameterSetName -eq "Attributes")
+        {
+            $local:ResolveParams = @{}
+            if ($PSBoundParameters.ContainsKey("EntitlementToEdit"))
+            {
+                Import-Module -Name "$PSScriptRoot\entitlements.psm1" -Scope Local
+                $local:ResolveParams["EntitlementId"] = (Resolve-SafeguardEntitlementId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $EntitlementToEdit)
+            }
+
+            $local:AccessPolicyId = Resolve-SafeguardAccessPolicyId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure @local:ResolveParams $PolicyToEdit
+            $AccessPolicyObject = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AccessPolicies/$($local:AccessPolicyId)")
+
+            if ($PSBoundParameters.ContainsKey("Name")) { $AccessPolicyObject.Name = $Name }
+            if ($PSBoundParameters.ContainsKey("Description")) { $AccessPolicyObject.Description = $Description }
+            if ($PSBoundParameters.ContainsKey("Priority")) { $AccessPolicyObject.Priority = $Priority }
+            if ($PSBoundParameters.ContainsKey("AccessRequestType"))
+            {
+                # Normalize access request type aliases
+                if ($AccessRequestType -ieq "RDP") { $AccessRequestType = "RemoteDesktop" }
+                elseif ($AccessRequestType -ieq "RDPApplication" -or $AccessRequestType -ieq "RDPApp") { $AccessRequestType = "RemoteDesktopApplication" }
+                elseif ($AccessRequestType -ieq "SSH") { $AccessRequestType = "Ssh" }
+                elseif ($AccessRequestType -ieq "SSHKey") { $AccessRequestType = "SshKey" }
+                elseif ($AccessRequestType -ieq "APIKey") { $AccessRequestType = "ApiKey" }
+
+                if (-not $AccessPolicyObject.AccessRequestProperties) { $AccessPolicyObject.AccessRequestProperties = @{} }
+                $AccessPolicyObject.AccessRequestProperties.AccessRequestType = $AccessRequestType
+            }
+
+            if ($PSBoundParameters.ContainsKey("ScopeAccounts") -or $PSBoundParameters.ContainsKey("ScopeAssets") -or `
+                $PSBoundParameters.ContainsKey("ScopeAccountGroups") -or $PSBoundParameters.ContainsKey("ScopeAssetGroups"))
+            {
+                $AccessPolicyObject.ScopeItems = @(Resolve-SafeguardAccessPolicyScopeItems -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                    -ScopeAccounts $ScopeAccounts -ScopeAssets $ScopeAssets -ScopeAccountGroups $ScopeAccountGroups -ScopeAssetGroups $ScopeAssetGroups)
+            }
+
+            if ($PSBoundParameters.ContainsKey("SessionAccessAccountType") -or $PSBoundParameters.ContainsKey("SessionAccessAccounts") -or $AllowLinkedAccountPasswordAccess)
+            {
+                if (-not $AccessPolicyObject.AccessRequestProperties) { $AccessPolicyObject.AccessRequestProperties = @{} }
+            }
+            if ($PSBoundParameters.ContainsKey("SessionAccessAccountType"))
+            {
+                $AccessPolicyObject.AccessRequestProperties.SessionAccessAccountType = $SessionAccessAccountType
+            }
+            if ($PSBoundParameters.ContainsKey("SessionAccessAccounts"))
+            {
+                [object[]]$local:SessionAccounts = @()
+                foreach ($local:SessionAccount in $SessionAccessAccounts)
+                {
+                    $local:AccountId = (Resolve-SafeguardPolicyAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:SessionAccount)
+                    $local:SessionAccounts += @{ Id = $local:AccountId }
+                }
+                $AccessPolicyObject.AccessRequestProperties.SessionAccessAccountType = "PolicySpecific"
+                $AccessPolicyObject.AccessRequestProperties.SessionAccessAccounts = @($local:SessionAccounts)
+            }
+            if ($AllowLinkedAccountPasswordAccess)
+            {
+                $AccessPolicyObject.AccessRequestProperties.AllowLinkedAccountPasswordAccess = $true
+            }
+            if ($PSBoundParameters.ContainsKey("AllowSimultaneousAccess")) { $AccessPolicyObject.AccessRequestProperties.AllowSimultaneousAccess = $AllowSimultaneousAccess }
+            if ($PSBoundParameters.ContainsKey("MaximumSimultaneousReleases")) { $AccessPolicyObject.AccessRequestProperties.MaximumSimultaneousReleases = $MaximumSimultaneousReleases }
+            if ($PSBoundParameters.ContainsKey("ChangePasswordAfterCheckin")) { $AccessPolicyObject.AccessRequestProperties.ChangePasswordAfterCheckin = $ChangePasswordAfterCheckin }
+            if ($PSBoundParameters.ContainsKey("ChangeSshKeyAfterCheckin")) { $AccessPolicyObject.AccessRequestProperties.ChangeSshKeyAfterCheckin = $ChangeSshKeyAfterCheckin }
+            if ($PSBoundParameters.ContainsKey("IncludePasswordRelease")) { $AccessPolicyObject.AccessRequestProperties.IncludePasswordRelease = $IncludePasswordRelease }
+            if ($PSBoundParameters.ContainsKey("IncludeSshKeyRelease")) { $AccessPolicyObject.AccessRequestProperties.IncludeSshKeyRelease = $IncludeSshKeyRelease }
+            if ($PSBoundParameters.ContainsKey("TerminateExpiredSessions")) { $AccessPolicyObject.AccessRequestProperties.TerminateExpiredSessions = $TerminateExpiredSessions }
+            if ($PSBoundParameters.ContainsKey("PassphraseProtectSshKey")) { $AccessPolicyObject.AccessRequestProperties.PassphraseProtectSshKey = $PassphraseProtectSshKey }
+            if ($PSBoundParameters.ContainsKey("UseAltLoginName")) { $AccessPolicyObject.AccessRequestProperties.UseAltLoginName = $UseAltLoginName }
+            if ($PSBoundParameters.ContainsKey("LinkedAccountScopeFiltering")) { $AccessPolicyObject.AccessRequestProperties.LinkedAccountScopeFiltering = $LinkedAccountScopeFiltering }
+
+            # Remote Desktop Application properties
+            if ($PSBoundParameters.ContainsKey("RdpApplicationHostAsset") -or $PSBoundParameters.ContainsKey("RdpApplicationHostAccount") -or `
+                $PSBoundParameters.ContainsKey("RdpApplicationDisplayName") -or $PSBoundParameters.ContainsKey("RdpApplicationAlias") -or `
+                $PSBoundParameters.ContainsKey("RdpApplicationProgram") -or $PSBoundParameters.ContainsKey("RdpApplicationCmdLine") -or `
+                $RdpApplicationHostUserSupplied)
+            {
+                $local:EffectiveType = $AccessPolicyObject.AccessRequestProperties.AccessRequestType
+                if ($local:EffectiveType -ne "RemoteDesktopApplication")
+                {
+                    throw "RDP application properties can only be set when AccessRequestType is RemoteDesktopApplication (current type: $($local:EffectiveType))"
+                }
+                if (-not $AccessPolicyObject.SessionProperties) { $AccessPolicyObject.SessionProperties = @{} }
+                if (-not $AccessPolicyObject.SessionProperties.RemoteDesktopApplicationProperties) { $AccessPolicyObject.SessionProperties.RemoteDesktopApplicationProperties = @{} }
+                $local:RdpAppProps = $AccessPolicyObject.SessionProperties.RemoteDesktopApplicationProperties
+                if ($PSBoundParameters.ContainsKey("RdpApplicationHostAsset"))
+                {
+                    $local:RdpAppProps.ApplicationHostAssetId = (Resolve-SafeguardPolicyAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RdpApplicationHostAsset)
+                }
+                if ($PSBoundParameters.ContainsKey("RdpApplicationHostAccount"))
+                {
+                    $local:RdpAppProps.ApplicationHostAccountId = (Resolve-SafeguardPolicyAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RdpApplicationHostAccount)
+                }
+                if ($RdpApplicationHostUserSupplied) { $local:RdpAppProps.ApplicationHostUserSupplied = $true }
+                if ($PSBoundParameters.ContainsKey("RdpApplicationDisplayName")) { $local:RdpAppProps.ApplicationDisplayName = $RdpApplicationDisplayName }
+                if ($PSBoundParameters.ContainsKey("RdpApplicationAlias")) { $local:RdpAppProps.ApplicationAlias = $RdpApplicationAlias }
+                if ($PSBoundParameters.ContainsKey("RdpApplicationProgram")) { $local:RdpAppProps.ApplicationProgram = $RdpApplicationProgram }
+                if ($PSBoundParameters.ContainsKey("RdpApplicationCmdLine")) { $local:RdpAppProps.ApplicationCmdLine = $RdpApplicationCmdLine }
+            }
+
+            if ($PSBoundParameters.ContainsKey("ApproverUsers") -or $PSBoundParameters.ContainsKey("ApproverGroups"))
+            {
+                [object[]]$local:Approvers = @()
+                foreach ($local:User in $ApproverUsers)
+                {
+                    $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User)
+                    $local:Approvers += @{ Id = $local:ResolvedUser.Id; PrincipalKind = "User" }
+                }
+                foreach ($local:Group in $ApproverGroups)
+                {
+                    Import-Module -Name "$PSScriptRoot\groups.psm1" -Scope Local
+                    $local:ResolvedGroup = (Get-SafeguardUserGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -GroupToGet $local:Group)
+                    $local:Approvers += @{ Id = $local:ResolvedGroup.Id; PrincipalKind = "Group" }
+                }
+                $AccessPolicyObject.ApproverProperties = @{ RequireApproval = $true }
+                $AccessPolicyObject.ApproverSets = @(@{
+                    RequiredApprovers = 1;
+                    Approvers = @($local:Approvers)
+                })
+            }
+            elseif ($NoApproval)
+            {
+                $AccessPolicyObject.ApproverProperties = @{ RequireApproval = $false }
+                $AccessPolicyObject.ApproverSets = @()
+            }
+        }
+
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AccessPolicies/$($AccessPolicyObject.Id)" -Body $AccessPolicyObject
     }
-
-    if ($PsCmdlet.ParameterSetName -eq "Attributes")
-    {
-        $local:ResolveParams = @{}
-        if ($PSBoundParameters.ContainsKey("EntitlementToEdit"))
-        {
-            Import-Module -Name "$PSScriptRoot\entitlements.psm1" -Scope Local
-            $local:ResolveParams["EntitlementId"] = (Resolve-SafeguardEntitlementId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $EntitlementToEdit)
-        }
-
-        $local:AccessPolicyId = Resolve-SafeguardAccessPolicyId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure @local:ResolveParams $PolicyToEdit
-        $AccessPolicyObject = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AccessPolicies/$($local:AccessPolicyId)")
-
-        if ($PSBoundParameters.ContainsKey("Name")) { $AccessPolicyObject.Name = $Name }
-        if ($PSBoundParameters.ContainsKey("Description")) { $AccessPolicyObject.Description = $Description }
-        if ($PSBoundParameters.ContainsKey("Priority")) { $AccessPolicyObject.Priority = $Priority }
-        if ($PSBoundParameters.ContainsKey("AccessRequestType"))
-        {
-            # Normalize access request type aliases
-            if ($AccessRequestType -ieq "RDP") { $AccessRequestType = "RemoteDesktop" }
-            elseif ($AccessRequestType -ieq "RDPApplication" -or $AccessRequestType -ieq "RDPApp") { $AccessRequestType = "RemoteDesktopApplication" }
-            elseif ($AccessRequestType -ieq "SSH") { $AccessRequestType = "Ssh" }
-            elseif ($AccessRequestType -ieq "SSHKey") { $AccessRequestType = "SshKey" }
-            elseif ($AccessRequestType -ieq "APIKey") { $AccessRequestType = "ApiKey" }
-
-            if (-not $AccessPolicyObject.AccessRequestProperties) { $AccessPolicyObject.AccessRequestProperties = @{} }
-            $AccessPolicyObject.AccessRequestProperties.AccessRequestType = $AccessRequestType
-        }
-
-        if ($PSBoundParameters.ContainsKey("ScopeAccounts") -or $PSBoundParameters.ContainsKey("ScopeAssets") -or `
-            $PSBoundParameters.ContainsKey("ScopeAccountGroups") -or $PSBoundParameters.ContainsKey("ScopeAssetGroups"))
-        {
-            $AccessPolicyObject.ScopeItems = @(Resolve-SafeguardAccessPolicyScopeItems -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                -ScopeAccounts $ScopeAccounts -ScopeAssets $ScopeAssets -ScopeAccountGroups $ScopeAccountGroups -ScopeAssetGroups $ScopeAssetGroups)
-        }
-
-        if ($PSBoundParameters.ContainsKey("SessionAccessAccountType") -or $PSBoundParameters.ContainsKey("SessionAccessAccounts") -or $AllowLinkedAccountPasswordAccess)
-        {
-            if (-not $AccessPolicyObject.AccessRequestProperties) { $AccessPolicyObject.AccessRequestProperties = @{} }
-        }
-        if ($PSBoundParameters.ContainsKey("SessionAccessAccountType"))
-        {
-            $AccessPolicyObject.AccessRequestProperties.SessionAccessAccountType = $SessionAccessAccountType
-        }
-        if ($PSBoundParameters.ContainsKey("SessionAccessAccounts"))
-        {
-            [object[]]$local:SessionAccounts = @()
-            foreach ($local:SessionAccount in $SessionAccessAccounts)
-            {
-                $local:AccountId = (Resolve-SafeguardPolicyAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:SessionAccount)
-                $local:SessionAccounts += @{ Id = $local:AccountId }
-            }
-            $AccessPolicyObject.AccessRequestProperties.SessionAccessAccountType = "PolicySpecific"
-            $AccessPolicyObject.AccessRequestProperties.SessionAccessAccounts = @($local:SessionAccounts)
-        }
-        if ($AllowLinkedAccountPasswordAccess)
-        {
-            $AccessPolicyObject.AccessRequestProperties.AllowLinkedAccountPasswordAccess = $true
-        }
-        if ($PSBoundParameters.ContainsKey("AllowSimultaneousAccess")) { $AccessPolicyObject.AccessRequestProperties.AllowSimultaneousAccess = $AllowSimultaneousAccess }
-        if ($PSBoundParameters.ContainsKey("MaximumSimultaneousReleases")) { $AccessPolicyObject.AccessRequestProperties.MaximumSimultaneousReleases = $MaximumSimultaneousReleases }
-        if ($PSBoundParameters.ContainsKey("ChangePasswordAfterCheckin")) { $AccessPolicyObject.AccessRequestProperties.ChangePasswordAfterCheckin = $ChangePasswordAfterCheckin }
-        if ($PSBoundParameters.ContainsKey("ChangeSshKeyAfterCheckin")) { $AccessPolicyObject.AccessRequestProperties.ChangeSshKeyAfterCheckin = $ChangeSshKeyAfterCheckin }
-        if ($PSBoundParameters.ContainsKey("IncludePasswordRelease")) { $AccessPolicyObject.AccessRequestProperties.IncludePasswordRelease = $IncludePasswordRelease }
-        if ($PSBoundParameters.ContainsKey("IncludeSshKeyRelease")) { $AccessPolicyObject.AccessRequestProperties.IncludeSshKeyRelease = $IncludeSshKeyRelease }
-        if ($PSBoundParameters.ContainsKey("TerminateExpiredSessions")) { $AccessPolicyObject.AccessRequestProperties.TerminateExpiredSessions = $TerminateExpiredSessions }
-        if ($PSBoundParameters.ContainsKey("PassphraseProtectSshKey")) { $AccessPolicyObject.AccessRequestProperties.PassphraseProtectSshKey = $PassphraseProtectSshKey }
-        if ($PSBoundParameters.ContainsKey("UseAltLoginName")) { $AccessPolicyObject.AccessRequestProperties.UseAltLoginName = $UseAltLoginName }
-        if ($PSBoundParameters.ContainsKey("LinkedAccountScopeFiltering")) { $AccessPolicyObject.AccessRequestProperties.LinkedAccountScopeFiltering = $LinkedAccountScopeFiltering }
-
-        # Remote Desktop Application properties
-        if ($PSBoundParameters.ContainsKey("RdpApplicationHostAsset") -or $PSBoundParameters.ContainsKey("RdpApplicationHostAccount") -or `
-            $PSBoundParameters.ContainsKey("RdpApplicationDisplayName") -or $PSBoundParameters.ContainsKey("RdpApplicationAlias") -or `
-            $PSBoundParameters.ContainsKey("RdpApplicationProgram") -or $PSBoundParameters.ContainsKey("RdpApplicationCmdLine") -or `
-            $RdpApplicationHostUserSupplied)
-        {
-            $local:EffectiveType = $AccessPolicyObject.AccessRequestProperties.AccessRequestType
-            if ($local:EffectiveType -ne "RemoteDesktopApplication")
-            {
-                throw "RDP application properties can only be set when AccessRequestType is RemoteDesktopApplication (current type: $($local:EffectiveType))"
-            }
-            if (-not $AccessPolicyObject.SessionProperties) { $AccessPolicyObject.SessionProperties = @{} }
-            if (-not $AccessPolicyObject.SessionProperties.RemoteDesktopApplicationProperties) { $AccessPolicyObject.SessionProperties.RemoteDesktopApplicationProperties = @{} }
-            $local:RdpAppProps = $AccessPolicyObject.SessionProperties.RemoteDesktopApplicationProperties
-            if ($PSBoundParameters.ContainsKey("RdpApplicationHostAsset"))
-            {
-                $local:RdpAppProps.ApplicationHostAssetId = (Resolve-SafeguardPolicyAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RdpApplicationHostAsset)
-            }
-            if ($PSBoundParameters.ContainsKey("RdpApplicationHostAccount"))
-            {
-                $local:RdpAppProps.ApplicationHostAccountId = (Resolve-SafeguardPolicyAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $RdpApplicationHostAccount)
-            }
-            if ($RdpApplicationHostUserSupplied) { $local:RdpAppProps.ApplicationHostUserSupplied = $true }
-            if ($PSBoundParameters.ContainsKey("RdpApplicationDisplayName")) { $local:RdpAppProps.ApplicationDisplayName = $RdpApplicationDisplayName }
-            if ($PSBoundParameters.ContainsKey("RdpApplicationAlias")) { $local:RdpAppProps.ApplicationAlias = $RdpApplicationAlias }
-            if ($PSBoundParameters.ContainsKey("RdpApplicationProgram")) { $local:RdpAppProps.ApplicationProgram = $RdpApplicationProgram }
-            if ($PSBoundParameters.ContainsKey("RdpApplicationCmdLine")) { $local:RdpAppProps.ApplicationCmdLine = $RdpApplicationCmdLine }
-        }
-
-        if ($PSBoundParameters.ContainsKey("ApproverUsers") -or $PSBoundParameters.ContainsKey("ApproverGroups"))
-        {
-            [object[]]$local:Approvers = @()
-            foreach ($local:User in $ApproverUsers)
-            {
-                $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User)
-                $local:Approvers += @{ Id = $local:ResolvedUser.Id; PrincipalKind = "User" }
-            }
-            foreach ($local:Group in $ApproverGroups)
-            {
-                Import-Module -Name "$PSScriptRoot\groups.psm1" -Scope Local
-                $local:ResolvedGroup = (Get-SafeguardUserGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -GroupToGet $local:Group)
-                $local:Approvers += @{ Id = $local:ResolvedGroup.Id; PrincipalKind = "Group" }
-            }
-            $AccessPolicyObject.ApproverProperties = @{ RequireApproval = $true }
-            $AccessPolicyObject.ApproverSets = @(@{
-                RequiredApprovers = 1;
-                Approvers = @($local:Approvers)
-            })
-        }
-        elseif ($NoApproval)
-        {
-            $AccessPolicyObject.ApproverProperties = @{ RequireApproval = $false }
-            $AccessPolicyObject.ApproverSets = @()
-        }
-    }
-
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AccessPolicies/$($AccessPolicyObject.Id)" -Body $AccessPolicyObject
 }

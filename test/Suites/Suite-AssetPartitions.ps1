@@ -120,13 +120,13 @@
         # --- Exit-SafeguardAssetPartition ---
         Test-SgPsAssert "Exit-SafeguardAssetPartition clears partition context" {
             Exit-SafeguardAssetPartition -Insecure
-            # Should no longer be in a partition — CurrentAssetPartition should be null/empty
+            # Should no longer be in a partition -- CurrentAssetPartition should be null/empty
             $notInPartition = $false
             try {
                 $current = Get-SafeguardCurrentAssetPartition -Insecure
                 $notInPartition = ($null -eq $current)
             } catch {
-                # Throws if not in a partition — that's the expected behavior
+                # Throws if not in a partition -- that's the expected behavior
                 $notInPartition = $true
             }
             $notInPartition

@@ -166,30 +166,30 @@
 
         # --- New-SafeguardPasswordProfile ---
         Test-SgPsAssert "New-SafeguardPasswordProfile creates a profile" {
-            $profile = New-SafeguardPasswordProfile -Insecure `
+            $pwdProfile = New-SafeguardPasswordProfile -Insecure `
                 $Context.SuiteData["ProfileName"] `
                 -PasswordRuleToSet $Context.SuiteData["RuleName"] `
                 -CheckScheduleToSet $Context.SuiteData["CheckName"] `
                 -ChangeScheduleToSet $Context.SuiteData["ChangeName"]
-            $Context.SuiteData["ProfileId"] = $profile.Id
+            $Context.SuiteData["ProfileId"] = $pwdProfile.Id
 
             Register-SgPsTestCleanup -Description "Delete password profile" -Action {
                 param($Ctx)
                 try { Remove-SafeguardPasswordProfile -Insecure $Ctx.SuiteData['ProfileId'] } catch {}
             }
-            $profile.Name -eq $Context.SuiteData["ProfileName"]
+            $pwdProfile.Name -eq $Context.SuiteData["ProfileName"]
         }
 
         # --- Get-SafeguardPasswordProfile by ID ---
         Test-SgPsAssert "Get-SafeguardPasswordProfile by ID" {
-            $profile = Get-SafeguardPasswordProfile -Insecure $Context.SuiteData["ProfileId"]
-            $profile.Name -eq $Context.SuiteData["ProfileName"]
+            $pwdProfile = Get-SafeguardPasswordProfile -Insecure $Context.SuiteData["ProfileId"]
+            $pwdProfile.Name -eq $Context.SuiteData["ProfileName"]
         }
 
         # --- Get-SafeguardPasswordProfile by Name ---
         Test-SgPsAssert "Get-SafeguardPasswordProfile by Name" {
-            $profile = Get-SafeguardPasswordProfile -Insecure $Context.SuiteData["ProfileName"]
-            $profile.Id -eq $Context.SuiteData["ProfileId"]
+            $pwdProfile = Get-SafeguardPasswordProfile -Insecure $Context.SuiteData["ProfileName"]
+            $pwdProfile.Id -eq $Context.SuiteData["ProfileId"]
         }
 
         # --- Edit-SafeguardPasswordProfile ---
