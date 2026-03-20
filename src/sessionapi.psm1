@@ -1375,7 +1375,7 @@ function Enable-SafeguardSpsRemoteAccess
         $local:Info.remote_access.enabled = $true
         Open-SafeguardSpsTransaction
         Invoke-SafeguardSpsMethod PUT configuration/starling -Body $local:Info
-        Save-SafeguardSpsTransaction
+        Close-SafeguardSpsTransaction
     }
 }
 New-Alias -Name Enable-SafeguardSpsSra -Value Enable-SafeguardSpsRemoteAccess
@@ -1406,7 +1406,7 @@ function Disable-SafeguardSpsRemoteAccess
         $local:Info.remote_access.enabled = $false
         Open-SafeguardSpsTransaction
         Invoke-SafeguardSpsMethod PUT configuration/starling -Body $local:Info
-        Save-SafeguardSpsTransaction
+        Close-SafeguardSpsTransaction
     }
     else
     {
