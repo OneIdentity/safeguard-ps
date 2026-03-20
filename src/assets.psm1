@@ -2918,7 +2918,7 @@ function Import-SafeguardAsset
         $local:CurrAsset++
     }
 
-    Write-Host ($local:AssetsCount - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
+    Write-Host -Object "$(($local:AssetsCount - $local:FailedImports.Count)) Successful Imports, $($local:FailedImports.Count) Failed Imports"
 
     if ($local:FailedImports.Count -gt 0)
     {
@@ -3117,7 +3117,7 @@ function Import-SafeguardAssetAccount
         $local:CurrAccount++
     }
 
-    Write-Host ($local:AccountsCount - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
+    Write-Host -Object "$(($local:AccountsCount - $local:FailedImports.Count)) Successful Imports, $($local:FailedImports.Count) Failed Imports"
 
     if ($local:FailedImports.Count -gt 0)
     {
@@ -3272,7 +3272,7 @@ function Import-SafeguardAssetAccountPassword
         $local:CurrPassword++
     }
 
-    Write-Host ($local:PasswordsCount - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
+    Write-Host -Object "$(($local:PasswordsCount - $local:FailedImports.Count)) Successful Imports, $($local:FailedImports.Count) Failed Imports"
 
     if ($local:FailedImports.Count -gt 0)
     {
@@ -3437,7 +3437,7 @@ function Import-SafeguardAssetAccountSshKey
         $local:CurrSshKey++
     }
 
-    Write-Host ($local:SshKeysCount - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
+    Write-Host -Object "$(($local:SshKeysCount - $local:FailedImports.Count)) Successful Imports, $($local:FailedImports.Count) Failed Imports"
 
     if ($local:FailedImports.Count -gt 0)
     {

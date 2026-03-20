@@ -1802,7 +1802,7 @@ function Import-SafeguardUser
         $local:CurrUser++
     }
 
-    Write-Host ($local:UsersCount - $local:FailedImports.Count) "Successful Imports," $local:FailedImports.Count "Failed Imports"
+    Write-Host -Object "$(($local:UsersCount - $local:FailedImports.Count)) Successful Imports, $($local:FailedImports.Count) Failed Imports"
 
     if ($local:FailedImports.Count -gt 0)
     {
