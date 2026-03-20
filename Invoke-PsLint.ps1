@@ -128,7 +128,8 @@ foreach ($dir in $Path) {
         Write-Warning "Path not found: $dir"
         continue
     }
-    $label = (Resolve-Path $dir -Relative -ErrorAction SilentlyContinue) ?? $dir
+    $label = Resolve-Path $dir -Relative -ErrorAction SilentlyContinue
+    if (-not $label) { $label = $dir }
     Write-Host ""
     Write-Host "Analyzing: $label" -ForegroundColor Yellow
 
