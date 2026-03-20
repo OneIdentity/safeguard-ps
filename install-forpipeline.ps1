@@ -65,5 +65,5 @@ Write-Host "Running PSScriptAnalyzer lint check..."
 & (Join-Path $PSScriptRoot "Invoke-PsLint.ps1") -Strict
 if ($LASTEXITCODE -ne 0)
 {
-    throw "PSScriptAnalyzer found lint findings. Fix them before merging."
+    throw "PSScriptAnalyzer found lint findings. Run './install-local.ps1 -WithLinting' locally to see the errors."
 }
