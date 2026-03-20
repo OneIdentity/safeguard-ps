@@ -1,4 +1,7 @@
 #Requires -Version 7.0
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    throw "This test framework requires PowerShell 7 or later. Please install pwsh from https://aka.ms/powershell"
+}
 <#
 .SYNOPSIS
     safeguard-ps Test Framework Module
