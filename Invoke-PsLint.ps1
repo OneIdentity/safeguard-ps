@@ -19,6 +19,10 @@
 .PARAMETER IncludeAll
     Include suppressed rules (shows the full unfiltered output).
 
+.PARAMETER Strict
+    Fail (exit 1) if any findings exist, not just Error-severity ones.
+    Used by CI pipelines to enforce zero-finding policy.
+
 .EXAMPLE
     ./Invoke-PsLint.ps1
 
@@ -35,7 +39,9 @@ param(
 
     [switch]$Fix,
 
-    [switch]$IncludeAll
+    [switch]$IncludeAll,
+
+    [switch]$Strict
 )
 
 $ErrorActionPreference = "Stop"
@@ -191,8 +197,12 @@ if ($infos.Count -gt 0)    { $summaryParts += "$($infos.Count) info(s)" }
 Write-Host "  Total: $($summaryParts -join ', ')" -ForegroundColor $(if ($errors.Count -gt 0) { 'Red' } else { 'DarkYellow' })
 Write-Host ("=" * 60) -ForegroundColor Cyan
 
-# Exit with error if any Error-severity findings
+# Exit with error if any findings meet the threshold
 if ($errors.Count -gt 0) {
+    exit 1
+}
+if ($Strict -and $allResults.Count -gt 0) {
+    Write-Host "  Strict mode: failing because $($allResults.Count) finding(s) remain." -ForegroundColor Red
     exit 1
 }
 exit 0

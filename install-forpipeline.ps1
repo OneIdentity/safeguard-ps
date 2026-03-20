@@ -59,3 +59,11 @@ if (-not (Test-Path $VersionDir))
     New-Item -Path $VersionDir -ItemType Container -Force | Out-Null
 }
 Copy-Item -Recurse -Path (Join-Path $PSScriptRoot "src\*") -Destination $VersionDir
+
+# --- Run PSScriptAnalyzer lint check (fail build on any finding) ---
+Write-Host "Running PSScriptAnalyzer lint check..."
+& (Join-Path $PSScriptRoot "Invoke-PsLint.ps1") -Strict
+if ($LASTEXITCODE -ne 0)
+{
+    throw "PSScriptAnalyzer found lint findings. Fix them before merging."
+}
