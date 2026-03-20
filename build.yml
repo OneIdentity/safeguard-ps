@@ -8,7 +8,9 @@ trigger:
       - release-*
   paths:
     exclude:
-      - README.md
+      - '*.md'
+      - LICENSE
+      - samples
 
 pr:
   branches:
@@ -17,7 +19,9 @@ pr:
       - release-*
   paths:
     exclude:
-      - README.md
+      - '*.md'
+      - LICENSE
+      - samples
 
 jobs:
 # Job 1: PR Validation Windows - runs only on pull requests
