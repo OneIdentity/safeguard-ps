@@ -798,6 +798,7 @@ function Write-SgPsTestReport {
         $failCount = Write-SgPsTestReport -Context $ctx
     #>
     [CmdletBinding()]
+    [OutputType([int])]
     param(
         [Parameter()]
         [PSCustomObject]$Context
