@@ -1,8 +1,4 @@
 #Requires -Version 7.0
-if ($PSVersionTable.PSVersion.Major -lt 7) {
-    Write-Error "This test runner requires PowerShell 7 or later. Please install pwsh from https://aka.ms/powershell and run: pwsh -File $($MyInvocation.MyCommand.Path)"
-    exit 1
-}
 <#
 .SYNOPSIS
     safeguard-ps Integration Test Runner
@@ -93,6 +89,11 @@ param(
     [Parameter()]
     [string]$TestPrefix = "SgPsTest"
 )
+
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    Write-Error "This test runner requires PowerShell 7 or later. Install pwsh from https://aka.ms/powershell"
+    exit 1
+}
 
 $ErrorActionPreference = "Continue"
 

@@ -158,7 +158,7 @@ foreach ($dir in $Path) {
 Write-Host ""
 Write-Host ("-" * 60) -ForegroundColor Cyan
 
-$errors   = @($allResults | Where-Object { $_.Severity -eq 'Error' })
+$errors   = @($allResults | Where-Object { $_.Severity -eq 'Error' -or $_.Severity -eq 'ParseError' })
 $warnings = @($allResults | Where-Object { $_.Severity -eq 'Warning' })
 $infos    = @($allResults | Where-Object { $_.Severity -eq 'Information' })
 
@@ -169,11 +169,12 @@ if ($allResults.Count -eq 0) {
 }
 
 # Show errors first, then warnings
-foreach ($sev in @('Error', 'Warning', 'Information')) {
+foreach ($sev in @('ParseError', 'Error', 'Warning', 'Information')) {
     $items = @($allResults | Where-Object { $_.Severity -eq $sev })
     if ($items.Count -eq 0) { continue }
 
     $color = switch ($sev) {
+        'ParseError'  { 'Red' }
         'Error'       { 'Red' }
         'Warning'     { 'DarkYellow' }
         'Information' { 'Gray' }
