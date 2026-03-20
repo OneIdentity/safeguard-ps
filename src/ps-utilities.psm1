@@ -6,6 +6,7 @@
 function Get-Confirmation
 {
     [CmdletBinding()]
+    [OutputType([bool])]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Title,
@@ -48,6 +49,7 @@ function Show-SshHostKeyPrompt
 function Test-IpAddress
 {
     [CmdletBinding()]
+    [OutputType([bool])]
     Param(
         [Parameter(Mandatory=$true)]
         [string]$IpAddress
@@ -60,6 +62,7 @@ function Test-IpAddress
 function Get-CertificateFileContents
 {
     [CmdletBinding()]
+    [OutputType([string])]
     Param(
         [Parameter(Mandatory=$true, Position=0)]
         [string]$CertificateFile

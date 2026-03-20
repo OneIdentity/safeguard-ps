@@ -2051,6 +2051,7 @@ Get-SafeguardDirectoryMigrationData -Verbose
 function Get-SafeguardDirectoryMigrationData
 {
     [CmdletBinding()]
+    [OutputType([object[]])]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,

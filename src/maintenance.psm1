@@ -3,6 +3,7 @@
 function Test-SupportForClusterPatch
 {
     [CmdletBinding()]
+    [OutputType([bool])]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -407,6 +408,7 @@ public class ReceiveFileStreamCmdlet : PSCmdlet
 function Send-PatchFile
 {
     [CmdletBinding()]
+    [OutputType([bool])]
     Param(
         [Parameter(Mandatory=$true)]
         [string]$Patch,
@@ -1290,6 +1292,7 @@ Get-SafeguardApplianceDnsName -Appliance 10.5.32.54 -Insecure
 function Get-SafeguardApplianceDnsName
 {
     [CmdletBinding()]
+    [OutputType([string])]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,

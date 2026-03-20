@@ -102,6 +102,7 @@ New-SafeguardSchedule -MonthsByDayOfWeek -ScheduleInterval 6 -WeekOfMonth Last -
 function New-SafeguardSchedule
 {
     [CmdletBinding(DefaultParameterSetName="Never")]
+    [OutputType([hashtable])]
     Param(
         [Parameter(Mandatory=$false,ParameterSetName="Never")]
         [bool]$Never = $true,

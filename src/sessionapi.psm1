@@ -1542,6 +1542,7 @@ Test-SafeguardSpsFirmware -Slot 3
 function Test-SafeguardSpsFirmware
 {
     [CmdletBinding()]
+    [OutputType([bool])]
     Param(
         [parameter(Mandatory)]
         [int]$Slot

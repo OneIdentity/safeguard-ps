@@ -63,6 +63,7 @@ function Resolve-MemberApplianceId
 function Get-ClusterConnectivityReachabilityError
 {
     [CmdletBinding()]
+    [OutputType([string])]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [object]$HealthObjectSpecific
@@ -84,6 +85,7 @@ function Get-ClusterConnectivityReachabilityError
 function Get-ClusterHealthError
 {
     [CmdletBinding()]
+    [OutputType([string])]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Id,
@@ -120,6 +122,7 @@ function Get-ClusterHealthError
 function Get-Reachable
 {
     [CmdletBinding()]
+    [OutputType([string])]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         $Member,

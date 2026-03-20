@@ -14,6 +14,7 @@ Edit-SslVersionSupport
 function Get-SessionConnectionIdentifier
 {
     [CmdletBinding()]
+    [OutputType([string])]
     Param(
     )
 
@@ -53,6 +54,7 @@ function Get-SessionConnectionIdentifier
 function Resolve-ProviderToRstsId
 {
     [CmdletBinding()]
+    [OutputType([string])]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Appliance,
@@ -114,6 +116,7 @@ function Resolve-ProviderToRstsId
 function Get-RstsTokenFromBrowser
 {
     [CmdletBinding()]
+    [OutputType([hashtable])]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Appliance,
@@ -565,6 +568,7 @@ function Get-RstsTokenWith2fa
 function Get-RstsPkceErrorMessage
 {
     [CmdletBinding()]
+    [OutputType([string])]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [object]$ErrorRecord,
@@ -618,6 +622,7 @@ function Get-RstsPkceErrorMessage
 function Get-RstsTokenWithPkce
 {
     [CmdletBinding()]
+    [OutputType([hashtable])]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Appliance,
