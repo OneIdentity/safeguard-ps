@@ -382,7 +382,7 @@ function Invoke-SgPsTestCleanup {
     <#
     .SYNOPSIS
         Executes all registered cleanup actions in LIFO order.
-        Each action is wrapped in try/catch — failures are logged but never propagate.
+        Each action is wrapped in try/catch -- failures are logged but never propagate.
 
     .PARAMETER Context
         The test context whose cleanup stack should be drained.
@@ -459,7 +459,7 @@ function Test-SgPsAssert {
         if ($testResult -eq $false) {
             $result.Status = "Fail"
             $result.Message = "Assertion returned `$false"
-            Write-Host "    FAIL: $Name — Assertion returned `$false" -ForegroundColor Red
+            Write-Host "    FAIL: $Name -- Assertion returned `$false" -ForegroundColor Red
         }
         else {
             $result.Status = "Pass"
@@ -471,7 +471,7 @@ function Test-SgPsAssert {
         $result.Duration = $sw.Elapsed
         $result.Status = "Fail"
         $result.Message = $_.Exception.Message
-        Write-Host "    FAIL: $Name — $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "    FAIL: $Name -- $($_.Exception.Message)" -ForegroundColor Red
     }
 
     if (-not $ctx.SuiteData.ContainsKey('_TestResults')) {
@@ -637,7 +637,7 @@ function Test-SgPsSkip {
         Duration = [TimeSpan]::Zero
     }
 
-    Write-Host "    SKIP: $Name — $Reason" -ForegroundColor Yellow
+    Write-Host "    SKIP: $Name -- $Reason" -ForegroundColor Yellow
 
     if (-not $ctx.SuiteData.ContainsKey('_TestResults')) {
         $ctx.SuiteData['_TestResults'] = [System.Collections.Generic.List[PSCustomObject]]::new()
@@ -652,7 +652,7 @@ function Test-SgPsSkip {
 function Invoke-SgPsTestSuite {
     <#
     .SYNOPSIS
-        Runs a single test suite through Setup → Execute → Cleanup.
+        Runs a single test suite through Setup -> Execute -> Cleanup.
 
     .DESCRIPTION
         Loads a suite definition file, resets per-suite state, then runs Setup, Execute,
@@ -688,12 +688,12 @@ function Invoke-SgPsTestSuite {
 
     $suiteName = $suite.Name
     Write-Host ""
-    Write-Host "═══════════════════════════════════════════════════════" -ForegroundColor Cyan
+    Write-Host "=======================================================" -ForegroundColor Cyan
     Write-Host "  Suite: $suiteName" -ForegroundColor Cyan
     if ($suite.Description) {
         Write-Host "  $($suite.Description)" -ForegroundColor DarkCyan
     }
-    Write-Host "═══════════════════════════════════════════════════════" -ForegroundColor Cyan
+    Write-Host "=======================================================" -ForegroundColor Cyan
 
     # Reset per-suite state
     $Context.SuiteData = @{}
@@ -943,7 +943,7 @@ function Export-SgPsTestReport {
 function Remove-SgPsTestObject {
     <#
     .SYNOPSIS
-        Idempotent delete — removes an object via Invoke-SafeguardMethod if it exists.
+        Idempotent delete -- removes an object via Invoke-SafeguardMethod if it exists.
 
     .PARAMETER RelativeUrl
         API endpoint for the DELETE call (e.g., "Users/123").
@@ -968,7 +968,7 @@ function Remove-SgPsTestObject {
             -AccessToken:$AccessToken | Out-Null
     }
     catch {
-        # Silently ignore — object may not exist
+        # Silently ignore -- object may not exist
     }
 }
 
@@ -1017,7 +1017,7 @@ function Remove-SgPsStaleTestObject {
         }
     }
     catch {
-        # Silently ignore — best-effort pre-cleanup
+        # Silently ignore -- best-effort pre-cleanup
     }
 }
 
@@ -1068,7 +1068,7 @@ function Clear-SgPsStaleTestEnvironment {
         $cleanupToken = Connect-SgPsTestUser -Username $cleanupAdmin -Password $cleanupPassword
     }
     catch {
-        Write-Host "  Could not create cleanup admin — skipping pre-cleanup." -ForegroundColor DarkYellow
+        Write-Host "  Could not create cleanup admin -- skipping pre-cleanup." -ForegroundColor DarkYellow
         # Still try to remove the admin if it was partially created
         if ($adminId) {
             try { Remove-SgPsTestObject -RelativeUrl "Users/$adminId" } catch {}
@@ -1088,7 +1088,7 @@ function Clear-SgPsStaleTestEnvironment {
                 if ($req.State -notin @('Closed','Complete','Expired')) {
                     if (-not $foundAny) {
                         $foundAny = $true
-                        Write-Host "  Found stale test objects — removing..." -ForegroundColor Yellow
+                        Write-Host "  Found stale test objects -- removing..." -ForegroundColor Yellow
                     }
                     Write-Host "    Closing stale access request: $($req.Id)" -ForegroundColor DarkYellow
                     try {
@@ -1104,7 +1104,7 @@ function Clear-SgPsStaleTestEnvironment {
         # Silently ignore
     }
 
-    # Delete in dependency order: event subscriptions → policies → entitlements → A2A → accounts → assets → groups → users
+    # Delete in dependency order: event subscriptions -> policies -> entitlements -> A2A -> accounts -> assets -> groups -> users
     $collections = @(
         @{ Collection = "EventSubscriptions"; NameField = "Name" },
         @{ Collection = "AccessPolicies"; NameField = "Name" },
@@ -1129,7 +1129,7 @@ function Clear-SgPsStaleTestEnvironment {
                 if ($item.Id) {
                     if (-not $foundAny) {
                         $foundAny = $true
-                        Write-Host "  Found stale test objects — removing..." -ForegroundColor Yellow
+                        Write-Host "  Found stale test objects -- removing..." -ForegroundColor Yellow
                     }
                     $displayName = if ($item.Name) { $item.Name } elseif ($item.AppName) { $item.AppName } else { "Id=$($item.Id)" }
                     Write-Host "    Deleting $($col.Collection): $displayName" -ForegroundColor DarkYellow
@@ -1139,7 +1139,7 @@ function Clear-SgPsStaleTestEnvironment {
             }
         }
         catch {
-            # Silently ignore — best-effort
+            # Silently ignore -- best-effort
         }
     }
 
@@ -1153,7 +1153,7 @@ function Clear-SgPsStaleTestEnvironment {
             if ($user.Id -and $user.Id -ne $adminId) {
                 if (-not $foundAny) {
                     $foundAny = $true
-                    Write-Host "  Found stale test objects — removing..." -ForegroundColor Yellow
+                    Write-Host "  Found stale test objects -- removing..." -ForegroundColor Yellow
                 }
                 Write-Host "    Deleting user: $($user.Name) (Id=$($user.Id))" -ForegroundColor DarkYellow
                 Remove-SgPsTestObject -RelativeUrl "Users/$($user.Id)" `
@@ -1175,7 +1175,7 @@ function Clear-SgPsStaleTestEnvironment {
                 if ($item.Id) {
                     if (-not $foundAny) {
                         $foundAny = $true
-                        Write-Host "  Found stale test objects — removing..." -ForegroundColor Yellow
+                        Write-Host "  Found stale test objects -- removing..." -ForegroundColor Yellow
                     }
                     Write-Host "    Purging deleted $deletedType`: $($item.Name) (Id=$($item.Id))" -ForegroundColor DarkYellow
                     try {

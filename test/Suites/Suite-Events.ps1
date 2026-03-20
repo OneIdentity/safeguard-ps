@@ -67,7 +67,7 @@
         # --- New-SafeguardEventSubscription ---
         Test-SgPsAssert "New-SafeguardEventSubscription creates a subscription" {
             $prefix = $Context.TestPrefix
-            # Must provide SubscriptionEvent — use a known event name
+            # Must provide SubscriptionEvent -- use a known event name
             $sub = New-SafeguardEventSubscription -Insecure `
                 -SubscriptionEvent "AssetCreated" `
                 -Description "${prefix}_TestEventSub" `

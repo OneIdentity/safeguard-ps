@@ -309,14 +309,14 @@ A string containing the new description for the entitlement.
 
 .PARAMETER MemberUsers
 Array of IDs or names of the users to set as members of the entitlement. This replaces the
-entire member list — any existing members not included will be removed. Use 'provider\user'
+entire member list -- any existing members not included will be removed. Use 'provider\user'
 syntax to uniquely identify users from a specific identity provider (e.g. 'local\admin',
 'ad.corp\jsmith'). To incrementally add or remove individual members, use
 Add-SafeguardEntitlementMember and Remove-SafeguardEntitlementMember instead.
 
 .PARAMETER MemberGroups
 Array of IDs or names of the user groups to set as members of the entitlement. This replaces
-the entire member list — any existing members not included will be removed. To incrementally
+the entire member list -- any existing members not included will be removed. To incrementally
 add or remove individual members, use Add-SafeguardEntitlementMember and
 Remove-SafeguardEntitlementMember instead.
 

@@ -773,7 +773,7 @@ function Get-RstsTokenWithPkce
     }
     catch [System.ArgumentException]
     {
-        # Non-JSON response from primary auth — no secondary auth required
+        # Non-JSON response from primary auth -- no secondary auth required
     }
 
     # Step 6: Generate claims and get authorization code

@@ -5,7 +5,7 @@
 
     Setup = {
         param($Context)
-        # Reports are all read-only — no setup needed
+        # Reports are all read-only -- no setup needed
     }
 
     Execute = {
@@ -86,6 +86,6 @@
 
     Cleanup = {
         param($Context)
-        # Reports are read-only — no cleanup needed
+        # Reports are read-only -- no cleanup needed
     }
 }

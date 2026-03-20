@@ -86,7 +86,7 @@ if ($WithLinting)
         & $LintScript
         if ($LASTEXITCODE -ne 0)
         {
-            Write-Warning "Linting reported errors — see output above."
+            Write-Warning "Linting reported errors -- see output above."
         }
     }
 }

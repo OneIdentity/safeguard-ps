@@ -5,7 +5,7 @@
 
     Setup = {
         param($Context)
-        # Nothing to set up — we already have a session from the runner
+        # Nothing to set up -- we already have a session from the runner
     }
 
     Execute = {
@@ -124,7 +124,7 @@
             Connect-Safeguard -Appliance $Context.Appliance -IdentityProvider "Local" `
                 -Username $Context.RunAdminName -Password $secPwd -Insecure
         } else {
-            # Not using RunAdmin — just ensure we're still connected
+            # Not using RunAdmin -- just ensure we're still connected
             try {
                 $null = Get-SafeguardLoggedInUser -Insecure -ErrorAction Stop
             }

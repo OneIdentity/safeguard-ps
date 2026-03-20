@@ -5,7 +5,7 @@
 
     Setup = {
         param($Context)
-        # No setup needed — uses pre-existing admin user
+        # No setup needed -- uses pre-existing admin user
     }
 
     Execute = {
@@ -15,7 +15,7 @@
         $user = $Context.AdminUserName
         $pass = $Context.AdminPassword
 
-        # ── Successful login (run first to avoid rate limiter penalties from error tests) ──
+        # -- Successful login (run first to avoid rate limiter penalties from error tests) --
 
         Test-SgPsAssert "PKCE non-interactive login succeeds" {
             $secPass = ConvertTo-SecureString $pass -AsPlainText -Force
@@ -41,7 +41,7 @@
             $null -ne $status
         }
 
-        # ── Error handling ──
+        # -- Error handling --
 
         Test-SgPsAssert "PKCE login with wrong password returns error" {
             try {
