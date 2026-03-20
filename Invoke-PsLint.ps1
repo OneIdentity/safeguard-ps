@@ -96,7 +96,7 @@ $excludeRules = @(
     'PSAvoidUsingInvokeExpression'
 
     # $SafeguardSession and $SafeguardSpsSession are module-scoped globals
-    # by design — they hold connection state across cmdlet calls.
+    # by design -- they hold connection state across cmdlet calls.
     'PSAvoidGlobalVars'
 
     # BOM preference is a style choice, not a correctness issue.
@@ -111,14 +111,14 @@ $excludeRules = @(
     'PSReviewUnusedParameter'
 
     # Many cmdlets deal with plural entities (Get-SafeguardAssetAccounts,
-    # Get-SafeguardUsers, etc.) — singular nouns would be incorrect.
+    # Get-SafeguardUsers, etc.) -- singular nouns would be incorrect.
     'PSUseSingularNouns'
 )
 
 # --- Run analysis ---
 Write-Host ""
 Write-Host ("=" * 60) -ForegroundColor Cyan
-Write-Host "  PSScriptAnalyzer — safeguard-ps" -ForegroundColor Cyan
+Write-Host "  PSScriptAnalyzer -- safeguard-ps" -ForegroundColor Cyan
 Write-Host ("=" * 60) -ForegroundColor Cyan
 
 $allResults = @()
@@ -163,7 +163,7 @@ $warnings = @($allResults | Where-Object { $_.Severity -eq 'Warning' })
 $infos    = @($allResults | Where-Object { $_.Severity -eq 'Information' })
 
 if ($allResults.Count -eq 0) {
-    Write-Host "  All clear — no findings." -ForegroundColor Green
+    Write-Host "  All clear -- no findings." -ForegroundColor Green
     Write-Host ("=" * 60) -ForegroundColor Cyan
     exit 0
 }
