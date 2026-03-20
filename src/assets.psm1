@@ -1195,131 +1195,134 @@ function Edit-SafeguardAsset
         [object]$AssetObject
     )
 
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
-
-    if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $AssetObject)
+    process
     {
-        throw "AssetObject must not be null"
-    }
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($PsCmdlet.ParameterSetName -eq "Attributes")
-    {
-        if (-not $PSBoundParameters.ContainsKey("AssetToEdit"))
+        Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+
+        if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $AssetObject)
         {
-            $AssetToEdit = (Read-Host "AssetToEdit")
+            throw "AssetObject must not be null"
         }
-        $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $AssetToEdit)
-    }
 
-    if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
-    {
-        $AssetObject = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $local:AssetId)
-
-        # Connection Properties
-        if (-not $AssetObject.ConnectionProperties) { $AssetObject.ConnectionProperties = @{} }
-        if ($PSBoundParameters.ContainsKey("Port")) { $AssetObject.ConnectionProperties.Port = $Port }
-        if ($PSBoundParameters.ContainsKey("ServiceAccountCredentialType"))
+        if ($PsCmdlet.ParameterSetName -eq "Attributes")
         {
-            # if there is a credential type change, start over with connection properties
-            if ($AssetObject.ConnectionProperties.ServiceAccountCredentialType -ne $ServiceAccountCredentialType)
+            if (-not $PSBoundParameters.ContainsKey("AssetToEdit"))
             {
-                $AssetObject.ConnectionProperties = @{}
-                $AssetObject.ConnectionProperties.ServiceAccountCredentialType = $ServiceAccountCredentialType
-                if ($PSBoundParameters.ContainsKey("Port")) { $AssetObject.ConnectionProperties.Port = $Port }
+                $AssetToEdit = (Read-Host "AssetToEdit")
             }
-            else
+            $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                 -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $AssetToEdit)
+        }
+
+        if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
+        {
+            $AssetObject = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $local:AssetId)
+
+            # Connection Properties
+            if (-not $AssetObject.ConnectionProperties) { $AssetObject.ConnectionProperties = @{} }
+            if ($PSBoundParameters.ContainsKey("Port")) { $AssetObject.ConnectionProperties.Port = $Port }
+            if ($PSBoundParameters.ContainsKey("ServiceAccountCredentialType"))
             {
-                $AssetObject.ConnectionProperties.ServiceAccountCredentialType = $ServiceAccountCredentialType
-            }
-            # Proper credential type setup code from New-SafeguardAsset
-            switch ($ServiceAccountCredentialType.ToLower())
-            {
-                {$_ -in "password","accountpassword","accesskey"} {
-                    if (-not $PSBoundParameters.ContainsKey("ServiceAccountName") -or -not $ServiceAccountName)
-                    {
-                        if ($PSCmdlet.ParameterSetName -ne "Ldap")
+                # if there is a credential type change, start over with connection properties
+                if ($AssetObject.ConnectionProperties.ServiceAccountCredentialType -ne $ServiceAccountCredentialType)
+                {
+                    $AssetObject.ConnectionProperties = @{}
+                    $AssetObject.ConnectionProperties.ServiceAccountCredentialType = $ServiceAccountCredentialType
+                    if ($PSBoundParameters.ContainsKey("Port")) { $AssetObject.ConnectionProperties.Port = $Port }
+                }
+                else
+                {
+                    $AssetObject.ConnectionProperties.ServiceAccountCredentialType = $ServiceAccountCredentialType
+                }
+                # Proper credential type setup code from New-SafeguardAsset
+                switch ($ServiceAccountCredentialType.ToLower())
+                {
+                    {$_ -in "password","accountpassword","accesskey"} {
+                        if (-not $PSBoundParameters.ContainsKey("ServiceAccountName") -or -not $ServiceAccountName)
                         {
-                            $ServiceAccountName = (Read-Host "ServiceAccountName")
+                            if ($PSCmdlet.ParameterSetName -ne "Ldap")
+                            {
+                                $ServiceAccountName = (Read-Host "ServiceAccountName")
+                            }
+                        }
+                        $AssetObject.ConnectionProperties.ServiceAccountName = $ServiceAccountName
+                        if ($ServiceAccountCredentialType -eq "AccessKey")
+                        {
+                            if (-not $PSBoundParameters.ContainsKey("ServiceAccountSecretKey"))
+                            {
+                                $ServiceAccountSecretKey = (Read-Host "ServiceAccountSecretKey")
+                            }
+                            $AssetObject.ConnectionProperties.SecretKey = $ServiceAccountSecretKey
+                        }
+                        else
+                        {
+                            if (-not $PSBoundParameters.ContainsKey("ServiceAccountPassword"))
+                            {
+                                $ServiceAccountPassword = (Read-Host -AsSecureString "ServiceAccountPassword")
+                            }
+                            $AssetObject.ConnectionProperties.ServiceAccountPassword = [System.Net.NetworkCredential]::new("", $ServiceAccountPassword).Password
                         }
                     }
-                    $AssetObject.ConnectionProperties.ServiceAccountName = $ServiceAccountName
-                    if ($ServiceAccountCredentialType -eq "AccessKey")
-                    {
-                        if (-not $PSBoundParameters.ContainsKey("ServiceAccountSecretKey"))
+                    {$_ -eq "directorypassword"} {
+                        if (-not $PSBoundParameters.ContainsKey("ServiceAccountDomainName")) { $ServiceAccountDomainName = (Read-Host "ServiceAccountDomainName") }
+                        if (-not $PSBoundParameters.ContainsKey("ServiceAccountName")) { $ServiceAccountName = (Read-Host "ServiceAccountName") }
+                        Import-Module -Name "$PSScriptRoot\directories.psm1" -Scope Local
+                        $local:DirectoryAccount = (Get-SafeguardDirectoryAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ServiceAccountDomainName $ServiceAccountName)
+                        if (-not $local:DirectoryAccount)
                         {
-                            $ServiceAccountSecretKey = (Read-Host "ServiceAccountSecretKey")
+                            throw "Unable to find directory account '$ServiceAccountDomainName\$ServiceAccountName'"
                         }
-                        $AssetObject.ConnectionProperties.SecretKey = $ServiceAccountSecretKey
-                    }
-                    else
-                    {
-                        if (-not $PSBoundParameters.ContainsKey("ServiceAccountPassword"))
-                        {
-                            $ServiceAccountPassword = (Read-Host -AsSecureString "ServiceAccountPassword")
-                        }
-                        $AssetObject.ConnectionProperties.ServiceAccountPassword = [System.Net.NetworkCredential]::new("", $ServiceAccountPassword).Password
+                        $AssetObject.ConnectionProperties.ServiceAccountId = $local:DirectoryAccount.Id
                     }
                 }
-                {$_ -eq "directorypassword"} {
-                    if (-not $PSBoundParameters.ContainsKey("ServiceAccountDomainName")) { $ServiceAccountDomainName = (Read-Host "ServiceAccountDomainName") }
-                    if (-not $PSBoundParameters.ContainsKey("ServiceAccountName")) { $ServiceAccountName = (Read-Host "ServiceAccountName") }
-                    Import-Module -Name "$PSScriptRoot\directories.psm1" -Scope Local
-                    $local:DirectoryAccount = (Get-SafeguardDirectoryAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ServiceAccountDomainName $ServiceAccountName)
-                    if (-not $local:DirectoryAccount)
-                    {
-                        throw "Unable to find directory account '$ServiceAccountDomainName\$ServiceAccountName'"
-                    }
-                    $AssetObject.ConnectionProperties.ServiceAccountId = $local:DirectoryAccount.Id
-                }
+            }
+            if ($PSBoundParameters.ContainsKey("ServiceAccountId"))
+            {
+                $AssetObject.ConnectionProperties.ServiceAccountId = $ServiceAccountId
+            }
+            if ($PSBoundParameters.ContainsKey("PrivilegeElevationCommand")) { $AssetObject.ConnectionProperties.PrivilegeElevationCommand = $PrivilegeElevationCommand }
+
+            #Ldap Connection properties
+            if ($PSBoundParameters.ContainsKey("ServiceAccountDistinguishedName")) { $AssetObject.ConnectionProperties.ServiceAccountDistinguishedName = $ServiceAccountDistinguishedName }
+            if ($PSBoundParameters.ContainsKey("UseSslEncryption")) { $AssetObject.ConnectionProperties.UseSslEncryption = $UseSslEncryption }
+            if ($PSBoundParameters.ContainsKey("VerifyServerSslCertificate")) { $AssetObject.ConnectionProperties.VerifySslCertificate = $VerifyServerSslCertificate }
+            if (-not $UseSslEncryption)
+            {
+                $AssetObject.ConnectionProperties.UseSslEncryption = $false
+                $AssetObject.ConnectionProperties.VerifySslCertificate = $false
+            }
+
+            if ($PSBoundParameters.ContainsKey("ServiceAccountPassword") -and -not $PSBoundParameters.ContainsKey("ServiceAccountId"))
+            {
+                $AssetObject.ConnectionProperties.ServiceAccountPassword = [System.Net.NetworkCredential]::new("", $ServiceAccountPassword).Password
+            }
+            if ($PSBoundParameters.ContainsKey("ServiceAccountSecretKey")) { AssetObject.ConnectionProperties.ServiceAccountSecretKey = $ServiceAccountSecretKey }
+
+            # Body
+            if ($PSBoundParameters.ContainsKey("DisplayName")) { $AssetObject.Name = $DisplayName }
+            if ($PSBoundParameters.ContainsKey("Description")) { $AssetObject.Description = $Description }
+            if ($PSBoundParameters.ContainsKey("NetworkAddress")) { $AssetObject.NetworkAddress = $NetworkAddress }
+            if ($PSBoundParameters.ContainsKey("AllowSessionRequests")) { $AssetObject.AllowSessionRequests = $AllowSessionRequests }
+            if ($PSBoundParameters.ContainsKey("Platform"))
+            {
+                Import-Module -Name "$PSScriptRoot\datatypes.psm1" -Scope Local
+                $local:PlatformId = Resolve-SafeguardPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Platform
+                $AssetObject.PlatformId = $local:PlatformId
             }
         }
-        if ($PSBoundParameters.ContainsKey("ServiceAccountId"))
+        else
         {
-            $AssetObject.ConnectionProperties.ServiceAccountId = $ServiceAccountId
-        }
-        if ($PSBoundParameters.ContainsKey("PrivilegeElevationCommand")) { $AssetObject.ConnectionProperties.PrivilegeElevationCommand = $PrivilegeElevationCommand }
-
-        #Ldap Connection properties
-        if ($PSBoundParameters.ContainsKey("ServiceAccountDistinguishedName")) { $AssetObject.ConnectionProperties.ServiceAccountDistinguishedName = $ServiceAccountDistinguishedName }
-        if ($PSBoundParameters.ContainsKey("UseSslEncryption")) { $AssetObject.ConnectionProperties.UseSslEncryption = $UseSslEncryption }
-        if ($PSBoundParameters.ContainsKey("VerifyServerSslCertificate")) { $AssetObject.ConnectionProperties.VerifySslCertificate = $VerifyServerSslCertificate }
-        if (-not $UseSslEncryption)
-        {
-            $AssetObject.ConnectionProperties.UseSslEncryption = $false
-            $AssetObject.ConnectionProperties.VerifySslCertificate = $false
+            # Make sure it is actually in the partition (just in case caller has called Enter-SafeguardAssetPartition)
+            $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                 -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $AssetObject.Id)
         }
 
-        if ($PSBoundParameters.ContainsKey("ServiceAccountPassword") -and -not $PSBoundParameters.ContainsKey("ServiceAccountId"))
-        {
-            $AssetObject.ConnectionProperties.ServiceAccountPassword = [System.Net.NetworkCredential]::new("", $ServiceAccountPassword).Password
-        }
-        if ($PSBoundParameters.ContainsKey("ServiceAccountSecretKey")) { AssetObject.ConnectionProperties.ServiceAccountSecretKey = $ServiceAccountSecretKey }
-
-        # Body
-        if ($PSBoundParameters.ContainsKey("DisplayName")) { $AssetObject.Name = $DisplayName }
-        if ($PSBoundParameters.ContainsKey("Description")) { $AssetObject.Description = $Description }
-        if ($PSBoundParameters.ContainsKey("NetworkAddress")) { $AssetObject.NetworkAddress = $NetworkAddress }
-        if ($PSBoundParameters.ContainsKey("AllowSessionRequests")) { $AssetObject.AllowSessionRequests = $AllowSessionRequests }
-        if ($PSBoundParameters.ContainsKey("Platform"))
-        {
-            Import-Module -Name "$PSScriptRoot\datatypes.psm1" -Scope Local
-            $local:PlatformId = Resolve-SafeguardPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Platform
-            $AssetObject.PlatformId = $local:PlatformId
-        }
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Assets/$($AssetObject.Id)" -Body $AssetObject
     }
-    else
-    {
-        # Make sure it is actually in the partition (just in case caller has called Enter-SafeguardAssetPartition)
-        $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $AssetObject.Id)
-    }
-
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Assets/$($AssetObject.Id)" -Body $AssetObject
 }
 
 <#

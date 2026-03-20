@@ -2128,8 +2128,8 @@ function Install-SafeguardPatch
                                     core GET "Cluster/Patch/PreconditionCheck").ClusterResults
 
         # Check for warnings/errors across all cluster members before displaying details
-        $local:Warnings = ($local:Preconditions | Where-Object { $_.Warnings }) -ne $null
-        $local:Errors = ($local:Preconditions | Where-Object { $_.Errors }) -ne $null
+        $local:Warnings = $null -ne ($local:Preconditions | Where-Object { $_.Warnings })
+        $local:Errors = $null -ne ($local:Preconditions | Where-Object { $_.Errors })
 
         $local:Preconditions | ForEach-Object {
             Write-Host "Appliance ID: $($_.ApplianceId)"

@@ -596,50 +596,53 @@ function Edit-SafeguardDirectoryIdentityProvider
         [object]$DirectoryObject
     )
 
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $DirectoryObject)
+    process
     {
-        throw "DirectoryObject must not be null"
-    }
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($PsCmdlet.ParameterSetName -eq "Attributes")
-    {
-        if (-not $PSBoundParameters.ContainsKey("DirectoryToEdit"))
+        if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $DirectoryObject)
         {
-            $DirectoryToEdit = (Read-Host "DirectoryToEdit")
-        }
-        $local:IdpId = (Resolve-SafeguardDirectoryIdentityProviderId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToEdit)
-    }
-
-    if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
-    {
-        $local:IdpObject = (Get-SafeguardDirectoryIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:IdpId)
-
-        # Connection Properties
-        if (-not $local:IdpObject.DirectoryProperties.ConnectionProperties) { $local:IdpObject.DirectoryProperties.ConnectionProperties = @{} }
-        if (-not $local:IdpObject.DirectoryProperties) { $local:IdpObject.DirectoryProperties = @{} }
-        if ($PSBoundParameters.ContainsKey("Port")) { $local:IdpObject.DirectoryProperties.ConnectionProperties.Port = $Port }
-        if ($NoSslEncryption)
-        {
-            $local:IdpObject.DirectoryProperties.ConnectionProperties.UseSslEncryption = $false
-            $local:IdpObject.DirectoryProperties.ConnectionProperties.VerifySslCertificate = $false
-        }
-        if ($DoNotVerifyServerSslCertificate)
-        {
-            $local:IdpObject.DirectoryProperties.ConnectionProperties.VerifySslCertificate = $false
+            throw "DirectoryObject must not be null"
         }
 
-        # Body
-        if ($PSBoundParameters.ContainsKey("DisplayName")) { $local:IdpObject.Name = $DisplayName }
-        if ($PSBoundParameters.ContainsKey("Description")) { $local:IdpObject.Description = $Description }
-        if ($PSBoundParameters.ContainsKey("NetworkAddress")) { $local:IdpObject.NetworkAddress = $NetworkAddress }
+        if ($PsCmdlet.ParameterSetName -eq "Attributes")
+        {
+            if (-not $PSBoundParameters.ContainsKey("DirectoryToEdit"))
+            {
+                $DirectoryToEdit = (Read-Host "DirectoryToEdit")
+            }
+            $local:IdpId = (Resolve-SafeguardDirectoryIdentityProviderId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToEdit)
+        }
 
-        $DirectoryObject = $local:IdpObject
+        if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
+        {
+            $local:IdpObject = (Get-SafeguardDirectoryIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:IdpId)
+
+            # Connection Properties
+            if (-not $local:IdpObject.DirectoryProperties.ConnectionProperties) { $local:IdpObject.DirectoryProperties.ConnectionProperties = @{} }
+            if (-not $local:IdpObject.DirectoryProperties) { $local:IdpObject.DirectoryProperties = @{} }
+            if ($PSBoundParameters.ContainsKey("Port")) { $local:IdpObject.DirectoryProperties.ConnectionProperties.Port = $Port }
+            if ($NoSslEncryption)
+            {
+                $local:IdpObject.DirectoryProperties.ConnectionProperties.UseSslEncryption = $false
+                $local:IdpObject.DirectoryProperties.ConnectionProperties.VerifySslCertificate = $false
+            }
+            if ($DoNotVerifyServerSslCertificate)
+            {
+                $local:IdpObject.DirectoryProperties.ConnectionProperties.VerifySslCertificate = $false
+            }
+
+            # Body
+            if ($PSBoundParameters.ContainsKey("DisplayName")) { $local:IdpObject.Name = $DisplayName }
+            if ($PSBoundParameters.ContainsKey("Description")) { $local:IdpObject.Description = $Description }
+            if ($PSBoundParameters.ContainsKey("NetworkAddress")) { $local:IdpObject.NetworkAddress = $NetworkAddress }
+
+            $DirectoryObject = $local:IdpObject
+        }
+
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "IdentityProviders/$($DirectoryObject.Id)" -Body $DirectoryObject
     }
-
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "IdentityProviders/$($DirectoryObject.Id)" -Body $DirectoryObject
 }
 
 <#
@@ -1261,62 +1264,65 @@ function Edit-SafeguardDirectory
         [object]$DirectoryObject
     )
 
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $DirectoryObject)
+    process
     {
-        throw "DirectoryObject must not be null"
-    }
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($PsCmdlet.ParameterSetName -eq "Attributes")
-    {
-        if (-not $PSBoundParameters.ContainsKey("DirectoryToEdit"))
+        if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $DirectoryObject)
         {
-            $DirectoryToEdit = (Read-Host "DirectoryToEdit")
-        }
-        $local:DirectoryId = (Resolve-SafeguardDirectoryId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToEdit)
-    }
-
-    if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
-    {
-        $DirectoryObject = (Get-SafeguardDirectory -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:DirectoryId)
-
-        # Connection Properties
-        if (-not $DirectoryObject.ConnectionProperties) { $DirectoryObject.ConnectionProperties = @{} }
-        if ($PSBoundParameters.ContainsKey("Port")) { $DirectoryObject.ConnectionProperties.Port = $Port }
-
-        if ($PSBoundParameters.ContainsKey("ServiceAccountDomainName")) { $DirectoryObject.ConnectionProperties.ServiceAccountDomainName = $ServiceAccountDomainName }
-        if ($PSBoundParameters.ContainsKey("ServiceAccountName")) { $DirectoryObject.ConnectionProperties.ServiceAccountName = $ServiceAccountName }
-        if ($PSBoundParameters.ContainsKey("ServiceAccountPassword"))
-        {
-            $DirectoryObject.ConnectionProperties.ServiceAccountPassword = [System.Net.NetworkCredential]::new("", $ServiceAccountPassword).Password
-        }
-        if ($PSBoundParameters.ContainsKey("ServiceAccountDistinguishedName")) { $DirectoryObject.ConnectionProperties.ServiceAccountDistinguishedName = $ServiceAccountDistinguishedName }
-        if ($NoSslEncryption)
-        {
-            $DirectoryObject.ConnectionProperties.UseSslEncryption = $false
-            $DirectoryObject.ConnectionProperties.VerifySslCertificate = $false
-        }
-        if ($DoNotVerifyServerSslCertificate)
-        {
-            $DirectoryObject.ConnectionProperties.VerifySslCertificate = $false
+            throw "DirectoryObject must not be null"
         }
 
-        # Body
-        if ($PSBoundParameters.ContainsKey("Description")) { $DirectoryObject.Description = $Description }
-        if ($PSBoundParameters.ContainsKey("NetworkAddress")) { $DirectoryObject.NetworkAddress = $NetworkAddress }
-    }
+        if ($PsCmdlet.ParameterSetName -eq "Attributes")
+        {
+            if (-not $PSBoundParameters.ContainsKey("DirectoryToEdit"))
+            {
+                $DirectoryToEdit = (Read-Host "DirectoryToEdit")
+            }
+            $local:DirectoryId = (Resolve-SafeguardDirectoryId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToEdit)
+        }
 
-    # Need AssetPartitionId to PUT a directory/asset object. Object returned from Directories endpoint does not contain AssetPartitionId property.
-    # Get the directory object from Asset endpoint instead
-    if(-not $DirectoryObject.AssetPartitionId)
-    {
-        $AssetObject = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryObject.Id)
-        $DirectoryObject | Add-Member -MemberType ScriptProperty -Name 'AssetPartitionId' -Value { $AssetObject.AssetPartitionId }
-    }
+        if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
+        {
+            $DirectoryObject = (Get-SafeguardDirectory -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:DirectoryId)
 
-    Edit-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetObject $DirectoryObject
+            # Connection Properties
+            if (-not $DirectoryObject.ConnectionProperties) { $DirectoryObject.ConnectionProperties = @{} }
+            if ($PSBoundParameters.ContainsKey("Port")) { $DirectoryObject.ConnectionProperties.Port = $Port }
+
+            if ($PSBoundParameters.ContainsKey("ServiceAccountDomainName")) { $DirectoryObject.ConnectionProperties.ServiceAccountDomainName = $ServiceAccountDomainName }
+            if ($PSBoundParameters.ContainsKey("ServiceAccountName")) { $DirectoryObject.ConnectionProperties.ServiceAccountName = $ServiceAccountName }
+            if ($PSBoundParameters.ContainsKey("ServiceAccountPassword"))
+            {
+                $DirectoryObject.ConnectionProperties.ServiceAccountPassword = [System.Net.NetworkCredential]::new("", $ServiceAccountPassword).Password
+            }
+            if ($PSBoundParameters.ContainsKey("ServiceAccountDistinguishedName")) { $DirectoryObject.ConnectionProperties.ServiceAccountDistinguishedName = $ServiceAccountDistinguishedName }
+            if ($NoSslEncryption)
+            {
+                $DirectoryObject.ConnectionProperties.UseSslEncryption = $false
+                $DirectoryObject.ConnectionProperties.VerifySslCertificate = $false
+            }
+            if ($DoNotVerifyServerSslCertificate)
+            {
+                $DirectoryObject.ConnectionProperties.VerifySslCertificate = $false
+            }
+
+            # Body
+            if ($PSBoundParameters.ContainsKey("Description")) { $DirectoryObject.Description = $Description }
+            if ($PSBoundParameters.ContainsKey("NetworkAddress")) { $DirectoryObject.NetworkAddress = $NetworkAddress }
+        }
+
+        # Need AssetPartitionId to PUT a directory/asset object. Object returned from Directories endpoint does not contain AssetPartitionId property.
+        # Get the directory object from Asset endpoint instead
+        if(-not $DirectoryObject.AssetPartitionId)
+        {
+            $AssetObject = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryObject.Id)
+            $DirectoryObject | Add-Member -MemberType ScriptProperty -Name 'AssetPartitionId' -Value { $AssetObject.AssetPartitionId }
+        }
+
+        Edit-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetObject $DirectoryObject
+    }
 }
 
 <#
