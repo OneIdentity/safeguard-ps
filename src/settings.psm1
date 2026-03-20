@@ -1,4 +1,4 @@
-<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
+﻿<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
 
 <#
 .SYNOPSIS
@@ -134,7 +134,7 @@ function Set-SafeguardApplianceSetting
         $SettingObject = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET "Settings/$SettingName")
         if ($PSBoundParameters.ContainsKey("Value")) { $SettingObject.Value = $Value }
     }
-	
+
 	$SettingName = $SettingObject.Name
 	Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance PUT "Settings/$SettingName" -Body $SettingObject
 }
@@ -274,7 +274,7 @@ function Set-SafeguardCoreSetting
         $SettingObject = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Settings/$SettingName")
         if ($PSBoundParameters.ContainsKey("Value")) { $SettingObject.Value = $Value }
     }
-	
+
 	$SettingName = $SettingObject.Name
 	Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Settings/$SettingName" -Body $SettingObject
 }

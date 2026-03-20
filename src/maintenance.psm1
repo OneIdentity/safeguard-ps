@@ -1,4 +1,4 @@
-<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
+﻿<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
 # Helpers
 function Test-SupportForClusterPatch
 {
@@ -62,7 +62,7 @@ function Add-SendFileStreamCmdletType
         {
             $referenceAssemblies = ("System.dll", "System.Management.Automation.dll", "System.Net.Http.dll", "System.Net.Primitives", "System.Security.Cryptography.dll")
         }
-        
+
         # Use the PassThru parameter to return the type that gets generated so we can assign it to
         # a variable and access it next in order to load/import it, making it available directly in
         # the PowerShell script, usable/callable like any other Cmdlet.
@@ -366,7 +366,7 @@ public class ReceiveFileStreamCmdlet : PSCmdlet
                                         int percentDone = (int)((totalBytes - bytesLeft) / (double)totalBytes * 100);
 
                                         progressRecord.StatusDescription = string.Format("{0}% Complete", percentDone);
-                                        
+
                                         progressRecord.PercentComplete = percentDone;
                                         Host.UI.WriteProgress(1, progressRecord);
 
@@ -1999,7 +1999,7 @@ A boolean indicating whether or not the TLS certificate of the server should be 
 $false for internal servers with self-signed certificates.
 
 .PARAMETER CifsPath
-A string containing a CIFS/SMB/UNC path to a Safeguard patch file. 
+A string containing a CIFS/SMB/UNC path to a Safeguard patch file.
 
 Ex. \\server.hostname\folder\patch.sgp
 
@@ -2249,7 +2249,7 @@ A boolean indicating whether or not the TLS certificate of the server should be 
 $false for internal servers with self-signed certificates.
 
 .PARAMETER CifsPath
-A string containing a CIFS/SMB/UNC path to a Safeguard patch file. 
+A string containing a CIFS/SMB/UNC path to a Safeguard patch file.
 
 Ex. \\server.hostname\folder\patch.sgp
 

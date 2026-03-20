@@ -1,4 +1,4 @@
-<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
+﻿<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
 
 <#
 #------------------------------------------------------------------------------#
@@ -8,8 +8,8 @@
 # Author: alexfungafoek-icc
 #
 # The code for Tags is structured similarly to the Asset.psm1 module.
-# All functions require an active session to the Safeguard SPP. 
-# Use Connect-Safeguard cmdlet to get a session, without an active session Web API calls are not possible. 
+# All functions require an active session to the Safeguard SPP.
+# Use Connect-Safeguard cmdlet to get a session, without an active session Web API calls are not possible.
 # This module relies on assetpartitions.psm1, assets.psm1 and users.psm1 from the safeguard-ps module.
 #>
 
@@ -107,7 +107,7 @@ function Resolve-SafeguardTagId {
     {
         throw "Unable to find tag '$($Tag)'."
     }
-    
+
     if ($local:Tags.Count -ne 1)
     {
         throw "Found $($local:Tags.Count) tags matching '$($Tag)'. Specify an Asset Partition to get a unique tag."
@@ -286,7 +286,7 @@ function Get-SafeguardTagOccurrence {
     $local:Parameters = $null
     if ($Fields) {
         $local:Parameters = @{ fields = ($Fields -join ",")}
-    } 
+    }
 
     $local:TagId = (Resolve-SafeguardTagId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId ([ref]$AssetPartitionId) $Tag)
     $local:RelPath = "AssetPartitions/$AssetPartitionId/Tags"
@@ -332,10 +332,10 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardAssetTag "assetname" 
+Get-SafeguardAssetTag "assetname"
 
 .EXAMPLE
-Get-SafeguardAssetTag 14 
+Get-SafeguardAssetTag 14
 
 .EXAMPLE
 Get-SafeguardAssetTag "assetname" -Fields Id,Name,Description
@@ -367,7 +367,7 @@ function Get-SafeguardAssetTag {
     if ($Fields) {
         $local:Parameters = @{ fields = ($Fields -join ",")}
     }
-    
+
     Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
     $local:AssetId = (Resolve-SafeguardAssetId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $Asset)
 
@@ -454,7 +454,7 @@ function Update-SafeguardAssetTag {
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-   
+
     Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
     $local:Asset = (Get-SafeguardAsset -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Fields Id,AssetPartitionId $Asset)
 
@@ -692,7 +692,7 @@ None.
 JSON response from Safeguard Web API.
 
 .EXAMPLE
-Get-SafeguardAssetAccountTag "accountname" 
+Get-SafeguardAssetAccountTag "accountname"
 
 .EXAMPLE
 Get-SafeguardAssetAccountTag "accountname" -Fields Id,Name,Description
@@ -726,7 +726,7 @@ function Get-SafeguardAssetAccountTag {
     if ($Fields) {
         $local:Parameters = @{ fields = ($Fields -join ",")}
     }
-   
+
     Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
     $local:AccountId = (Resolve-SafeguardAssetAccountId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $Asset -Account $Account)
 
@@ -815,7 +815,7 @@ function Update-SafeguardAssetAccountTag {
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-   
+
     Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
     $local:Account = (Get-SafeguardAssetAccount -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure -AssetPartitionId $AssetPartitionId -AssetToGet $Asset -Fields Id,Asset.AssetPartitionId -AccountToGet $Account)
 
@@ -834,7 +834,7 @@ function Update-SafeguardAssetAccountTag {
     } else {
         # No tags specified so remove all tags. Send empty json body.
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AssetAccounts/$($local:Account.Id)/Tags" -JsonBody "[]"
-    }    
+    }
 }
 
 <#
@@ -1142,7 +1142,7 @@ function Find-SafeguardTag {
 Create a new tag via the Web API.
 
 .DESCRIPTION
-Tags are text values which can be assigned to an asset or account. They serve as meta data on an asset or account 
+Tags are text values which can be assigned to an asset or account. They serve as meta data on an asset or account
 and can be used to store extra information such and the environment (e.g dev,test,acceptance,prod).
 Each tag can have a list of owners.
 
@@ -1270,7 +1270,7 @@ function New-SafeguardTag {
     }
     if ($PSBoundParameters.ContainsKey("Description")) { $local:Body.Description = $Description }
     if ($PSBoundParameters.ContainsKey("AssetTaggingRule")) { $local:Body.AssetTaggingRule = $AssetTaggingRule }
-    if ($PSBoundParameters.ContainsKey("AssetAccountTaggingRule")) { $local:Body.AssetAccountTaggingRule = $AssetAccountTaggingRule }    
+    if ($PSBoundParameters.ContainsKey("AssetAccountTaggingRule")) { $local:Body.AssetAccountTaggingRule = $AssetAccountTaggingRule }
     if ($PSBoundParameters.ContainsKey("Owner")) {
         Import-Module "$PSScriptRoot\users.psm1" -Scope Local
         $local:Body.ManagedBy = @()
@@ -1309,7 +1309,7 @@ An integer containing an ID or a string containing the name of the asset partiti
 An integer value containing the asset partition ID to update the tag in.
 
 .PARAMETER TagId
-Mandatory integer with the ID of the tag. 
+Mandatory integer with the ID of the tag.
 The tag is retrieved based on the ID so that changing the name is possible.
 
 .PARAMETER Name
@@ -1418,14 +1418,14 @@ function Update-SafeguardTag {
     $local:tagObj.Description = $Description
     # check if AssetTagging rule was passed in as a parameter
     if ($AssetTaggingRule) {
-        $local:tagObj.AssetTaggingRule = $AssetTaggingRule 
+        $local:tagObj.AssetTaggingRule = $AssetTaggingRule
     } else {
         # no AssetTaggingRule param specified so set the default empty one
-        $local:tagObj.AssetTaggingRule = $emptyTaggingRule 
+        $local:tagObj.AssetTaggingRule = $emptyTaggingRule
     }
     # check if AssetAccountTaggingRule was passed in as a parameter
     if ($AssetAccountTaggingRule) {
-        $local:tagObj.AssetAccountTaggingRule = $AssetAccountTaggingRule 
+        $local:tagObj.AssetAccountTaggingRule = $AssetAccountTaggingRule
     } else {
         $local:tagObj.AssetAccountTaggingRule = $emptyTaggingRule
     }
@@ -1436,7 +1436,7 @@ function Update-SafeguardTag {
         # get owner object and add to ManagedBy
         $newOwners = @()
         $Owner | ForEach-Object {
-            $newOwners += (Resolve-SafeguardUserObject -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $_) 
+            $newOwners += (Resolve-SafeguardUserObject -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $_)
         }
         $local:tagObj.ManagedBy = $newOwners
     } else {
@@ -1451,7 +1451,7 @@ function Update-SafeguardTag {
 Remove a tag from Safeguard via the Web API.
 
 .DESCRIPTION
-Remove a tag from Safeguard. 
+Remove a tag from Safeguard.
 If the tag is assigned to an asset or an account, a SafeguardMethodException is thrown.
 Make sure it is not in use before you remove it.
 
@@ -1507,7 +1507,7 @@ function Remove-SafeguardTag {
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:TagId = (Resolve-SafeguardTagId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetPartitionId ([ref]$AssetPartitionId) $TagToDelete)
-    $local:RelPath = "AssetPartitions/$($AssetPartitionId)/Tags"    
+    $local:RelPath = "AssetPartitions/$($AssetPartitionId)/Tags"
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "$($local:RelPath)/$($local:TagId)"
 }
@@ -1518,7 +1518,7 @@ function Remove-SafeguardTag {
 Test an AssetTaggingRule on a tag.
 
 .DESCRIPTION
-Test what an AssetTaggingRule would do. 
+Test what an AssetTaggingRule would do.
 This can be used to verify which assets would be assigned this tag if the rule is set.
 
 .PARAMETER Appliance
@@ -1610,7 +1610,7 @@ function Test-SafeguardAssetTaggingRule {
 Test an AssetAccountTaggingRule on a tag.
 
 .DESCRIPTION
-Test what an AssetAccountTaggingRule would do. 
+Test what an AssetAccountTaggingRule would do.
 This can be used to verify which accounts would be assigned this tag if the rule is set.
 
 .PARAMETER Appliance

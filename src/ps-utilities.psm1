@@ -1,4 +1,4 @@
-<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
+﻿<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
 # This file contains random Powershell utilities required by some modules
 # Nothing is exported from here
 
@@ -129,7 +129,7 @@ function Use-CertificateFile
 
     # Resolve relative paths to full paths
     $local:ResolvedPath = (Resolve-Path $CertificateFile).Path
-    
+
     if (-not $Password)
     {
         Get-PfxCertificate -FilePath $local:ResolvedPath
