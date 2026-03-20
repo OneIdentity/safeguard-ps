@@ -133,10 +133,11 @@ foreach ($dir in $Path) {
     Write-Host ""
     Write-Host "Analyzing: $label" -ForegroundColor Yellow
 
+    if ($IncludeAll) { $effectiveExcludeRules = @() } else { $effectiveExcludeRules = $excludeRules }
     $params = @{
         Path        = $dir
         Recurse     = $true
-        Settings    = @{ ExcludeRules = if ($IncludeAll) { @() } else { $excludeRules } }
+        Settings    = @{ ExcludeRules = $effectiveExcludeRules }
     }
     if ($Fix) { $params.Fix = $true }
 
@@ -195,7 +196,8 @@ $summaryParts = @()
 if ($errors.Count -gt 0)   { $summaryParts += "$($errors.Count) error(s)" }
 if ($warnings.Count -gt 0) { $summaryParts += "$($warnings.Count) warning(s)" }
 if ($infos.Count -gt 0)    { $summaryParts += "$($infos.Count) info(s)" }
-Write-Host "  Total: $($summaryParts -join ', ')" -ForegroundColor $(if ($errors.Count -gt 0) { 'Red' } else { 'DarkYellow' })
+if ($errors.Count -gt 0) { $summaryColor = 'Red' } else { $summaryColor = 'DarkYellow' }
+Write-Host "  Total: $($summaryParts -join ', ')" -ForegroundColor $summaryColor
 Write-Host ("=" * 60) -ForegroundColor Cyan
 
 # Exit with error if any findings meet the threshold
