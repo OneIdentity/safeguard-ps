@@ -26,9 +26,8 @@
 
         # --- Get-SafeguardAsset (list all) ---
         Test-SgPsAssert "Get-SafeguardAsset lists assets" {
-            $assets = Get-SafeguardAsset -Insecure
-            # May be empty on fresh appliance, but should not throw
-            $null -ne $assets -or $true
+            $list = @(Get-SafeguardAsset -Insecure)
+            $list -is [Array]
         }
 
         # --- New-SafeguardAsset (Linux platform, no service account) ---
@@ -78,6 +77,10 @@
             $asset.Description = "Modified via object"
             $edited = Edit-SafeguardAsset -Insecure -AssetObject $asset
             $edited.Description -eq "Modified via object"
+        }
+        Test-SgPsAssert "Edit-SafeguardAsset changes persisted" {
+            $readback = Get-SafeguardAsset -Insecure $Context.SuiteData["AssetId"]
+            $readback.Description -eq "Modified via object" -and $readback.NetworkAddress -eq "10.0.0.101"
         }
 
         # --- Find-SafeguardAsset (search string) ---

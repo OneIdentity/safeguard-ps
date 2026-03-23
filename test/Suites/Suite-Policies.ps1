@@ -140,6 +140,10 @@
             $updated = Edit-SafeguardAccessPolicy -Insecure -AccessPolicyObject $policy
             $updated.Description -eq "Modified via object"
         }
+        Test-SgPsAssert "Edit-SafeguardAccessPolicy changes persisted" {
+            $readback = Get-SafeguardAccessPolicy -Insecure -PolicyToGet $Context.SuiteData["PolicyId"]
+            $readback.Description -eq "Modified via object" -and $readback.ApproverProperties.RequireApproval -eq $false
+        }
 
         # --- Get-SafeguardAccessPolicyScopeItem ---
         Test-SgPsAssert "Get-SafeguardAccessPolicyScopeItem lists scope" {

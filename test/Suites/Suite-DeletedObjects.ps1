@@ -61,9 +61,8 @@
         # ===== DELETED USERS =====
 
         Test-SgPsAssert "Get-SafeguardDeletedUser returns empty or list before delete" {
-            $null = Get-SafeguardDeletedUser -Insecure
-            # May or may not have items -- just verify it doesn't throw
-            $true
+            $list = @(Get-SafeguardDeletedUser -Insecure)
+            $list -is [Array]
         }
 
         # Delete the user (soft-delete)
@@ -89,8 +88,8 @@
         # ===== DELETED ASSET ACCOUNTS =====
 
         Test-SgPsAssert "Get-SafeguardDeletedAssetAccount returns list before delete" {
-            $null = Get-SafeguardDeletedAssetAccount -Insecure
-            $true
+            $list = @(Get-SafeguardDeletedAssetAccount -Insecure)
+            $list -is [Array]
         }
 
         # Delete the account (soft-delete)
@@ -118,8 +117,8 @@
         $Context.SuiteData["AccountDeleted"] = $true
 
         Test-SgPsAssert "Get-SafeguardDeletedAsset returns list before delete" {
-            $null = Get-SafeguardDeletedAsset -Insecure
-            $true
+            $list = @(Get-SafeguardDeletedAsset -Insecure)
+            $list -is [Array]
         }
 
         # Delete the asset (soft-delete)

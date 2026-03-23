@@ -24,7 +24,15 @@
         Test-SgPsAssert "Disconnect-Safeguard with explicit token" {
             Disconnect-Safeguard -Appliance $Context.Appliance `
                 -AccessToken $Context.SuiteData["ExplicitToken"] -Insecure
-            $true
+            # Verify token is invalidated by trying to use it
+            try {
+                $null = Invoke-SafeguardMethod -Appliance $Context.Appliance `
+                    -AccessToken $Context.SuiteData["ExplicitToken"] -Insecure `
+                    -Service Core -Method Get -RelativeUrl "Me"
+                $false  # Should have thrown
+            } catch {
+                $true   # Expected: token is no longer valid
+            }
         }
 
         # --- Connect-Safeguard sets $SafeguardSession ---

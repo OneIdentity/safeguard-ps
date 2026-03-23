@@ -35,9 +35,9 @@
 
         # --- DNS suffix ---
         Test-SgPsAssert "Get-SafeguardDnsSuffix returns DNS suffix config" {
-            $suffix = Get-SafeguardDnsSuffix -Insecure
-            # May be empty string but should not throw; just verify call succeeds
-            $null -ne $suffix -or $true
+            $config = Get-SafeguardDnsSuffix -Insecure
+            # Returns a DNS suffix configuration object
+            $null -ne $config
         }
     }
 

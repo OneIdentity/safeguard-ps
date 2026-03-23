@@ -13,74 +13,76 @@
 
         # --- Account reports ---
         Test-SgPsAssert "Get-SafeguardReportAccountWithoutPassword returns data" {
-            $null = Get-SafeguardReportAccountWithoutPassword -Insecure -StdOut
-            # May be empty but should not throw
-            $true
+            $result = Get-SafeguardReportAccountWithoutPassword -Insecure -StdOut
+            # Returns CSV text; may have only headers if no matching accounts
+            $null -ne $result
         }
 
         # --- Daily reports (use today's date) ---
         Test-SgPsAssert "Get-SafeguardReportDailyAccessRequest returns data" {
-            $null = Get-SafeguardReportDailyAccessRequest -Insecure -StdOut
-            $true
+            $result = Get-SafeguardReportDailyAccessRequest -Insecure -StdOut
+            $null -ne $result
         }
 
         Test-SgPsAssert "Get-SafeguardReportDailyPasswordCheckFail returns data" {
-            $null = Get-SafeguardReportDailyPasswordCheckFail -Insecure -StdOut
-            $true
+            $result = Get-SafeguardReportDailyPasswordCheckFail -Insecure -StdOut
+            $null -ne $result
         }
 
         Test-SgPsAssert "Get-SafeguardReportDailyPasswordCheckSuccess returns data" {
-            $null = Get-SafeguardReportDailyPasswordCheckSuccess -Insecure -StdOut
-            $true
+            $result = Get-SafeguardReportDailyPasswordCheckSuccess -Insecure -StdOut
+            $null -ne $result
         }
 
         Test-SgPsAssert "Get-SafeguardReportDailyPasswordChangeFail returns data" {
-            $null = Get-SafeguardReportDailyPasswordChangeFail -Insecure -StdOut
-            $true
+            $result = Get-SafeguardReportDailyPasswordChangeFail -Insecure -StdOut
+            $null -ne $result
         }
 
         Test-SgPsAssert "Get-SafeguardReportDailyPasswordChangeSuccess returns data" {
-            $null = Get-SafeguardReportDailyPasswordChangeSuccess -Insecure -StdOut
-            $true
+            $result = Get-SafeguardReportDailyPasswordChangeSuccess -Insecure -StdOut
+            $null -ne $result
         }
 
         # --- Membership reports ---
         Test-SgPsAssert "Get-SafeguardReportUserGroupMembership returns data" {
-            $null = Get-SafeguardReportUserGroupMembership -Insecure -StdOut
-            $true
+            $result = Get-SafeguardReportUserGroupMembership -Insecure -StdOut
+            # Returns null when no group memberships exist on test appliance
+            $null -eq $result -or $result -is [string] -or $result -is [Object[]]
         }
 
         Test-SgPsAssert "Get-SafeguardReportAssetGroupMembership returns data" {
-            $null = Get-SafeguardReportAssetGroupMembership -Insecure -StdOut
-            $true
+            $result = Get-SafeguardReportAssetGroupMembership -Insecure -StdOut
+            $null -eq $result -or $result -is [string] -or $result -is [Object[]]
         }
 
         Test-SgPsAssert "Get-SafeguardReportAccountGroupMembership returns data" {
-            $null = Get-SafeguardReportAccountGroupMembership -Insecure -StdOut
-            $true
+            $result = Get-SafeguardReportAccountGroupMembership -Insecure -StdOut
+            # Returns null when no group memberships exist on test appliance
+            $null -eq $result -or $result -is [string] -or $result -is [Object[]]
         }
 
         # --- Configuration reports ---
         Test-SgPsAssert "Get-SafeguardReportAssetManagementConfiguration returns data" {
-            $null = Get-SafeguardReportAssetManagementConfiguration -Insecure -StdOut
-            $true
+            $result = Get-SafeguardReportAssetManagementConfiguration -Insecure -StdOut
+            $null -ne $result
         }
 
         # --- Entitlement reports ---
         Test-SgPsAssert "Get-SafeguardReportUserEntitlement returns data" {
-            $null = Get-SafeguardReportUserEntitlement -Insecure -StdOut
-            $true
+            $result = Get-SafeguardReportUserEntitlement -Insecure -StdOut
+            $null -ne $result
         }
 
         Test-SgPsAssert "Get-SafeguardReportA2aEntitlement returns data" {
-            $null = Get-SafeguardReportA2aEntitlement -Insecure -StdOut
-            $true
+            $result = Get-SafeguardReportA2aEntitlement -Insecure -StdOut
+            $null -ne $result
         }
 
         # --- Password reports ---
         Test-SgPsAssert "Get-SafeguardReportPasswordLastChanged returns data" {
-            $null = Get-SafeguardReportPasswordLastChanged -Insecure -StdOut
-            $true
+            $result = Get-SafeguardReportPasswordLastChanged -Insecure -StdOut
+            $null -ne $result
         }
     }
 

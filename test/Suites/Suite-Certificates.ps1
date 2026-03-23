@@ -73,6 +73,10 @@
             }
             $null -ne $result -and $result.Subject -match "IntermediateCA"
         }
+        Test-SgPsAssert "Install-SafeguardTrustedCertificate IntermediateCA persisted" {
+            $cert = Get-SafeguardTrustedCertificate -Insecure $Context.SuiteData["IntCaThumbprint"]
+            $cert.Thumbprint -eq $Context.SuiteData["IntCaThumbprint"] -and $cert.Subject -match "IntermediateCA"
+        }
 
         # --- Get-SafeguardTrustedCertificate with Fields ---
         Test-SgPsAssert "Get-SafeguardTrustedCertificate with Fields filter" {

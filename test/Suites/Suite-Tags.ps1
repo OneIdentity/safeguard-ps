@@ -50,8 +50,8 @@
 
         # --- Get-SafeguardTag (list all) ---
         Test-SgPsAssert "Get-SafeguardTag lists tags" {
-            $tags = Get-SafeguardTag -Insecure
-            $null -ne $tags -or $true
+            $list = @(Get-SafeguardTag -Insecure)
+            $list -is [Array]
         }
 
         # --- New-SafeguardTag ---
@@ -85,6 +85,10 @@
             $updated = Update-SafeguardTag -Insecure -TagId $Context.SuiteData["TagId"] `
                 -Name $testTag -Description "Updated description"
             $updated.Description -eq "Updated description"
+        }
+        Test-SgPsAssert "Update-SafeguardTag changes persisted" {
+            $readback = Get-SafeguardTag -Insecure $Context.SuiteData["TagId"]
+            $readback.Description -eq "Updated description" -and $readback.Name -eq $testTag
         }
 
         # --- Add-SafeguardAssetTag (assign tag to asset) ---

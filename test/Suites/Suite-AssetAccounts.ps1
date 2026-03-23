@@ -44,8 +44,8 @@
 
         # --- Get-SafeguardAssetAccount (list all) ---
         Test-SgPsAssert "Get-SafeguardAssetAccount lists accounts" {
-            $accounts = Get-SafeguardAssetAccount -Insecure
-            $null -ne $accounts -or $true
+            $list = @(Get-SafeguardAssetAccount -Insecure)
+            $list -is [Array]
         }
 
         # --- New-SafeguardAssetAccount ---
@@ -95,6 +95,10 @@
             $account.Description = "Modified via object"
             $edited = Edit-SafeguardAssetAccount -Insecure -AccountObject $account
             $edited.Description -eq "Modified via object"
+        }
+        Test-SgPsAssert "Edit-SafeguardAssetAccount changes persisted" {
+            $readback = Get-SafeguardAssetAccount -Insecure $assetId $Context.SuiteData["AccountId"]
+            $readback.Description -eq "Modified via object"
         }
 
         # --- Find-SafeguardAssetAccount (search string) ---

@@ -96,17 +96,25 @@
             $updated = Edit-SafeguardEntitlement -Insecure -EntitlementObject $entl
             $updated.Description -eq "Modified via object"
         }
+        Test-SgPsAssert "Edit-SafeguardEntitlement changes persisted" {
+            $readback = Get-SafeguardEntitlement -Insecure $Context.SuiteData["EntitlementId"]
+            $readback.Description -eq "Modified via object"
+        }
 
         # --- Add-SafeguardEntitlementMember (user) ---
         Test-SgPsAssert "Add-SafeguardEntitlementMember adds a user" {
             Add-SafeguardEntitlementMember -Insecure $Context.SuiteData["EntitlementId"] -Users $Context.SuiteData["TestUser"]
-            $true
+            $entl = Get-SafeguardEntitlement -Insecure $Context.SuiteData["EntitlementId"]
+            $hasUser = @($entl.Members) | Where-Object { $_.Id -eq $Context.SuiteData["UserId"] }
+            $null -ne $hasUser
         }
 
         # --- Add-SafeguardEntitlementMember (group) ---
         Test-SgPsAssert "Add-SafeguardEntitlementMember adds a group" {
             Add-SafeguardEntitlementMember -Insecure $Context.SuiteData["EntitlementId"] -Groups $Context.SuiteData["TestGroup"]
-            $true
+            $entl = Get-SafeguardEntitlement -Insecure $Context.SuiteData["EntitlementId"]
+            $hasGroup = @($entl.Members) | Where-Object { $_.Id -eq $Context.SuiteData["GroupId"] }
+            $null -ne $hasGroup
         }
 
         # --- Verify members via Get ---
