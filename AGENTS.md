@@ -16,7 +16,7 @@ safeguard-ps/
 |   |-- sslhandling.psm1         # SSL/TLS helper (not exported)
 |   |-- ps-utilities.psm1        # Shared PowerShell utilities (not exported)
 |   |-- sg-utilities.psm1        # Shared Safeguard utilities (not exported)
-|   `-- <feature>.psm1           # Feature modules (assets, users, a2a, policies, etc.)
+|   `-- <feature>.psm1           # Feature modules (assets, users, a2a, policies, customplatforms, etc.)
 |-- test/                         # Integration test framework and suites (requires PS 7)
 |   |-- Invoke-SafeguardPsTests.ps1       # Test runner
 |   |-- SafeguardPsTestFramework.psm1     # Framework module
@@ -96,6 +96,27 @@ This is not required for documentation or minor fixes, but it is **strongly enco
 for any change that touches cmdlet logic, API calls, parameters, or module structure.
 Running the test suite against a live appliance is the only way to catch regressions.
 
+### Connecting to the appliance (PKCE vs Resource Owner Grant)
+
+**Resource Owner Grant (ROG) is disabled by default** on recent Safeguard appliances.
+When connecting to a user's test appliance for the first time, always use the `-Pkce` flag:
+
+```powershell
+$secPwd = ConvertTo-SecureString "<password>" -AsPlainText -Force
+Connect-Safeguard -Appliance <address> -IdentityProvider Local -Username Admin `
+    -Password $secPwd -Insecure -Pkce
+```
+
+If you attempt a direct `Connect-Safeguard` without `-Pkce` and receive a 400 error like
+`"OAuth2 resource owner password credentials grant type is not allowed"`, switch to PKCE
+immediately. Do not try to enable ROG on the appliance -- use PKCE as the default connection
+method.
+
+The test runner (`Invoke-SafeguardPsTests.ps1`) handles this automatically by connecting
+with PKCE first, enabling ROG for the test session, and restoring the original setting
+afterward. You do not need to worry about ROG when running the test suite -- just when
+making ad-hoc `Connect-Safeguard` calls.
+
 ### Running the test suite
 
 ```powershell
@@ -173,6 +194,7 @@ Map feature modules to suites:
 | `diagnostics.psm1` | Diagnostics |
 | `sessionapi.psm1` | SpsIntegration (requires SPS appliance) |
 | `maintenance.psm1` | BackupRestore (optional, must be explicitly requested) |
+| `customplatforms.psm1` | (no dedicated suite yet -- test manually) |
 
 ## Architecture
 
