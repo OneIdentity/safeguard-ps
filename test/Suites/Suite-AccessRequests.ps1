@@ -174,6 +174,10 @@
             Disconnect-Safeguard -Appliance $Context.Appliance -AccessToken $token -Insecure
             $result.State -eq "Approved" -or $result.State -eq "RequestAvailable"
         }
+        Test-SgPsAssert "Approve-SafeguardAccessRequest state persisted" {
+            $readback = Get-SafeguardAccessRequest -Insecure $Context.SuiteData["RequestId"] -AllFields
+            $readback.State -eq "Approved" -or $readback.State -eq "RequestAvailable"
+        }
 
         # --- Get-SafeguardAccessRequestPassword (checkout as requester) ---
         Test-SgPsAssert "Get-SafeguardAccessRequestPassword checks out password" {
@@ -193,6 +197,12 @@
                 -RequestId $Context.SuiteData["RequestId"] -AllFields
             Disconnect-Safeguard -Appliance $Context.Appliance -AccessToken $token -Insecure
             $result.State -eq "Closed" -or $result.State -eq "Complete"
+        }
+        Test-SgPsAssert "Close-SafeguardAccessRequest state persisted" {
+            $readback = Get-SafeguardAccessRequest -Insecure $Context.SuiteData["RequestId"] -AllFields
+            # WasCheckedOut is set immediately; State advances asynchronously through
+            # PendingPasswordReset -> Complete so we can't rely on exact state
+            $readback.WasCheckedOut -eq $true -and $readback.State -ne "PendingApproval" -and $readback.State -ne "RequestAvailable"
         }
 
         # --- Find-SafeguardAccessRequest ---
@@ -219,6 +229,12 @@
                 -RequestId $request.Id -AllFields
             Disconnect-Safeguard -Appliance $Context.Appliance -AccessToken $approverToken -Insecure
             $result.State -eq "Denied" -or $result.State -eq "Closed"
+        }
+        Test-SgPsAssert "Deny-SafeguardAccessRequest state persisted" {
+            $readback = Get-SafeguardAccessRequest -Insecure $Context.SuiteData["DenyRequestId"] -AllFields
+            # WasDenied is set immediately; State advances asynchronously through
+            # PendingAcknowledgment -> Complete so we can't rely on exact state
+            $readback.WasDenied -eq $true -and $readback.State -ne "PendingApproval" -and $readback.State -ne "New"
         }
     }
 

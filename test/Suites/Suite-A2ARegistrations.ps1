@@ -148,12 +148,21 @@
             $updated = Edit-SafeguardA2a -Insecure -A2aObject $reg
             $updated.Description -eq "Modified via object"
         }
+        Test-SgPsAssert "Edit-SafeguardA2a changes persisted" {
+            $readback = Get-SafeguardA2a -Insecure $Context.SuiteData["A2aId"]
+            $readback.Description -eq "Modified via object"
+        }
 
         # --- Add-SafeguardA2aCredentialRetrieval ---
         Test-SgPsAssert "Add-SafeguardA2aCredentialRetrieval adds account" {
             $result = Add-SafeguardA2aCredentialRetrieval -Insecure $Context.SuiteData["A2aId"] `
                 -Asset $Context.SuiteData["TestAsset"] -Account $Context.SuiteData["TestAccount"]
             $null -ne $result
+        }
+        Test-SgPsAssert "Add-SafeguardA2aCredentialRetrieval account persisted" {
+            $creds = Get-SafeguardA2aCredentialRetrieval -Insecure $Context.SuiteData["A2aId"] `
+                -Asset $Context.SuiteData["TestAsset"] -Account $Context.SuiteData["TestAccount"]
+            $null -ne $creds
         }
 
         # --- Get-SafeguardA2aCredentialRetrieval ---
@@ -185,7 +194,9 @@
         Test-SgPsAssert "Remove-SafeguardA2aCredentialRetrieval removes account" {
             Remove-SafeguardA2aCredentialRetrieval -Insecure $Context.SuiteData["A2aId"] `
                 -Asset $Context.SuiteData["TestAsset"] -Account $Context.SuiteData["TestAccount"]
-            $true
+            $creds = Get-SafeguardA2aCredentialRetrieval -Insecure $Context.SuiteData["A2aId"]
+            $list = @($creds)
+            -not ($list | Where-Object { $_.AccountName -eq $Context.SuiteData["TestAccount"] })
         }
 
         # --- Get-SafeguardA2aAccessRequestBroker ---
