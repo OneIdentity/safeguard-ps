@@ -392,3 +392,151 @@ function Remove-SafeguardCustomPlatform
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
         DELETE "Platforms/$($local:Platform.Id)" -Parameters $local:Parameters
 }
+
+<#
+.SYNOPSIS
+Export a custom platform script from Safeguard via the Web API.
+
+.DESCRIPTION
+Retrieve the raw JSON script content from a custom platform. The script can
+be returned as a string or written directly to a file using -OutFile.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER PlatformToGet
+An integer containing the platform ID or a string containing the platform
+display name of the custom platform whose script to export.
+
+.PARAMETER OutFile
+A string containing the file path to write the script content to. If not
+specified, the raw script JSON string is returned.
+
+.INPUTS
+None.
+
+.OUTPUTS
+PSCustomObject representing the script content, or nothing if -OutFile is used.
+When -OutFile is specified, the JSON is written to the file.
+
+.EXAMPLE
+Export-SafeguardCustomPlatformScript -Insecure "My Custom Linux"
+
+.EXAMPLE
+Export-SafeguardCustomPlatformScript -Insecure 10001 -OutFile "C:\scripts\MyScript.json"
+#>
+function Export-SafeguardCustomPlatformScript
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$PlatformToGet,
+        [Parameter(Mandatory=$false)]
+        [string]$OutFile
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Platform = (Get-SafeguardCustomPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $PlatformToGet)
+
+    if (-not $local:Platform.CustomScriptProperties.HasScript)
+    {
+        throw "Custom platform '$($local:Platform.Name)' (Id=$($local:Platform.Id)) does not have a script"
+    }
+
+    $local:ScriptContent = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                                GET "Platforms/$($local:Platform.Id)/Script/Raw")
+
+    if ($PSBoundParameters.ContainsKey("OutFile"))
+    {
+        ($local:ScriptContent | ConvertTo-Json -Depth 100) | Out-File -FilePath $OutFile -Encoding utf8 -NoNewline
+    }
+    else
+    {
+        $local:ScriptContent
+    }
+}
+
+<#
+.SYNOPSIS
+Import a platform script into a custom platform in Safeguard via the Web API.
+
+.DESCRIPTION
+Upload a JSON platform script file to a custom platform, replacing any
+existing script. The script defines the operations the platform supports
+(e.g., CheckPassword, ChangePassword, DiscoverAccounts).
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER PlatformToEdit
+An integer containing the platform ID or a string containing the platform
+display name of the custom platform to import the script into.
+
+.PARAMETER ScriptFile
+A string containing the path to the JSON platform script file to upload.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API (the updated platform object).
+
+.EXAMPLE
+Import-SafeguardCustomPlatformScript -Insecure "My Custom Linux" -ScriptFile "C:\scripts\MyScript.json"
+
+.EXAMPLE
+Import-SafeguardCustomPlatformScript -Insecure 10001 -ScriptFile "C:\scripts\MyScript.json"
+#>
+function Import-SafeguardCustomPlatformScript
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$PlatformToEdit,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$ScriptFile
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Platform = (Get-SafeguardCustomPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $PlatformToEdit)
+
+    if (-not (Test-Path $ScriptFile))
+    {
+        throw "Script file not found: $ScriptFile"
+    }
+    $local:ScriptContent = (Get-Content -Path $ScriptFile -Raw)
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        PUT "Platforms/$($local:Platform.Id)/Script/Raw" -ContentType "application/octet-stream" -JsonBody $local:ScriptContent | Out-Null
+
+    # Return the updated platform object
+    Get-SafeguardCustomPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:Platform.Id
+}

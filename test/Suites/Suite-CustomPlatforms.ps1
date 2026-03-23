@@ -34,10 +34,27 @@
         $Context.SuiteData["ScriptFile"] = $tempScriptFile
         $Context.SuiteData["ScriptId"] = $uniqueScriptId
 
-        Register-SgPsTestCleanup -Description "Remove temp script file" -Action {
+        # Prepare a second script (Discovery variant) for script-change tests
+        $scriptPath2 = Join-Path $PSScriptRoot "..\TestData\GenericLinuxWithDiscovery.json"
+        if (-not (Test-Path $scriptPath2))
+        {
+            throw "Test data file not found: $scriptPath2"
+        }
+        $scriptContent2 = Get-Content -Path $scriptPath2 -Raw
+        $uniqueScriptId2 = "${prefix}PlatScript2"
+        $modifiedScript2 = $scriptContent2 -replace '"ExampleLinuxScriptWithDiscovery"', "`"$uniqueScriptId2`""
+        $tempScriptFile2 = Join-Path ([System.IO.Path]::GetTempPath()) "${prefix}_TestScript2.json"
+        Set-Content -Path $tempScriptFile2 -Value $modifiedScript2 -NoNewline
+
+        $Context.SuiteData["ScriptFile2"] = $tempScriptFile2
+        $Context.SuiteData["ScriptId2"] = $uniqueScriptId2
+
+        Register-SgPsTestCleanup -Description "Remove temp script files" -Action {
             param($Ctx)
-            $f = $Ctx.SuiteData['ScriptFile']
-            if ($f -and (Test-Path $f)) { Remove-Item $f -Force }
+            foreach ($key in @('ScriptFile','ScriptFile2')) {
+                $f = $Ctx.SuiteData[$key]
+                if ($f -and (Test-Path $f)) { Remove-Item $f -Force }
+            }
         }
     }
 
@@ -47,6 +64,9 @@
         $platform1Name = $Context.SuiteData["TestPlatform1"]
         $platform2Name = $Context.SuiteData["TestPlatform2"]
         $scriptFile = $Context.SuiteData["ScriptFile"]
+        $scriptFile2 = $Context.SuiteData["ScriptFile2"]
+        $scriptId = $Context.SuiteData["ScriptId"]
+        $scriptId2 = $Context.SuiteData["ScriptId2"]
 
         # --- Get-SafeguardCustomPlatform (list all) ---
         Test-SgPsAssert "Get-SafeguardCustomPlatform lists custom platforms" {
@@ -162,30 +182,100 @@
             $readback.Description -eq "Piped edit"
         }
 
-        # --- Edit-SafeguardCustomPlatform (add script to platform without one) ---
-        Test-SgPsAssert "Edit-SafeguardCustomPlatform adds script to scriptless platform" {
-            # Platform1 was created without a script
-            $before = Get-SafeguardCustomPlatform -Insecure $Context.SuiteData["Platform1Id"]
-            $hadScript = $before.CustomScriptProperties.HasScript
-
-            # We need a second unique script ID since Platform2 already has one
+        # --- Import-SafeguardCustomPlatformScript (add script to scriptless platform) ---
+        Test-SgPsAssert "Import-SafeguardCustomPlatformScript adds script to scriptless platform" {
+            # Platform1 was created without a script - use a unique script ID
             $scriptContent = Get-Content -Path $scriptFile -Raw
-            $secondId = "$($Context.SuiteData['ScriptId'])2"
-            $modified = $scriptContent -replace [regex]::Escape($Context.SuiteData['ScriptId']), $secondId
-            $tempFile = Join-Path ([System.IO.Path]::GetTempPath()) "second_script.json"
+            $importId = "$($scriptId)Import"
+            $modified = $scriptContent -replace [regex]::Escape($scriptId), $importId
+            $tempFile = Join-Path ([System.IO.Path]::GetTempPath()) "import_script.json"
             Set-Content -Path $tempFile -Value $modified -NoNewline
 
-            $edited = Edit-SafeguardCustomPlatform -Insecure $Context.SuiteData["Platform1Id"] `
+            $result = Import-SafeguardCustomPlatformScript -Insecure $Context.SuiteData["Platform1Id"] `
                 -ScriptFile $tempFile
             Remove-Item $tempFile -Force
 
-            $hadScript -eq $false -and $edited.CustomScriptProperties.HasScript -eq $true
+            $result.CustomScriptProperties.HasScript -eq $true -and
+                $result.SupportedOperations.Count -gt 0
         }
 
-        Test-SgPsAssert "Edit-SafeguardCustomPlatform script upload persisted" {
+        Test-SgPsAssert "Import-SafeguardCustomPlatformScript persisted with readback" {
             $readback = Get-SafeguardCustomPlatform -Insecure $Context.SuiteData["Platform1Id"]
             $readback.CustomScriptProperties.HasScript -eq $true -and
                 $readback.SupportedOperations.Count -gt 0
+        }
+
+        # --- Export-SafeguardCustomPlatformScript (by ID) ---
+        Test-SgPsAssert "Export-SafeguardCustomPlatformScript returns script content" {
+            $exported = Export-SafeguardCustomPlatformScript -Insecure $Context.SuiteData["Platform2Id"]
+            $null -ne $exported -and $null -ne $exported.Id -and
+                $exported.Id -eq $scriptId -and $null -ne $exported.BackEnd
+        }
+
+        # --- Export-SafeguardCustomPlatformScript (by name) ---
+        Test-SgPsAssert "Export-SafeguardCustomPlatformScript by name" {
+            $exported = Export-SafeguardCustomPlatformScript -Insecure $platform2Name
+            $null -ne $exported -and $exported.Id -eq $scriptId
+        }
+
+        # --- Export-SafeguardCustomPlatformScript (to file) ---
+        Test-SgPsAssert "Export-SafeguardCustomPlatformScript writes to OutFile" {
+            $outPath = Join-Path ([System.IO.Path]::GetTempPath()) "exported_script.json"
+            Export-SafeguardCustomPlatformScript -Insecure $Context.SuiteData["Platform2Id"] `
+                -OutFile $outPath
+            $exists = Test-Path $outPath
+            $content = ""
+            if ($exists) {
+                $content = Get-Content -Path $outPath -Raw
+                Remove-Item $outPath -Force
+            }
+            $exists -and $content.Length -gt 100 -and $content -match $scriptId
+        }
+
+        # --- Export-SafeguardCustomPlatformScript (error on no script) ---
+        Test-SgPsAssert "Export-SafeguardCustomPlatformScript errors on scriptless platform" {
+            # Create a temp platform without script to test the error path
+            $tempPlat = New-SafeguardCustomPlatform -Insecure -Name "${platform1Name}_NoScript"
+            $threw = $false
+            try {
+                $null = Export-SafeguardCustomPlatformScript -Insecure $tempPlat.Id
+            } catch {
+                $threw = $_ -match "does not have a script"
+            }
+            Remove-SafeguardCustomPlatform -Insecure $tempPlat.Id
+            $threw
+        }
+
+        # --- Import-SafeguardCustomPlatformScript (replace script with different one) ---
+        Test-SgPsAssert "Import-SafeguardCustomPlatformScript replaces script with different one" {
+            # Platform2 currently has script1 (SSHKeySupport). Replace with script2 (Discovery).
+            $beforeExport = Export-SafeguardCustomPlatformScript -Insecure $Context.SuiteData["Platform2Id"]
+            $hadOriginalId = $beforeExport.Id -eq $scriptId
+
+            $result = Import-SafeguardCustomPlatformScript -Insecure $Context.SuiteData["Platform2Id"] `
+                -ScriptFile $scriptFile2
+
+            $result.CustomScriptProperties.HasScript -eq $true -and $hadOriginalId
+        }
+
+        Test-SgPsAssert "Import-SafeguardCustomPlatformScript script change verified via Export" {
+            $afterExport = Export-SafeguardCustomPlatformScript -Insecure $Context.SuiteData["Platform2Id"]
+            # The exported script should now contain the Discovery script ID, not the original
+            $afterExport.Id -eq $scriptId2
+        }
+
+        # --- Edit-SafeguardCustomPlatform -ScriptFile (change script via Edit) ---
+        Test-SgPsAssert "Edit-SafeguardCustomPlatform -ScriptFile changes script content" {
+            # Platform2 now has Discovery script. Switch back to SSHKey via Edit -ScriptFile.
+            $edited = Edit-SafeguardCustomPlatform -Insecure $Context.SuiteData["Platform2Id"] `
+                -ScriptFile $scriptFile
+            $edited.CustomScriptProperties.HasScript -eq $true
+        }
+
+        Test-SgPsAssert "Edit-SafeguardCustomPlatform -ScriptFile change verified via Export" {
+            $afterExport = Export-SafeguardCustomPlatformScript -Insecure $Context.SuiteData["Platform2Id"]
+            # Should be back to the original SSHKey script
+            $afterExport.Id -eq $scriptId
         }
 
         # --- Remove-SafeguardCustomPlatform (by ID) ---

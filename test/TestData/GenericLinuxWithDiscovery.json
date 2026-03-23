@@ -1,0 +1,616 @@
+{
+  "Id": "ExampleLinuxScriptWithDiscovery",
+  "BackEnd": "Scriptable",
+  "CheckSystem": {
+    "Parameters": [
+      { "Port": { "Type": "Integer", "Required": false, "DefaultValue": 22 } },
+      { "Timeout": { "Type": "Integer", "Required": false, "DefaultValue": 20 } },
+      { "Address": { "Type": "String", "Required": true } },
+      { "FuncUserName": { "Type": "String", "Required": true } },
+      { "FuncPassword": { "Type": "Secret", "Required": false } },
+      { "AssetName": { "Type": "String", "Required": false, "DefaultValue": "" } },
+      { "DelegationPrefix": { "Type": "String", "Required": false, "DefaultValue": "sudo" } },
+      { "CheckHostKey": { "Type": "Boolean", "Required": false, "DefaultValue": true } },
+      { "HostKey": { "Type": "String", "Required": false } },
+      { "RequestTerminal": { "Type": "Boolean", "Required": false, "DefaultValue": true } },
+      { "UserKey": { "Type": "Secret", "Required": false } }
+   ],
+    "Do": [
+      { "Function": { "Name": "LoginSsh", "ResultVariable": "LoginResult", "Parameters": [ "%FuncUserName%", "%FuncPassword%", "%UserKey::$%" ] } },
+      { "Function": { "Name": "SetUpEnvironment", "ResultVariable": "ValidateResult" } },
+      { "Function": { "Name": "ValidateAccount", "ResultVariable": "ValidateResult" } },
+      { "Function": { "Name": "LogoutSsh", "ResultVariable": "LogoutResult" } },
+      { "Return": { "Value": "%ValidateResult%" } }
+    ]
+  },
+  "CheckPassword": {
+    "Parameters": [
+      { "Port": { "Type": "Integer", "Required": false, "DefaultValue": 22} },
+      { "Timeout": { "Type": "Integer", "Required": false, "DefaultValue": 20} },
+      { "Address": { "Type": "String", "Required": true } },
+      { "FuncUserName": { "Type": "String", "Required": true } },
+      { "FuncPassword": { "Type": "Secret", "Required": false } },
+      { "AccountUserName": { "Type": "String", "Required": true } },
+      { "AccountPassword": { "Type": "Secret", "Required": true } },
+      { "AssetName": { "Type": "String", "Required": false, "DefaultValue": "" } },
+      { "DelegationPrefix": { "Type": "String", "Required": false, "DefaultValue": "sudo" } },
+      { "CheckHostKey": { "Type": "Boolean", "Required": false, "DefaultValue": true } },
+      { "HostKey": { "Type": "String", "Required": false } },
+      { "RequestTerminal": { "Type": "Boolean", "Required": false, "DefaultValue": true } },
+      { "UserKey": { "Type": "Secret", "Required": false } }
+   ],
+    "Do": [
+      { "Function": { "Name": "LoginSsh", "ResultVariable": "LoginResult", "Parameters": ["%FuncUserName%", "%FuncPassword%", "%UserKey::$%"] } },
+      { "Function": { "Name": "SetUpEnvironment", "ResultVariable": "ValidateResult" } },
+      { "Function": { "Name": "ValidatePassword", "ResultVariable": "ValidationResult" } },
+      { "Function": { "Name": "LogoutSsh", "ResultVariable": "LogoutResult" } },
+      { "Return": { "Value": "%ValidationResult%" } }
+    ]
+  },
+  "ChangePassword": {
+    "Parameters": [
+      { "Port": { "Type": "Integer", "Required": false, "DefaultValue": 22} },
+      { "Timeout": { "Type": "Integer", "Required": false, "DefaultValue": 20} },
+      { "Address": { "Type": "String", "Required": true } },
+      { "FuncUserName": { "Type": "String", "Required": true } },
+      { "FuncPassword": { "Type": "Secret", "Required": false } },
+      { "AccountUserName": { "Type": "String", "Required": true } },
+      { "AccountPassword": { "Type": "Secret", "Required": true } },
+      { "NewPassword": { "Type": "Secret", "Required": true } },
+      { "AssetName": { "Type": "String", "Required": false, "DefaultValue": "" } },
+      { "DelegationPrefix": { "Type": "String", "Required": false, "DefaultValue": "sudo" } },
+      { "CheckHostKey": { "Type": "Boolean", "Required": false, "DefaultValue": true } },
+      { "HostKey": { "Type": "String", "Required": false } },
+      { "RequestTerminal": { "Type": "Boolean", "Required": false, "DefaultValue": true } },
+      { "UserKey": { "Type": "Secret", "Required": false } }
+    ],
+    "Do": [
+      { "Function": { "Name": "LoginSsh", "ResultVariable": "LoginResult", "Parameters": [ "%FuncUserName%", "%FuncPassword%", "%UserKey::$%" ] } },
+      { "Function": { "Name": "ChangeUserPassword", "ResultVariable": "ChangeUserPasswordResult" } },
+      { "Function": { "Name": "LogoutSsh", "ResultVariable": "LogoutResult" } },
+      { "Return": { "Value": "%ChangeUserPasswordResult%" } }
+    ]
+  },
+  "DiscoverSshHostKey": {
+    "Parameters": [
+      { "Port": { "Type": "Integer", "Required": false, "DefaultValue": 22} },
+      { "Timeout": { "Type": "Integer", "Required": false, "DefaultValue": 20} },
+      { "Address": { "Type": "String", "Required": true } },
+      { "AssetName": { "Type": "String", "Required": false, "DefaultValue": "" } }
+    ],
+    "Do": [
+      { "Function": { "Name": "DiscoverHostKeyForAsset" } },
+      { "Return": { "Value": true } }
+    ]
+  },
+  "DiscoverAccounts": {
+    "Parameters": [
+      { "Port": { "Type": "Integer", "Required": false, "DefaultValue": 22} },
+      { "Timeout": { "Type": "Integer", "Required": false, "DefaultValue": 20} },
+      { "Address": { "Type": "String", "Required": true } },
+      { "FuncUserName": { "Type": "String", "Required": true} },
+      { "FuncUserDomain": { "Type": "String", "Required": false, "DefaultValue": ""} },
+      { "FuncPassword": { "Type": "Secret", "Required": false } },
+      { "AssetName": { "Type": "String", "Required": false, "DefaultValue": ""} },
+      { "DelegationPrefix": { "Type": "String", "Required": false, "DefaultValue": ""} },
+      { "CheckHostKey": { "Type": "Boolean", "Required": false, "DefaultValue": true} },
+      { "UserKey": { "Type": "Secret", "Required": false} },
+      { "HostKey": { "Type": "string", "Required": false} },
+      { "DiscoveryQuery": { "Type": "Object", "Required": true} }
+    ],
+    "Do": [
+      { "SetItem": { "Name": "Global:RequestTerminal", "Value": true } },
+      { "SetItem": { "Name": "Global:EnableAllCiphers", "Value": false } },
+      {
+        "Try": {
+          "Do": [
+            { "Function": { "Name": "LoginSsh", "ResultVariable": "LoginResult", "Parameters": [ "%FuncUserName%", "%FuncPassword%", "%UserKey%" ] } },
+            { "Condition": {
+                "If": "!LoginResult",
+                "Then": {
+                  "Do": [
+                    { "Comment": { "Text": "Able to connect, unable to log in" } },
+                    { "Return": { "Value": "False" } }
+                  ]
+                }
+              }
+            }
+          ],
+          "Catch": [
+            { "Comment": { "Text": "Unable to connect to the asset" } },
+            { "Return": { "Value": "Error" } }
+          ]
+        }
+      },
+      { "Function": { "Name": "SetUpEnvironment" } },
+      { "Function": { "Name": "DiscoverAccountsOnHost", "ResultVariable": "DiscoveryResult" } },
+      { "Function": { "Name": "LogoutSsh", "ResultVariable": "LogoutResult" } },
+      { "Return": { "Value": "%DiscoveryResult%" } }
+    ]
+  },
+  "LoginSsh": {
+    "Parameters": [
+      { "UserName": { "Type": "String", "Required": true } },
+      { "Password": { "Type": "Secret", "Required": false } },
+      { "LoginKey": { "Type": "Secret", "Required": false } }
+    ],
+    "Do": [
+      { "Status": { "Type": "Connecting", "Percent": 30,
+          "Message": { "Name": "AssetConnectingWithAddress", "Parameters": [ "%AssetName%", "%Address%" ] } }
+      },
+      { "Try": {
+          "Do": [
+            {
+              "Connect": {
+                "ConnectionObjectName": "Global:ConnectSsh",
+                "Type": "Ssh",
+                "Port": "%Port%",
+                "NetworkAddress": "%Address%",
+                "Login": "%UserName%",
+                "Password": "%Password::$%",
+                "RequestTerminal": "%RequestTerminal%",
+                "UserKey": "%LoginKey::$%",
+                "CheckHostKey": "%CheckHostKey%",
+                "Hostkey": "%HostKey::$%",
+                "Timeout": "%Timeout%"
+              }
+            }
+          ],
+          "Catch": [
+            { "Throw": { "Value": "SSH Connection Error: %Exception%" } }
+          ]
+        }
+      },
+      { "Receive": { "ConnectionObjectName": "ConnectSsh", "BufferName": "LoginCheckBuffer" } },
+      { "Condition": {
+          "If": "Regex.IsMatch(LoginCheckBuffer, @\"(You are required to change your password)|(Your password has expired)|(Check for other error messages here)\")",
+          "Then": {
+            "Do": [
+              { "Function": { "Name": "LogoutSsh" } },
+              { "Return": { "Value": false } }
+            ]
+          }
+        }
+      },
+      { "Return": { "Value": true } }
+    ]
+  },
+  "LogoutSsh": {
+    "Do": [
+      { "Disconnect": { "ConnectionObjectName": "ConnectSsh" } },
+      { "Return": { "Value": true } }
+    ]
+  },
+  "SetUpEnvironment": {
+    "Do": [
+      { "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "unset TERM; stty -echo; LANG=C; LC_ALL=C; SUDO_PROMPT='SUDO password for %p:'; export LANG LC_ALL SUDO_PROMPT; echo \"INIT_CHECK=$?\"" } },
+      { "Receive": { "ConnectionObjectName": "ConnectSsh", "BufferName": "FlushBuffer" } },
+      { "Return": { "Value": true } }
+    ]
+  },
+  "ValidateAccount": {
+    "Do": [
+      { "Status": { "Type": "Checking", "Percent": "60",
+          "Message": { "Name": "AssetTestingConnectionWithAddress", "Parameters": [ "%AssetName%", "%Address%" ] } }
+      },
+      { "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "%DelegationPrefix% egrep -q '^(%FuncUserName%):' /etc/shadow; echo \"CHECKSYS=$?\"" } },
+      { "Receive": { "ConnectionObjectName": "ConnectSsh", "ContainsSecret": true, "BufferName": "ReturnStatus" } },
+      { "Condition": {
+          "If": "Regex.IsMatch(ReturnStatus, @\"SUDO password for\")",
+          "Then": {
+            "Do": [
+              { "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "%FuncPassword%", "ContainsSecret": true } },
+              { "Receive": { "ConnectionObjectName": "ConnectSsh", "ContainsSecret": true, "BufferName": "ReturnStatus" } }
+            ]
+          }
+        }
+      },
+      { "Switch": {
+          "MatchValue": "%ReturnStatus%",
+          "Cases": [
+            {
+              "CaseValue": "CHECKSYS=0",
+              "Do": [
+                { "Return": { "Value": true } }
+              ]
+            },
+            {
+              "CaseValue": "(incorrect password attempts)|(Sorry, try again)|(Check for other error messages here)",
+              "Do": [
+                { "Status": { "Type": "Checking", "Percent": 80,
+                    "Message": { "Name": "InsufficientDelegationPrivileges", "Parameters": [ "%DelegationPrefix%" ] } }
+                }
+              ]
+            },
+            {
+              "CaseValue": "(CHECKSYS=[1-9]+.*)|(Permission denied)",
+              "Do": [
+                { "Status": { "Type": "Checking", "Percent": 80,
+                    "Message": { "Name": "InsufficientPrivilegesAccessPassword" } }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      { "Return": { "Value": "false" } }
+    ]
+  },
+  "ValidatePassword": {
+    "Do": [
+      { "Status": { "Type": "Checking", "Percent": 50,
+          "Message": { "Name": "LookingUpUser", "Parameters": [ "%AccountUserName%" ] } }
+      },
+      { "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "grep -q '^%AccountUserName%:' /etc/passwd; echo \"CHECKUSER=$?\"" } },
+      { "Receive": { "ConnectionObjectName": "ConnectSsh", "BufferName": "ReturnStatus" } },
+      { "Switch": {
+          "MatchValue": "%ReturnStatus%",
+          "Cases": [
+            { "CaseValue": "CHECKUSER=[1-9]+.*",
+              "Do": [
+                { "Status": { "Type": "Checking", "Percent": 80,
+                    "Message": { "Name": "AccountNotFound", "Parameters": [ "%AccountUserName%" ] } }
+                },
+                { "Return": { "Value": false } }
+              ]
+            },
+            { "CaseValue": "CHECKUSER=0",
+              "Do": [
+                { "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "%DelegationPrefix% grep '^%AccountUserName%:' /etc/shadow" } },
+                { "Receive": { "ConnectionObjectName": "ConnectSsh", "ContainsSecret": true, "BufferName": "AccountEntry" } },
+                { "Condition": {
+                    "If": "Regex.IsMatch(AccountEntry, @\"SUDO password for\")",
+                    "Then": {
+                      "Do": [
+                        {
+                          "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "%FuncPassword%", "ContainsSecret": true } },
+                        { "Receive": { "ConnectionObjectName": "ConnectSsh", "ContainsSecret": true, "BufferName": "AccountEntry" } }
+                      ]
+                    }
+                  }
+                },
+                { "Switch": {
+                    "MatchValue": "%AccountEntry%",
+                    "Cases": [
+                      { "CaseValue": "%AccountUserName%:[^:]*.*:[^:].*:",
+                        "Do": [
+                          {
+                            "Status": { "Type": "Checking", "Percent": 75,
+                              "Message": { "Name": "VerifyingPassword" } }
+                          },
+                          { "CompareShadowHash": { "Password": "%AccountPassword%", "SaltedHash": "%AccountEntry%", "ResultVariable": "PasswordHashMatched" } },
+                          { "Condition": {
+                              "If": "PasswordHashMatched == true",
+                              "Then": {
+                                "Do": [
+                                  { "Return": { "Value": true } }
+                                ]
+                              }
+                            }
+                          },
+                          { "Return": { "Value": false } }
+                        ]
+                      },
+                      { "CaseValue": "(incorrect password attempts)|(Sorry, try again)|(Check for other error messages here)",
+                        "Do": [
+                          { "Status": { "Type": "Checking", "Percent": 80,
+                              "Message": { "Name": "InsufficientDelegationPrivileges", "Parameters": [ "%DelegationPrefix%" ] } }
+                          },
+                          { "Return": { "Value": false } }
+                        ]
+                      },
+                      { "CaseValue": "Permission denied",
+                        "Do": [
+                          { "Status": { "Type": "Checking", "Percent": 80,
+                              "Message": { "Name": "InsufficientPrivilegesAccessPassword" } }
+                          },
+                          { "Return": { "Value": false } }
+                        ]
+                      }
+                    ],
+                    "DefaultCase": {
+                      "Do": [
+                        { "Return": { "Value": false } }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      { "Return": { "Value": false } }
+    ]
+  },
+  "ChangeUserPassword": {
+    "Do": [
+      { "Status": { "Type": "Changing", "Percent": 50,
+          "Message": { "Name": "ChangingPassword", "Parameters": [ "%AccountUserName%" ] } }
+      },
+      { "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "grep -q '^%AccountUserName%:' /etc/passwd; echo \"CHECKUSER=$?\"" } },
+      { "Receive": { "ConnectionObjectName": "ConnectSsh", "BufferName": "ReturnStatus" } },
+      { "Switch": {
+          "MatchValue": "%ReturnStatus%",
+          "Cases": [
+            { "CaseValue": "CHECKUSER=[1-9]+.*",
+              "Do": [
+                { "Status": { "Type": "Checking", "Percent": 80,
+                    "Message": { "Name": "AccountNotFound", "Parameters": [ "%AccountUserName%" ] } }
+                },
+                { "Return": { "Value": false } }
+              ]
+            },
+            { "CaseValue": "CHECKUSER=0",
+              "Do": [
+                { "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "%DelegationPrefix% passwd %AccountUserName%; echo \"CHGPASS=$?\"" } },
+                { "Receive": {"ConnectionObjectName": "ConnectSsh", "BufferName": "PasswdAttempt" } },
+                { "Condition": {
+                    "If": "Regex.IsMatch(PasswdAttempt, @\"SUDO password for\")",
+                    "Then": {
+                      "Do": [
+                        { "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "%FuncPassword%", "ContainsSecret": true } },
+                        { "Receive": { "ConnectionObjectName": "ConnectSsh", "BufferName": "PasswdAttempt", "ExpectRegex": "([cC]urrent.*[Pp]assword)|([Nn]ew.*[Pp]assword:)|" } }
+                      ]
+                    }
+                  }
+                },
+                { "Condition": {
+                    "If": "Regex.IsMatch(PasswdAttempt, @\"[cC]urrent.*[Pp]assword\")",
+                    "Then": {
+                      "Do": [
+                        { "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "%AccountPassword%", "ContainsSecret": true } },
+                        { "Receive": { "ConnectionObjectName": "ConnectSsh", "BufferName": "PasswdAttempt", "ExpectRegex": "([Nn]ew.*[Pp]assword:)" } }
+                      ]
+                    }
+                  }
+                },
+                { "Condition": {
+                    "If": "Regex.IsMatch(PasswdAttempt, @\".*[Nn]ew.*[Pp]assword:\")",
+                    "Then": {
+                      "Do": [
+                        { "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "%NewPassword%", "ContainsSecret": true } },
+                        { "Receive": { "ConnectionObjectName": "ConnectSsh", "BufferName": "PasswdAttempt", "ExpectRegex": "([Nn]ew.*[Pp]assword:)" } }
+                      ]
+                    }
+                  }
+                },
+                { "Condition": {
+                    "If": "Regex.IsMatch(PasswdAttempt, @\".*[Nn]ew.*[Pp]assword:\", RegexOptions.Multiline)",
+                    "Then": {
+                      "Do": [
+                        { "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "%NewPassword%", "ContainsSecret": true } },
+                        { "Receive": { "ConnectionObjectName": "ConnectSsh", "BufferName": "PasswdAttempt" } }
+                      ]
+                    }
+                  }
+                },
+                { "Switch": {
+                    "MatchValue": "%PasswdAttempt%",
+                    "Cases": [
+                      { "CaseValue": "CHGPASS=0",
+                        "Do": [
+                          { "Return": { "Value": true } }
+                        ]
+                      },
+                      { "CaseValue": "(CHGPASS=[1-9]+.*)|(BAD PASSWORD)|(Have exhausted maximum number of retries)",
+                        "Do": [
+                          {
+                            "Status": { "Type": "Changing", "Percent": 80,
+                              "Message": { "Name": "PasswordChangeFailed", "Parameters": [ "%AccountUserName%" ] } }
+                          }
+                        ]
+                      },
+                      {
+                        "CaseValue": "(incorrect password attempts)|(Sorry, try again)|(Check for other error messages here)",
+                        "Do": [
+                          { "Status": { "Type": "Changing", "Percent": 80,
+                              "Message": { "Name": "InsufficientDelegationPrivileges", "Parameters": [ "%DelegationPrefix%" ] } }
+                          }
+                        ]
+                      },
+                      { "CaseValue": "(Only root can specify a user name)|(Permission denied)|(may not view or modify password information)",
+                        "Do": [
+                          {
+                            "Status": { "Type": "Changing", "Percent": 80,
+                              "Message": { "Name": "InsufficientPrivilegesAccessPassword" } }
+                          }
+                        ]
+                      },
+                      { "CaseValue": "(BAD PASSWORD)|(Have exhausted maximum number of retries)",
+                        "Do": [
+                          { "Status": { "Type": "Changing", "Percent": 80,
+                              "Message": { "Name": "PasswordTooWeak", "Parameters": [ "%AccountUserName%" ] } }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      { "Return": { "Value": false } }
+    ]
+  },
+  "DiscoverHostKeyForAsset": {
+      "Do": [
+        { "Status": { "Type": "Connecting", "Percent": 30, "Message": { "Name": "AssetConnectingWithAddress", "Parameters": [ "%AssetName%", "%Address%" ] }} },
+        { "Try": {
+            "Do": [
+              {
+                "DiscoverSshHostKey": {
+                  "HostKeyVariableName": "HostKey",
+                  "SoftwareVersionVariableName": "GLOBAL:ServerSoftwareName",
+                  "Port": "%Port%",
+                  "NetworkAddress": "%Address%",
+                  "Timeout": "%Timeout%",
+                  "DiscoverHostKey": true,
+                  "Type": "Ssh"
+                }
+              },
+              { "WriteResponseObject": { "Value": "%HostKey::$%" } }
+            ],
+            "Catch": [
+              { "Condition": {
+                  "If": "string.IsNullOrEmpty(Exception)",
+                  "Then": {
+                    "Do": [
+                      { "Status": { "Type": "Connecting", "Percent": 95, "Message": { "Name": "AssetConnectFailedWithAddress","Parameters": [ "%AssetName%", "%Address%" ] } } },
+                      { "Throw": { "Value": "SSH Connection Error" } }
+                    ]
+                  },
+                  "Else": {
+                    "Do": [
+                      { "Status": { "Type": "Connecting", "Percent": 95, "Message": { "Name": "AssetConnectFailedWithReasonAndAddress", "Parameters": [ "%AssetName%", "%Address%", "%Exception%" ] } } },
+                      { "Throw": { "Value": "%Exception%" } }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+  },
+  "Functions": [
+    {
+      "Name": "RunCmd",
+      "Parameters": [
+        { "Cmd": { "Type": "string" } },
+        { "ExpectRegex": { "Type": "string" } },
+        { "CmdTimeout": { "Type": "Integer", "Required": false, "DefaultValue": 10000 } }
+      ],
+      "Do": [
+        { "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "%Cmd%" } },
+        { "SetItem": { "Name": "CmdResponse", "Value": "" } },
+        { "Receive": { "ConnectionObjectName": "ConnectSsh", "BufferName": "CmdResponse", "ExpectTimeout": "%CmdTimeout%", "ExpectRegex": "(%ExpectRegex::$%)|(SUDO password for)", "TimeoutResultVariableName": "Global:CmdTimedOut" } },
+        { "Condition": {
+            "If": "Regex.IsMatch(CmdResponse, @\"SUDO password for\")",
+            "Then": {
+              "Do": [
+                { "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "%FuncPassword%", "ContainsSecret": true } },
+                { "Receive": { "ConnectionObjectName": "ConnectSsh", "BufferName": "CmdResponse", "ExpectTimeout": "%CmdTimeout%", "ExpectRegex": "%ExpectRegex::$%", "TimeoutResultVariableName": "Global:CmdTimedOut" } }
+              ]
+            }
+          }
+        },
+        { "Condition": {
+            "If": "Regex.IsMatch(CmdResponse, @\"(is not in the sudoers file)|(SUDO password for )|(incorrect password attempts)|(Sorry, try again)|(ejected)|(may not run sudo)|(is not allowed to run sudo)|(is not in the sudoers file)|(is not allowed to execute)|(Request rejected)|(Permission denied)\")",
+            "Then": {
+              "Do": [
+                { "Status": { "Type": "Discovering", "Percent": 80, "Message": { "Name": "InsufficientDelegationPrivileges", "Parameters": [ "%DelegationPrefix::$%" ] } } },
+                { "Throw": { "Value": "Insufficient privileges to read data" } }
+              ]
+            }
+          }
+        },
+        { "Return": { "Value": { "CmdResponse": "%{CmdResponse}%", "CmdTimedOut": "%{CmdTimedOut}%" } } }
+      ]
+    },
+    {
+      "Name": "DiscoverAccountsOnHost",
+      "Do": [
+        { "Status": { "Type": "Discovering", "Percent": "75",  "Message": {  "Name": "DiscoveringAccounts", "Parameters": [ "%AssetName%" ] } } },
+        { "Comment": { "Text": "Set up some variables at a higher scope" } },
+        { "SetItem": { "Name": "DiscoveryResult", "Value": true } },
+        { "SetItem": { "Name": "UserCount", "Value": 0 } },
+        { "SetItem": { "Name": "Pwdfile", "Value": "/etc/passwd" } },
+        { "SetItem": { "Name": "Idcmd", "Value": "id" } },
+        { "SetItem": { "Name": "Awkcmd", "Value": "awk" } },
+        { "SetItem": { "Name": "GetDiscoverDataSendBuffer", "Value": "" } },
+        { "SetItem": { "Name": "UserCountCmd", "Value": "%DelegationPrefix::$% grep '^[^:#]' %Pwdfile% | wc -l" } },
+        { "Function": { "Name": "RunCmd", "Parameters": [ "%UserCountCmd%; echo \"USER_COUNT_COMPLETE=$?\"", "USER_COUNT_COMPLETE=0", "%{ Timeout * 1000 }%" ], "ResultVariable": "UserCountCmdResult" } },
+        { "SetItem": { "Name": "UserCountResult", "Value": "%{ UserCountCmdResult.CmdResponse }%" } },
+        { "SetItem": { "Name": "UserCountMatch", "Value": "%{ Regex.Match(UserCountResult, \"(\\s*)([0-9]+)\") }%" } },
+        { "Condition": {
+            "If": "UserCountMatch.Success",
+            "Then": {
+              "Do": [
+                { "SetItem": { "Name": "UserCount", "Value": "%{ int.Parse(UserCountMatch.Groups[2].Value) }%" } },
+                { "Status": { "Type": "Discovering", "Percent": 80, "Message": { "Name": "DiscoveredAccounts", "Parameters": [ "%UserCount%", "%AssetName%" ] } } }
+              ]
+            }
+          }
+        },
+        { "SetItem": { "Name": "GetDiscoverDataSendBuffer",
+            "Value": "%DelegationPrefix::$% grep '^[^:#]' %Pwdfile% | cut -d ':' -f1,3 | tr -s ':' ' ' | while read user uid; do printf \"uid=\"${uid}\"(\"${user}\") \"; %Idcmd% \"${user}\" | %Awkcmd% '{if (length($3)==0) { gp=$2; gsub(/gid=/, \"\", $2); print(gp, \"groups=\" $2) } else {print $2, $3}}'; done | grep '^uid=[0-9][0-9]*.*$'" }
+        },
+        { "Function": { "Name": "RunCmd", "Parameters": [ "%GetDiscoverDataSendBuffer%; echo \"ACCOUNT_DISCOVERY_COMPLETE=$?\"", "ACCOUNT_DISCOVERY_COMPLETE=0", "%{ Timeout * 1000 }%" ], "ResultVariable": "UserListCmdResult" } },
+        { "SetItem": { "Name": "UserListString", "Value": "%{ UserListCmdResult.CmdResponse}%" } },
+        { "Condition": {
+            "If": "%{ UserListCmdResult.CmdTimedOut }%",
+            "Then": {
+              "Do": [
+                { "SetItem": { "Name": "DiscoveryResult", "Value": false } },
+                { "Condition": {
+                    "If": "!string.IsNullOrEmpty(UserListString)",
+                    "Then": {
+                      "Do": [
+                        { "SetItem": { "Name": "match",
+                            "Value": "%{Regex.Match(UserListString, @\"(^uid=(?<uid>\\d+)\\((?<uname>.*)\\) gid=(?<gid>\\d+)\\((?<gname>.*)\\) groups=((?<groupid>\\d+)\\((?<groupname>.*?)\\),?)*\\r?\\n|^uid=(?<uid>\\d+)\\((?<uname>.*)\\) gid=(?<gid>\\d+)\\((?<gname>.*)\\)\\r?\\n)\", RegexOptions.ExplicitCapture | RegexOptions.Multiline)}%" }
+                        },
+                        { "Condition": {
+                            "If": "match.Success",
+                            "Then": {
+                              "Do": [
+                                { "Status": { "Type": "Discovering", "Message": { "Name": "ExpectedResponseTimeoutWithPartialResults", "Parameters": [ "ACCOUNT_DISCOVERY_COMPLETE" ] }, "Percent": "90" } }
+                              ]
+                            },
+                            "Else": {
+                              "Do": [
+                                { "Status": { "Type": "Discovering", "Message": { "Name": "ExpectedResponseTimeout", "Parameters": [ "ACCOUNT_DISCOVERY_COMPLETE" ] }, "Percent": "90" } }
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "Else": {
+                      "Do": [
+                        { "Status": { "Type": "Discovering", "Message": { "Name": "ExpectedResponseTimeout", "Parameters": [ "ACCOUNT_DISCOVERY_COMPLETE" ] }, "Percent": "90" } }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        { "Condition": {
+            "If": "!string.IsNullOrEmpty(UserListString)",
+            "Then": {
+              "Do": [
+                { "SetItem": {
+                    "Name": "match",
+                    "Value": "%{Regex.Match(UserListString, @\"(^uid=(?<uid>\\d+)\\((?<uname>.*)\\) gid=(?<gid>\\d+)\\((?<gname>.*)\\) groups=((?<groupid>\\d+)\\((?<groupname>.*?)\\),?)+\\r?\\n|^uid=(?<uid>\\d+)\\((?<uname>.*)\\) gid=(?<gid>\\d+)\\((?<gname>.*)\\)\\r?\\n)\", RegexOptions.ExplicitCapture | RegexOptions.Multiline)}%"
+                  }
+                },
+                { "For": {
+                    "Condition": "match.Success",
+                    "Body": {
+                      "Do": [
+                        { "SetItem": { "Name": "GroupNames", "Value": "%{match.Groups[\"groupname\"].Captures.Cast<Capture>().Select(c => c.Value).ToArray()}%" } },
+                        { "WriteDiscoveredAccount": {
+                            "Name": "%{match.Groups[\"uname\"].Value}%",
+                            "UserId": "%{match.Groups[\"uid\"].Value}%",
+                            "GroupId": "%{match.Groups[\"gid\"].Value}%",
+                            "Groups": "%{match.Groups[\"groupid\"].Captures.Cast<Capture>().Select((groupIdCapture,index) =>new DiscoveredGroup(GroupNames[index], groupIdCapture.Value))}%"
+                          }
+                        },
+                        { "SetItem": { "Name": "match", "Value": "%{match.NextMatch()}%" } }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        { "Return": { "Value": "%{ DiscoveryResult }%" } }
+      ]
+    }
+  ]
+}
