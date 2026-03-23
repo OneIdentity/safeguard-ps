@@ -81,6 +81,10 @@
             $edited = Edit-SafeguardUser -Insecure -UserObject $user
             $edited.FirstName -eq "Modified"
         }
+        Test-SgPsAssert "Edit-SafeguardUser with UserObject persisted" {
+            $readback = Get-SafeguardUser -Insecure $Context.SuiteData["UserId"]
+            $readback.FirstName -eq "Modified" -and $readback.Description -eq "Updated description" -and $readback.LastName -eq "Updated"
+        }
 
         # --- Find-SafeguardUser ---
         Test-SgPsAssert "Find-SafeguardUser by search string" {
