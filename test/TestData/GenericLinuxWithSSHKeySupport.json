@@ -1,0 +1,1088 @@
+{
+  "Id": "ExampleLinuxScript",
+  "BackEnd": "Scriptable",
+  "CheckSystem": {
+    "Parameters": [
+      { "Port": { "Type": "Integer", "Required": false, "DefaultValue": 22 } },
+      { "Timeout": { "Type": "Integer", "Required": false, "DefaultValue": 20 } },
+      { "Address": { "Type": "String", "Required": true } },
+      { "FuncUserName": { "Type": "String", "Required": true } },
+      { "FuncPassword": { "Type": "Secret", "Required": false } },
+      { "AssetName": { "Type": "String", "Required": false, "DefaultValue": "" } },
+      { "DelegationPrefix": { "Type": "String", "Required": false, "DefaultValue": "sudo" } },
+      { "CheckHostKey": { "Type": "Boolean", "Required": false, "DefaultValue": true } },
+      { "HostKey": { "Type": "String", "Required": false } },
+      { "RequestTerminal": { "Type": "Boolean", "Required": false, "DefaultValue": true } },
+      { "UserKey": { "Type": "Secret", "Required": false } }
+   ],
+    "Do": [
+      { "Function": { "Name": "LoginSsh", "ResultVariable": "LoginResult", "Parameters": [ "%FuncUserName%", "%FuncPassword%", "%UserKey::$%" ] } },
+      { "Function": { "Name": "SetUpEnvironment", "ResultVariable": "ValidateResult" } },
+      { "Function": { "Name": "ValidateAccount", "ResultVariable": "ValidateResult" } },
+      { "Function": { "Name": "LogoutSsh", "ResultVariable": "LogoutResult" } },
+      { "Return": { "Value": "%ValidateResult%" } }
+    ]
+  },
+  "CheckPassword": {
+    "Parameters": [
+      { "Port": { "Type": "Integer", "Required": false, "DefaultValue": 22} },
+      { "Timeout": { "Type": "Integer", "Required": false, "DefaultValue": 20} },
+      { "Address": { "Type": "String", "Required": true } },
+      { "FuncUserName": { "Type": "String", "Required": true } },
+      { "FuncPassword": { "Type": "Secret", "Required": false } },
+      { "AccountUserName": { "Type": "String", "Required": true } },
+      { "AccountPassword": { "Type": "Secret", "Required": true } },
+      { "AssetName": { "Type": "String", "Required": false, "DefaultValue": "" } },
+      { "DelegationPrefix": { "Type": "String", "Required": false, "DefaultValue": "sudo" } },
+      { "CheckHostKey": { "Type": "Boolean", "Required": false, "DefaultValue": true } },
+      { "HostKey": { "Type": "String", "Required": false } },
+      { "RequestTerminal": { "Type": "Boolean", "Required": false, "DefaultValue": true } },
+      { "UserKey": { "Type": "Secret", "Required": false } }
+   ],
+    "Do": [
+      { "Function": { "Name": "LoginSsh", "ResultVariable": "LoginResult", "Parameters": ["%FuncUserName%", "%FuncPassword%", "%UserKey::$%"] } },
+      { "Function": { "Name": "SetUpEnvironment", "ResultVariable": "ValidateResult" } },
+      { "Function": { "Name": "ValidatePassword", "ResultVariable": "ValidationResult" } },
+      { "Function": { "Name": "LogoutSsh", "ResultVariable": "LogoutResult" } },
+      { "Return": { "Value": "%ValidationResult%" } }
+    ]
+  },
+  "ChangePassword": {
+    "Parameters": [
+      { "Port": { "Type": "Integer", "Required": false, "DefaultValue": 22} },
+      { "Timeout": { "Type": "Integer", "Required": false, "DefaultValue": 20} },
+      { "Address": { "Type": "String", "Required": true } },
+      { "FuncUserName": { "Type": "String", "Required": true } },
+      { "FuncPassword": { "Type": "Secret", "Required": false } },
+      { "AccountUserName": { "Type": "String", "Required": true } },
+      { "AccountPassword": { "Type": "Secret", "Required": true } },
+      { "NewPassword": { "Type": "Secret", "Required": true } },
+      { "AssetName": { "Type": "String", "Required": false, "DefaultValue": "" } },
+      { "DelegationPrefix": { "Type": "String", "Required": false, "DefaultValue": "sudo" } },
+      { "CheckHostKey": { "Type": "Boolean", "Required": false, "DefaultValue": true } },
+      { "HostKey": { "Type": "String", "Required": false } },
+      { "RequestTerminal": { "Type": "Boolean", "Required": false, "DefaultValue": true } },
+      { "UserKey": { "Type": "Secret", "Required": false } }
+    ],
+    "Do": [
+      { "Function": { "Name": "LoginSsh", "ResultVariable": "LoginResult", "Parameters": [ "%FuncUserName%", "%FuncPassword%", "%UserKey::$%" ] } },
+      { "Function": { "Name": "ChangeUserPassword", "ResultVariable": "ChangeUserPasswordResult" } },
+      { "Function": { "Name": "LogoutSsh", "ResultVariable": "LogoutResult" } },
+      { "Return": { "Value": "%ChangeUserPasswordResult%" } }
+    ]
+  },
+  "DiscoverSshHostKey": {
+    "Parameters": [
+      { "Port": { "Type": "Integer", "Required": false, "DefaultValue": 22} },
+      { "Timeout": { "Type": "Integer", "Required": false, "DefaultValue": 20} },
+      { "Address": { "Type": "String", "Required": true } },
+      { "AssetName": { "Type": "String", "Required": false, "DefaultValue": "" } }
+      ],
+      "Do": [
+      { "Function": { "Name": "DiscoverHostKeyForAsset" } },
+      { "Return": { "Value": true } }
+    ]
+  },
+  "ChangeSshKey": {
+    "Parameters": [
+      { "Port": { "Type": "Integer", "Required": false, "DefaultValue": 22} },
+      { "Timeout": { "Type": "Integer", "Required": false, "DefaultValue": 20} },
+      { "Address": { "Type": "String", "Required": true } },
+      { "FuncUserName": { "Type": "String", "Required": true } },
+      { "FuncPassword": { "Type": "Secret", "Required": false } },
+      { "AccountUserName": { "Type": "String", "Required": true } },
+      { "AssetName": { "Type": "String", "Required": false, "DefaultValue": "" } },
+      { "DelegationPrefix": { "Type": "String", "Required": false, "DefaultValue": "sudo" } },
+      { "CheckHostKey": { "Type": "Boolean", "Required": false, "DefaultValue": true } },
+      { "HostKey": { "Type": "String", "Required": false } },
+      { "UserKey": { "Type": "Secret", "Required": false } },
+      { "OldSshKey": { "Type": "String", "Required": false } },
+      { "NewSshKey": { "Type": "String", "Required": false } },
+      { "NewSshPrivateKey": { "Type": "Secret", "Required": false, "DefaultValue" : "" } },
+      { "RequestTerminal": { "Type": "Boolean", "Required": false, "DefaultValue": true } }
+   ],
+    "Do": [
+      { "Comment" : { "Text" : "Configure an SSH key and/or remove an SSH key from the user's authorized keystore" }},
+      { "Function": { "Name": "LoginSsh", "ResultVariable": "LoginResult", "Parameters": ["%FuncUserName%", "%FuncPassword%", "%UserKey::$%"] } },
+      { "Function": { "Name": "SetUpEnvironment", "ResultVariable": "ValidateResult" } },
+      { "Function": { "Name": "DiscoverSshKeyConfiguration", "ResultVariable": "SshConfigData" } },
+      { "Function" : { "Name" : "ConfigureNewKey", "Parameters" : [ "%{ SshConfigData }%" ]  }},
+      { "Function" : { "Name" : "RemoveOldKey", "Parameters" : [ "%{ SshConfigData }%" ] }},
+      { "Function": { "Name": "LogoutSsh", "ResultVariable": "LogoutResult" } },
+      { "Return": { "Value": true } }
+    ]
+  },
+  "CheckSshKey": {
+    "Parameters": [
+      { "Port": { "Type": "Integer", "Required": false, "DefaultValue": 22} },
+      { "Timeout": { "Type": "Integer", "Required": false, "DefaultValue": 20} },
+      { "Address": { "Type": "String", "Required": true } },
+      { "FuncUserName": { "Type": "String", "Required": true } },
+      { "FuncPassword": { "Type": "Secret", "Required": false } },
+      { "AccountUserName": { "Type": "String", "Required": true } },
+      { "AssetName": { "Type": "String", "Required": false, "DefaultValue": "" } },
+      { "DelegationPrefix": { "Type": "String", "Required": false, "DefaultValue": "sudo" } },
+      { "CheckHostKey": { "Type": "Boolean", "Required": false, "DefaultValue": true } },
+      { "HostKey": { "Type": "String", "Required": false } },
+      { "UserKey": { "Type": "Secret", "Required": false } },
+      { "OldSshKey": { "Type": "String", "Required": true } },
+      { "RequestTerminal": { "Type": "Boolean", "Required": false, "DefaultValue": true } }
+   ],
+    "Do": [
+      { "Comment" : { "Text" : "Check if an SSH key is configured in a user's authorized keystore" }},
+      { "Function": { "Name": "LoginSsh", "ResultVariable": "LoginResult", "Parameters": ["%FuncUserName%", "%FuncPassword%", "%UserKey::$%"] } },
+      { "Function": { "Name": "SetUpEnvironment", "ResultVariable": "ValidateResult" } },
+      { "Function": { "Name": "DiscoverSshKeyConfiguration", "ResultVariable": "SshConfigData" } },
+      { "Function": { "Name": "IsOldKeyConfigured", "Parameters" : [ "%{ SshConfigData }%" ] , "ResultVariable" : "ValidateResult" }},
+      { "Function": { "Name": "LogoutSsh", "ResultVariable": "LogoutResult" } },
+      { "Return": { "Value": "%ValidateResult%" } }
+    ]
+  },
+  "DiscoverAuthorizedKeys": {
+    "Parameters": [
+      { "Port": { "Type": "Integer", "Required": false, "DefaultValue": 22} },
+      { "Timeout": { "Type": "Integer", "Required": false, "DefaultValue": 20} },
+      { "Address": { "Type": "String", "Required": true } },
+      { "FuncUserName": { "Type": "String", "Required": true } },
+      { "FuncPassword": { "Type": "Secret", "Required": false } },
+      { "AccountUserName": { "Type": "String", "Required": true } },
+      { "AssetName": { "Type": "String", "Required": false, "DefaultValue": "" } },
+      { "DelegationPrefix": { "Type": "String", "Required": false, "DefaultValue": "sudo" } },
+      { "CheckHostKey": { "Type": "Boolean", "Required": false, "DefaultValue": true } },
+      { "HostKey": { "Type": "String", "Required": false } },
+      { "UserKey": { "Type": "Secret", "Required": false } },
+      { "RequestTerminal": { "Type": "Boolean", "Required": false, "DefaultValue": true } }
+   ],
+    "Do": [
+      { "Comment" : { "Text" : "Discover all SSH keys configured in a user's authorized keystore" }},
+      { "Function": { "Name": "LoginSsh", "ResultVariable": "LoginResult", "Parameters": ["%FuncUserName%", "%FuncPassword%", "%UserKey::$%"] } },
+      { "Function": { "Name": "SetUpEnvironment", "ResultVariable": "ValidateResult" } },
+      { "Function": { "Name": "DiscoverSshKeyConfiguration", "ResultVariable": "SshConfigData" } },
+      { "Function": { "Name": "ReportSshKeys", "Parameters" : [ "%{ SshConfigData }%" ] }},
+      { "Function": { "Name": "LogoutSsh", "ResultVariable": "LogoutResult" } },
+      { "Return": { "Value": true } }
+    ]
+  },
+  "LoginSsh": {
+    "Parameters": [
+      { "UserName": { "Type": "String", "Required": true } },
+      { "Password": { "Type": "Secret", "Required": false } },
+      { "LoginKey": { "Type": "Secret", "Required": false } }
+    ],
+    "Do": [
+      { "Status": { "Type": "Connecting", "Percent": 30,
+          "Message": { "Name": "AssetConnectingWithAddress", "Parameters": [ "%AssetName%", "%Address%" ] } }
+      },
+      { "Try": {
+          "Do": [
+            {
+              "Connect": {
+                "ConnectionObjectName": "Global:ConnectSsh",
+                "Type": "Ssh",
+                "Port": "%Port%",
+                "NetworkAddress": "%Address%",
+                "Login": "%UserName%",
+                "Password": "%Password::$%",
+                "RequestTerminal": "%RequestTerminal%",
+                "UserKey": "%LoginKey::$%",
+                "CheckHostKey": "%CheckHostKey%",
+                "Hostkey": "%HostKey::$%",
+                "Timeout": "%Timeout%"
+              }
+            }
+          ],
+          "Catch": [
+            { "Throw": { "Value": "SSH Connection Error: %Exception%" } }
+          ]
+        }
+      },
+      { "Receive": { "ConnectionObjectName": "ConnectSsh", "BufferName": "LoginCheckBuffer" } },
+      { "Condition": {
+          "If": "Regex.IsMatch(LoginCheckBuffer, @\"(You are required to change your password)|(Your password has expired)|(Check for other error messages here)\")",
+          "Then": {
+            "Do": [
+              { "Function": { "Name": "LogoutSsh" } },
+              { "Return": { "Value": false } }
+            ]
+          }
+        }
+      },
+      { "Return": { "Value": true } }
+    ]
+  },
+  "LogoutSsh": {
+    "Do": [
+      { "Disconnect": { "ConnectionObjectName": "ConnectSsh" } },
+      { "Return": { "Value": true } }
+    ]
+  },
+  "SetUpEnvironment": {
+    "Do": [
+      { "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "unset TERM; stty -echo; LANG=C; LC_ALL=C; SUDO_PROMPT='SUDO password for %p:'; export LANG LC_ALL SUDO_PROMPT; echo \"INIT_CHECK=$?\"" } },
+      { "Receive": { "ConnectionObjectName": "ConnectSsh", "BufferName": "FlushBuffer", "ExpectRegex" : "INIT_CHECK=0", "ExpectTimeout": 2000 } },
+      { "Return": { "Value": true } }
+    ]
+  },
+  "ValidateAccount": {
+    "Do": [
+      { "Status": { "Type": "Checking", "Percent": "60",
+          "Message": { "Name": "AssetTestingConnectionWithAddress", "Parameters": [ "%AssetName%", "%Address%" ] } }
+      },
+      { "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "%DelegationPrefix% egrep -q '^(%FuncUserName%):' /etc/shadow; echo \"CHECKSYS=$?\"" } },
+      { "Receive": { "ConnectionObjectName": "ConnectSsh", "ContainsSecret": true, "BufferName": "ReturnStatus" } },
+      { "Condition": {
+          "If": "Regex.IsMatch(ReturnStatus, @\"SUDO password for\")",
+          "Then": {
+            "Do": [
+              { "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "%FuncPassword%", "ContainsSecret": true } },
+              { "Receive": { "ConnectionObjectName": "ConnectSsh", "ContainsSecret": true, "BufferName": "ReturnStatus" } }
+            ]
+          }
+        }
+      },
+      { "Switch": {
+          "MatchValue": "%ReturnStatus%",
+          "Cases": [
+            {
+              "CaseValue": "CHECKSYS=0",
+              "Do": [
+                { "Return": { "Value": true } }
+              ]
+            },
+            {
+              "CaseValue": "(incorrect password attempts)|(Sorry, try again)|(Check for other error messages here)",
+              "Do": [
+                { "Status": { "Type": "Checking", "Percent": 80,
+                    "Message": { "Name": "InsufficientDelegationPrivileges", "Parameters": [ "%DelegationPrefix%" ] } }
+                }
+              ]
+            },
+            {
+              "CaseValue": "(CHECKSYS=[1-9]+.*)|(Permission denied)",
+              "Do": [
+                { "Status": { "Type": "Checking", "Percent": 80,
+                    "Message": { "Name": "InsufficientPrivilegesAccessPassword" } }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      { "Return": { "Value": "false" } }
+    ]
+  },
+  "ValidatePassword": {
+    "Do": [
+      { "Status": { "Type": "Checking", "Percent": 50,
+          "Message": { "Name": "LookingUpUser", "Parameters": [ "%AccountUserName%" ] } }
+      },
+      { "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "grep -q '^%AccountUserName%:' /etc/passwd; echo \"CHECKUSER=$?\"" } },
+      { "Receive": { "ConnectionObjectName": "ConnectSsh", "BufferName": "ReturnStatus" } },
+      { "Switch": {
+          "MatchValue": "%ReturnStatus%",
+          "Cases": [
+            { "CaseValue": "CHECKUSER=[1-9]+.*",
+              "Do": [
+                { "Status": { "Type": "Checking", "Percent": 80,
+                    "Message": { "Name": "AccountNotFound", "Parameters": [ "%AccountUserName%" ] } }
+                },
+                { "Return": { "Value": false } }
+              ]
+            },
+            { "CaseValue": "CHECKUSER=0",
+              "Do": [
+                { "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "%DelegationPrefix% grep '^%AccountUserName%:' /etc/shadow" } },
+                { "Receive": { "ConnectionObjectName": "ConnectSsh", "ContainsSecret": true, "BufferName": "AccountEntry" } },
+                { "Condition": {
+                    "If": "Regex.IsMatch(AccountEntry, @\"SUDO password for\")",
+                    "Then": {
+                      "Do": [
+                        {
+                          "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "%FuncPassword%", "ContainsSecret": true } },
+                        { "Receive": { "ConnectionObjectName": "ConnectSsh", "ContainsSecret": true, "BufferName": "AccountEntry" } }
+                      ]
+                    }
+                  }
+                },
+                { "Switch": {
+                    "MatchValue": "%AccountEntry%",
+                    "Cases": [
+                      { "CaseValue": "%AccountUserName%:[^:]*.*:[^:].*:",
+                        "Do": [
+                          {
+                            "Status": { "Type": "Checking", "Percent": 75,
+                              "Message": { "Name": "VerifyingPassword" } }
+                          },
+                          { "CompareShadowHash": { "Password": "%AccountPassword%", "SaltedHash": "%AccountEntry%", "ResultVariable": "PasswordHashMatched" } },
+                          { "Condition": {
+                              "If": "PasswordHashMatched == true",
+                              "Then": {
+                                "Do": [
+                                  { "Return": { "Value": true } }
+                                ]
+                              }
+                            }
+                          },
+                          { "Return": { "Value": false } }
+                        ]
+                      },
+                      { "CaseValue": "(incorrect password attempts)|(Sorry, try again)|(Check for other error messages here)",
+                        "Do": [
+                          { "Status": { "Type": "Checking", "Percent": 80,
+                              "Message": { "Name": "InsufficientDelegationPrivileges", "Parameters": [ "%DelegationPrefix%" ] } }
+                          },
+                          { "Return": { "Value": false } }
+                        ]
+                      },
+                      { "CaseValue": "Permission denied",
+                        "Do": [
+                          { "Status": { "Type": "Checking", "Percent": 80,
+                              "Message": { "Name": "InsufficientPrivilegesAccessPassword" } }
+                          },
+                          { "Return": { "Value": false } }
+                        ]
+                      }
+                    ],
+                    "DefaultCase": {
+                      "Do": [
+                        { "Return": { "Value": false } }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      { "Return": { "Value": false } }
+    ]
+  },
+  "ChangeUserPassword": {
+    "Do": [
+      { "Status": { "Type": "Changing", "Percent": 50,
+          "Message": { "Name": "ChangingPassword", "Parameters": [ "%AccountUserName%" ] } }
+      },
+      { "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "grep -q '^%AccountUserName%:' /etc/passwd; echo \"CHECKUSER=$?\"" } },
+      { "Receive": { "ConnectionObjectName": "ConnectSsh", "BufferName": "ReturnStatus" } },
+      { "Switch": {
+          "MatchValue": "%ReturnStatus%",
+          "Cases": [
+            { "CaseValue": "CHECKUSER=[1-9]+.*",
+              "Do": [
+                { "Status": { "Type": "Checking", "Percent": 80,
+                    "Message": { "Name": "AccountNotFound", "Parameters": [ "%AccountUserName%" ] } }
+                },
+                { "Return": { "Value": false } }
+              ]
+            },
+            { "CaseValue": "CHECKUSER=0",
+              "Do": [
+                { "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "%DelegationPrefix% passwd %AccountUserName%; echo \"CHGPASS=$?\"" } },
+                { "Receive": {"ConnectionObjectName": "ConnectSsh", "BufferName": "PasswdAttempt" } },
+                { "Condition": {
+                    "If": "Regex.IsMatch(PasswdAttempt, @\"SUDO password for\")",
+                    "Then": {
+                      "Do": [
+                        { "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "%FuncPassword%", "ContainsSecret": true } },
+                        { "Receive": { "ConnectionObjectName": "ConnectSsh", "BufferName": "PasswdAttempt", "ExpectRegex": "([cC]urrent.*[Pp]assword)|([Nn]ew.*[Pp]assword:)|" } }
+                      ]
+                    }
+                  }
+                },
+                { "Condition": {
+                    "If": "Regex.IsMatch(PasswdAttempt, @\"[cC]urrent.*[Pp]assword\")",
+                    "Then": {
+                      "Do": [
+                        { "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "%AccountPassword%", "ContainsSecret": true } },
+                        { "Receive": { "ConnectionObjectName": "ConnectSsh", "BufferName": "PasswdAttempt", "ExpectRegex": "([Nn]ew.*[Pp]assword:)" } }
+                      ]
+                    }
+                  }
+                },
+                { "Condition": {
+                    "If": "Regex.IsMatch(PasswdAttempt, @\".*[Nn]ew.*[Pp]assword:\")",
+                    "Then": {
+                      "Do": [
+                        { "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "%NewPassword%", "ContainsSecret": true } },
+                        { "Receive": { "ConnectionObjectName": "ConnectSsh", "BufferName": "PasswdAttempt", "ExpectRegex": "([Nn]ew.*[Pp]assword:)" } }
+                      ]
+                    }
+                  }
+                },
+                { "Condition": {
+                    "If": "Regex.IsMatch(PasswdAttempt, @\".*[Nn]ew.*[Pp]assword:\", RegexOptions.Multiline)",
+                    "Then": {
+                      "Do": [
+                        { "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "%NewPassword%", "ContainsSecret": true } },
+                        { "Receive": { "ConnectionObjectName": "ConnectSsh", "BufferName": "PasswdAttempt" } }
+                      ]
+                    }
+                  }
+                },
+                { "Switch": {
+                    "MatchValue": "%PasswdAttempt%",
+                    "Cases": [
+                      { "CaseValue": "CHGPASS=0",
+                        "Do": [
+                          { "Return": { "Value": true } }
+                        ]
+                      },
+                      { "CaseValue": "(CHGPASS=[1-9]+.*)|(BAD PASSWORD)|(Have exhausted maximum number of retries)",
+                        "Do": [
+                          {
+                            "Status": { "Type": "Changing", "Percent": 80,
+                              "Message": { "Name": "PasswordChangeFailed", "Parameters": [ "%AccountUserName%" ] } }
+                          }
+                        ]
+                      },
+                      {
+                        "CaseValue": "(incorrect password attempts)|(Sorry, try again)|(Check for other error messages here)",
+                        "Do": [
+                          { "Status": { "Type": "Changing", "Percent": 80,
+                              "Message": { "Name": "InsufficientDelegationPrivileges", "Parameters": [ "%DelegationPrefix%" ] } }
+                          }
+                        ]
+                      },
+                      { "CaseValue": "(Only root can specify a user name)|(Permission denied)|(may not view or modify password information)",
+                        "Do": [
+                          {
+                            "Status": { "Type": "Changing", "Percent": 80,
+                              "Message": { "Name": "InsufficientPrivilegesAccessPassword" } }
+                          }
+                        ]
+                      },
+                      { "CaseValue": "(BAD PASSWORD)|(Have exhausted maximum number of retries)",
+                        "Do": [
+                          { "Status": { "Type": "Changing", "Percent": 80,
+                              "Message": { "Name": "PasswordTooWeak", "Parameters": [ "%AccountUserName%" ] } }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      { "Return": { "Value": false } }
+    ]
+  },
+  "DiscoverHostKeyForAsset": {
+      "Do": [
+        { "Status": { "Type": "Connecting", "Percent": 30,
+            "Message": { "Name": "AssetConnectingWithAddress", "Parameters": [ "%AssetName%", "%Address%" ] }}
+        },
+        {
+          "Try": {
+            "Do": [
+              {
+                "DiscoverSshHostKey": {
+                  "HostKeyVariableName": "HostKey",
+                  "SoftwareVersionVariableName": "GLOBAL:ServerSoftwareName",
+                  "Port": "%Port%",
+                  "NetworkAddress": "%Address%",
+                  "Timeout": "%Timeout%",
+                  "DiscoverHostKey": true,
+                  "Type": "Ssh"
+                }
+              },
+              { "WriteResponseObject": { "Value": "%HostKey::$%" } }
+            ],
+            "Catch": [
+              {
+                "Condition": {
+                  "If": "string.IsNullOrEmpty(Exception)",
+                  "Then": {
+                    "Do": [
+                      { "Status": { "Type": "Connecting", "Percent": 95,
+                          "Message": { "Name": "AssetConnectFailedWithAddress","Parameters": [ "%AssetName%", "%Address%" ] } }
+                      },
+                      { "Throw": { "Value": "SSH Connection Error" } }
+                    ]
+                  },
+                  "Else": {
+                    "Do": [
+                      { "Status": { "Type": "Connecting", "Percent": 95,
+                          "Message": { "Name": "AssetConnectFailedWithReasonAndAddress", "Parameters": [ "%AssetName%", "%Address%", "%Exception%" ] } }
+                      },
+                      { "Throw": { "Value": "%Exception%" } }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+   },
+   "DiscoverSshKeyConfiguration": {
+     "Do": [
+       { "Comment" : { "Text" : "Discover the SSH authorized key path templates configured on this asset, and get the user information required to evaluate the templates" }},
+       { "Function" : { "Name" : "GetValueFromOutput",
+           "Parameters" : [ "echo uid=`id -u %AccountUserName%`", "(?m)(?<=\\buid=)\\d+", false ],
+           "ResultVariable" : "AccountUid"
+       } },
+
+       { "Condition": {
+         "If": "string.IsNullOrEmpty(AccountUid)",
+         "Then" : { "Do" : [
+           { "Status": { "Type": "Checking", "Percent": 80, "Message": { "Name": "AccountNotFound", "Parameters": [ "%AccountUserName%" ] } }},
+           { "Return" : { "Value" : { "Result" : false } } }
+         ]}
+       }},
+
+       { "Function" : { "Name" : "GetValueFromOutput",
+         "Parameters" : [ "echo gid=`id -g %AccountUserName%`", "(?m)(?<=\\bgid=)\\d+", false ],
+         "ResultVariable" : "AccountGid"
+       } },
+
+       { "Function" : { "Name" : "GetValueFromOutput",
+         "Parameters" : [ "%DelegationPrefix::$% sshd -T -C user=%AccountUserName%,host=`hostname`,addr=`hostname -i` | grep \"^authorizedkeysfile \"", "(?m)(?<=\\bauthorizedkeysfile\\s+)\\S.*", false ],
+         "ResultVariable" : "KeyTemplateLine"
+       } },
+
+       { "Condition" : {
+         "If" : "string.IsNullOrEmpty(KeyTemplateLine)",
+         "Then" : { "Do" : [
+           { "Eval" : { "Expression" : "KeyTemplateLine = \"%h/.ssh/authorized_keys %h/.ssh/authorized_keys2\"" }}
+       ] } }},
+
+       { "Function" : { "Name" : "GetValueFromOutput",
+          "Parameters" : [ "echo \"home=\"`grep '^%AccountUserName%:' /etc/passwd | cut -d ':' -f 6`", "(?m)(?<=\\bhome=)\\S+", true ],
+          "ResultVariable" : "AccountHomeDir"
+       }},
+
+       { "Split" : { "Source" : "%KeyTemplateLine::$%", "DelimiterChars" : [ " " ], "ResultVariableName" : "KeystoreTemplateList", "RemoveEmptyEntries" : true }},
+
+       { "SetItem" : { "Name" : "SshConfigData", "Value" : {
+           "SshdConfigFile" : "/etc/ssh/sshd_config",
+           "KeystoreTemplateList" : "%{ KeystoreTemplateList }%",
+           "KeystorePathList" : "%{ new List<string>() }%",
+           "AccountHomeDir" : "%{ AccountHomeDir }%",
+           "AccountUid" : "%{ AccountUid }%",
+           "AccountGid" : "%{ AccountGid }%",
+           "Result" : true
+       } } },
+       { "Function" : { "Name" : "ResolveKeyTemplates", "Parameters" : [ "%{ SshConfigData }%" ] }},
+       { "Return" : { "Value" : "%{ SshConfigData }%" }}
+
+    ]
+  },
+
+  "ParseKey" : {
+    "Parameters" : [
+      { "KeyString": { "Type": "String"} }
+    ],
+    "Do" : [
+      { "Comment" : { "Text" : "Parse a line from an authorized key file, checking for a valid SSH key" }},
+      { "SetItem" : { "Name" : "Comment", "Value" : ""}},
+      { "SetItem" : { "Name" : "KeyMatch", "Value" : "%{ Regex.Match(KeyString, \"(?m)^(.*\\s)?(ssh-rsa|ssh-dss|ssh-ed25519|ecdsa-sha2-nistp521|ecdsa-sha2-nistp384|ecdsa-sha2-nistp256|sk-ecdsa-sha2-nistp256@openssh\\.com|sk-ssh-ed25519@openssh\\.com)\\s+(\\S+)\\s*(.*)\") }%" }},
+
+      { "Condition" : {
+        "If" : "!KeyMatch.Success",
+        "Then" : { "Do" : [
+          { "Log" : { "Text" : "Ignoring invalid key : %{ KeyString }%" }},
+          { "Return" : { "Value" : { "Result" : false } }}
+      ]}}},
+
+      { "SetItem" : { "Name" : "KeyValue", "Value" : "%{ KeyMatch.Groups[3].Value.ToString() }%"}},
+
+      { "Function": { "Name": "ValidateBase64String",
+        "Parameters": ["%{ KeyValue }%"],
+        "ResultVariable": "IsValidKey"
+      } },
+      { "Condition" : {
+        "If" : "!IsValidKey",
+        "Then" : { "Do": [
+          { "Log" : { "Text" : "Ignoring invalid key : %{ KeyString }%" }},
+          { "Return" : { "Value" : { "Result" : false } }}
+      ]}}},
+
+
+      { "SetItem" : { "Name" : "KeyType", "Value" : "%{ KeyMatch.Groups[2].Value.ToString() }%"}},
+      { "SetItem" : { "Name" : "SshKey", "Value" : "%{ $\"{KeyType} {KeyValue}\" }%"}},
+      { "Condition" : {
+        "If" : "KeyMatch.Groups.Count > 3",
+        "Then" : { "Do" : [
+           { "Eval" : { "Expression" : "Comment=KeyMatch.Groups[4].Value" }}
+      ]}}} ,
+
+      { "Return" : { "Value" : {
+        "Result" : true, "Key" : "%{ SshKey }%", "KeyType" : "%{ KeyType }%", "KeyValue" : "%{ KeyValue }%", "KeyComment" : "%{ Comment }%"
+      } } }
+  ]},
+
+  "GetKeyFileContents" : {
+    "Parameters" : [
+      { "Filename" : { "Type" : "String" } }
+    ],
+    "Do": [
+
+      { "Comment" : { "Text" : "Get the contents of an authorized keys file (if it exists), as an array of lines" }},
+      { "Status": { "Type": "Checking", "Percent": 70, "Message": { "Name": "DiscoverKeyFile", "Parameters": ["%Filename%", "%AccountUserName%", "%AssetName%" ] } } },
+
+
+      { "Function" : { "Name" : "GetValueFromOutput",
+        "Parameters" : [ "res=`%DelegationPrefix::$% cat %{ Filename }% 2>&1`; test $? -eq 0 && echo \"Content=${res},ALLDONE=$?\" || echo \"FOUND=FAIL $res\"", "(?s)(?<=\\b(Content=)|(FOUND=FAIL)).*", true ],
+        "ResultVariable" : "FileContents"
+      } },
+
+      { "Condition" : {
+        "If" : "Regex.IsMatch(FileContents, \"FOUND=FAIL\")",
+        "Then": { "Do" : [
+        { "Return" : { "Value" : { "Result" : false }}}
+      ]}}},
+
+
+      { "Eval" : { "Expression" : "FileContents = Regex.Replace(FileContents, \"(.*Content=)|(,ALLDONE=\\d+)\", \"\", RegexOptions.SingleLine)" } },
+      { "Split" : { "Source" : "%FileContents::$%", "DelimiterChars" : [ "\n" ], "ResultVariableName" : "LineList", "RemoveEmptyEntries" : true }},
+      { "Return" : { "Value" : {
+        "Result" : true, "FileContents" : "%{ LineList }%"
+      }}}
+    ]},
+
+
+  "ReportKeysFromFile" : {
+    "Parameters" : [
+      { "Filename" : { "Type" : "String" }},
+      { "LineList" : { "Type" : "Array" }}
+    ],
+    "Do" : [
+      { "Comment" : { "Text" : "Report the list of authorized keys in a file" }},
+      { "SetItem" : { "Name" : "KeyCount", "Value" : 0}},
+
+      { "ForEach" : { "CollectionName" : "LineList", "ElementName" : "Key",
+        "Body" : { "Do" : [
+          { "Function" : { "Name" : "ParseKey",
+            "Parameters" : [ "%{ Key }%" ],
+            "ResultVariable" : "ParsedKey"
+          }},
+
+          { "Condition" : {
+            "If" : "ParsedKey.Result",
+            "Then" : { "Do" : [
+              { "Eval" : { "Expression" : "KeyCount = KeyCount + 1" } },
+              { "WriteDiscoveredSshKey" : { "KeyType" : "%{ ParsedKey.KeyType }%", "SshKey" : "%{ ParsedKey.KeyValue }%", "Comment" : "%{ ParsedKey.KeyComment }%" } }
+          ]}}}
+      ]}}},
+      { "Status": { "Type": "Checking", "Percent": 70, "Message": { "Name": "DiscoveredAuthKeys", "Parameters": [ "%{ KeyCount }%", "%{ Filename }%" ] } } },
+      { "Return" : { "Value" : "%{ KeyCount }%" }}
+    ]
+  },
+
+
+  "ResolveKeyTemplates" : {
+    "Parameters" : [
+      { "SshConfigData" : { "Type" : "Object" } }
+    ],
+    "Do" : [
+      { "Comment" : { "Text" : "Evaluate the authorized key path templates to get the user's list of authorized key files" }},
+      { "SetItem" : { "Name" : "KeystoreTemplateList", "Value" : "%{ SshConfigData.KeystoreTemplateList }%" }},
+      { "SetItem" : { "Name" : "KeystorePathList", "Value" : "%{ new List<string>() }%" }},
+      { "SetItem": { "Name": "TemplateListString", "Value": "%{ String.Join(\",\", KeystoreTemplateList) }%" } },
+      { "Status": { "Type": "Checking", "Message": { "Name": "DiscoveringAuthKeyFileTemplates",
+        "Parameters": [ "%{ TemplateListString  }%", "%AssetName%" ] }, "Percent": 60 } },
+      { "ForEach" : { "CollectionName" : "KeystoreTemplateList", "ElementName" : "Template",
+        "Body" : { "Do" : [
+
+          { "SetItem" : { "Name" : "KeyPath", "Value" : "%{ Regex.Replace(Template, \"%h\", SshConfigData.AccountHomeDir )}%" } },
+          { "Eval" : { "Expression" : "KeyPath = Regex.Replace(KeyPath, \"%u\", AccountUserName)" } },
+          { "Eval" : { "Expression" : "KeyPath = Regex.Replace(KeyPath, \"%%\", \"%\")" } },
+
+          { "Condition" : { "If" : "!KeyPath.StartsWith(\"/\")",
+            "Then" : { "Do" : [ { "Eval" : { "Expression" : "KeyPath = $\"{SshConfigData.AccountHomeDir}/{KeyPath}\"" }} ] } }},
+
+          { "Eval" : { "Expression" : "KeystorePathList.Add(KeyPath)" }}
+      ]}}},
+      { "SetItem": { "Name": "KeyListString", "Value": "%{ String.Join(\",\", KeystorePathList) }%" } },
+      { "Status": { "Type": "Checking", "Message": { "Name": "DiscoveringAuthKeyFiles", "Parameters": ["%{ KeyListString }%"] }, "Percent": "65" } },
+      { "Eval" : { "Expression" : "SshConfigData.KeystorePathList = KeystorePathList" }}
+    ]
+  },
+
+
+  "GetValueFromOutput" : {
+    "Parameters" : [
+      { "Cmd": { "Type": "String", "Required": true } },
+      { "Expect": { "Type": "String", "Required": true } },
+      { "ThrowOnFail": { "Type": "Boolean", "Required": true } }
+    ],
+    "Do" : [
+      { "Comment" : { "Text" : "Run a command and extract a value from the expected output" }},
+      { "SetItem": { "Name": "ErrorRegex", "Value" : "(Permission denied)|(SUDO password for)|(incorrect password attempts)|(Sorry, try again)|(ejected)|(may not run sudo)|(is not allowed to run sudo)|(is not in the sudoers file)|(is not allowed to execute)|(Request rejected)"  } },
+      { "Comment" : { "Text" : "Run a command and parse the expected output" }},
+
+      { "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "%{ Cmd }%"} },
+      { "Receive": { "ConnectionObjectName": "ConnectSsh", "BufferName": "buff", "ExpectTimeout" : 1000, "ExpectRegex" : "(%Expect%)|(%ErrorRegex%)"}},
+      { "SetItem": { "Name": "Result", "Value" : false }},
+
+
+      { "SetItem": { "Name": "Finished", "Value" : false }},
+      { "For" :   {
+        "Before" : "Finished = false",
+        "Condition" : "Finished == false",
+        "Body" : [
+          { "Condition": {
+            "If": "Regex.IsMatch(buff, \"SUDO password for\")",
+            "Then" : { "Do" : [
+              { "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "%{ FuncPassword }%", "ContainsSecret" : true} },
+              { "Condition": {
+                "If": "Regex.IsMatch(buff, \"SUDO password for.*SUDO password for\")",
+                "Then" : { "Do" : [
+                  { "Send": { "ConnectionObjectName": "ConnectSsh", "Buffer": "%{ FuncPassword }%", "ContainsSecret" : true} }
+              ]}}},
+
+              { "Receive": { "ConnectionObjectName": "ConnectSsh", "BufferName": "buff", "ExpectTimeout" : 2000, "ExpectRegex": "(%Expect%)|(%ErrorRegex%)" } }
+            ]},
+            "Else" : { "Do" : [
+              { "Eval": { "Expression": "Finished = true" }} ] }
+          }}
+      ]} },
+
+      { "Condition": {
+        "If": "Regex.IsMatch(buff, ErrorRegex, RegexOptions.SingleLine)",
+        "Then" : { "Do" : [
+          { "Status": { "Type": "Checking", "Percent": 80,
+            "Message": { "Name": "InsufficientDelegationPrivileges", "Parameters": [ "%DelegationPrefix%" ] } }
+          },
+          { "Condition": {
+            "If": "ThrowOnFail",
+            "Then" : { "Do" : [
+              { "Throw" : { "Value" : "Command Failed" }}
+            ] }
+          }}
+      ] }}},
+
+      { "SetItem": { "Name": "CheckLine", "Value": "%{ Regex.Match(buff, Expect, RegexOptions.IgnoreCase) }%" } },
+
+      { "Condition": { "If": "!CheckLine.Success",
+        "Then" : { "Do" : [
+          { "Log" : { "Text" : "Did not find expected output in: %{ buff }%" }},
+          { "Condition": {
+            "If": "ThrowOnFail",
+            "Then" : { "Do" : [
+              { "Throw" : { "Value" : "Command Failed" }}
+            ] }}}
+        ]},
+        "Else" : { "Do" : [
+          { "SetItem" : { "Name" : "Output", "Value" : "%{ CheckLine.Value }%" }},
+          { "Eval" : { "Expression" : "Output=Output.Trim()" }},
+          { "Return" : { "Value" : "%{ Output }%" }} ]}
+        }}
+    ]
+  },
+  "ReportSshKeys" : {
+    "Parameters" : [
+      { "SshConfigData" : { "Type" : "Object" } }
+    ],
+    "Do" : [
+      { "Comment" : { "Text" : "Report all valid SSH keys from each of the user's authorized key files" }},
+      { "SetItem" : { "Name" : "KeystorePaths", "Value" : "%{ SshConfigData.KeystorePathList }%" }},
+      { "SetItem" : { "Name" : "TotalKeys", "Value" : 0 }},
+      { "ForEach" : { "CollectionName" : "KeystorePaths", "ElementName" : "Path",
+        "Body" : { "Do" : [
+
+          { "Function" : { "Name" : "GetKeyFileContents",
+            "Parameters" : [ "%{ Path }%" ],
+            "ResultVariable" : "Result"
+          }},
+          { "Condition" : {
+            "If" : "Result.Result",
+            "Then" : { "Do" : [
+              { "Function" : { "Name" : "ReportKeysFromFile",
+                "Parameters" : [ "%{ Path }%", "%{ Result.FileContents }%" ],
+                "ResultVariable" : "NumKeys"
+              }},
+              { "Eval" : { "Expression" : "TotalKeys = TotalKeys + NumKeys" }}
+          ] }}}
+
+      ]}}} ,
+      { "Status" : { "Type" : "Checking", "Message" : { "Name" : "TotalDiscoveredAuthKeys", "Parameters" : [ "%{ TotalKeys }%", "%{ AccountUserName }%" ] }, "Percent" : "80" } }
+    ]
+  },
+
+  "ValidateBase64String" : {
+    "Parameters": [
+      { "EncodedString": { "Type": "string" } }
+    ],
+    "Do": [
+      { "Comment": { "Text": "Validate an SSH key: check that it is a valid base64-encoded key" } },
+      { "Try": { "Do": [
+          { "Eval": { "Expression": "%{ Convert.FromBase64String(EncodedString) }%" } }
+        ],
+        "Catch": [
+          { "Comment": { "Text": "An invalid expression exception here means the key string cannot be decoded from base64. It wraps the System.FormatException can be found in the inner exception" } },
+          { "Log": { "Text": "Key string is not a valid base64-encoded key: %EncodedString::$%" } },
+          { "Return": { "Value": false } }
+        ]
+      }
+    },
+    { "Return": { "Value" : true }}
+  ]
+  },
+
+  "IsSshKeyConfiguredInFile" : {
+    "Parameters" : [
+      { "Key" : { "Type" : "String" }},
+      { "Path" : { "Type" : "String" }},
+      { "LineList" : { "Type" : "Array" }}
+    ],
+    "Do" : [
+      { "Comment" : { "Text" : "Check if an SSH key is configured in an authorized key file" }},
+      { "ForEach" : { "CollectionName" : "LineList", "ElementName" : "OneKey",
+        "Body" : { "Do" : [
+          { "Function" : { "Name" : "ParseKey", "Parameters" : [ "%{ OneKey }%" ], "ResultVariable" : "ParsedKey" }},
+
+          { "Condition" : {
+            "If" : "ParsedKey.Result",
+            "Then" : { "Do" : [
+              { "SetItem" : { "Name" : "CheckKey", "Value" : "%{ ParsedKey.Key}%" }},
+              { "Condition" : {
+                "If" : "CheckKey.Equals(Key)",
+                "Then" : { "Do" : [
+                  { "Return" : { "Value" : true }}
+                ]}
+              }}
+
+          ]}}}
+      ]}}},
+      { "Return" : { "Value" : false  }}
+    ]
+  },
+
+
+  "FindKeyInAnyFile" : {
+    "Parameters" : [
+      { "Key" : { "Type" : "String" }},
+      { "SshConfigData" : { "Type" : "Object" }}
+    ],
+    "Do" : [
+      { "Comment" : { "Text" : "Search for an SSH key in any of a user's authorized key files" }},
+      { "SetItem" : { "Name" : "KeystorePaths", "Value" : "%{ SshConfigData.KeystorePathList }%" }},
+
+
+      { "ForEach" : { "CollectionName" : "KeystorePaths", "ElementName" : "Path",
+        "Body" : { "Do" : [
+
+         { "Function" : { "Name" : "GetKeyFileContents", "Parameters" : [ "%{ Path }%" ], "ResultVariable" : "Result" }},
+         { "Condition" : {
+           "If" : "Result.Result",
+           "Then" : { "Do" : [
+             { "Function" : { "Name" : "IsSshKeyConfiguredInFile",
+               "Parameters" : [ "%Key%", "%{ Path }%", "%{ Result.FileContents }%" ],
+               "ResultVariable" : "KeyFound"
+             }},
+             { "Condition" : {
+               "If" : "KeyFound",
+               "Then" : { "Do" : [
+                 { "Return" : { "Value" : { "Configured" : true, "Path" : "%{ Path }%" }}}
+               ]}
+             }}
+         ]}}}
+      ]}}},
+      { "Return" : { "Value" : { "Configured" : false, "Path" : "" }}}
+    ]
+  },
+
+
+  "ConfigureNewKey" : {
+    "Parameters" : [
+      { "SshConfigData" : { "Type" : "Object" }}
+    ],
+    "Do" : [
+      { "Comment" : { "Text" : "Configure a new SSH key in the user's authorized keystore, if not already configured" }},
+
+      { "Condition" : {
+        "If" : "string.IsNullOrEmpty(NewSshKey)",
+        "Then" : { "Do" : [
+          { "Status": { "Type": "Changing", "Message": { "Name": "NoKeyToAdd" }, "Percent": "30" } },
+          { "Return": { }}
+      ]}}},
+
+      { "Status": { "Type": "Changing", "Message": { "Name": "InstallingSshKey" }, "Percent": "30" } },
+      { "Function" : { "Name" : "FindKeyInAnyFile",
+        "Parameters" : [ "%NewSshKey%", "%{ SshConfigData }%" ],
+        "ResultVariable" : "KeyFound"
+      }},
+
+      { "Condition" : {
+        "If" : "KeyFound.Configured",
+        "Then" : { "Do" : [
+
+         { "Status": { "Type": "Changing", "Message": { "Name": "SshKeyConfiguredInFile", "Parameters": ["%{ KeyFound.Path }%"] }, "Percent": "60" } },
+         { "Return": { }}
+      ] }}},
+
+      { "SetItem" : { "Name" : "KeyPath", "Value" : "%{ SshConfigData.KeystorePathList[0] }%" }},
+      { "SetItem" : { "Name" : "BackupKeyPath", "Value" : "'%{ KeyPath }%_backup'" }},
+
+      { "Function" : { "Name" : "GetValueFromOutput",
+        "Parameters" : [ "%DelegationPrefix::$% rm -f %{ BackupKeyPath }%; echo RESULT=$?", "(?s)(RESULT=0)", true ],
+        "ResultVariable" : "Output"
+      } },
+
+      { "Try": { "Do": [
+        { "Function" : { "Name" : "GetValueFromOutput",
+          "Parameters" : [ "echo \"PATH=\"`dirname %{ KeyPath }%`", "(?m)(?<=\\bPATH=)\\S+", true ],
+          "ResultVariable" : "AuthKeyDir"
+        } },
+
+        { "Function" : { "Name" : "GetValueFromOutput",
+          "Parameters" : [ "%DelegationPrefix::$% mkdir -p  '%{ AuthKeyDir }%' &&  %DelegationPrefix::$% chown %{ AccountUserName }% '%{ AuthKeyDir }%' && %DelegationPrefix::$% chmod u=rwx,go-rwx '%{ AuthKeyDir }%' ; echo RESULT=$?", "(?s)(RESULT=0)", true ],
+          "ResultVariable" : "Output"
+          } },
+
+        { "Function" :
+        { "Name" : "GetValueFromOutput",
+          "Parameters" : [ "%DelegationPrefix::$% touch %{ KeyPath }%; echo RESULT=$?", "(?s)(RESULT=0)", true ],
+          "ResultVariable" : "Output"
+          } },
+
+        { "Function" :
+        { "Name" : "GetValueFromOutput",
+          "Parameters" : [ "%DelegationPrefix::$% cp -pf %{ KeyPath }% %{ BackupKeyPath }%; echo RESULT=$?", "(?s)(RESULT=0)", true ],
+          "ResultVariable" : "Output"
+          } },
+
+        { "Function" : { "Name" : "GetValueFromOutput",
+          "Parameters" : [ "echo '%NewSshKey% %NewSshKeyComment::$%' | %DelegationPrefix::$% tee -a %{ KeyPath }%; echo RESULT=$?", "(?s)(RESULT=0)", true ],
+          "ResultVariable" : "Output"
+        } },
+
+        { "Function" : { "Name" : "GetValueFromOutput",
+          "Parameters" : [ "%DelegationPrefix::$% chown %{ SshConfigData.AccountUid }%:%{ SshConfigData.AccountGid }% %KeyPath%; echo RESULT=$?", "(?s)(RESULT=0)", true ],
+          "ResultVariable" : "Output"
+        } },
+
+        { "Function" : { "Name" : "GetValueFromOutput",
+          "Parameters" : [ "%DelegationPrefix::$% chmod u=rw,go-rwx %KeyPath%; echo RESULT=$?", "(?s)(RESULT=0)", true ],
+          "ResultVariable" : "Output"
+        } },
+
+        { "Function" : { "Name" : "TestNewAuthorizedKey",
+          "Parameters" : [ "%AccountUserName%", "%NewSshPrivateKey::$%" ]
+        } }
+
+      ],
+      "Catch": [
+        { "Function" : { "Name" : "GetValueFromOutput",
+          "Parameters" : [ "%DelegationPrefix::$% test -f %BackupKeyPath% && %DelegationPrefix::$% mv %{ BackupKeyPath }% %{ KeyPath }% ; echo RESULT=$?", "(?s)(RESULT=0)", true ],
+          "ResultVariable" : "Output"
+        } },
+        { "Throw" : { "Value" : "Failed to configured new SSH key" }}
+      ] }},
+
+      { "Function" : { "Name" : "GetValueFromOutput",
+        "Parameters" : [ "%DelegationPrefix::$% rm -f %{ BackupKeyPath }%; echo RESULT=$?", "(?s)(RESULT=0)", true ],
+        "ResultVariable" : "Output"
+      } }
+    ]
+  },
+
+  "RemoveOldKey" : {
+    "Parameters" : [
+      { "SshConfigData" : { "Type" : "Object" }}
+    ],
+    "Do" : [
+      { "Comment" : { "Text" : "Remove an SSH key from the user's authorized keystore, if configured" }},
+      { "Status": { "Type": "Changing", "Message": { "Name": "RemovingOldSshKey" }, "Percent": "80" } },
+      { "Condition" : {
+        "If" : "string.IsNullOrEmpty(OldSshKey)",
+        "Then" : { "Do" : [
+          { "Status": { "Type": "Changing", "Message": { "Name": "NoKeyToRemove" }, "Percent": "80" } },
+          { "Return" : { }}
+      ] } } },
+
+      { "Function" : { "Name" : "FindKeyInAnyFile",
+        "Parameters" : [ "%OldSshKey%", "%{ SshConfigData }%" ],
+        "ResultVariable" : "KeyFound"
+      }},
+      { "Condition" : {
+        "If" : "!KeyFound.Configured",
+        "Then" : { "Do" : [
+          { "Log": { "Value": "Key is not configured" }},
+          { "Return": { }}
+      ] }}},
+
+      { "SetItem" : { "Name" : "KeyPath", "Value" : "'%{ KeyFound.Path }%'" }},
+      { "SetItem" : { "Name" : "NewKeyPath", "Value" : "'%{ KeyFound.Path }%_Updated'" }},
+
+      { "Function" : { "Name" : "GetValueFromOutput",
+        "Parameters" : [ "%DelegationPrefix::$% cat %{ KeyPath }%  | grep -v '%{ OldSshKey }%' | %DelegationPrefix::$% tee %{ NewKeyPath }%; echo RESULT=$?", "(?s)(RESULT=0)", true ],
+        "ResultVariable" : "Output"
+      } },
+
+      { "Function" : { "Name" : "GetValueFromOutput",
+        "Parameters" : [ "%DelegationPrefix::$% mv %{ NewKeyPath }% %{ KeyPath }%; echo RESULT=$?", "(?s)(RESULT=0)", true ],
+        "ResultVariable" : "Output"
+      } },
+
+      { "Function" : { "Name" : "GetValueFromOutput",
+        "Parameters" : [ "%DelegationPrefix::$% chown %{ SshConfigData.AccountUid }%:%{ SshConfigData.AccountGid }% %KeyPath%; echo RESULT=$?", "(?s)(RESULT=0)", true ],
+        "ResultVariable" : "Output"
+      } },
+
+      { "Function" : { "Name" : "GetValueFromOutput",
+        "Parameters" : [ "%DelegationPrefix::$% chmod u=rw,go-rwx %KeyPath%; echo RESULT=$?", "(?s)(RESULT=0)", true ],
+        "ResultVariable" : "Output"
+      } }
+    ]
+  },
+  "IsOldKeyConfigured" : {
+    "Parameters" : [
+      { "SshConfigData" : { "Type" : "Object" }}
+    ],
+    "Do" : [
+
+      { "Comment" : { "Text" : "Check if the old SSH key is configured in the user's authorized keystore" }},
+      { "Status": { "Type": "Checking", "Message": { "Name": "CheckSshKey",  "Parameters": [ "%AccountUserName%", "%AssetName%" ] }, "Percent": "30" } },
+
+      { "Condition" : {
+        "If" : "string.IsNullOrEmpty(OldSshKey)",
+        "Then" : { "Do" : [
+          { "Return" : { "Value" : false }}
+      ]}}},
+
+
+      { "Function" : { "Name" : "FindKeyInAnyFile", "Parameters" : [ "%OldSshKey%", "%{ SshConfigData }%" ],
+        "ResultVariable" : "KeyFound"
+      }},
+
+      { "Return" : { "Value" : "%{ KeyFound.Configured }%" }}
+    ]
+  },
+  "TestNewAuthorizedKey" : {
+    "Parameters": [
+      { "TestUser": { "Type": "string" } },
+      { "TestKey": { "Type": "string" } }
+    ],
+    "Do": [
+      { "Log": { "Text": "If the corresponding private key is supplied, test that the new authorized key can be used to login to the asset" } },
+      { "Condition": { "If": "string.IsNullOrEmpty(NewSshPrivateKey)", "Then": { "Do": [ { "Return": { "Value": true } } ] } } },
+      { "Try": { "Do": [
+          { "Status": { "Type": "Changing", "Message": { "Name": "TestingKeyForServiceUser" }, "Percent": "80" } },
+          { "Connect": {
+            "ConnectionObjectName": "TestConnectSsh",
+            "Type": "Ssh",
+            "Port": "%Port%",
+            "NetworkAddress": "%Address%",
+            "Login": "%TestUser%",
+            "UserKey": "%TestKey%",
+            "RequestTerminal": true,
+            "CheckHostKey": "%CheckHostKey%",
+            "Hostkey": "%HostKey::$%" }
+          },
+          { "Disconnect": { "ConnectionObjectName": "TestConnectSsh" } },
+          { "Return": { "Value": true } }
+        ],
+        "Catch": [
+          { "Status": { "Type": "Connecting", "Message": { "Name": "AssetConnectFailedWithReason", "Parameters": ["%Address%", "%Exception::$%"] }, "Percent": "80" } },
+          { "Status": { "Type": "Changing", "Message": { "Name": "NewSshKeyTestFailed" }, "Percent": "95" } },
+          { "Throw": { "Value": "Key is not valid" } }
+        ]
+      } }
+    ]                                                                                                                                                         }
+}
