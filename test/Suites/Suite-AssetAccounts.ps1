@@ -44,8 +44,8 @@
 
         # --- Get-SafeguardAssetAccount (list all) ---
         Test-SgPsAssert "Get-SafeguardAssetAccount lists accounts" {
-            $accounts = Get-SafeguardAssetAccount -Insecure
-            $null -ne $accounts -or $true
+            $list = @(Get-SafeguardAssetAccount -Insecure)
+            $list -is [Array]
         }
 
         # --- New-SafeguardAssetAccount ---

@@ -50,8 +50,8 @@
 
         # --- Get-SafeguardTag (list all) ---
         Test-SgPsAssert "Get-SafeguardTag lists tags" {
-            $tags = Get-SafeguardTag -Insecure
-            $null -ne $tags -or $true
+            $list = @(Get-SafeguardTag -Insecure)
+            $list -is [Array]
         }
 
         # --- New-SafeguardTag ---

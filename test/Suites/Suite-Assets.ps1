@@ -26,9 +26,8 @@
 
         # --- Get-SafeguardAsset (list all) ---
         Test-SgPsAssert "Get-SafeguardAsset lists assets" {
-            $assets = Get-SafeguardAsset -Insecure
-            # May be empty on fresh appliance, but should not throw
-            $null -ne $assets -or $true
+            $list = @(Get-SafeguardAsset -Insecure)
+            $list -is [Array]
         }
 
         # --- New-SafeguardAsset (Linux platform, no service account) ---

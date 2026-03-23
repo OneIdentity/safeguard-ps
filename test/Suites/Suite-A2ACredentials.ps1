@@ -164,7 +164,10 @@
             $newPwd = ConvertTo-SecureString "NewA2aPwd_7mQr!" -AsPlainText -Force
             Set-SafeguardA2aPassword -Appliance $appliance -Insecure `
                 -CertificateFile $pfx -Password $pfxPwd -ApiKey $apiKey -NewPassword $newPwd
-            $true
+            # Retrieve the password via A2A and verify it matches what we set
+            $retrieved = Get-SafeguardA2aPassword -Appliance $appliance -Insecure `
+                -CertificateFile $pfx -Password $pfxPwd -ApiKey $apiKey
+            $retrieved -eq "NewA2aPwd_7mQr!"
         }
 
         # --- New-SafeguardA2aAccessRequest via PFX ---

@@ -66,9 +66,9 @@
 
         # --- Get-SafeguardDiagnosticPackageStatus ---
         Test-SgPsAssert "Get-SafeguardDiagnosticPackageStatus returns status" {
-            $null = Get-SafeguardDiagnosticPackageStatus -Insecure
-            # May return null/empty when no diagnostic package exists -- that's valid
-            $true
+            $status = Get-SafeguardDiagnosticPackageStatus -Insecure
+            # May return null when no diagnostic package exists -- that's valid
+            $null -eq $status -or $null -ne $status.PackageState
         }
     }
 
