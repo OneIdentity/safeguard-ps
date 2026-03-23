@@ -82,12 +82,18 @@
             $updated = Edit-SafeguardAccountGroup -Insecure $Context.SuiteData["GroupId"] -Description "Updated description"
             $updated.Description -eq "Updated description"
         }
+        Test-SgPsAssert "Edit-SafeguardAccountGroup changes persisted" {
+            $readback = Get-SafeguardAccountGroup -Insecure $Context.SuiteData["GroupId"]
+            $readback.Description -eq "Updated description"
+        }
 
         # --- Add-SafeguardAccountGroupMember ---
         Test-SgPsAssert "Add-SafeguardAccountGroupMember adds a member" {
             $acctRef = "$($Context.SuiteData['TestAsset'])\$($Context.SuiteData['TestAccount'])"
             Add-SafeguardAccountGroupMember -Insecure $testGroup -AccountList $acctRef
-            $true
+            $members = Get-SafeguardAccountGroupMember -Insecure $testGroup
+            $list = @($members)
+            ($list | Where-Object { $_.Id -eq $Context.SuiteData["AccountId"] }) -ne $null
         }
 
         # --- Get-SafeguardAccountGroupMember ---

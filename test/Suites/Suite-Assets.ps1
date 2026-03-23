@@ -79,6 +79,10 @@
             $edited = Edit-SafeguardAsset -Insecure -AssetObject $asset
             $edited.Description -eq "Modified via object"
         }
+        Test-SgPsAssert "Edit-SafeguardAsset changes persisted" {
+            $readback = Get-SafeguardAsset -Insecure $Context.SuiteData["AssetId"]
+            $readback.Description -eq "Modified via object" -and $readback.NetworkAddress -eq "10.0.0.101"
+        }
 
         # --- Find-SafeguardAsset (search string) ---
         Test-SgPsAssert "Find-SafeguardAsset by search string" {

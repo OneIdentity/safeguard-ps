@@ -86,6 +86,10 @@
                 -Name $testTag -Description "Updated description"
             $updated.Description -eq "Updated description"
         }
+        Test-SgPsAssert "Update-SafeguardTag changes persisted" {
+            $readback = Get-SafeguardTag -Insecure $Context.SuiteData["TagId"]
+            $readback.Description -eq "Updated description" -and $readback.Name -eq $testTag
+        }
 
         # --- Add-SafeguardAssetTag (assign tag to asset) ---
         Test-SgPsAssert "Add-SafeguardAssetTag assigns tag to asset" {

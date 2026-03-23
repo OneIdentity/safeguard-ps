@@ -45,6 +45,10 @@
             $result = Set-SafeguardApplianceSetting -Insecure $name $origValue
             $result.Name -eq $name
         }
+        Test-SgPsAssert "Set-SafeguardApplianceSetting change persisted" {
+            $readback = Get-SafeguardApplianceSetting -Insecure $Context.SuiteData["AppSettingName"]
+            $readback.Name -eq $Context.SuiteData["AppSettingName"]
+        }
 
         # --- Get-SafeguardCoreSetting (list all) ---
         Test-SgPsAssert "Get-SafeguardCoreSetting lists all settings" {
@@ -80,6 +84,10 @@
             # Set same value (safe roundtrip)
             $result = Set-SafeguardCoreSetting -Insecure $name $origValue
             $result.Name -eq $name
+        }
+        Test-SgPsAssert "Set-SafeguardCoreSetting change persisted" {
+            $readback = Get-SafeguardCoreSetting -Insecure $Context.SuiteData["CoreSettingName"]
+            $readback.Name -eq $Context.SuiteData["CoreSettingName"]
         }
 
         # --- Get-SafeguardCoreSetting with Fields ---

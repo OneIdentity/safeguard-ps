@@ -85,6 +85,10 @@
             $edited = Edit-SafeguardAssetPartition -Insecure -AssetPartitionObject $partition
             $edited.Description -eq "Modified via object"
         }
+        Test-SgPsAssert "Edit-SafeguardAssetPartition changes persisted" {
+            $readback = Get-SafeguardAssetPartition -Insecure $Context.SuiteData["PartitionId"]
+            $readback.Description -eq "Modified via object"
+        }
 
         # --- Add-SafeguardAssetPartitionOwner ---
         Test-SgPsAssert "Add-SafeguardAssetPartitionOwner adds an owner" {

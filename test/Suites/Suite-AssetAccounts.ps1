@@ -96,6 +96,10 @@
             $edited = Edit-SafeguardAssetAccount -Insecure -AccountObject $account
             $edited.Description -eq "Modified via object"
         }
+        Test-SgPsAssert "Edit-SafeguardAssetAccount changes persisted" {
+            $readback = Get-SafeguardAssetAccount -Insecure $assetId $Context.SuiteData["AccountId"]
+            $readback.Description -eq "Modified via object"
+        }
 
         # --- Find-SafeguardAssetAccount (search string) ---
         Test-SgPsAssert "Find-SafeguardAssetAccount by search string" {
