@@ -194,7 +194,7 @@ Map feature modules to suites:
 | `diagnostics.psm1` | Diagnostics |
 | `sessionapi.psm1` | SpsIntegration (requires SPS appliance) |
 | `maintenance.psm1` | BackupRestore (optional, must be explicitly requested) |
-| `customplatforms.psm1` | (no dedicated suite yet -- test manually) |
+| `customplatforms.psm1` | CustomPlatforms |
 
 ## Architecture
 
@@ -364,6 +364,96 @@ assumes those secrets exist locally.
     }
 }
 ```
+
+### Writing strong test assertions
+
+Tests must validate that operations **actually worked** -- not just that they did not throw.
+The goal is to catch regressions, confirm the API contract, and prove that data round-trips
+correctly. Every state-changing operation (create, edit, delete, associate, disassociate)
+should be followed by an independent GET readback that confirms the change persisted.
+
+**Principles:**
+
+1. **Always readback after create.** After `New-Safeguard*`, call the corresponding
+   `Get-Safeguard*` and assert that every property you set matches what you requested.
+   Do not just check `$null -ne $result.Id` -- verify Name, Description, and any other
+   fields you passed in.
+
+2. **Always readback after edit.** After `Edit-Safeguard*`, call `Get-Safeguard*` in a
+   separate assertion to confirm the change was persisted server-side. Check both the
+   changed field and at least one unchanged field to confirm the edit did not clobber
+   other properties.
+
+3. **Always readback after delete.** After `Remove-Safeguard*`, attempt a `Get-Safeguard*`
+   and assert that it throws or returns nothing. Wrap in try/catch:
+   ```powershell
+   Test-SgPsAssert "Object deleted" {
+       $found = $false
+       try {
+           $null = Get-SafeguardAsset -Insecure $id
+           $found = $true
+       } catch {}
+       -not $found
+   }
+   ```
+
+4. **Always readback after association changes.** When adding or removing linked objects
+   (e.g., tag assignment, group membership, A2A credential mappings), call the
+   corresponding list/get endpoint to confirm the link was created or removed.
+
+5. **Assert specific values, not just existence.** Do not write `$null -ne $result` or
+   `$true` as the assertion. Assert concrete field values:
+   ```powershell
+   # BAD -- proves nothing about correctness
+   Test-SgPsAssert "Created asset" { $null -ne $asset }
+
+   # GOOD -- proves the API accepted and stored our values
+   Test-SgPsAssert "Created asset with correct properties" {
+       $asset.DisplayName -eq $expectedName -and
+           $asset.PlatformId -eq 521 -and
+           $asset.NetworkAddress -eq "10.0.1.1"
+   }
+   ```
+
+6. **Test both the return value and the readback.** The cmdlet's return value confirms the
+   immediate response; the readback confirms persistence. Use two separate assertions:
+   ```powershell
+   Test-SgPsAssert "Edit returns updated description" {
+       $edited = Edit-SafeguardAsset -Insecure $id -Description "New desc"
+       $edited.Description -eq "New desc"
+   }
+   Test-SgPsAssert "Edit description persisted" {
+       $readback = Get-SafeguardAsset -Insecure $id
+       $readback.Description -eq "New desc"
+   }
+   ```
+
+7. **Test error paths.** When a cmdlet should reject invalid input, wrap it in try/catch
+   and assert it threw. Use `-match` on the error message if you want to verify the
+   specific error:
+   ```powershell
+   Test-SgPsAssert "Rejects non-custom platform" {
+       $threw = $false
+       try { $null = Get-SafeguardCustomPlatform -Insecure 521 }
+       catch { $threw = $true }
+       $threw
+   }
+   ```
+
+8. **Verify round-trip fidelity for complex data.** When testing script uploads, file
+   exports, or structured data, export/download the data and verify a distinguishing
+   field matches what was uploaded. This catches serialization bugs:
+   ```powershell
+   Test-SgPsAssert "Script change verified via export" {
+       $exported = Export-SafeguardCustomPlatformScript -Insecure $id
+       $exported.Id -eq $expectedScriptId
+   }
+   ```
+
+9. **Use two different data values to prove edits work.** When testing edit operations,
+   do not just set a value and read it back -- set a *different* value from the original
+   and verify the change. If possible, edit twice with different values to confirm both
+   transitions.
 
 ## Sample scripts
 
