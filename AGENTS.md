@@ -196,6 +196,17 @@ Map feature modules to suites:
 | `maintenance.psm1` | BackupRestore (optional, must be explicitly requested) |
 | `customplatforms.psm1` | CustomPlatforms |
 
+## Exploring the Safeguard API
+
+The appliance exposes Swagger UI for each service at:
+- `https://<appliance>/service/core/swagger` -- Core service (assets, users, platforms, policies)
+- `https://<appliance>/service/appliance/swagger` -- Appliance service (networking, diagnostics, backups)
+- `https://<appliance>/service/notification/swagger` -- Notification service (events, subscriptions)
+- `https://<appliance>/service/event/swagger` -- Event service (signalR streaming)
+
+Use Swagger to discover endpoints, required fields, supported query parameters, and response
+schemas before implementing new cmdlets. The Swagger docs are the authoritative API reference.
+
 ## Architecture
 
 ### Module manifest (`src/safeguard-ps.psd1`)
@@ -237,6 +248,85 @@ deliberate architectural choice.
 The default API version is **v4** (since module version 7.0). Callers can pass `-Version 3`.
 `Invoke-SafeguardMethod` is the generic REST caller that most cmdlets delegate to.
 
+### Invoke-SafeguardMethod: `-Body` vs `-JsonBody`
+
+This is the most common source of bugs when implementing new cmdlets. Understanding the
+difference prevents double-serialization issues:
+
+- **`-Body`** accepts a PowerShell object (hashtable or PSCustomObject). It is automatically
+  serialized to JSON via `ConvertTo-Json` before sending. Use this for most API calls.
+- **`-JsonBody`** accepts a string that is already valid JSON. It is sent **as-is** with no
+  additional serialization. Use this when uploading raw content (scripts, files, pre-built JSON).
+
+**The trap:** If you pass a JSON string to `-Body`, `ConvertTo-Json` wraps it in quotes,
+producing `"\"{ ... }\""` instead of `{ ... }`. The API receives a JSON string literal
+instead of a JSON object, and silently does the wrong thing or returns an obscure error.
+
+```powershell
+# WRONG -- double-serializes the string, API gets quoted JSON
+$scriptJson = Get-Content -Path $file -Raw
+Invoke-SafeguardMethod Core PUT "Platforms/$id/Script/Raw" -Body $scriptJson
+
+# RIGHT -- sends raw JSON as-is
+Invoke-SafeguardMethod Core PUT "Platforms/$id/Script/Raw" -JsonBody $scriptJson
+```
+
+For raw content uploads (scripts, certificates), also pass `-ContentType "application/octet-stream"`.
+
+### SCIM-style filtering
+
+Many GET endpoints support server-side filtering via a `filter` query parameter using a
+syntax inspired by SCIM (System for Cross-domain Identity Management). Pass it through
+`-Parameters`:
+
+```powershell
+Invoke-SafeguardMethod -Insecure Core GET "Platforms" `
+    -Parameters @{ filter = "PlatformFamily eq 'Custom'" }
+```
+
+This is more efficient than client-side filtering with `Where-Object` and is required when
+building cmdlets that need to return a subset of objects (e.g., only custom platforms).
+Refer to the Safeguard API documentation or Swagger for the supported filter operators
+and field names for each endpoint.
+
+### Built-in Admin role limitations
+
+The built-in `Admin` account has the Authorizer and UserAdmin roles, but **lacks AssetAdmin
+and PolicyAdmin**. These roles cannot be added to the built-in Admin (error 50100). Any
+cmdlet that requires AssetAdmin (e.g., creating platforms, modifying asset partitions) will
+fail when run as built-in Admin.
+
+The test runner handles this automatically by creating a temporary `SgPsTest_RunAdmin` user
+with all roles. For ad-hoc testing, create a temporary user with the needed roles:
+
+```powershell
+$user = New-SafeguardUser -Insecure -Provider Local -UserName "TempAdmin" -AdminRoles ...
+```
+
+### POST-then-PUT pattern
+
+Some API endpoints do not accept all properties during creation (POST). For example, custom
+platform session management properties (`SupportsSessionManagement`, `DefaultSshSessionPort`,
+etc.) are ignored by the POST endpoint and can only be set via PUT after the object exists.
+
+When implementing a `New-Safeguard*` cmdlet that needs to set properties not supported by
+POST, use the POST-then-PUT pattern:
+
+```powershell
+# 1. Create the object with POST (minimal properties)
+$local:Result = Invoke-SafeguardMethod Core POST "Platforms" -Body $local:Body
+
+# 2. Conditionally PUT to set additional properties
+if ($NeedsExtraProperties)
+{
+    $local:Result.SomeProperty = $Value
+    $local:Result = Invoke-SafeguardMethod Core PUT "Platforms/$($local:Result.Id)" -Body $local:Result
+}
+```
+
+Always check whether the POST endpoint accepts a property before adding it to the POST body.
+If it is silently ignored, move it to a follow-up PUT.
+
 ## Code conventions
 
 ### Cmdlet naming
@@ -266,9 +356,36 @@ pattern when adding new entity types.
 
 ### Pipeline support
 
-Functions with `[Parameter(ValueFromPipeline=$true)]` must have a `process {}` block.
-Without it, piping multiple objects silently drops all but the last. All `Edit-Safeguard*`
-functions follow this pattern.
+Functions with `[Parameter(ValueFromPipeline=$true)]` **must** use `begin {}` and
+`process {}` blocks. PSScriptAnalyzer enforces this -- without them, piping multiple objects
+silently drops all but the last. All `Edit-Safeguard*` functions follow this pattern:
+
+```powershell
+function Edit-SafeguardThing
+{
+    [CmdletBinding()]
+    Param(
+        # ... other params ...
+        [Parameter(Mandatory=$false,ValueFromPipeline=$true)]
+        [object]$ThingObject
+    )
+
+    begin
+    {
+        # Standard boilerplate goes here -- NOT before begin
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+    }
+
+    process
+    {
+        # All cmdlet logic goes here
+    }
+}
+```
+
+**Important:** Any code placed before the `begin` block causes a PSScriptAnalyzer ParseError.
+The standard boilerplate lines must be inside `begin`, not at function scope.
 
 ### Named parameters
 
@@ -364,6 +481,51 @@ assumes those secrets exist locally.
     }
 }
 ```
+
+### Test data files
+
+Static test data (scripts, certificates, JSON fixtures) lives in `test/TestData/`. Reference
+files relative to `$PSScriptRoot` in test suites:
+
+```powershell
+$scriptPath = Join-Path $PSScriptRoot "..\TestData\GenericLinuxWithSSHKeySupport.json"
+```
+
+When test data contains identifiers that must be globally unique (e.g., platform script IDs),
+replace them with test-prefixed values at runtime to avoid collisions with other tests or
+pre-existing data on the appliance.
+
+### Pre-cleanup for test reliability
+
+Test suites run against a shared live appliance. If a previous run failed mid-suite, stale
+objects may remain. Always pre-clean in Setup using `Remove-SgPsStaleTestObject`:
+
+```powershell
+Setup = {
+    param($Context)
+    $prefix = $Context.TestPrefix
+    $name = "${prefix}_MyPlatform"
+    Remove-SgPsStaleTestObject -Collection "Platforms" -Name $name
+    # ... create the object ...
+}
+```
+
+The test runner also runs a global pre-cleanup sweep before any suites execute, but per-suite
+pre-cleanup handles objects that the global sweep might miss (e.g., objects with non-standard
+naming or in collections not covered by the global sweep).
+
+### Unique name constraints
+
+Some API objects have uniqueness constraints beyond simple name collisions:
+
+- **Platform script IDs** must be globally unique across the appliance and **alphanumeric
+  only** (no underscores, hyphens, or special characters). Error 60031 is returned for
+  invalid or duplicate script IDs.
+- **User names** must be unique within their identity provider.
+- **Asset display names** should be unique for clarity but are not strictly enforced.
+
+When generating test identifiers, use `$Context.TestPrefix` (default: `SgPsTest`) to
+namespace them. For IDs with strict character rules, strip non-alphanumeric characters.
 
 ### Writing strong test assertions
 
