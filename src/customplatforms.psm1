@@ -133,6 +133,21 @@ A string containing the path to a JSON platform script file to upload
 after creating the platform. The script will be uploaded via the
 Platforms/{id}/Script/Raw endpoint.
 
+.PARAMETER AllowSessionRequests
+When specified, enables session management (SupportsSessionManagement) on the
+custom platform, allowing session access requests for assets using this platform.
+
+.PARAMETER SshSessionPort
+An integer containing the default SSH session port for the custom platform.
+This is typically 22. Only meaningful when -AllowSessionRequests is also specified.
+
+.PARAMETER RdpSessionPort
+An integer containing the default Remote Desktop session port for the custom platform.
+This is typically 3389.
+
+.PARAMETER TelnetSessionPort
+An integer containing the default Telnet session port for the custom platform.
+
 .INPUTS
 None.
 
@@ -144,6 +159,9 @@ New-SafeguardCustomPlatform "My Custom Linux"
 
 .EXAMPLE
 New-SafeguardCustomPlatform -Name "My Custom Linux" -Description "Custom SSH platform" -ScriptFile "C:\scripts\MyScript.json"
+
+.EXAMPLE
+New-SafeguardCustomPlatform -Name "My Custom Linux" -AllowSessionRequests -SshSessionPort 22
 #>
 function New-SafeguardCustomPlatform
 {
@@ -160,7 +178,15 @@ function New-SafeguardCustomPlatform
         [Parameter(Mandatory=$false)]
         [string]$Description,
         [Parameter(Mandatory=$false)]
-        [string]$ScriptFile
+        [string]$ScriptFile,
+        [Parameter(Mandatory=$false)]
+        [switch]$AllowSessionRequests,
+        [Parameter(Mandatory=$false)]
+        [int]$SshSessionPort,
+        [Parameter(Mandatory=$false)]
+        [int]$RdpSessionPort,
+        [Parameter(Mandatory=$false)]
+        [int]$TelnetSessionPort
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -175,6 +201,34 @@ function New-SafeguardCustomPlatform
 
     $local:Result = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
                          POST Platforms -Body $local:Body)
+
+    # Session and script settings require a PUT after creation
+    $local:NeedsUpdate = $false
+    if ($AllowSessionRequests)
+    {
+        $local:Result.SessionFeatureProperties.SupportsSessionManagement = $true
+        $local:NeedsUpdate = $true
+    }
+    if ($PSBoundParameters.ContainsKey("SshSessionPort"))
+    {
+        $local:Result.SessionFeatureProperties.DefaultSshSessionPort = $SshSessionPort
+        $local:NeedsUpdate = $true
+    }
+    if ($PSBoundParameters.ContainsKey("RdpSessionPort"))
+    {
+        $local:Result.SessionFeatureProperties.DefaultRemoteDesktopSessionPort = $RdpSessionPort
+        $local:NeedsUpdate = $true
+    }
+    if ($PSBoundParameters.ContainsKey("TelnetSessionPort"))
+    {
+        $local:Result.SessionFeatureProperties.DefaultTelnetSessionPort = $TelnetSessionPort
+        $local:NeedsUpdate = $true
+    }
+    if ($local:NeedsUpdate)
+    {
+        $local:Result = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                             PUT "Platforms/$($local:Result.Id)" -Body $local:Result)
+    }
 
     if ($PSBoundParameters.ContainsKey("ScriptFile"))
     {
@@ -225,6 +279,23 @@ A string containing the new description for the custom platform.
 A string containing the path to a JSON platform script file to upload,
 replacing any existing script on the platform.
 
+.PARAMETER AllowSessionRequests
+When specified, enables session management (SupportsSessionManagement) on the
+custom platform, allowing session access requests for assets using this platform.
+
+.PARAMETER DenySessionRequests
+When specified, disables session management (SupportsSessionManagement) on the
+custom platform.
+
+.PARAMETER SshSessionPort
+An integer containing the default SSH session port for the custom platform.
+
+.PARAMETER RdpSessionPort
+An integer containing the default Remote Desktop session port for the custom platform.
+
+.PARAMETER TelnetSessionPort
+An integer containing the default Telnet session port for the custom platform.
+
 .PARAMETER PlatformObject
 An object containing the full custom platform object to PUT to the server.
 This is typically obtained by piping Get-SafeguardCustomPlatform output.
@@ -240,6 +311,9 @@ Edit-SafeguardCustomPlatform 10001 -Description "Updated description"
 
 .EXAMPLE
 Edit-SafeguardCustomPlatform "My Custom Linux" -Name "Renamed Platform"
+
+.EXAMPLE
+Edit-SafeguardCustomPlatform 10001 -AllowSessionRequests -SshSessionPort 22
 
 .EXAMPLE
 Get-SafeguardCustomPlatform "My Custom Linux" | Edit-SafeguardCustomPlatform
@@ -265,6 +339,16 @@ function Edit-SafeguardCustomPlatform
         [string]$Description,
         [Parameter(Mandatory=$false)]
         [string]$ScriptFile,
+        [Parameter(Mandatory=$false)]
+        [switch]$AllowSessionRequests,
+        [Parameter(Mandatory=$false)]
+        [switch]$DenySessionRequests,
+        [Parameter(Mandatory=$false)]
+        [int]$SshSessionPort,
+        [Parameter(Mandatory=$false)]
+        [int]$RdpSessionPort,
+        [Parameter(Mandatory=$false)]
+        [int]$TelnetSessionPort,
         [Parameter(Mandatory=$false,ValueFromPipeline=$true)]
         [object]$PlatformObject
     )
@@ -296,6 +380,11 @@ function Edit-SafeguardCustomPlatform
 
         if ($PSBoundParameters.ContainsKey("Name")) { $local:PlatformObj.Name = $Name; $local:PlatformObj.DisplayName = $Name }
         if ($PSBoundParameters.ContainsKey("Description")) { $local:PlatformObj.Description = $Description }
+        if ($AllowSessionRequests) { $local:PlatformObj.SessionFeatureProperties.SupportsSessionManagement = $true }
+        if ($DenySessionRequests) { $local:PlatformObj.SessionFeatureProperties.SupportsSessionManagement = $false }
+        if ($PSBoundParameters.ContainsKey("SshSessionPort")) { $local:PlatformObj.SessionFeatureProperties.DefaultSshSessionPort = $SshSessionPort }
+        if ($PSBoundParameters.ContainsKey("RdpSessionPort")) { $local:PlatformObj.SessionFeatureProperties.DefaultRemoteDesktopSessionPort = $RdpSessionPort }
+        if ($PSBoundParameters.ContainsKey("TelnetSessionPort")) { $local:PlatformObj.SessionFeatureProperties.DefaultTelnetSessionPort = $TelnetSessionPort }
 
         $local:Result = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
                              PUT "Platforms/$($local:PlatformObj.Id)" -Body $local:PlatformObj)

@@ -9,13 +9,16 @@
         $prefix = $Context.TestPrefix
         $testPlatform1 = "${prefix}_CustomPlat1"
         $testPlatform2 = "${prefix}_CustomPlat2"
+        $testPlatform3 = "${prefix}_CustomPlat3"
 
         # Pre-cleanup any stale platforms from a previous failed run
         Remove-SgPsStaleTestObject -Collection "Platforms" -Name $testPlatform1
         Remove-SgPsStaleTestObject -Collection "Platforms" -Name $testPlatform2
+        Remove-SgPsStaleTestObject -Collection "Platforms" -Name $testPlatform3
 
         $Context.SuiteData["TestPlatform1"] = $testPlatform1
         $Context.SuiteData["TestPlatform2"] = $testPlatform2
+        $Context.SuiteData["TestPlatform3"] = $testPlatform3
 
         # Locate the test script file (relative to the test root directory)
         $scriptPath = Join-Path $PSScriptRoot "..\TestData\GenericLinuxWithSSHKeySupport.json"
@@ -63,6 +66,7 @@
 
         $platform1Name = $Context.SuiteData["TestPlatform1"]
         $platform2Name = $Context.SuiteData["TestPlatform2"]
+        $platform3Name = $Context.SuiteData["TestPlatform3"]
         $scriptFile = $Context.SuiteData["ScriptFile"]
         $scriptFile2 = $Context.SuiteData["ScriptFile2"]
         $scriptId = $Context.SuiteData["ScriptId"]
@@ -94,7 +98,8 @@
             $readback = Get-SafeguardCustomPlatform -Insecure $Context.SuiteData["Platform1Id"]
             $readback.Name -eq $platform1Name -and
                 $readback.PlatformFamily -eq "Custom" -and
-                $readback.CustomScriptProperties.HasScript -eq $false
+                $readback.CustomScriptProperties.HasScript -eq $false -and
+                $readback.SessionFeatureProperties.SupportsSessionManagement -eq $false
         }
 
         # --- New-SafeguardCustomPlatform (with description and script) ---
@@ -180,6 +185,71 @@
         Test-SgPsAssert "Edit-SafeguardCustomPlatform piped edit persisted" {
             $readback = Get-SafeguardCustomPlatform -Insecure $Context.SuiteData["Platform2Id"]
             $readback.Description -eq "Piped edit"
+        }
+
+        # --- Session management: New-SafeguardCustomPlatform with -AllowSessionRequests ---
+        Test-SgPsAssert "New-SafeguardCustomPlatform with -AllowSessionRequests enables sessions" {
+            $plat = New-SafeguardCustomPlatform -Insecure -Name $platform3Name `
+                -AllowSessionRequests -SshSessionPort 22 -RdpSessionPort 3389 -TelnetSessionPort 23
+            $Context.SuiteData["Platform3Id"] = $plat.Id
+
+            Register-SgPsTestCleanup -Description "Delete $platform3Name" -Action {
+                param($Ctx)
+                try { Remove-SafeguardCustomPlatform -Insecure $Ctx.SuiteData['Platform3Id'] -ForceDelete } catch {}
+            }
+
+            $plat.SessionFeatureProperties.SupportsSessionManagement -eq $true -and
+                $plat.SessionFeatureProperties.DefaultSshSessionPort -eq 22 -and
+                $plat.SessionFeatureProperties.DefaultRemoteDesktopSessionPort -eq 3389 -and
+                $plat.SessionFeatureProperties.DefaultTelnetSessionPort -eq 23
+        }
+
+        Test-SgPsAssert "New-SafeguardCustomPlatform session settings persisted" {
+            $readback = Get-SafeguardCustomPlatform -Insecure $Context.SuiteData["Platform3Id"]
+            $readback.SessionFeatureProperties.SupportsSessionManagement -eq $true -and
+                $readback.SessionFeatureProperties.DefaultSshSessionPort -eq 22 -and
+                $readback.SessionFeatureProperties.DefaultRemoteDesktopSessionPort -eq 3389 -and
+                $readback.SessionFeatureProperties.DefaultTelnetSessionPort -eq 23
+        }
+
+        # --- Session management: Edit to change session ports ---
+        Test-SgPsAssert "Edit-SafeguardCustomPlatform changes session ports" {
+            $edited = Edit-SafeguardCustomPlatform -Insecure $Context.SuiteData["Platform3Id"] `
+                -SshSessionPort 2222 -RdpSessionPort 13389
+            $edited.SessionFeatureProperties.DefaultSshSessionPort -eq 2222 -and
+                $edited.SessionFeatureProperties.DefaultRemoteDesktopSessionPort -eq 13389 -and
+                $edited.SessionFeatureProperties.SupportsSessionManagement -eq $true
+        }
+
+        Test-SgPsAssert "Edit-SafeguardCustomPlatform session port changes persisted" {
+            $readback = Get-SafeguardCustomPlatform -Insecure $Context.SuiteData["Platform3Id"]
+            $readback.SessionFeatureProperties.DefaultSshSessionPort -eq 2222 -and
+                $readback.SessionFeatureProperties.DefaultRemoteDesktopSessionPort -eq 13389 -and
+                $readback.SessionFeatureProperties.SupportsSessionManagement -eq $true
+        }
+
+        # --- Session management: Edit to disable sessions ---
+        Test-SgPsAssert "Edit-SafeguardCustomPlatform -DenySessionRequests disables sessions" {
+            $edited = Edit-SafeguardCustomPlatform -Insecure $Context.SuiteData["Platform3Id"] `
+                -DenySessionRequests
+            $edited.SessionFeatureProperties.SupportsSessionManagement -eq $false
+        }
+
+        Test-SgPsAssert "Edit-SafeguardCustomPlatform deny sessions persisted" {
+            $readback = Get-SafeguardCustomPlatform -Insecure $Context.SuiteData["Platform3Id"]
+            $readback.SessionFeatureProperties.SupportsSessionManagement -eq $false
+        }
+
+        # --- Session management: Edit to re-enable sessions ---
+        Test-SgPsAssert "Edit-SafeguardCustomPlatform -AllowSessionRequests re-enables sessions" {
+            $edited = Edit-SafeguardCustomPlatform -Insecure $Context.SuiteData["Platform3Id"] `
+                -AllowSessionRequests
+            $edited.SessionFeatureProperties.SupportsSessionManagement -eq $true
+        }
+
+        Test-SgPsAssert "Edit-SafeguardCustomPlatform re-enable sessions persisted" {
+            $readback = Get-SafeguardCustomPlatform -Insecure $Context.SuiteData["Platform3Id"]
+            $readback.SessionFeatureProperties.SupportsSessionManagement -eq $true
         }
 
         # --- Import-SafeguardCustomPlatformScript (add script to scriptless platform) ---
@@ -295,6 +365,17 @@
             $found = $false
             try {
                 $null = Get-SafeguardCustomPlatform -Insecure $platform2Name
+                $found = $true
+            } catch {}
+            -not $found
+        }
+
+        # --- Remove-SafeguardCustomPlatform (session platform by ID) ---
+        Test-SgPsAssert "Remove-SafeguardCustomPlatform deletes session-enabled platform" {
+            Remove-SafeguardCustomPlatform -Insecure $Context.SuiteData["Platform3Id"]
+            $found = $false
+            try {
+                $null = Get-SafeguardCustomPlatform -Insecure $Context.SuiteData["Platform3Id"]
                 $found = $true
             } catch {}
             -not $found
