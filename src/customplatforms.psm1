@@ -644,3 +644,69 @@ function Import-SafeguardCustomPlatformScript
     # Return the updated platform object
     Get-SafeguardCustomPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:Platform.Id
 }
+
+<#
+.SYNOPSIS
+Validate a custom platform script file via the Safeguard Web API without creating a platform.
+
+.DESCRIPTION
+Submit a JSON platform script file to the Safeguard appliance for validation.
+The appliance parses the script and checks for structural correctness, required
+fields, and valid operation definitions. If the script is valid, a platform
+object preview is returned showing the operations and properties the script
+would produce. If the script is invalid, an error is thrown with details about
+the problem.
+
+This cmdlet does not create or modify any platform -- it is a dry-run validation.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ScriptFile
+A string containing the path to a JSON platform script file to validate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API representing the platform that would be
+created from this script, including SupportedOperations and ConnectionProperties.
+
+.EXAMPLE
+Test-SafeguardCustomPlatformScript "C:\scripts\MyScript.json"
+
+.EXAMPLE
+Test-SafeguardCustomPlatformScript -ScriptFile "C:\scripts\MyScript.json" -Insecure
+#>
+function Test-SafeguardCustomPlatformScript
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$ScriptFile
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not (Test-Path $ScriptFile))
+    {
+        throw "Script file not found: $ScriptFile"
+    }
+    $local:ScriptContent = (Get-Content -Path $ScriptFile -Raw)
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        POST "Platforms/ValidateScript/Raw" -ContentType "application/octet-stream" -JsonBody $local:ScriptContent
+}

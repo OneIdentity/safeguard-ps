@@ -348,6 +348,54 @@
             $afterExport.Id -eq $scriptId
         }
 
+        # --- Test-SafeguardCustomPlatformScript (valid script) ---
+        Test-SgPsAssert "Test-SafeguardCustomPlatformScript validates a well-formed script" {
+            $result = Test-SafeguardCustomPlatformScript -Insecure $scriptFile
+            $null -ne $result -and
+                $result.PlatformType -eq "Custom" -and
+                $result.PlatformFamily -eq "Custom" -and
+                $result.CustomScriptProperties.HasScript -eq $true -and
+                $result.SupportedOperations.Count -gt 0
+        }
+
+        Test-SgPsAssert "Test-SafeguardCustomPlatformScript returns expected operations" {
+            $result = Test-SafeguardCustomPlatformScript -Insecure $scriptFile
+            # The SSHKeySupport script defines 8 operations
+            $ops = $result.SupportedOperations
+            $ops -contains "TestConnection" -and
+                $ops -contains "CheckPassword" -and
+                $ops -contains "ChangePassword" -and
+                $ops.Count -eq 8
+        }
+
+        Test-SgPsAssert "Test-SafeguardCustomPlatformScript rejects malformed script" {
+            # Create a temp file with invalid JSON
+            $tempFile = Join-Path ([System.IO.Path]::GetTempPath()) "SgPsTest_BadScript.json"
+            "{ invalid json content" | Out-File -FilePath $tempFile -Encoding utf8
+            $threw = $false
+            try {
+                $null = Test-SafeguardCustomPlatformScript -Insecure $tempFile
+            } catch {
+                $threw = $_ -match "60020"
+            }
+            Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
+            $threw
+        }
+
+        Test-SgPsAssert "Test-SafeguardCustomPlatformScript rejects structurally invalid script" {
+            # Create a temp file with valid JSON but missing required fields
+            $tempFile = Join-Path ([System.IO.Path]::GetTempPath()) "SgPsTest_BadStructure.json"
+            '{"Id": "test", "Operations": []}' | Out-File -FilePath $tempFile -Encoding utf8
+            $threw = $false
+            try {
+                $null = Test-SafeguardCustomPlatformScript -Insecure $tempFile
+            } catch {
+                $threw = $_ -match "60020"
+            }
+            Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
+            $threw
+        }
+
         # --- Remove-SafeguardCustomPlatform (by ID) ---
         Test-SgPsAssert "Remove-SafeguardCustomPlatform deletes by ID" {
             Remove-SafeguardCustomPlatform -Insecure $Context.SuiteData["Platform1Id"]
