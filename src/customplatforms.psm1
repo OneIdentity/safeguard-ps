@@ -123,7 +123,11 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER Name
+A string containing the name for the new custom platform.
+
+.PARAMETER DisplayName
 A string containing the display name for the new custom platform.
+If not specified, defaults to the Name value.
 
 .PARAMETER Description
 A string containing the description for the new custom platform.
@@ -176,6 +180,8 @@ function New-SafeguardCustomPlatform
         [Parameter(Mandatory=$true,Position=0)]
         [string]$Name,
         [Parameter(Mandatory=$false)]
+        [string]$DisplayName,
+        [Parameter(Mandatory=$false)]
         [string]$Description,
         [Parameter(Mandatory=$false)]
         [string]$ScriptFile,
@@ -192,8 +198,11 @@ function New-SafeguardCustomPlatform
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
+    $local:DisplayNameValue = $Name
+    if ($PSBoundParameters.ContainsKey("DisplayName")) { $local:DisplayNameValue = $DisplayName }
     $local:Body = @{
         Name = $Name;
+        DisplayName = $local:DisplayNameValue;
         PlatformType = "Custom";
         PlatformFamily = "Custom"
     }
@@ -270,6 +279,9 @@ An integer containing the platform ID or a string containing the platform
 display name of the custom platform to edit.
 
 .PARAMETER Name
+A string containing the new name for the custom platform.
+
+.PARAMETER DisplayName
 A string containing the new display name for the custom platform.
 
 .PARAMETER Description
@@ -336,6 +348,8 @@ function Edit-SafeguardCustomPlatform
         [Parameter(Mandatory=$false)]
         [string]$Name,
         [Parameter(Mandatory=$false)]
+        [string]$DisplayName,
+        [Parameter(Mandatory=$false)]
         [string]$Description,
         [Parameter(Mandatory=$false)]
         [string]$ScriptFile,
@@ -378,7 +392,8 @@ function Edit-SafeguardCustomPlatform
             $local:PlatformObj = (Get-SafeguardCustomPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $PlatformToEdit)
         }
 
-        if ($PSBoundParameters.ContainsKey("Name")) { $local:PlatformObj.Name = $Name; $local:PlatformObj.DisplayName = $Name }
+        if ($PSBoundParameters.ContainsKey("Name")) { $local:PlatformObj.Name = $Name }
+        if ($PSBoundParameters.ContainsKey("DisplayName")) { $local:PlatformObj.DisplayName = $DisplayName }
         if ($PSBoundParameters.ContainsKey("Description")) { $local:PlatformObj.Description = $Description }
         if ($AllowSessionRequests) { $local:PlatformObj.SessionFeatureProperties.SupportsSessionManagement = $true }
         if ($DenySessionRequests) { $local:PlatformObj.SessionFeatureProperties.SupportsSessionManagement = $false }
