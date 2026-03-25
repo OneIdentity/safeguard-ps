@@ -16,11 +16,11 @@ safeguard-ps/
 |   |-- sslhandling.psm1         # SSL/TLS helper (not exported)
 |   |-- ps-utilities.psm1        # Shared PowerShell utilities (not exported)
 |   |-- sg-utilities.psm1        # Shared Safeguard utilities (not exported)
-|   `-- <feature>.psm1           # Feature modules (assets, users, a2a, policies, etc.)
+|   `-- <feature>.psm1           # Feature modules (assets, users, a2a, policies, customplatforms, etc.)
 |-- test/                         # Integration test framework and suites (requires PS 7)
 |   |-- Invoke-SafeguardPsTests.ps1       # Test runner
 |   |-- SafeguardPsTestFramework.psm1     # Framework module
-|   `-- Suites/Suite-*.ps1                # 31 test suite files (~300 tests)
+|   `-- Suites/Suite-*.ps1                # 32 test suite files (~340 tests)
 |-- samples/                      # Example scripts
 |-- docker/                       # Dockerfiles (Ubuntu, Alpine, Mariner, Windows)
 |-- pipeline-templates/           # Azure Pipelines CI/CD templates
@@ -96,6 +96,27 @@ This is not required for documentation or minor fixes, but it is **strongly enco
 for any change that touches cmdlet logic, API calls, parameters, or module structure.
 Running the test suite against a live appliance is the only way to catch regressions.
 
+### Connecting to the appliance (PKCE vs Resource Owner Grant)
+
+**Resource Owner Grant (ROG) is disabled by default** on recent Safeguard appliances.
+When connecting to a user's test appliance for the first time, always use the `-Pkce` flag:
+
+```powershell
+$secPwd = ConvertTo-SecureString "<password>" -AsPlainText -Force
+Connect-Safeguard -Appliance <address> -IdentityProvider Local -Username Admin `
+    -Password $secPwd -Insecure -Pkce
+```
+
+If you attempt a direct `Connect-Safeguard` without `-Pkce` and receive a 400 error like
+`"OAuth2 resource owner password credentials grant type is not allowed"`, switch to PKCE
+immediately. Do not try to enable ROG on the appliance -- use PKCE as the default connection
+method.
+
+The test runner (`Invoke-SafeguardPsTests.ps1`) handles this automatically by connecting
+with PKCE first, enabling ROG for the test session, and restoring the original setting
+afterward. You do not need to worry about ROG when running the test suite -- just when
+making ad-hoc `Connect-Safeguard` calls.
+
 ### Running the test suite
 
 ```powershell
@@ -128,7 +149,7 @@ The test runner requires **PowerShell 7** (`pwsh`). It automatically:
 - Runs pre-cleanup to remove stale objects from prior failed runs
 - Reports pass/fail/skip with structured output
 
-A healthy baseline is **304 passed, 0 failed, 8 skipped** (SPS tests skip when no SPS
+A healthy baseline is **344 passed, 0 failed, 8 skipped** (SPS tests skip when no SPS
 appliance is provided).
 
 ### Fixing test failures
@@ -173,6 +194,18 @@ Map feature modules to suites:
 | `diagnostics.psm1` | Diagnostics |
 | `sessionapi.psm1` | SpsIntegration (requires SPS appliance) |
 | `maintenance.psm1` | BackupRestore (optional, must be explicitly requested) |
+| `customplatforms.psm1` | CustomPlatforms |
+
+## Exploring the Safeguard API
+
+The appliance exposes Swagger UI for each service at:
+- `https://<appliance>/service/core/swagger` -- Core service (assets, users, platforms, policies)
+- `https://<appliance>/service/appliance/swagger` -- Appliance service (networking, diagnostics, backups)
+- `https://<appliance>/service/notification/swagger` -- Notification service (events, subscriptions)
+- `https://<appliance>/service/event/swagger` -- Event service (signalR streaming)
+
+Use Swagger to discover endpoints, required fields, supported query parameters, and response
+schemas before implementing new cmdlets. The Swagger docs are the authoritative API reference.
 
 ## Architecture
 
@@ -215,6 +248,85 @@ deliberate architectural choice.
 The default API version is **v4** (since module version 7.0). Callers can pass `-Version 3`.
 `Invoke-SafeguardMethod` is the generic REST caller that most cmdlets delegate to.
 
+### Invoke-SafeguardMethod: `-Body` vs `-JsonBody`
+
+This is the most common source of bugs when implementing new cmdlets. Understanding the
+difference prevents double-serialization issues:
+
+- **`-Body`** accepts a PowerShell object (hashtable or PSCustomObject). It is automatically
+  serialized to JSON via `ConvertTo-Json` before sending. Use this for most API calls.
+- **`-JsonBody`** accepts a string that is already valid JSON. It is sent **as-is** with no
+  additional serialization. Use this when uploading raw content (scripts, files, pre-built JSON).
+
+**The trap:** If you pass a JSON string to `-Body`, `ConvertTo-Json` wraps it in quotes,
+producing `"\"{ ... }\""` instead of `{ ... }`. The API receives a JSON string literal
+instead of a JSON object, and silently does the wrong thing or returns an obscure error.
+
+```powershell
+# WRONG -- double-serializes the string, API gets quoted JSON
+$scriptJson = Get-Content -Path $file -Raw
+Invoke-SafeguardMethod Core PUT "Platforms/$id/Script/Raw" -Body $scriptJson
+
+# RIGHT -- sends raw JSON as-is
+Invoke-SafeguardMethod Core PUT "Platforms/$id/Script/Raw" -JsonBody $scriptJson
+```
+
+For raw content uploads (scripts, certificates), also pass `-ContentType "application/octet-stream"`.
+
+### SCIM-style filtering
+
+Many GET endpoints support server-side filtering via a `filter` query parameter using a
+syntax inspired by SCIM (System for Cross-domain Identity Management). Pass it through
+`-Parameters`:
+
+```powershell
+Invoke-SafeguardMethod -Insecure Core GET "Platforms" `
+    -Parameters @{ filter = "PlatformFamily eq 'Custom'" }
+```
+
+This is more efficient than client-side filtering with `Where-Object` and is required when
+building cmdlets that need to return a subset of objects (e.g., only custom platforms).
+Refer to the Safeguard API documentation or Swagger for the supported filter operators
+and field names for each endpoint.
+
+### Built-in Admin role limitations
+
+The built-in `Admin` account has the Authorizer and UserAdmin roles, but **lacks AssetAdmin
+and PolicyAdmin**. These roles cannot be added to the built-in Admin (error 50100). Any
+cmdlet that requires AssetAdmin (e.g., creating platforms, modifying asset partitions) will
+fail when run as built-in Admin.
+
+The test runner handles this automatically by creating a temporary `SgPsTest_RunAdmin` user
+with all roles. For ad-hoc testing, create a temporary user with the needed roles:
+
+```powershell
+$user = New-SafeguardUser -Insecure -Provider Local -UserName "TempAdmin" -AdminRoles ...
+```
+
+### POST-then-PUT pattern
+
+Some API endpoints do not accept all properties during creation (POST). For example, custom
+platform session management properties (`SupportsSessionManagement`, `DefaultSshSessionPort`,
+etc.) are ignored by the POST endpoint and can only be set via PUT after the object exists.
+
+When implementing a `New-Safeguard*` cmdlet that needs to set properties not supported by
+POST, use the POST-then-PUT pattern:
+
+```powershell
+# 1. Create the object with POST (minimal properties)
+$local:Result = Invoke-SafeguardMethod Core POST "Platforms" -Body $local:Body
+
+# 2. Conditionally PUT to set additional properties
+if ($NeedsExtraProperties)
+{
+    $local:Result.SomeProperty = $Value
+    $local:Result = Invoke-SafeguardMethod Core PUT "Platforms/$($local:Result.Id)" -Body $local:Result
+}
+```
+
+Always check whether the POST endpoint accepts a property before adding it to the POST body.
+If it is silently ignored, move it to a follow-up PUT.
+
 ## Code conventions
 
 ### Cmdlet naming
@@ -244,9 +356,36 @@ pattern when adding new entity types.
 
 ### Pipeline support
 
-Functions with `[Parameter(ValueFromPipeline=$true)]` must have a `process {}` block.
-Without it, piping multiple objects silently drops all but the last. All `Edit-Safeguard*`
-functions follow this pattern.
+Functions with `[Parameter(ValueFromPipeline=$true)]` **must** use `begin {}` and
+`process {}` blocks. PSScriptAnalyzer enforces this -- without them, piping multiple objects
+silently drops all but the last. All `Edit-Safeguard*` functions follow this pattern:
+
+```powershell
+function Edit-SafeguardThing
+{
+    [CmdletBinding()]
+    Param(
+        # ... other params ...
+        [Parameter(Mandatory=$false,ValueFromPipeline=$true)]
+        [object]$ThingObject
+    )
+
+    begin
+    {
+        # Standard boilerplate goes here -- NOT before begin
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+    }
+
+    process
+    {
+        # All cmdlet logic goes here
+    }
+}
+```
+
+**Important:** Any code placed before the `begin` block causes a PSScriptAnalyzer ParseError.
+The standard boilerplate lines must be inside `begin`, not at function scope.
 
 ### Named parameters
 
@@ -343,8 +482,160 @@ assumes those secrets exist locally.
 }
 ```
 
+### Test data files
+
+Static test data (scripts, certificates, JSON fixtures) lives in `test/TestData/`. Reference
+files relative to `$PSScriptRoot` in test suites:
+
+```powershell
+$scriptPath = Join-Path $PSScriptRoot "..\TestData\GenericLinuxWithSSHKeySupport.json"
+```
+
+When test data contains identifiers that must be globally unique (e.g., platform script IDs),
+replace them with test-prefixed values at runtime to avoid collisions with other tests or
+pre-existing data on the appliance.
+
+### Pre-cleanup for test reliability
+
+Test suites run against a shared live appliance. If a previous run failed mid-suite, stale
+objects may remain. Always pre-clean in Setup using `Remove-SgPsStaleTestObject`:
+
+```powershell
+Setup = {
+    param($Context)
+    $prefix = $Context.TestPrefix
+    $name = "${prefix}_MyPlatform"
+    Remove-SgPsStaleTestObject -Collection "Platforms" -Name $name
+    # ... create the object ...
+}
+```
+
+The test runner also runs a global pre-cleanup sweep before any suites execute, but per-suite
+pre-cleanup handles objects that the global sweep might miss (e.g., objects with non-standard
+naming or in collections not covered by the global sweep).
+
+### Unique name constraints
+
+Some API objects have uniqueness constraints beyond simple name collisions:
+
+- **Platform script IDs** must be globally unique across the appliance and **alphanumeric
+  only** (no underscores, hyphens, or special characters). Error 60031 is returned for
+  invalid or duplicate script IDs.
+- **User names** must be unique within their identity provider.
+- **Asset display names** should be unique for clarity but are not strictly enforced.
+
+When generating test identifiers, use `$Context.TestPrefix` (default: `SgPsTest`) to
+namespace them. For IDs with strict character rules, strip non-alphanumeric characters.
+
+### Writing strong test assertions
+
+Tests must validate that operations **actually worked** -- not just that they did not throw.
+The goal is to catch regressions, confirm the API contract, and prove that data round-trips
+correctly. Every state-changing operation (create, edit, delete, associate, disassociate)
+should be followed by an independent GET readback that confirms the change persisted.
+
+**Principles:**
+
+1. **Always readback after create.** After `New-Safeguard*`, call the corresponding
+   `Get-Safeguard*` and assert that every property you set matches what you requested.
+   Do not just check `$null -ne $result.Id` -- verify Name, Description, and any other
+   fields you passed in.
+
+2. **Always readback after edit.** After `Edit-Safeguard*`, call `Get-Safeguard*` in a
+   separate assertion to confirm the change was persisted server-side. Check both the
+   changed field and at least one unchanged field to confirm the edit did not clobber
+   other properties.
+
+3. **Always readback after delete.** After `Remove-Safeguard*`, attempt a `Get-Safeguard*`
+   and assert that it throws or returns nothing. Wrap in try/catch:
+   ```powershell
+   Test-SgPsAssert "Object deleted" {
+       $found = $false
+       try {
+           $null = Get-SafeguardAsset -Insecure $id
+           $found = $true
+       } catch {}
+       -not $found
+   }
+   ```
+
+4. **Always readback after association changes.** When adding or removing linked objects
+   (e.g., tag assignment, group membership, A2A credential mappings), call the
+   corresponding list/get endpoint to confirm the link was created or removed.
+
+5. **Assert specific values, not just existence.** Do not write `$null -ne $result` or
+   `$true` as the assertion. Assert concrete field values:
+   ```powershell
+   # BAD -- proves nothing about correctness
+   Test-SgPsAssert "Created asset" { $null -ne $asset }
+
+   # GOOD -- proves the API accepted and stored our values
+   Test-SgPsAssert "Created asset with correct properties" {
+       $asset.DisplayName -eq $expectedName -and
+           $asset.PlatformId -eq 521 -and
+           $asset.NetworkAddress -eq "10.0.1.1"
+   }
+   ```
+
+6. **Test both the return value and the readback.** The cmdlet's return value confirms the
+   immediate response; the readback confirms persistence. Use two separate assertions:
+   ```powershell
+   Test-SgPsAssert "Edit returns updated description" {
+       $edited = Edit-SafeguardAsset -Insecure $id -Description "New desc"
+       $edited.Description -eq "New desc"
+   }
+   Test-SgPsAssert "Edit description persisted" {
+       $readback = Get-SafeguardAsset -Insecure $id
+       $readback.Description -eq "New desc"
+   }
+   ```
+
+7. **Test error paths.** When a cmdlet should reject invalid input, wrap it in try/catch
+   and assert it threw. Use `-match` on the error message if you want to verify the
+   specific error:
+   ```powershell
+   Test-SgPsAssert "Rejects non-custom platform" {
+       $threw = $false
+       try { $null = Get-SafeguardCustomPlatform -Insecure 521 }
+       catch { $threw = $true }
+       $threw
+   }
+   ```
+
+8. **Verify round-trip fidelity for complex data.** When testing script uploads, file
+   exports, or structured data, export/download the data and verify a distinguishing
+   field matches what was uploaded. This catches serialization bugs:
+   ```powershell
+   Test-SgPsAssert "Script change verified via export" {
+       $exported = Export-SafeguardCustomPlatformScript -Insecure $id
+       $exported.Id -eq $expectedScriptId
+   }
+   ```
+
+9. **Use two different data values to prove edits work.** When testing edit operations,
+   do not just set a value and read it back -- set a *different* value from the original
+   and verify the change. If possible, edit twice with different values to confirm both
+   transitions.
+
 ## Sample scripts
 
 The `samples/` directory contains example scripts demonstrating common workflows:
 certificate authentication, bulk asset loading, entitlement setup, event monitoring, etc.
 Refer users to these for usage patterns.
+
+## Keeping this file current
+
+After completing a series of tasks, review what you learned and suggest updates to this
+file. Things to look for:
+
+- **New API quirks or pitfalls** that caused debugging time (e.g., endpoints that silently
+  ignore fields, serialization traps, role requirements)
+- **Stale counts** -- suite count, test count, and healthy baseline numbers drift as tests
+  are added or removed
+- **New patterns** that future work should follow (e.g., a new cmdlet category, a new
+  test data convention, a workaround for an appliance limitation)
+- **Module-to-suite mapping** updates when new suites or feature modules are added
+- **Corrections** to anything that turned out to be wrong or misleading
+
+Propose the updates to the user rather than silently editing -- they may have additional
+context or prefer different wording.
