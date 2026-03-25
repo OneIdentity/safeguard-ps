@@ -353,14 +353,15 @@ Key patterns:
 - To modify: GET the full asset, change `CustomScriptParameters[n].Value`, PUT the full asset back
 - When applying a value to "all operations", iterate all entries with matching `Name`
 - When applying to a specific operation, match both `Name` and `TaskName`
-- Cmdlets: `Get-SafeguardCustomPlatformScriptParameters` (read schema), `New-SafeguardCustomPlatformAsset` (create with overrides), `Set-SafeguardCustomPlatformAssetParameter` (modify on existing asset)
+- Cmdlets: `Get-SafeguardCustomPlatformScriptParameter` (read schema), `New-SafeguardCustomPlatformAsset` (create with overrides), `Set-SafeguardCustomPlatformAssetParameter` (modify on existing asset)
 
 ## Code conventions
 
 ### Cmdlet naming
 
 All exported functions use `Verb-Safeguard*` (e.g., `Get-SafeguardAsset`, `New-SafeguardUser`).
-Follow standard PowerShell approved verbs.
+Follow standard PowerShell approved verbs. **Nouns must always be singular** — never plural
+(e.g., `Get-SafeguardCustomPlatformScriptParameter`, not `...Parameters`).
 
 ### Standard function boilerplate
 
