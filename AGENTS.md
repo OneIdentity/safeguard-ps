@@ -20,7 +20,7 @@ safeguard-ps/
 |-- test/                         # Integration test framework and suites (requires PS 7)
 |   |-- Invoke-SafeguardPsTests.ps1       # Test runner
 |   |-- SafeguardPsTestFramework.psm1     # Framework module
-|   `-- Suites/Suite-*.ps1                # 31 test suite files (~300 tests)
+|   `-- Suites/Suite-*.ps1                # 32 test suite files (~340 tests)
 |-- samples/                      # Example scripts
 |-- docker/                       # Dockerfiles (Ubuntu, Alpine, Mariner, Windows)
 |-- pipeline-templates/           # Azure Pipelines CI/CD templates
@@ -149,7 +149,7 @@ The test runner requires **PowerShell 7** (`pwsh`). It automatically:
 - Runs pre-cleanup to remove stale objects from prior failed runs
 - Reports pass/fail/skip with structured output
 
-A healthy baseline is **304 passed, 0 failed, 8 skipped** (SPS tests skip when no SPS
+A healthy baseline is **344 passed, 0 failed, 8 skipped** (SPS tests skip when no SPS
 appliance is provided).
 
 ### Fixing test failures
@@ -622,3 +622,20 @@ should be followed by an independent GET readback that confirms the change persi
 The `samples/` directory contains example scripts demonstrating common workflows:
 certificate authentication, bulk asset loading, entitlement setup, event monitoring, etc.
 Refer users to these for usage patterns.
+
+## Keeping this file current
+
+After completing a series of tasks, review what you learned and suggest updates to this
+file. Things to look for:
+
+- **New API quirks or pitfalls** that caused debugging time (e.g., endpoints that silently
+  ignore fields, serialization traps, role requirements)
+- **Stale counts** -- suite count, test count, and healthy baseline numbers drift as tests
+  are added or removed
+- **New patterns** that future work should follow (e.g., a new cmdlet category, a new
+  test data convention, a workaround for an appliance limitation)
+- **Module-to-suite mapping** updates when new suites or feature modules are added
+- **Corrections** to anything that turned out to be wrong or misleading
+
+Propose the updates to the user rather than silently editing -- they may have additional
+context or prefer different wording.
