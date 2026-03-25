@@ -20,7 +20,7 @@ safeguard-ps/
 |-- test/                         # Integration test framework and suites (requires PS 7)
 |   |-- Invoke-SafeguardPsTests.ps1       # Test runner
 |   |-- SafeguardPsTestFramework.psm1     # Framework module
-|   `-- Suites/Suite-*.ps1                # 32 test suite files (~340 tests)
+|   `-- Suites/Suite-*.ps1                # 32 test suite files (~355 tests)
 |-- samples/                      # Example scripts
 |-- docker/                       # Dockerfiles (Ubuntu, Alpine, Mariner, Windows)
 |-- pipeline-templates/           # Azure Pipelines CI/CD templates
@@ -326,6 +326,34 @@ if ($NeedsExtraProperties)
 
 Always check whether the POST endpoint accepts a property before adding it to the POST body.
 If it is silently ignored, move it to a follow-up PUT.
+
+### Custom script parameters on assets
+
+When an asset is created from a custom platform, default parameter values from the platform
+script are copied into `Asset.CustomScriptParameters`. The platform schema is at
+`Platform.CustomScriptProperties.Parameters`.
+
+**Platform schema** (`CustomScriptProperties.Parameters`):
+```json
+[
+  { "Name": "RequestTerminal", "Description": null, "DefaultValue": "True", "Type": "Boolean", "TaskName": "TestConnection" }
+]
+```
+
+**Asset values** (`CustomScriptParameters`):
+```json
+[
+  { "Name": "RequestTerminal", "Value": "True", "Type": "Boolean", "TaskName": "TestConnection" }
+]
+```
+
+Key patterns:
+- Parameters are **per-operation** (`TaskName`). The same parameter name may appear multiple
+  times, once per operation (TestConnection, CheckPassword, ChangePassword, etc.)
+- To modify: GET the full asset, change `CustomScriptParameters[n].Value`, PUT the full asset back
+- When applying a value to "all operations", iterate all entries with matching `Name`
+- When applying to a specific operation, match both `Name` and `TaskName`
+- Cmdlets: `Get-SafeguardCustomPlatformScriptParameters` (read schema), `New-SafeguardCustomPlatformAsset` (create with overrides), `Set-SafeguardCustomPlatformAssetParameter` (modify on existing asset)
 
 ## Code conventions
 
