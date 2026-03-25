@@ -437,6 +437,17 @@
             $threw
         }
 
+        Test-SgPsAssert "Get-SafeguardCustomPlatformScriptParameter from script file" {
+            $params = @(Get-SafeguardCustomPlatformScriptParameter -Insecure `
+                -ScriptFile $Context.SuiteData["ScriptFile"])
+            $params.Count -gt 0 -and
+                ($params | Where-Object { $_.Name -eq "RequestTerminal" }).Count -gt 0 -and
+                $params[0].PSObject.Properties.Name -contains "Name" -and
+                $params[0].PSObject.Properties.Name -contains "DefaultValue" -and
+                $params[0].PSObject.Properties.Name -contains "Type" -and
+                $params[0].PSObject.Properties.Name -contains "TaskName"
+        }
+
         # --- New-SafeguardCustomPlatformAsset ---
         $asset1Name = $Context.SuiteData["TestAsset1"]
         $asset2Name = $Context.SuiteData["TestAsset2"]

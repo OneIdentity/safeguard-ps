@@ -713,13 +713,17 @@ function Test-SafeguardCustomPlatformScript
 
 <#
 .SYNOPSIS
-Get the custom script parameter definitions from a custom platform in Safeguard via the Web API.
+Get the custom script parameter definitions from a custom platform or script file
+in Safeguard via the Web API.
 
 .DESCRIPTION
 Retrieve the custom script parameter schema defined by a custom platform's script.
 These are the custom (non-well-known) parameters that can be configured per-asset
 when using this custom platform. Each parameter has a Name, Type, DefaultValue,
 and TaskName (the operation it applies to).
+
+When -ScriptFile is specified, the script is validated without creating a platform,
+allowing you to discover parameters before platform creation.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -734,6 +738,10 @@ Ignore verification of Safeguard appliance SSL certificate.
 An integer containing the platform ID or a string containing the platform
 display name of the custom platform to query.
 
+.PARAMETER ScriptFile
+Path to a custom platform script JSON file. The script is validated via the
+API and its parameters are returned without creating a platform.
+
 .INPUTS
 None.
 
@@ -746,10 +754,13 @@ Get-SafeguardCustomPlatformScriptParameter "My Custom Linux"
 
 .EXAMPLE
 Get-SafeguardCustomPlatformScriptParameter 10022
+
+.EXAMPLE
+Get-SafeguardCustomPlatformScriptParameter -ScriptFile ".\MyScript.json"
 #>
 function Get-SafeguardCustomPlatformScriptParameter
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="ByPlatform")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -757,24 +768,46 @@ function Get-SafeguardCustomPlatformScriptParameter
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true,Position=0)]
-        [object]$Platform
+        [Parameter(ParameterSetName="ByPlatform",Mandatory=$true,Position=0)]
+        [object]$Platform,
+        [Parameter(ParameterSetName="ByScriptFile",Mandatory=$true)]
+        [string]$ScriptFile
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:PlatformObj = (Get-SafeguardCustomPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Platform)
-    if (-not $local:PlatformObj.CustomScriptProperties -or -not $local:PlatformObj.CustomScriptProperties.HasScript)
+    if ($PSCmdlet.ParameterSetName -eq "ByScriptFile")
     {
-        throw "Custom platform '$Platform' does not have a script uploaded"
+        if (-not (Test-Path $ScriptFile))
+        {
+            throw "Script file not found: $ScriptFile"
+        }
+        $local:ScriptContent = (Get-Content -Path $ScriptFile -Raw)
+        $local:Result = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            POST "Platforms/ValidateScript/Raw" -ContentType "application/octet-stream" -JsonBody $local:ScriptContent)
+        if (-not $local:Result.CustomScriptProperties -or -not $local:Result.CustomScriptProperties.Parameters -or
+            $local:Result.CustomScriptProperties.Parameters.Count -eq 0)
+        {
+            Write-Verbose "Script file '$ScriptFile' has no custom parameters"
+            return @()
+        }
+        $local:Result.CustomScriptProperties.Parameters
     }
-    if (-not $local:PlatformObj.CustomScriptProperties.Parameters -or $local:PlatformObj.CustomScriptProperties.Parameters.Count -eq 0)
+    else
     {
-        Write-Verbose "Custom platform '$Platform' has a script but no custom parameters"
-        return @()
+        $local:PlatformObj = (Get-SafeguardCustomPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Platform)
+        if (-not $local:PlatformObj.CustomScriptProperties -or -not $local:PlatformObj.CustomScriptProperties.HasScript)
+        {
+            throw "Custom platform '$Platform' does not have a script uploaded"
+        }
+        if (-not $local:PlatformObj.CustomScriptProperties.Parameters -or $local:PlatformObj.CustomScriptProperties.Parameters.Count -eq 0)
+        {
+            Write-Verbose "Custom platform '$Platform' has a script but no custom parameters"
+            return @()
+        }
+        $local:PlatformObj.CustomScriptProperties.Parameters
     }
-    $local:PlatformObj.CustomScriptProperties.Parameters
 }
 
 <#
