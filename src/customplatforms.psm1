@@ -710,3 +710,516 @@ function Test-SafeguardCustomPlatformScript
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
         POST "Platforms/ValidateScript/Raw" -ContentType "application/octet-stream" -JsonBody $local:ScriptContent
 }
+
+<#
+.SYNOPSIS
+Get the custom script parameter definitions from a custom platform or script file
+in Safeguard via the Web API.
+
+.DESCRIPTION
+Retrieve the custom script parameter schema defined by a custom platform's script.
+These are the custom (non-well-known) parameters that can be configured per-asset
+when using this custom platform. Each parameter has a Name, Type, DefaultValue,
+and TaskName (the operation it applies to).
+
+When -ScriptFile is specified, the script is validated without creating a platform,
+allowing you to discover parameters before platform creation.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Platform
+An integer containing the platform ID or a string containing the platform
+display name of the custom platform to query.
+
+.PARAMETER ScriptFile
+Path to a custom platform script JSON file. The script is validated via the
+API and its parameters are returned without creating a platform.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API -- array of parameter definitions with
+Name, Description, DefaultValue, Type, and TaskName properties.
+
+.EXAMPLE
+Get-SafeguardCustomPlatformScriptParameter "My Custom Linux"
+
+.EXAMPLE
+Get-SafeguardCustomPlatformScriptParameter 10022
+
+.EXAMPLE
+Get-SafeguardCustomPlatformScriptParameter -ScriptFile ".\MyScript.json"
+#>
+function Get-SafeguardCustomPlatformScriptParameter
+{
+    [CmdletBinding(DefaultParameterSetName="ByPlatform")]
+    [OutputType([object[]])]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(ParameterSetName="ByPlatform",Mandatory=$true,Position=0)]
+        [object]$Platform,
+        [Parameter(ParameterSetName="ByScriptFile",Mandatory=$true)]
+        [string]$ScriptFile
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($PSCmdlet.ParameterSetName -eq "ByScriptFile")
+    {
+        if (-not (Test-Path $ScriptFile))
+        {
+            throw "Script file not found: $ScriptFile"
+        }
+        $local:ScriptContent = (Get-Content -Path $ScriptFile -Raw)
+        $local:Result = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            POST "Platforms/ValidateScript/Raw" -ContentType "application/octet-stream" -JsonBody $local:ScriptContent)
+        if (-not $local:Result.CustomScriptProperties -or -not $local:Result.CustomScriptProperties.Parameters -or
+            $local:Result.CustomScriptProperties.Parameters.Count -eq 0)
+        {
+            Write-Verbose "Script file '$ScriptFile' has no custom parameters"
+            return @()
+        }
+        $local:Result.CustomScriptProperties.Parameters
+    }
+    else
+    {
+        $local:PlatformObj = (Get-SafeguardCustomPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Platform)
+        if (-not $local:PlatformObj.CustomScriptProperties -or -not $local:PlatformObj.CustomScriptProperties.HasScript)
+        {
+            throw "Custom platform '$Platform' does not have a script uploaded"
+        }
+        if (-not $local:PlatformObj.CustomScriptProperties.Parameters -or $local:PlatformObj.CustomScriptProperties.Parameters.Count -eq 0)
+        {
+            Write-Verbose "Custom platform '$Platform' has a script but no custom parameters"
+            return @()
+        }
+        $local:PlatformObj.CustomScriptProperties.Parameters
+    }
+}
+
+<#
+.SYNOPSIS
+Create a new asset using a custom platform in Safeguard via the Web API.
+
+.DESCRIPTION
+Create an asset that uses a custom platform definition. This cmdlet handles the
+standard asset creation properties (network address, service account, etc.) and
+also supports setting custom script parameters defined by the platform's script.
+
+In interactive mode (when -CustomScriptParameters is not provided), the cmdlet
+will discover the platform's custom parameters and prompt for values. In automated
+mode, pass an array of parameter override hashtables.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Platform
+An integer containing the platform ID or a string containing the platform
+display name of the custom platform to use. Must be a custom platform.
+
+.PARAMETER NetworkAddress
+A string containing the network address (IP or hostname) of the asset.
+
+.PARAMETER DisplayName
+A string containing the display name for the asset. Defaults to NetworkAddress.
+
+.PARAMETER Description
+A string containing the description for the asset.
+
+.PARAMETER AssetPartition
+An integer or string identifying the asset partition to use.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID. Use -1 for the default partition.
+
+.PARAMETER Port
+An integer containing the port for connecting to the asset.
+
+.PARAMETER ServiceAccountCredentialType
+A string containing the credential type for the service account.
+
+.PARAMETER ServiceAccountName
+A string containing the service account name.
+
+.PARAMETER ServiceAccountPassword
+A SecureString containing the service account password.
+
+.PARAMETER NoSshHostKeyDiscovery
+Do not attempt SSH host key discovery after asset creation.
+
+.PARAMETER AcceptSshHostKey
+Automatically accept the discovered SSH host key.
+
+.PARAMETER CustomScriptParameters
+An array of hashtables specifying custom script parameter overrides. Each hashtable
+should contain Name and Value keys. Optionally include TaskName to target a specific
+operation. If TaskName is omitted, the value is applied to all operations that use
+that parameter name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+New-SafeguardCustomPlatformAsset "My Custom Linux" "10.0.0.1"
+
+.EXAMPLE
+New-SafeguardCustomPlatformAsset "My Custom Linux" "10.0.0.1" -CustomScriptParameters @(@{Name="RequestTerminal";Value="False"})
+
+.EXAMPLE
+New-SafeguardCustomPlatformAsset -Platform 10022 -NetworkAddress "10.0.0.1" -Port 2222 -ServiceAccountCredentialType Password -ServiceAccountName "root"
+#>
+function New-SafeguardCustomPlatformAsset
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Platform,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$NetworkAddress,
+        [Parameter(Mandatory=$false)]
+        [string]$DisplayName,
+        [Parameter(Mandatory=$false)]
+        [string]$Description,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$false)]
+        [int]$Port,
+        [Parameter(Mandatory=$false)]
+        [ValidateSet("None","Password","SshKey","DirectoryPassword","LocalHostPassword","AccessKey","AccountPassword","Custom",IgnoreCase=$true)]
+        [string]$ServiceAccountCredentialType,
+        [Parameter(Mandatory=$false)]
+        [string]$ServiceAccountName,
+        [Parameter(Mandatory=$false)]
+        [SecureString]$ServiceAccountPassword,
+        [Parameter(Mandatory=$false)]
+        [switch]$NoSshHostKeyDiscovery,
+        [Parameter(Mandatory=$false)]
+        [switch]$AcceptSshHostKey,
+        [Parameter(Mandatory=$false)]
+        [hashtable[]]$CustomScriptParameters
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+    Import-Module -Name "$PSScriptRoot\datatypes.psm1" -Scope Local
+
+    # Resolve the custom platform
+    $local:PlatformObj = (Get-SafeguardCustomPlatform -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Platform)
+
+    if (-not $PSBoundParameters.ContainsKey("DisplayName") -or [string]::IsNullOrEmpty($DisplayName))
+    {
+        if ([string]::IsNullOrEmpty($NetworkAddress) -or (Test-IpAddress $NetworkAddress))
+        {
+            $DisplayName = (Read-Host "DisplayName")
+        }
+        else
+        {
+            $DisplayName = $NetworkAddress
+        }
+    }
+
+    # Build connection properties
+    $local:ConnectionProperties = @{}
+    if ($PSBoundParameters.ContainsKey("Port")) { $local:ConnectionProperties.Port = $Port }
+
+    if (-not $PSBoundParameters.ContainsKey("ServiceAccountCredentialType"))
+    {
+        $ServiceAccountCredentialType = "None"
+    }
+    $local:ConnectionProperties.ServiceAccountCredentialType = $ServiceAccountCredentialType
+
+    if ($ServiceAccountCredentialType -ne "None")
+    {
+        switch ($ServiceAccountCredentialType.ToLower())
+        {
+            "password" {
+                if (-not $PSBoundParameters.ContainsKey("ServiceAccountName") -or -not $ServiceAccountName)
+                {
+                    $ServiceAccountName = (Read-Host "ServiceAccountName")
+                }
+                $local:ConnectionProperties.ServiceAccountName = $ServiceAccountName
+                if (-not $PSBoundParameters.ContainsKey("ServiceAccountPassword"))
+                {
+                    $ServiceAccountPassword = (Read-Host -AsSecureString "ServiceAccountPassword")
+                }
+                $local:ConnectionProperties.ServiceAccountPassword = `
+                    [System.Net.NetworkCredential]::new("", $ServiceAccountPassword).Password
+            }
+            default {
+                if (-not $PSBoundParameters.ContainsKey("ServiceAccountName") -or -not $ServiceAccountName)
+                {
+                    $ServiceAccountName = (Read-Host "ServiceAccountName")
+                }
+                $local:ConnectionProperties.ServiceAccountName = $ServiceAccountName
+            }
+        }
+    }
+
+    # Resolve asset partition
+    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
+    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -UseDefault)
+
+    # Create the asset
+    $local:Body = @{
+        Name = "$DisplayName";
+        Description = "$Description";
+        NetworkAddress = "$NetworkAddress";
+        PlatformId = $local:PlatformObj.Id;
+        AssetPartitionId = $AssetPartitionId;
+        ConnectionProperties = $local:ConnectionProperties;
+    }
+
+    $local:NewAsset = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                           POST Assets -Body $local:Body)
+
+    # Handle custom script parameter overrides (POST-then-PUT pattern)
+    $local:HasCustomParamOverrides = $false
+    $local:ScriptParams = $local:PlatformObj.CustomScriptProperties.Parameters
+
+    if ($PSBoundParameters.ContainsKey("CustomScriptParameters") -and $CustomScriptParameters)
+    {
+        # Automated mode: apply overrides from the parameter
+        $local:HasCustomParamOverrides = $true
+    }
+    elseif ($local:ScriptParams -and $local:ScriptParams.Count -gt 0 -and -not $PSBoundParameters.ContainsKey("CustomScriptParameters"))
+    {
+        # Interactive mode: prompt for each unique parameter
+        $local:UniqueParams = @{}
+        foreach ($local:Param in $local:ScriptParams)
+        {
+            if (-not $local:UniqueParams.ContainsKey($local:Param.Name))
+            {
+                $local:UniqueParams[$local:Param.Name] = $local:Param
+            }
+        }
+        $local:InteractiveOverrides = @()
+        foreach ($local:ParamName in $local:UniqueParams.Keys)
+        {
+            $local:ParamDef = $local:UniqueParams[$local:ParamName]
+            $local:Prompt = "$local:ParamName [$($local:ParamDef.Type)] (default: $($local:ParamDef.DefaultValue))"
+            $local:UserValue = (Read-Host $local:Prompt)
+            if (-not [string]::IsNullOrEmpty($local:UserValue))
+            {
+                $local:InteractiveOverrides += @{ Name = $local:ParamName; Value = $local:UserValue }
+            }
+        }
+        if ($local:InteractiveOverrides.Count -gt 0)
+        {
+            $CustomScriptParameters = $local:InteractiveOverrides
+            $local:HasCustomParamOverrides = $true
+        }
+    }
+
+    if ($local:HasCustomParamOverrides)
+    {
+        try
+        {
+            # GET-then-PUT to apply custom parameter overrides
+            $local:AssetObj = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                                   GET "Assets/$($local:NewAsset.Id)")
+            if ($local:AssetObj.CustomScriptParameters)
+            {
+                foreach ($local:Override in $CustomScriptParameters)
+                {
+                    $local:OverrideName = $local:Override.Name
+                    $local:OverrideValue = $local:Override.Value
+                    $local:OverrideTaskName = $null
+                    if ($local:Override.ContainsKey("TaskName"))
+                    {
+                        $local:OverrideTaskName = $local:Override.TaskName
+                    }
+                    foreach ($local:AssetParam in $local:AssetObj.CustomScriptParameters)
+                    {
+                        if ($local:AssetParam.Name -eq $local:OverrideName)
+                        {
+                            if ($local:OverrideTaskName -and $local:AssetParam.TaskName -ne $local:OverrideTaskName)
+                            {
+                                continue
+                            }
+                            $local:AssetParam.Value = "$local:OverrideValue"
+                        }
+                    }
+                }
+                $local:NewAsset = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                                       PUT "Assets/$($local:NewAsset.Id)" -Body $local:AssetObj)
+            }
+        }
+        catch
+        {
+            Write-Host -ForegroundColor Yellow "Error setting custom script parameters, removing asset..."
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                DELETE "Assets/$($local:NewAsset.Id)" | Out-Null
+            throw
+        }
+    }
+
+    # Handle SSH host key discovery
+    try
+    {
+        if ($local:NewAsset.Platform.ConnectionProperties.SupportsSshTransport -and -not $NoSshHostKeyDiscovery)
+        {
+            Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
+            Invoke-SafeguardAssetSshHostKeyDiscovery -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:NewAsset -AcceptSshHostKey:$AcceptSshHostKey
+        }
+        else
+        {
+            $local:NewAsset
+        }
+    }
+    catch
+    {
+        Write-Host -ForegroundColor Yellow "Error setting up SSH host key, removing asset..."
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            DELETE "Assets/$($local:NewAsset.Id)" | Out-Null
+        throw
+    }
+}
+
+<#
+.SYNOPSIS
+Set a custom script parameter value on a Safeguard asset via the Web API.
+
+.DESCRIPTION
+Modify one or more custom script parameter values on an existing asset that uses
+a custom platform. Uses the GET-then-PUT pattern to update the asset's
+CustomScriptParameters array.
+
+When TaskName is specified, only the parameter for that specific operation is
+updated. When TaskName is omitted, all operations that use the specified parameter
+name are updated to the new value.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetToSet
+An integer containing an asset ID or a string containing the asset name.
+
+.PARAMETER ParameterName
+A string containing the name of the custom script parameter to set.
+
+.PARAMETER ParameterValue
+A string containing the new value for the custom script parameter.
+
+.PARAMETER TaskName
+An optional string specifying the operation to target (e.g., TestConnection,
+CheckPassword, ChangePassword). If omitted, the value is applied to all
+operations that use the specified parameter name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API -- the updated asset object.
+
+.EXAMPLE
+Set-SafeguardCustomPlatformAssetParameter 263 "RequestTerminal" "False"
+
+.EXAMPLE
+Set-SafeguardCustomPlatformAssetParameter "MyLinuxAsset" "RequestTerminal" "False" -TaskName "CheckPassword"
+#>
+function Set-SafeguardCustomPlatformAssetParameter
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$AssetToSet,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$ParameterName,
+        [Parameter(Mandatory=$true,Position=2)]
+        [string]$ParameterValue,
+        [Parameter(Mandatory=$false)]
+        [string]$TaskName
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    # Resolve asset
+    Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
+    $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AssetToSet)
+
+    # GET the full asset
+    $local:AssetObj = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                           GET "Assets/$local:AssetId")
+
+    if (-not $local:AssetObj.CustomScriptParameters -or $local:AssetObj.CustomScriptParameters.Count -eq 0)
+    {
+        throw "Asset '$AssetToSet' does not have any custom script parameters. " + `
+              "Ensure the asset uses a custom platform with a script that defines custom parameters."
+    }
+
+    # Find and update matching parameters
+    $local:Updated = $false
+    foreach ($local:Param in $local:AssetObj.CustomScriptParameters)
+    {
+        if ($local:Param.Name -eq $ParameterName)
+        {
+            if ($PSBoundParameters.ContainsKey("TaskName") -and $local:Param.TaskName -ne $TaskName)
+            {
+                continue
+            }
+            $local:Param.Value = $ParameterValue
+            $local:Updated = $true
+        }
+    }
+
+    if (-not $local:Updated)
+    {
+        if ($PSBoundParameters.ContainsKey("TaskName"))
+        {
+            throw "Unable to find custom script parameter '$ParameterName' for task '$TaskName' on asset '$AssetToSet'"
+        }
+        else
+        {
+            throw "Unable to find custom script parameter '$ParameterName' on asset '$AssetToSet'"
+        }
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        PUT "Assets/$local:AssetId" -Body $local:AssetObj
+}

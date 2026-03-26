@@ -20,7 +20,7 @@ safeguard-ps/
 |-- test/                         # Integration test framework and suites (requires PS 7)
 |   |-- Invoke-SafeguardPsTests.ps1       # Test runner
 |   |-- SafeguardPsTestFramework.psm1     # Framework module
-|   `-- Suites/Suite-*.ps1                # 32 test suite files (~340 tests)
+|   `-- Suites/Suite-*.ps1                # 32 test suite files (~355 tests)
 |-- samples/                      # Example scripts
 |-- docker/                       # Dockerfiles (Ubuntu, Alpine, Mariner, Windows)
 |-- pipeline-templates/           # Azure Pipelines CI/CD templates
@@ -327,12 +327,41 @@ if ($NeedsExtraProperties)
 Always check whether the POST endpoint accepts a property before adding it to the POST body.
 If it is silently ignored, move it to a follow-up PUT.
 
+### Custom script parameters on assets
+
+When an asset is created from a custom platform, default parameter values from the platform
+script are copied into `Asset.CustomScriptParameters`. The platform schema is at
+`Platform.CustomScriptProperties.Parameters`.
+
+**Platform schema** (`CustomScriptProperties.Parameters`):
+```json
+[
+  { "Name": "RequestTerminal", "Description": null, "DefaultValue": "True", "Type": "Boolean", "TaskName": "TestConnection" }
+]
+```
+
+**Asset values** (`CustomScriptParameters`):
+```json
+[
+  { "Name": "RequestTerminal", "Value": "True", "Type": "Boolean", "TaskName": "TestConnection" }
+]
+```
+
+Key patterns:
+- Parameters are **per-operation** (`TaskName`). The same parameter name may appear multiple
+  times, once per operation (TestConnection, CheckPassword, ChangePassword, etc.)
+- To modify: GET the full asset, change `CustomScriptParameters[n].Value`, PUT the full asset back
+- When applying a value to "all operations", iterate all entries with matching `Name`
+- When applying to a specific operation, match both `Name` and `TaskName`
+- Cmdlets: `Get-SafeguardCustomPlatformScriptParameter` (read schema), `New-SafeguardCustomPlatformAsset` (create with overrides), `Set-SafeguardCustomPlatformAssetParameter` (modify on existing asset)
+
 ## Code conventions
 
 ### Cmdlet naming
 
 All exported functions use `Verb-Safeguard*` (e.g., `Get-SafeguardAsset`, `New-SafeguardUser`).
-Follow standard PowerShell approved verbs.
+Follow standard PowerShell approved verbs. **Nouns must always be singular** — never plural
+(e.g., `Get-SafeguardCustomPlatformScriptParameter`, not `...Parameters`).
 
 ### Standard function boilerplate
 
@@ -393,7 +422,42 @@ Always use named parameters when calling internal functions. Do not use position
 
 ### Output types
 
-Functions that return typed output should declare `[OutputType([type])]` before `param()`.
+Functions that return typed output should declare `[OutputType([type])]` before `Param()`.
+
+**Any function that returns `@()` (empty array) must have `[OutputType([object[]])]`.**
+PSScriptAnalyzer's `PSUseOutputTypeCorrectly` rule flags functions that return
+`System.Object[]` without a matching `[OutputType]` declaration. This breaks CI
+(`Invoke-PsLint.ps1 -Strict`). When adding a new cmdlet that can return an array or
+an empty array, always add the attribute:
+
+```powershell
+function Get-SafeguardSomething
+{
+    [CmdletBinding()]
+    [OutputType([object[]])]
+    Param( ... )
+    ...
+    return @()
+}
+```
+
+### Parameter sets for multi-mode cmdlets
+
+When a cmdlet supports multiple mutually exclusive input modes, use parameter sets.
+For example, `Get-SafeguardCustomPlatformScriptParameter` has `ByPlatform` (takes an
+existing platform ID/name) and `ByScriptFile` (takes a raw script file path):
+
+```powershell
+[CmdletBinding(DefaultParameterSetName="ByPlatform")]
+Param(
+    [Parameter(ParameterSetName="ByPlatform",Mandatory=$true,Position=0)]
+    [object]$Platform,
+    [Parameter(ParameterSetName="ByScriptFile",Mandatory=$true)]
+    [string]$ScriptFile
+)
+```
+
+This makes usage self-documenting in `Get-Help` and prevents invalid combinations.
 
 ## PowerShell 5.1 compatibility
 
@@ -616,6 +680,21 @@ should be followed by an independent GET readback that confirms the change persi
    do not just set a value and read it back -- set a *different* value from the original
    and verify the change. If possible, edit twice with different values to confirm both
    transitions.
+
+10. **Do not rely on object state from earlier tests for negative tests.** Earlier tests
+    may modify objects in ways that invalidate assumptions (e.g., importing a script onto a
+    "scriptless" platform). For negative tests that depend on a specific state, create a
+    fresh temporary object, run the assertion, then delete it:
+    ```powershell
+    Test-SgPsAssert "Throws for scriptless platform" {
+        $tempPlat = New-SafeguardCustomPlatform -Insecure "TempScriptless"
+        $threw = $false
+        try { $null = Get-SafeguardCustomPlatformScriptParameter -Insecure $tempPlat.Id }
+        catch { $threw = $_ -match "does not have a script" }
+        Remove-SafeguardCustomPlatform -Insecure $tempPlat.Id | Out-Null
+        $threw
+    }
+    ```
 
 ## Sample scripts
 

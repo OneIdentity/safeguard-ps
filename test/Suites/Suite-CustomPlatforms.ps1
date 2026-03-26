@@ -52,6 +52,16 @@
         $Context.SuiteData["ScriptFile2"] = $tempScriptFile2
         $Context.SuiteData["ScriptId2"] = $uniqueScriptId2
 
+        # Asset test data
+        $testAsset1 = "${prefix}_CustPlatAsset1"
+        $testAsset2 = "${prefix}_CustPlatAsset2"
+        $Context.SuiteData["TestAsset1"] = $testAsset1
+        $Context.SuiteData["TestAsset2"] = $testAsset2
+
+        # Pre-cleanup any stale test assets from a previous failed run
+        Remove-SgPsStaleTestObject -Collection "Assets" -Name $testAsset1
+        Remove-SgPsStaleTestObject -Collection "Assets" -Name $testAsset2
+
         Register-SgPsTestCleanup -Description "Remove temp script files" -Action {
             param($Ctx)
             foreach ($key in @('ScriptFile','ScriptFile2')) {
@@ -394,6 +404,186 @@
             }
             Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
             $threw
+        }
+
+        # --- Get-SafeguardCustomPlatformScriptParameter ---
+        Test-SgPsAssert "Get-SafeguardCustomPlatformScriptParameter returns schema" {
+            $params = @(Get-SafeguardCustomPlatformScriptParameter -Insecure $Context.SuiteData["Platform2Id"])
+            # The SSHKeySupport script defines RequestTerminal for multiple operations
+            $params.Count -gt 0 -and
+                ($params | Where-Object { $_.Name -eq "RequestTerminal" }).Count -gt 0 -and
+                $params[0].PSObject.Properties.Name -contains "Name" -and
+                $params[0].PSObject.Properties.Name -contains "DefaultValue" -and
+                $params[0].PSObject.Properties.Name -contains "Type" -and
+                $params[0].PSObject.Properties.Name -contains "TaskName"
+        }
+
+        Test-SgPsAssert "Get-SafeguardCustomPlatformScriptParameter by name" {
+            $params = @(Get-SafeguardCustomPlatformScriptParameter -Insecure $platform2Name)
+            $params.Count -gt 0 -and
+                ($params | Where-Object { $_.Name -eq "RequestTerminal" -and $_.Type -eq "Boolean" }).Count -gt 0
+        }
+
+        Test-SgPsAssert "Get-SafeguardCustomPlatformScriptParameter throws for scriptless platform" {
+            # Platform1 may have had a script imported during import tests, so create a fresh one
+            $local:tempPlat = New-SafeguardCustomPlatform -Insecure "${prefix}_ScriptlessTemp"
+            $threw = $false
+            try {
+                $null = Get-SafeguardCustomPlatformScriptParameter -Insecure $local:tempPlat.Id
+            } catch {
+                $threw = $_ -match "does not have a script"
+            }
+            Remove-SafeguardCustomPlatform -Insecure $local:tempPlat.Id | Out-Null
+            $threw
+        }
+
+        Test-SgPsAssert "Get-SafeguardCustomPlatformScriptParameter from script file" {
+            $params = @(Get-SafeguardCustomPlatformScriptParameter -Insecure `
+                -ScriptFile $Context.SuiteData["ScriptFile"])
+            $params.Count -gt 0 -and
+                ($params | Where-Object { $_.Name -eq "RequestTerminal" }).Count -gt 0 -and
+                $params[0].PSObject.Properties.Name -contains "Name" -and
+                $params[0].PSObject.Properties.Name -contains "DefaultValue" -and
+                $params[0].PSObject.Properties.Name -contains "Type" -and
+                $params[0].PSObject.Properties.Name -contains "TaskName"
+        }
+
+        # --- New-SafeguardCustomPlatformAsset ---
+        $asset1Name = $Context.SuiteData["TestAsset1"]
+        $asset2Name = $Context.SuiteData["TestAsset2"]
+
+        Test-SgPsAssert "New-SafeguardCustomPlatformAsset creates asset with defaults" {
+            $asset = New-SafeguardCustomPlatformAsset -Insecure $platform2Name "10.99.99.1" `
+                -DisplayName $asset1Name -NoSshHostKeyDiscovery `
+                -CustomScriptParameters @()
+            $Context.SuiteData["Asset1Id"] = $asset.Id
+            $asset.Name -eq $asset1Name -and
+                $asset.NetworkAddress -eq "10.99.99.1" -and
+                $asset.PlatformDisplayName -eq $platform2Name
+        }
+
+        Test-SgPsAssert "New-SafeguardCustomPlatformAsset asset has default custom params" {
+            $readback = Invoke-SafeguardMethod -Insecure Core GET "Assets/$($Context.SuiteData['Asset1Id'])"
+            $readback.CustomScriptParameters.Count -gt 0 -and
+                ($readback.CustomScriptParameters | Where-Object {
+                    $_.Name -eq "RequestTerminal" -and $_.Value -eq "True"
+                }).Count -gt 0
+        }
+
+        Test-SgPsAssert "New-SafeguardCustomPlatformAsset with custom param overrides" {
+            $overrides = @(
+                @{ Name = "RequestTerminal"; Value = "False" }
+            )
+            $asset = New-SafeguardCustomPlatformAsset -Insecure $platform2Name "10.99.99.2" `
+                -DisplayName $asset2Name -NoSshHostKeyDiscovery `
+                -CustomScriptParameters $overrides
+            $Context.SuiteData["Asset2Id"] = $asset.Id
+            $asset.Name -eq $asset2Name -and
+                $asset.NetworkAddress -eq "10.99.99.2"
+        }
+
+        Test-SgPsAssert "New-SafeguardCustomPlatformAsset overrides verified via GET readback" {
+            $readback = Invoke-SafeguardMethod -Insecure Core GET "Assets/$($Context.SuiteData['Asset2Id'])"
+            $rtParams = @($readback.CustomScriptParameters | Where-Object { $_.Name -eq "RequestTerminal" })
+            # All operations should have Value=False since we didn't specify TaskName
+            $allFalse = $true
+            foreach ($p in $rtParams) {
+                if ($p.Value -ne "False") { $allFalse = $false }
+            }
+            $rtParams.Count -gt 0 -and $allFalse
+        }
+
+        # --- Set-SafeguardCustomPlatformAssetParameter ---
+        Test-SgPsAssert "Set-SafeguardCustomPlatformAssetParameter sets all operations" {
+            $updated = Set-SafeguardCustomPlatformAssetParameter -Insecure $Context.SuiteData["Asset1Id"] `
+                "RequestTerminal" "False"
+            $rtParams = @($updated.CustomScriptParameters | Where-Object { $_.Name -eq "RequestTerminal" })
+            $allFalse = $true
+            foreach ($p in $rtParams) {
+                if ($p.Value -ne "False") { $allFalse = $false }
+            }
+            $rtParams.Count -gt 0 -and $allFalse
+        }
+
+        Test-SgPsAssert "Set-SafeguardCustomPlatformAssetParameter verified via GET readback" {
+            $readback = Invoke-SafeguardMethod -Insecure Core GET "Assets/$($Context.SuiteData['Asset1Id'])"
+            $rtParams = @($readback.CustomScriptParameters | Where-Object { $_.Name -eq "RequestTerminal" })
+            $allFalse = $true
+            foreach ($p in $rtParams) {
+                if ($p.Value -ne "False") { $allFalse = $false }
+            }
+            $rtParams.Count -gt 0 -and $allFalse
+        }
+
+        Test-SgPsAssert "Set-SafeguardCustomPlatformAssetParameter per-operation" {
+            # Set only TestConnection back to True
+            $updated = Set-SafeguardCustomPlatformAssetParameter -Insecure $Context.SuiteData["Asset1Id"] `
+                "RequestTerminal" "True" -TaskName "TestConnection"
+            $tcParam = $updated.CustomScriptParameters | Where-Object {
+                $_.Name -eq "RequestTerminal" -and $_.TaskName -eq "TestConnection"
+            }
+            $otherParams = @($updated.CustomScriptParameters | Where-Object {
+                $_.Name -eq "RequestTerminal" -and $_.TaskName -ne "TestConnection"
+            })
+            $othersStillFalse = $true
+            foreach ($p in $otherParams) {
+                if ($p.Value -ne "False") { $othersStillFalse = $false }
+            }
+            $tcParam.Value -eq "True" -and $othersStillFalse
+        }
+
+        Test-SgPsAssert "Set-SafeguardCustomPlatformAssetParameter per-operation verified via GET" {
+            $readback = Invoke-SafeguardMethod -Insecure Core GET "Assets/$($Context.SuiteData['Asset1Id'])"
+            $tcParam = $readback.CustomScriptParameters | Where-Object {
+                $_.Name -eq "RequestTerminal" -and $_.TaskName -eq "TestConnection"
+            }
+            $cpParam = $readback.CustomScriptParameters | Where-Object {
+                $_.Name -eq "RequestTerminal" -and $_.TaskName -eq "CheckPassword"
+            }
+            $tcParam.Value -eq "True" -and $cpParam.Value -eq "False"
+        }
+
+        Test-SgPsAssert "Set-SafeguardCustomPlatformAssetParameter by asset name" {
+            $updated = Set-SafeguardCustomPlatformAssetParameter -Insecure $asset2Name `
+                "RequestTerminal" "True"
+            $rtParams = @($updated.CustomScriptParameters | Where-Object { $_.Name -eq "RequestTerminal" })
+            $allTrue = $true
+            foreach ($p in $rtParams) {
+                if ($p.Value -ne "True") { $allTrue = $false }
+            }
+            $rtParams.Count -gt 0 -and $allTrue
+        }
+
+        Test-SgPsAssert "Set-SafeguardCustomPlatformAssetParameter throws for bad param name" {
+            $threw = $false
+            try {
+                $null = Set-SafeguardCustomPlatformAssetParameter -Insecure $Context.SuiteData["Asset1Id"] `
+                    "NonExistentParam" "SomeValue"
+            } catch {
+                $threw = $_ -match "Unable to find custom script parameter"
+            }
+            $threw
+        }
+
+        # --- Cleanup test assets before platform removal ---
+        Test-SgPsAssert "Remove test asset 1" {
+            Invoke-SafeguardMethod -Insecure Core DELETE "Assets/$($Context.SuiteData['Asset1Id'])" | Out-Null
+            $found = $false
+            try {
+                $null = Invoke-SafeguardMethod -Insecure Core GET "Assets/$($Context.SuiteData['Asset1Id'])"
+                $found = $true
+            } catch {}
+            -not $found
+        }
+
+        Test-SgPsAssert "Remove test asset 2" {
+            Invoke-SafeguardMethod -Insecure Core DELETE "Assets/$($Context.SuiteData['Asset2Id'])" | Out-Null
+            $found = $false
+            try {
+                $null = Invoke-SafeguardMethod -Insecure Core GET "Assets/$($Context.SuiteData['Asset2Id'])"
+                $found = $true
+            } catch {}
+            -not $found
         }
 
         # --- Remove-SafeguardCustomPlatform (by ID) ---
