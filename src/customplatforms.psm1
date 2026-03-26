@@ -761,6 +761,7 @@ Get-SafeguardCustomPlatformScriptParameter -ScriptFile ".\MyScript.json"
 function Get-SafeguardCustomPlatformScriptParameter
 {
     [CmdletBinding(DefaultParameterSetName="ByPlatform")]
+    [OutputType([object[]])]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,

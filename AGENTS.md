@@ -422,7 +422,24 @@ Always use named parameters when calling internal functions. Do not use position
 
 ### Output types
 
-Functions that return typed output should declare `[OutputType([type])]` before `param()`.
+Functions that return typed output should declare `[OutputType([type])]` before `Param()`.
+
+**Any function that returns `@()` (empty array) must have `[OutputType([object[]])]`.**
+PSScriptAnalyzer's `PSUseOutputTypeCorrectly` rule flags functions that return
+`System.Object[]` without a matching `[OutputType]` declaration. This breaks CI
+(`Invoke-PsLint.ps1 -Strict`). When adding a new cmdlet that can return an array or
+an empty array, always add the attribute:
+
+```powershell
+function Get-SafeguardSomething
+{
+    [CmdletBinding()]
+    [OutputType([object[]])]
+    Param( ... )
+    ...
+    return @()
+}
+```
 
 ### Parameter sets for multi-mode cmdlets
 
