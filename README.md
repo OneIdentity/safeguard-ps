@@ -313,12 +313,14 @@ Every cmdlet supports `Get-Help` for detailed usage information. Use
 Aliases are shown in parentheses where available.
 
 ### Management Shell
+---
 
 `Get-SafeguardCommand` ·
 `Get-SafeguardBanner` ·
 `Open-CsvInExcel`
 
 ### Core Functionality
+---
 
 `Connect-Safeguard` ·
 `Disconnect-Safeguard` ·
@@ -330,6 +332,7 @@ Aliases are shown in parentheses where available.
 `Confirm-SafeguardStaAcceptance`
 
 ### Data Types
+---
 
 `Get-SafeguardIdentityProviderType` ·
 `Get-SafeguardPlatform` ·
@@ -338,12 +341,14 @@ Aliases are shown in parentheses where available.
 `Get-SafeguardTransferProtocol`
 
 ### Licensing
+---
 
 `Get-SafeguardLicense` ·
 `Install-SafeguardLicense` ·
 `Uninstall-SafeguardLicense`
 
 ### Certificates
+---
 
 `Get-SafeguardTrustedCertificate` ·
 `Install-SafeguardTrustedCertificate` ·
@@ -363,6 +368,7 @@ Aliases are shown in parentheses where available.
 `New-SafeguardTestCertificatePki`
 
 ### Networking
+---
 
 `Get-SafeguardNetworkInterface` ·
 `Set-SafeguardNetworkInterface` ·
@@ -370,6 +376,7 @@ Aliases are shown in parentheses where available.
 `Set-SafeguardDnsSuffix`
 
 ### Maintenance
+---
 
 `Get-SafeguardStatus` ·
 `Get-SafeguardVersion` ·
@@ -413,6 +420,7 @@ Aliases are shown in parentheses where available.
 `Test-SafeguardAuditLogArchive`
 
 ### Diagnostics
+---
 
 `Invoke-SafeguardPing` ·
 `Invoke-SafeguardTelnet` ·
@@ -434,6 +442,7 @@ Aliases are shown in parentheses where available.
 `Get-SafeguardDiagnosticPackageStatus`
 
 ### Clustering
+---
 
 `Get-SafeguardClusterMember` ·
 `Add-SafeguardClusterMember` ·
@@ -450,6 +459,7 @@ Aliases are shown in parentheses where available.
 `Get-SafeguardClusterVpnIpv6Address`
 
 ### Session Cluster Join
+---
 
 `Get-SafeguardSessionCluster` ·
 `Set-SafeguardSessionCluster` ·
@@ -465,6 +475,7 @@ Aliases are shown in parentheses where available.
 `Disable-SafeguardSessionClusterAuditStream`
 
 ### Safeguard for Privileged Sessions (SPS) Web API
+---
 
 `Connect-SafeguardSps` ·
 `Disconnect-SafeguardSps` ·
@@ -492,6 +503,7 @@ Aliases are shown in parentheses where available.
 `Test-SafeguardSpsFirmware`
 
 ### Users
+---
 
 `Get-SafeguardIdentityProvider` ·
 `Get-SafeguardAuthenticationProvider` ·
@@ -517,6 +529,7 @@ Aliases are shown in parentheses where available.
 `Sync-SafeguardUserGroupAuthenticationProvider`
 
 ### User Groups
+---
 
 `Get-SafeguardUserGroup` ·
 `New-SafeguardUserGroup` ·
@@ -527,6 +540,7 @@ Aliases are shown in parentheses where available.
 `Remove-SafeguardUserGroupMember`
 
 ### Asset Partitions
+---
 
 `Get-SafeguardAssetPartition` ·
 `New-SafeguardAssetPartition` ·
@@ -540,6 +554,7 @@ Aliases are shown in parentheses where available.
 `Get-SafeguardCurrentAssetPartition`
 
 ### Assets
+---
 
 `Get-SafeguardAsset` ·
 `Find-SafeguardAsset` ·
@@ -552,6 +567,7 @@ Aliases are shown in parentheses where available.
 `Sync-SafeguardDirectoryAsset`
 
 ### Asset Accounts
+---
 
 `Get-SafeguardAssetAccount` ·
 `Find-SafeguardAssetAccount` ·
@@ -576,6 +592,7 @@ Aliases are shown in parentheses where available.
 `New-SafeguardAssetAccountSshKeyImportTemplate`
 
 ### Custom Platforms
+---
 
 `Get-SafeguardCustomPlatform` ·
 `New-SafeguardCustomPlatform` ·
@@ -589,6 +606,7 @@ Aliases are shown in parentheses where available.
 `Test-SafeguardCustomPlatformScript`
 
 ### Directories
+---
 
 `Get-SafeguardDirectory` ·
 `New-SafeguardDirectory` ·
@@ -607,6 +625,7 @@ Aliases are shown in parentheses where available.
 `Set-SafeguardDirectoryIdentityProviderSchemaMapping`
 
 ### Directory Accounts
+---
 
 `Get-SafeguardDirectoryAccount` ·
 `Find-SafeguardDirectoryAccount` ·
@@ -619,6 +638,7 @@ Aliases are shown in parentheses where available.
 `Invoke-SafeguardDirectoryAccountPasswordChange`
 
 ### Profiles & Schedules
+---
 
 `Get-SafeguardPasswordProfile` ·
 `New-SafeguardPasswordProfile` ·
@@ -657,29 +677,8 @@ Aliases are shown in parentheses where available.
 `New-SafeguardScheduleMonthlyByDayOfWeek`
 
 ### Groups
+---
 
-<<<<<<< Updated upstream
-- Get-SafeguardPolicyAsset
-- Find-SafeguardPolicyAsset
-- Get-SafeguardPolicyAccount
-- Find-SafeguardPolicyAccount
-- Get-SafeguardAccessPolicy
-- Get-SafeguardAccessPolicyScopeItem
-- Get-SafeguardAccessPolicyAccessRequestProperty
-- Get-SafeguardAccessPolicySessionProperty
-- Get-SafeguardEntitlement
-- New-SafeguardEntitlement
-- Remove-SafeguardEntitlement
-- Edit-SafeguardEntitlement
-- Add-SafeguardEntitlementMember
-- Remove-SafeguardEntitlementMember
-- Add-SafeguardAccessPolicy
-- Remove-SafeguardAccessPolicy
-- Edit-SafeguardAccessPolicy
-- Get-SafeguardUserLinkedAccount
-- Add-SafeguardUserLinkedAccount
-- Remove-SafeguardUserLinkedAccount
-=======
 **User Groups:**
 `Get-SafeguardUserGroup` ·
 `New-SafeguardUserGroup` ·
@@ -716,6 +715,7 @@ Aliases are shown in parentheses where available.
 `Edit-SafeguardDynamicAccountGroup`
 
 ### Entitlements & Access Policies
+---
 
 `Get-SafeguardEntitlement` ·
 `New-SafeguardEntitlement` ·
@@ -736,6 +736,7 @@ Aliases are shown in parentheses where available.
 `Find-SafeguardPolicyAccount`
 
 ### Access Requests
+---
 
 `Get-SafeguardAccessRequest` ·
 `Find-SafeguardAccessRequest` ·
@@ -764,6 +765,7 @@ Aliases are shown in parentheses where available.
 `Start-SafeguardAccessRequestWebSession`
 
 ### Tags
+---
 
 `Get-SafeguardTag` ·
 `Find-SafeguardTag` ·
@@ -781,9 +783,9 @@ Aliases are shown in parentheses where available.
 `Update-SafeguardAssetAccountTag` ·
 `Test-SafeguardAssetTaggingRule` ·
 `Test-SafeguardAssetAccountTaggingRule`
->>>>>>> Stashed changes
 
 ### Events
+---
 
 `Get-SafeguardEvent` ·
 `Find-SafeguardEvent` ·
@@ -797,6 +799,7 @@ Aliases are shown in parentheses where available.
 `Remove-SafeguardEventSubscription`
 
 ### A2A
+---
 
 **Service:**
 `Get-SafeguardA2aServiceStatus` ·
@@ -842,6 +845,7 @@ Aliases are shown in parentheses where available.
 `New-SafeguardA2aAccessRequest`
 
 ### One Identity Starling
+---
 
 `Invoke-SafeguardStarlingJoinBrowser` ·
 `Invoke-SafeguardStarlingJoin` ·
@@ -854,6 +858,7 @@ Aliases are shown in parentheses where available.
 `Set-SafeguardStarlingSetting`
 
 ### Reports
+---
 
 `Get-SafeguardReportA2aEntitlement` ·
 `Get-SafeguardReportAccountGroupMembership` ·
@@ -871,6 +876,7 @@ Aliases are shown in parentheses where available.
 `Get-SafeguardReportUserGroupMembership`
 
 ### Archive Servers
+---
 
 `Get-SafeguardArchiveServer` ·
 `New-SafeguardArchiveServer` ·
@@ -879,6 +885,7 @@ Aliases are shown in parentheses where available.
 `Test-SafeguardArchiveServer`
 
 ### Settings
+---
 
 `Get-SafeguardApplianceSetting` ·
 `Set-SafeguardApplianceSetting` ·
@@ -894,6 +901,7 @@ Aliases are shown in parentheses where available.
 `Remove-SafeguardSyslogServer`
 
 ### Deleted Objects
+---
 
 `Get-SafeguardDeletedAsset` ·
 `Remove-SafeguardDeletedAsset` ·
@@ -909,5 +917,6 @@ Aliases are shown in parentheses where available.
 `Reset-SafeguardPurgeSettings`
 
 ### Audit Log
+---
 
 `Get-SafeguardAuditLog`
