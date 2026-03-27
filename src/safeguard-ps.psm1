@@ -1331,10 +1331,20 @@ function Connect-Safeguard
                 {
                     throw "Unable to connect to $Appliance, bad appliance network address?"
                 }
+                if ($_.Exception.Status -eq "TrustFailure" -or $_.Exception.Status -eq "SendFailure")
+                {
+                    throw "SSL certificate validation failed connecting to $Appliance, try using the -Insecure flag"
+                }
+                throw "Unable to retrieve identity providers from $Appliance -- $($_.Exception.Message)"
             }
             catch
             {
-                Write-Verbose "Initial attempt threw unknown exception"
+                Write-Verbose "Initial attempt threw exception: $_"
+                if ($_.Exception.Message -match "SSL|certificate|TLS")
+                {
+                    throw "SSL certificate validation failed connecting to $Appliance, try using the -Insecure flag"
+                }
+                throw "Unable to retrieve identity providers from $Appliance -- $($_.Exception.Message)"
             }
 
             # Built-in providers
