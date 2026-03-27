@@ -314,354 +314,567 @@ Aliases are shown in parentheses where available.
 
 ### Management Shell
 
-| | | |
-|---|---|---|
-| `Get-SafeguardCommand` | `Get-SafeguardBanner` | `Open-CsvInExcel` |
+- `Get-SafeguardCommand`
+- `Get-SafeguardBanner`
+- `Open-CsvInExcel`
 
 ### Core Functionality
 
-| | | |
-|---|---|---|
-| `Connect-Safeguard` | `Disconnect-Safeguard` | `Invoke-SafeguardMethod` |
-| `Get-SafeguardAccessTokenStatus` | `Update-SafeguardAccessToken` | `Get-SafeguardLoggedInUser` |
-| `Switch-SafeguardConnectionVersion` | `Confirm-SafeguardStaAcceptance` |  |
+- `Connect-Safeguard`
+- `Disconnect-Safeguard`
+- `Invoke-SafeguardMethod`
+- `Get-SafeguardAccessTokenStatus`
+- `Update-SafeguardAccessToken`
+- `Get-SafeguardLoggedInUser`
+- `Switch-SafeguardConnectionVersion`
+- `Confirm-SafeguardStaAcceptance`
 
 ### Data Types
 
-| | | |
-|---|---|---|
-| `Get-SafeguardIdentityProviderType` | `Get-SafeguardPlatform` | `Find-SafeguardPlatform` |
-| `Get-SafeguardTimeZone` | `Get-SafeguardTransferProtocol` |  |
+- `Get-SafeguardIdentityProviderType`
+- `Get-SafeguardPlatform`
+- `Find-SafeguardPlatform`
+- `Get-SafeguardTimeZone`
+- `Get-SafeguardTransferProtocol`
 
 ### Licensing
 
-| | | |
-|---|---|---|
-| `Get-SafeguardLicense` | `Install-SafeguardLicense` | `Uninstall-SafeguardLicense` |
+- `Get-SafeguardLicense`
+- `Install-SafeguardLicense`
+- `Uninstall-SafeguardLicense`
 
 ### Certificates
 
-| | | |
-|---|---|---|
-| `Get-SafeguardTrustedCertificate` | `Install-SafeguardTrustedCertificate` | `Uninstall-SafeguardTrustedCertificate` |
-| `Get-SafeguardSslCertificate` | `Install-SafeguardSslCertificate` | `Uninstall-SafeguardSslCertificate` |
-| `Get-SafeguardSslCertificateForAppliance` | `Set-SafeguardSslCertificateForAppliance` | `Clear-SafeguardSslCertificateForAppliance` |
-| `Get-SafeguardAuditLogSigningCertificate` | `Install-SafeguardAuditLogSigningCertificate` | `Uninstall-SafeguardAuditLogSigningCertificate` |
-| `Get-SafeguardCertificateSigningRequest` (`Get-SafeguardCsr`) | `New-SafeguardCertificateSigningRequest` (`New-SafeguardCsr`) | `Remove-SafeguardCertificateSigningRequest` (`Remove-SafeguardCsr`) |
-| `New-SafeguardTestCertificatePki` |  |  |
+- `Get-SafeguardTrustedCertificate`
+- `Install-SafeguardTrustedCertificate`
+- `Uninstall-SafeguardTrustedCertificate`
+- `Get-SafeguardSslCertificate`
+- `Install-SafeguardSslCertificate`
+- `Uninstall-SafeguardSslCertificate`
+- `Get-SafeguardSslCertificateForAppliance`
+- `Set-SafeguardSslCertificateForAppliance`
+- `Clear-SafeguardSslCertificateForAppliance`
+- `Get-SafeguardAuditLogSigningCertificate`
+- `Install-SafeguardAuditLogSigningCertificate`
+- `Uninstall-SafeguardAuditLogSigningCertificate`
+- `Get-SafeguardCertificateSigningRequest` (`Get-SafeguardCsr`)
+- `New-SafeguardCertificateSigningRequest` (`New-SafeguardCsr`)
+- `Remove-SafeguardCertificateSigningRequest` (`Remove-SafeguardCsr`)
+- `New-SafeguardTestCertificatePki`
 
 ### Networking
 
-| | | |
-|---|---|---|
-| `Get-SafeguardNetworkInterface` | `Set-SafeguardNetworkInterface` | `Get-SafeguardDnsSuffix` |
-| `Set-SafeguardDnsSuffix` |  |  |
+- `Get-SafeguardNetworkInterface`
+- `Set-SafeguardNetworkInterface`
+- `Get-SafeguardDnsSuffix`
+- `Set-SafeguardDnsSuffix`
 
 ### Maintenance
 
-| | | |
-|---|---|---|
-| `Get-SafeguardStatus` | `Get-SafeguardVersion` | `Test-SafeguardVersion` |
-| `Get-SafeguardHealth` | `Get-SafeguardApplianceAvailability` | `Get-SafeguardApplianceState` |
-| `Wait-SafeguardApplianceStateOnline` | `Get-SafeguardApplianceVerification` | `Get-SafeguardTime` |
-| `Set-SafeguardTime` | `Get-SafeguardApplianceUptime` | `Get-SafeguardApplianceName` |
-| `Set-SafeguardApplianceName` | `Get-SafeguardApplianceDnsSuffix` | `Set-SafeguardApplianceDnsSuffix` |
-| `Get-SafeguardApplianceDnsName` | `Invoke-SafeguardApplianceShutdown` | `Invoke-SafeguardApplianceReboot` |
-| `Invoke-SafeguardApplianceFactoryReset` | `Get-SafeguardSupportBundle` | `Get-SafeguardSupportBundleQuickGlance` |
-| `Get-SafeguardPatch` | `Clear-SafeguardPatch` | `Set-SafeguardPatch` |
-| `Install-SafeguardPatch` | `Get-SafeguardBackup` | `New-SafeguardBackup` |
-| `Remove-SafeguardBackup` | `Export-SafeguardBackup` | `Import-SafeguardBackup` |
-| `Restore-SafeguardBackup` | `Save-SafeguardBackupToArchive` | `Get-SafeguardBmcConfiguration` |
-| `Enable-SafeguardBmcConfiguration` | `Disable-SafeguardBmcConfiguration` | `Set-SafeguardBmcAdminPassword` |
-| `Get-SafeguardTls12OnlyStatus` | `Enable-SafeguardTls12Only` | `Disable-SafeguardTls12Only` |
-| `Test-SafeguardAuditLogArchive` |  |  |
+- `Get-SafeguardStatus`
+- `Get-SafeguardVersion`
+- `Test-SafeguardVersion`
+- `Get-SafeguardHealth`
+- `Get-SafeguardApplianceAvailability`
+- `Get-SafeguardApplianceState`
+- `Wait-SafeguardApplianceStateOnline`
+- `Get-SafeguardApplianceVerification`
+- `Get-SafeguardTime`
+- `Set-SafeguardTime`
+- `Get-SafeguardApplianceUptime`
+- `Get-SafeguardApplianceName`
+- `Set-SafeguardApplianceName`
+- `Get-SafeguardApplianceDnsSuffix`
+- `Set-SafeguardApplianceDnsSuffix`
+- `Get-SafeguardApplianceDnsName`
+- `Invoke-SafeguardApplianceShutdown`
+- `Invoke-SafeguardApplianceReboot`
+- `Invoke-SafeguardApplianceFactoryReset`
+- `Get-SafeguardSupportBundle`
+- `Get-SafeguardSupportBundleQuickGlance`
+- `Get-SafeguardPatch`
+- `Clear-SafeguardPatch`
+- `Set-SafeguardPatch`
+- `Install-SafeguardPatch`
+- `Get-SafeguardBackup`
+- `New-SafeguardBackup`
+- `Remove-SafeguardBackup`
+- `Export-SafeguardBackup`
+- `Import-SafeguardBackup`
+- `Restore-SafeguardBackup`
+- `Save-SafeguardBackupToArchive`
+- `Get-SafeguardBmcConfiguration`
+- `Enable-SafeguardBmcConfiguration`
+- `Disable-SafeguardBmcConfiguration`
+- `Set-SafeguardBmcAdminPassword`
+- `Get-SafeguardTls12OnlyStatus`
+- `Enable-SafeguardTls12Only`
+- `Disable-SafeguardTls12Only`
+- `Test-SafeguardAuditLogArchive`
 
 ### Diagnostics
 
-| | | |
-|---|---|---|
-| `Invoke-SafeguardPing` | `Invoke-SafeguardTelnet` | `Invoke-SafeguardTraceroute` |
-| `Invoke-SafeguardArp` | `Invoke-SafeguardNetstat` | `Invoke-SafeguardNsLookup` |
-| `Invoke-SafeguardShowRoutes` | `Invoke-SafeguardCldapPing` | `Invoke-SafeguardClusterPing` |
-| `Invoke-SafeguardClusterThroughput` | `Invoke-SafeguardMemberPing` | `Invoke-SafeguardMemberThroughput` |
-| `Get-SafeguardDiagnosticPackage` | `Set-SafeguardDiagnosticPackage` | `Clear-SafeguardDiagnosticPackage` |
-| `Invoke-SafeguardDiagnosticPackage` | `Get-SafeguardDiagnosticPackageLog` | `Get-SafeguardDiagnosticPackageStatus` |
+- `Invoke-SafeguardPing`
+- `Invoke-SafeguardTelnet`
+- `Invoke-SafeguardTraceroute`
+- `Invoke-SafeguardArp`
+- `Invoke-SafeguardNetstat`
+- `Invoke-SafeguardNsLookup`
+- `Invoke-SafeguardShowRoutes`
+- `Invoke-SafeguardCldapPing`
+- `Invoke-SafeguardClusterPing`
+- `Invoke-SafeguardClusterThroughput`
+- `Invoke-SafeguardMemberPing`
+- `Invoke-SafeguardMemberThroughput`
+- `Get-SafeguardDiagnosticPackage`
+- `Set-SafeguardDiagnosticPackage`
+- `Clear-SafeguardDiagnosticPackage`
+- `Invoke-SafeguardDiagnosticPackage`
+- `Get-SafeguardDiagnosticPackageLog`
+- `Get-SafeguardDiagnosticPackageStatus`
 
 ### Clustering
 
-| | | |
-|---|---|---|
-| `Get-SafeguardClusterMember` | `Add-SafeguardClusterMember` | `Remove-SafeguardClusterMember` |
-| `Get-SafeguardClusterHealth` | `Get-SafeguardClusterPrimary` | `Set-SafeguardClusterPrimary` |
-| `Enable-SafeguardClusterPrimary` | `Get-SafeguardClusterOperationStatus` | `Unlock-SafeguardCluster` (`Clear-SafeguardClusterOperation`) |
-| `Get-SafeguardClusterSummary` | `Get-SafeguardClusterPlatformTaskLoadStatus` | `Get-SafeguardClusterPlatformTaskQueueStatus` |
-| `Get-SafeguardClusterVpnIpv6Address` |  |  |
+- `Get-SafeguardClusterMember`
+- `Add-SafeguardClusterMember`
+- `Remove-SafeguardClusterMember`
+- `Get-SafeguardClusterHealth`
+- `Get-SafeguardClusterPrimary`
+- `Set-SafeguardClusterPrimary`
+- `Enable-SafeguardClusterPrimary`
+- `Get-SafeguardClusterOperationStatus`
+- `Unlock-SafeguardCluster` (`Clear-SafeguardClusterOperation`)
+- `Get-SafeguardClusterSummary`
+- `Get-SafeguardClusterPlatformTaskLoadStatus`
+- `Get-SafeguardClusterPlatformTaskQueueStatus`
+- `Get-SafeguardClusterVpnIpv6Address`
 
 ### Session Cluster Join
 
-| | | |
-|---|---|---|
-| `Get-SafeguardSessionCluster` | `Set-SafeguardSessionCluster` | `Join-SafeguardSessionCluster` |
-| `Split-SafeguardSessionCluster` | `Get-SafeguardSessionSplitCluster` | `Remove-SafeguardSessionSplitCluster` |
-| `Get-SafeguardSessionClusterAccessRequestBroker` | `Enable-SafeguardSessionClusterAccessRequestBroker` | `Disable-SafeguardSessionClusterAccessRequestBroker` |
-| `Get-SafeguardSessionClusterAuditStream` | `Enable-SafeguardSessionClusterAuditStream` | `Disable-SafeguardSessionClusterAuditStream` |
+- `Get-SafeguardSessionCluster`
+- `Set-SafeguardSessionCluster`
+- `Join-SafeguardSessionCluster`
+- `Split-SafeguardSessionCluster`
+- `Get-SafeguardSessionSplitCluster`
+- `Remove-SafeguardSessionSplitCluster`
+- `Get-SafeguardSessionClusterAccessRequestBroker`
+- `Enable-SafeguardSessionClusterAccessRequestBroker`
+- `Disable-SafeguardSessionClusterAccessRequestBroker`
+- `Get-SafeguardSessionClusterAuditStream`
+- `Enable-SafeguardSessionClusterAuditStream`
+- `Disable-SafeguardSessionClusterAuditStream`
 
 ### Safeguard for Privileged Sessions (SPS) Web API
 
-| | | |
-|---|---|---|
-| `Connect-SafeguardSps` | `Disconnect-SafeguardSps` | `Invoke-SafeguardSpsMethod` |
-| `Open-SafeguardSpsTransaction` | `Close-SafeguardSpsTransaction` (`Save-SafeguardSpsTransaction`) | `Get-SafeguardSpsTransaction` |
-| `Clear-SafeguardSpsTransaction` | `Show-SafeguardSpsTransactionChange` | `Show-SafeguardSpsEndpoint` |
-| `Get-SafeguardSpsInfo` | `Get-SafeguardSpsVersion` | `Get-SafeguardSpsLoginMethod` |
-| `Get-SafeguardSpsSupportBundle` | `Get-SafeguardSpsWelcomeWizardStatus` | `Complete-SafeguardSpsWelcomeWizard` |
-| `Enable-SafeguardSpsRemoteAccess` (`Enable-SafeguardSpsSra`) | `Disable-SafeguardSpsRemoteAccess` (`Disable-SafeguardSpsSra`) | `Invoke-SafeguardSpsStarlingJoinBrowser` |
-| `Remove-SafeguardSpsStarlingJoin` | `Get-SafeguardSpsFirmwareSlot` | `Import-SafeguardSpsFirmware` |
-| `Install-SafeguardSpsFirmware` | `Install-SafeguardSpsUpgrade` | `Test-SafeguardSpsFirmware` |
+- `Connect-SafeguardSps`
+- `Disconnect-SafeguardSps`
+- `Invoke-SafeguardSpsMethod`
+- `Open-SafeguardSpsTransaction`
+- `Close-SafeguardSpsTransaction` (`Save-SafeguardSpsTransaction`)
+- `Get-SafeguardSpsTransaction`
+- `Clear-SafeguardSpsTransaction`
+- `Show-SafeguardSpsTransactionChange`
+- `Show-SafeguardSpsEndpoint`
+- `Get-SafeguardSpsInfo`
+- `Get-SafeguardSpsVersion`
+- `Get-SafeguardSpsLoginMethod`
+- `Get-SafeguardSpsSupportBundle`
+- `Get-SafeguardSpsWelcomeWizardStatus`
+- `Complete-SafeguardSpsWelcomeWizard`
+- `Enable-SafeguardSpsRemoteAccess` (`Enable-SafeguardSpsSra`)
+- `Disable-SafeguardSpsRemoteAccess` (`Disable-SafeguardSpsSra`)
+- `Invoke-SafeguardSpsStarlingJoinBrowser`
+- `Remove-SafeguardSpsStarlingJoin`
+- `Get-SafeguardSpsFirmwareSlot`
+- `Import-SafeguardSpsFirmware`
+- `Install-SafeguardSpsFirmware`
+- `Install-SafeguardSpsUpgrade`
+- `Test-SafeguardSpsFirmware`
 
 ### Users
 
-| | | |
-|---|---|---|
-| `Get-SafeguardIdentityProvider` | `Get-SafeguardAuthenticationProvider` | `Set-SafeguardAuthenticationProviderAsDefault` |
-| `Clear-SafeguardAuthenticationProviderAsDefault` | `Get-SafeguardUser` | `Find-SafeguardUser` |
-| `New-SafeguardUser` | `Edit-SafeguardUser` | `Remove-SafeguardUser` |
-| `Enable-SafeguardUser` | `Disable-SafeguardUser` | `Rename-SafeguardUser` |
-| `Set-SafeguardUserPassword` | `Import-SafeguardUser` | `New-SafeguardUserImportTemplate` |
-| `Get-SafeguardUserLinkedAccount` | `Add-SafeguardUserLinkedAccount` | `Remove-SafeguardUserLinkedAccount` |
-| `Get-SafeguardUserPreference` | `Set-SafeguardUserPreference` | `Remove-SafeguardUserPreference` |
-| `Sync-SafeguardUserGroupAuthenticationProvider` |  |  |
+- `Get-SafeguardIdentityProvider`
+- `Get-SafeguardAuthenticationProvider`
+- `Set-SafeguardAuthenticationProviderAsDefault`
+- `Clear-SafeguardAuthenticationProviderAsDefault`
+- `Get-SafeguardUser`
+- `Find-SafeguardUser`
+- `New-SafeguardUser`
+- `Edit-SafeguardUser`
+- `Remove-SafeguardUser`
+- `Enable-SafeguardUser`
+- `Disable-SafeguardUser`
+- `Rename-SafeguardUser`
+- `Set-SafeguardUserPassword`
+- `Import-SafeguardUser`
+- `New-SafeguardUserImportTemplate`
+- `Get-SafeguardUserLinkedAccount`
+- `Add-SafeguardUserLinkedAccount`
+- `Remove-SafeguardUserLinkedAccount`
+- `Get-SafeguardUserPreference`
+- `Set-SafeguardUserPreference`
+- `Remove-SafeguardUserPreference`
+- `Sync-SafeguardUserGroupAuthenticationProvider`
 
 ### Asset Partitions
 
-| | | |
-|---|---|---|
-| `Get-SafeguardAssetPartition` | `New-SafeguardAssetPartition` | `Edit-SafeguardAssetPartition` |
-| `Remove-SafeguardAssetPartition` | `Get-SafeguardAssetPartitionOwner` | `Add-SafeguardAssetPartitionOwner` |
-| `Remove-SafeguardAssetPartitionOwner` | `Enter-SafeguardAssetPartition` | `Exit-SafeguardAssetPartition` |
-| `Get-SafeguardCurrentAssetPartition` |  |  |
+- `Get-SafeguardAssetPartition`
+- `New-SafeguardAssetPartition`
+- `Edit-SafeguardAssetPartition`
+- `Remove-SafeguardAssetPartition`
+- `Get-SafeguardAssetPartitionOwner`
+- `Add-SafeguardAssetPartitionOwner`
+- `Remove-SafeguardAssetPartitionOwner`
+- `Enter-SafeguardAssetPartition`
+- `Exit-SafeguardAssetPartition`
+- `Get-SafeguardCurrentAssetPartition`
 
 ### Assets
 
-| | | |
-|---|---|---|
-| `Get-SafeguardAsset` | `Find-SafeguardAsset` | `New-SafeguardAsset` |
-| `Edit-SafeguardAsset` | `Remove-SafeguardAsset` | `Test-SafeguardAsset` |
-| `Import-SafeguardAsset` | `New-SafeguardAssetImportTemplate` | `Sync-SafeguardDirectoryAsset` |
+- `Get-SafeguardAsset`
+- `Find-SafeguardAsset`
+- `New-SafeguardAsset`
+- `Edit-SafeguardAsset`
+- `Remove-SafeguardAsset`
+- `Test-SafeguardAsset`
+- `Import-SafeguardAsset`
+- `New-SafeguardAssetImportTemplate`
+- `Sync-SafeguardDirectoryAsset`
 
 ### Asset Accounts
 
-| | | |
-|---|---|---|
-| `Get-SafeguardAssetAccount` | `Find-SafeguardAssetAccount` | `New-SafeguardAssetAccount` |
-| `Edit-SafeguardAssetAccount` | `Remove-SafeguardAssetAccount` | `Enable-SafeguardAssetAccount` |
-| `Disable-SafeguardAssetAccount` | `Set-SafeguardAssetAccountPassword` | `New-SafeguardAssetAccountRandomPassword` |
-| `Test-SafeguardAssetAccountPassword` | `Invoke-SafeguardAssetAccountPasswordChange` | `Set-SafeguardAssetAccountSshKey` |
-| `Test-SafeguardAssetAccountSshKey` | `Invoke-SafeguardAssetAccountSshKeyChange` | `Invoke-SafeguardAssetSshHostKeyDiscovery` |
-| `Import-SafeguardAssetAccount` | `Import-SafeguardAssetAccountPassword` | `Import-SafeguardAssetAccountSshKey` |
-| `New-SafeguardAssetAccountImportTemplate` | `New-SafeguardAssetAccountPasswordImportTemplate` | `New-SafeguardAssetAccountSshKeyImportTemplate` |
+- `Get-SafeguardAssetAccount`
+- `Find-SafeguardAssetAccount`
+- `New-SafeguardAssetAccount`
+- `Edit-SafeguardAssetAccount`
+- `Remove-SafeguardAssetAccount`
+- `Enable-SafeguardAssetAccount`
+- `Disable-SafeguardAssetAccount`
+- `Set-SafeguardAssetAccountPassword`
+- `New-SafeguardAssetAccountRandomPassword`
+- `Test-SafeguardAssetAccountPassword`
+- `Invoke-SafeguardAssetAccountPasswordChange`
+- `Set-SafeguardAssetAccountSshKey`
+- `Test-SafeguardAssetAccountSshKey`
+- `Invoke-SafeguardAssetAccountSshKeyChange`
+- `Invoke-SafeguardAssetSshHostKeyDiscovery`
+- `Import-SafeguardAssetAccount`
+- `Import-SafeguardAssetAccountPassword`
+- `Import-SafeguardAssetAccountSshKey`
+- `New-SafeguardAssetAccountImportTemplate`
+- `New-SafeguardAssetAccountPasswordImportTemplate`
+- `New-SafeguardAssetAccountSshKeyImportTemplate`
 
 ### Custom Platforms
 
-| | | |
-|---|---|---|
-| `Get-SafeguardCustomPlatform` | `New-SafeguardCustomPlatform` | `Edit-SafeguardCustomPlatform` |
-| `Remove-SafeguardCustomPlatform` | `New-SafeguardCustomPlatformAsset` | `Set-SafeguardCustomPlatformAssetParameter` |
-| `Get-SafeguardCustomPlatformScriptParameter` | `Import-SafeguardCustomPlatformScript` | `Export-SafeguardCustomPlatformScript` |
-| `Test-SafeguardCustomPlatformScript` |  |  |
+- `Get-SafeguardCustomPlatform`
+- `New-SafeguardCustomPlatform`
+- `Edit-SafeguardCustomPlatform`
+- `Remove-SafeguardCustomPlatform`
+- `New-SafeguardCustomPlatformAsset`
+- `Set-SafeguardCustomPlatformAssetParameter`
+- `Get-SafeguardCustomPlatformScriptParameter`
+- `Import-SafeguardCustomPlatformScript`
+- `Export-SafeguardCustomPlatformScript`
+- `Test-SafeguardCustomPlatformScript`
 
 ### Directories
 
-| | | |
-|---|---|---|
-| `Get-SafeguardDirectory` | `New-SafeguardDirectory` | `Edit-SafeguardDirectory` |
-| `Remove-SafeguardDirectory` | `Test-SafeguardDirectory` | `Sync-SafeguardDirectory` |
-| `Get-SafeguardDirectoryMigrationData` | `Get-SafeguardDirectoryIdentityProvider` | `New-SafeguardDirectoryIdentityProvider` |
-| `Edit-SafeguardDirectoryIdentityProvider` | `Remove-SafeguardDirectoryIdentityProvider` | `Sync-SafeguardDirectoryIdentityProvider` |
-| `Get-SafeguardDirectoryIdentityProviderDomain` | `Get-SafeguardDirectoryIdentityProviderSchemaMapping` | `Set-SafeguardDirectoryIdentityProviderSchemaMapping` |
+- `Get-SafeguardDirectory`
+- `New-SafeguardDirectory`
+- `Edit-SafeguardDirectory`
+- `Remove-SafeguardDirectory`
+- `Test-SafeguardDirectory`
+- `Sync-SafeguardDirectory`
+- `Get-SafeguardDirectoryMigrationData`
+- `Get-SafeguardDirectoryIdentityProvider`
+- `New-SafeguardDirectoryIdentityProvider`
+- `Edit-SafeguardDirectoryIdentityProvider`
+- `Remove-SafeguardDirectoryIdentityProvider`
+- `Sync-SafeguardDirectoryIdentityProvider`
+- `Get-SafeguardDirectoryIdentityProviderDomain`
+- `Get-SafeguardDirectoryIdentityProviderSchemaMapping`
+- `Set-SafeguardDirectoryIdentityProviderSchemaMapping`
 
 ### Directory Accounts
 
-| | | |
-|---|---|---|
-| `Get-SafeguardDirectoryAccount` | `Find-SafeguardDirectoryAccount` | `New-SafeguardDirectoryAccount` |
-| `Edit-SafeguardDirectoryAccount` | `Remove-SafeguardDirectoryAccount` | `Set-SafeguardDirectoryAccountPassword` |
-| `New-SafeguardDirectoryAccountRandomPassword` | `Test-SafeguardDirectoryAccountPassword` | `Invoke-SafeguardDirectoryAccountPasswordChange` |
+- `Get-SafeguardDirectoryAccount`
+- `Find-SafeguardDirectoryAccount`
+- `New-SafeguardDirectoryAccount`
+- `Edit-SafeguardDirectoryAccount`
+- `Remove-SafeguardDirectoryAccount`
+- `Set-SafeguardDirectoryAccountPassword`
+- `New-SafeguardDirectoryAccountRandomPassword`
+- `Test-SafeguardDirectoryAccountPassword`
+- `Invoke-SafeguardDirectoryAccountPasswordChange`
 
 ### Profiles & Schedules
 
-| | | |
-|---|---|---|
-| `Get-SafeguardPasswordProfile` | `New-SafeguardPasswordProfile` | `Edit-SafeguardPasswordProfile` |
-| `Remove-SafeguardPasswordProfile` | `Rename-SafeguardPasswordProfile` | `Copy-SafeguardPasswordProfile` |
-| `Get-SafeguardPasswordProfileAccount` | `Add-SafeguardPasswordProfileAccount` | `Remove-SafeguardPasswordProfileAccount` |
-| `Get-SafeguardPasswordProfileAsset` | `Add-SafeguardPasswordProfileAsset` | `Remove-SafeguardPasswordProfileAsset` |
-| `Get-SafeguardAccountPasswordRule` | `New-SafeguardAccountPasswordRule` | `Edit-SafeguardAccountPasswordRule` |
-| `Remove-SafeguardAccountPasswordRule` | `Rename-SafeguardAccountPasswordRule` | `Copy-SafeguardAccountPasswordRule` |
-| `Get-SafeguardPasswordCheckSchedule` | `New-SafeguardPasswordCheckSchedule` | `Edit-SafeguardPasswordCheckSchedule` |
-| `Remove-SafeguardPasswordCheckSchedule` | `Rename-SafeguardPasswordCheckSchedule` | `Copy-SafeguardPasswordCheckSchedule` |
-| `Get-SafeguardPasswordChangeSchedule` | `New-SafeguardPasswordChangeSchedule` | `Edit-SafeguardPasswordChangeSchedule` |
-| `Remove-SafeguardPasswordChangeSchedule` | `Rename-SafeguardPasswordChangeSchedule` | `Copy-SafeguardPasswordChangeSchedule` |
-| `New-SafeguardSchedule` | `New-SafeguardScheduleDaily` | `New-SafeguardScheduleWeekly` |
-| `New-SafeguardScheduleMonthlyByDay` | `New-SafeguardScheduleMonthlyByDayOfWeek` |  |
+- `Get-SafeguardPasswordProfile`
+- `New-SafeguardPasswordProfile`
+- `Edit-SafeguardPasswordProfile`
+- `Remove-SafeguardPasswordProfile`
+- `Rename-SafeguardPasswordProfile`
+- `Copy-SafeguardPasswordProfile`
+- `Get-SafeguardPasswordProfileAccount`
+- `Add-SafeguardPasswordProfileAccount`
+- `Remove-SafeguardPasswordProfileAccount`
+- `Get-SafeguardPasswordProfileAsset`
+- `Add-SafeguardPasswordProfileAsset`
+- `Remove-SafeguardPasswordProfileAsset`
+- `Get-SafeguardAccountPasswordRule`
+- `New-SafeguardAccountPasswordRule`
+- `Edit-SafeguardAccountPasswordRule`
+- `Remove-SafeguardAccountPasswordRule`
+- `Rename-SafeguardAccountPasswordRule`
+- `Copy-SafeguardAccountPasswordRule`
+- `Get-SafeguardPasswordCheckSchedule`
+- `New-SafeguardPasswordCheckSchedule`
+- `Edit-SafeguardPasswordCheckSchedule`
+- `Remove-SafeguardPasswordCheckSchedule`
+- `Rename-SafeguardPasswordCheckSchedule`
+- `Copy-SafeguardPasswordCheckSchedule`
+- `Get-SafeguardPasswordChangeSchedule`
+- `New-SafeguardPasswordChangeSchedule`
+- `Edit-SafeguardPasswordChangeSchedule`
+- `Remove-SafeguardPasswordChangeSchedule`
+- `Rename-SafeguardPasswordChangeSchedule`
+- `Copy-SafeguardPasswordChangeSchedule`
+- `New-SafeguardSchedule`
+- `New-SafeguardScheduleDaily`
+- `New-SafeguardScheduleWeekly`
+- `New-SafeguardScheduleMonthlyByDay`
+- `New-SafeguardScheduleMonthlyByDayOfWeek`
 
 ### Groups
 
 **User Groups:**
-| | | |
-|---|---|---|
-| `Get-SafeguardUserGroup` | `New-SafeguardUserGroup` | `Edit-SafeguardUserGroup` |
-| `Remove-SafeguardUserGroup` | `Get-SafeguardUserGroupMember` | `Add-SafeguardUserGroupMember` |
-| `Remove-SafeguardUserGroupMember` |  |  |
+- `Get-SafeguardUserGroup`
+- `New-SafeguardUserGroup`
+- `Edit-SafeguardUserGroup`
+- `Remove-SafeguardUserGroup`
+- `Get-SafeguardUserGroupMember`
+- `Add-SafeguardUserGroupMember`
+- `Remove-SafeguardUserGroupMember`
 
 **Asset Groups:**
-| | | |
-|---|---|---|
-| `Get-SafeguardAssetGroup` | `New-SafeguardAssetGroup` | `Edit-SafeguardAssetGroup` |
-| `Remove-SafeguardAssetGroup` | `Get-SafeguardAssetGroupMember` | `Add-SafeguardAssetGroupMember` |
-| `Remove-SafeguardAssetGroupMember` |  |  |
+- `Get-SafeguardAssetGroup`
+- `New-SafeguardAssetGroup`
+- `Edit-SafeguardAssetGroup`
+- `Remove-SafeguardAssetGroup`
+- `Get-SafeguardAssetGroupMember`
+- `Add-SafeguardAssetGroupMember`
+- `Remove-SafeguardAssetGroupMember`
 
 **Account Groups:**
-| | | |
-|---|---|---|
-| `Get-SafeguardAccountGroup` | `New-SafeguardAccountGroup` | `Edit-SafeguardAccountGroup` |
-| `Remove-SafeguardAccountGroup` | `Get-SafeguardAccountGroupMember` | `Add-SafeguardAccountGroupMember` |
-| `Remove-SafeguardAccountGroupMember` |  |  |
+- `Get-SafeguardAccountGroup`
+- `New-SafeguardAccountGroup`
+- `Edit-SafeguardAccountGroup`
+- `Remove-SafeguardAccountGroup`
+- `Get-SafeguardAccountGroupMember`
+- `Add-SafeguardAccountGroupMember`
+- `Remove-SafeguardAccountGroupMember`
 
 **Dynamic Groups:**
-| | | |
-|---|---|---|
-| `Get-SafeguardDynamicAssetGroup` | `New-SafeguardDynamicAssetGroup` | `Edit-SafeguardDynamicAssetGroup` |
-| `Get-SafeguardDynamicAccountGroup` | `New-SafeguardDynamicAccountGroup` | `Edit-SafeguardDynamicAccountGroup` |
+- `Get-SafeguardDynamicAssetGroup`
+- `New-SafeguardDynamicAssetGroup`
+- `Edit-SafeguardDynamicAssetGroup`
+- `Get-SafeguardDynamicAccountGroup`
+- `New-SafeguardDynamicAccountGroup`
+- `Edit-SafeguardDynamicAccountGroup`
 
 ### Entitlements & Access Policies
 
-| | | |
-|---|---|---|
-| `Get-SafeguardEntitlement` | `New-SafeguardEntitlement` | `Edit-SafeguardEntitlement` |
-| `Remove-SafeguardEntitlement` | `Add-SafeguardEntitlementMember` | `Remove-SafeguardEntitlementMember` |
-| `Get-SafeguardAccessPolicy` | `Add-SafeguardAccessPolicy` | `Edit-SafeguardAccessPolicy` |
-| `Remove-SafeguardAccessPolicy` | `Get-SafeguardAccessPolicyScopeItem` | `Get-SafeguardAccessPolicyAccessRequestProperty` |
-| `Get-SafeguardAccessPolicySessionProperty` | `Get-SafeguardPolicyAsset` | `Find-SafeguardPolicyAsset` |
-| `Get-SafeguardPolicyAccount` | `Find-SafeguardPolicyAccount` |  |
+- `Get-SafeguardEntitlement`
+- `New-SafeguardEntitlement`
+- `Edit-SafeguardEntitlement`
+- `Remove-SafeguardEntitlement`
+- `Add-SafeguardEntitlementMember`
+- `Remove-SafeguardEntitlementMember`
+- `Get-SafeguardAccessPolicy`
+- `Add-SafeguardAccessPolicy`
+- `Edit-SafeguardAccessPolicy`
+- `Remove-SafeguardAccessPolicy`
+- `Get-SafeguardAccessPolicyScopeItem`
+- `Get-SafeguardAccessPolicyAccessRequestProperty`
+- `Get-SafeguardAccessPolicySessionProperty`
+- `Get-SafeguardPolicyAsset`
+- `Find-SafeguardPolicyAsset`
+- `Get-SafeguardPolicyAccount`
+- `Find-SafeguardPolicyAccount`
 
 ### Access Requests
 
-| | | |
-|---|---|---|
-| `Get-SafeguardAccessRequest` | `Find-SafeguardAccessRequest` | `New-SafeguardAccessRequest` |
-| `Edit-SafeguardAccessRequest` | `Close-SafeguardAccessRequest` | `Approve-SafeguardAccessRequest` |
-| `Deny-SafeguardAccessRequest` (`Revoke-SafeguardAccessRequest`) | `Assert-SafeguardAccessRequest` | `Get-SafeguardActionableRequest` |
-| `Get-SafeguardMyRequest` | `Get-SafeguardMyApproval` | `Get-SafeguardMyReview` |
-| `Get-SafeguardRequestableAccount` (`Get-SafeguardMyRequestable`) | `Find-SafeguardRequestableAccount` (`Find-SafeguardMyRequestable`) | `Get-SafeguardAccessRequestPassword` (`Get-SafeguardAccessRequestCheckoutPassword`) |
-| `Copy-SafeguardAccessRequestPassword` | `Get-SafeguardAccessRequestSshHostKey` | `Get-SafeguardAccessRequestSshKey` |
-| `Get-SafeguardAccessRequestSshUrl` | `Get-SafeguardAccessRequestRdpFile` | `Get-SafeguardAccessRequestRdpUrl` |
-| `Get-SafeguardAccessRequestApiKey` | `Get-SafeguardAccessRequestActionLog` | `Start-SafeguardAccessRequestSession` |
-| `Start-SafeguardAccessRequestWebSession` |  |  |
+- `Get-SafeguardAccessRequest`
+- `Find-SafeguardAccessRequest`
+- `New-SafeguardAccessRequest`
+- `Edit-SafeguardAccessRequest`
+- `Close-SafeguardAccessRequest`
+- `Approve-SafeguardAccessRequest`
+- `Deny-SafeguardAccessRequest` (`Revoke-SafeguardAccessRequest`)
+- `Assert-SafeguardAccessRequest`
+- `Get-SafeguardActionableRequest`
+- `Get-SafeguardMyRequest`
+- `Get-SafeguardMyApproval`
+- `Get-SafeguardMyReview`
+- `Get-SafeguardRequestableAccount` (`Get-SafeguardMyRequestable`)
+- `Find-SafeguardRequestableAccount` (`Find-SafeguardMyRequestable`)
+- `Get-SafeguardAccessRequestPassword` (`Get-SafeguardAccessRequestCheckoutPassword`)
+- `Copy-SafeguardAccessRequestPassword`
+- `Get-SafeguardAccessRequestSshHostKey`
+- `Get-SafeguardAccessRequestSshKey`
+- `Get-SafeguardAccessRequestSshUrl`
+- `Get-SafeguardAccessRequestRdpFile`
+- `Get-SafeguardAccessRequestRdpUrl`
+- `Get-SafeguardAccessRequestApiKey`
+- `Get-SafeguardAccessRequestActionLog`
+- `Start-SafeguardAccessRequestSession`
+- `Start-SafeguardAccessRequestWebSession`
 
 ### Tags
 
-| | | |
-|---|---|---|
-| `Get-SafeguardTag` | `Find-SafeguardTag` | `New-SafeguardTag` |
-| `Update-SafeguardTag` | `Remove-SafeguardTag` | `Get-SafeguardTagOccurrence` |
-| `Get-SafeguardAssetTag` | `Add-SafeguardAssetTag` | `Remove-SafeguardAssetTag` |
-| `Update-SafeguardAssetTag` | `Get-SafeguardAssetAccountTag` | `Add-SafeguardAssetAccountTag` |
-| `Remove-SafeguardAssetAccountTag` | `Update-SafeguardAssetAccountTag` | `Test-SafeguardAssetTaggingRule` |
-| `Test-SafeguardAssetAccountTaggingRule` |  |  |
+- `Get-SafeguardTag`
+- `Find-SafeguardTag`
+- `New-SafeguardTag`
+- `Update-SafeguardTag`
+- `Remove-SafeguardTag`
+- `Get-SafeguardTagOccurrence`
+- `Get-SafeguardAssetTag`
+- `Add-SafeguardAssetTag`
+- `Remove-SafeguardAssetTag`
+- `Update-SafeguardAssetTag`
+- `Get-SafeguardAssetAccountTag`
+- `Add-SafeguardAssetAccountTag`
+- `Remove-SafeguardAssetAccountTag`
+- `Update-SafeguardAssetAccountTag`
+- `Test-SafeguardAssetTaggingRule`
+- `Test-SafeguardAssetAccountTaggingRule`
 
 ### Events
 
-| | | |
-|---|---|---|
-| `Get-SafeguardEvent` | `Find-SafeguardEvent` | `Get-SafeguardEventName` |
-| `Get-SafeguardEventCategory` | `Get-SafeguardEventProperty` | `Get-SafeguardEventSubscription` |
-| `Find-SafeguardEventSubscription` | `New-SafeguardEventSubscription` | `Edit-SafeguardEventSubscription` |
-| `Remove-SafeguardEventSubscription` |  |  |
+- `Get-SafeguardEvent`
+- `Find-SafeguardEvent`
+- `Get-SafeguardEventName`
+- `Get-SafeguardEventCategory`
+- `Get-SafeguardEventProperty`
+- `Get-SafeguardEventSubscription`
+- `Find-SafeguardEventSubscription`
+- `New-SafeguardEventSubscription`
+- `Edit-SafeguardEventSubscription`
+- `Remove-SafeguardEventSubscription`
 
 ### A2A
 
 **Service:**
-| | | |
-|---|---|---|
-| `Get-SafeguardA2aServiceStatus` | `Enable-SafeguardA2aService` | `Disable-SafeguardA2aService` |
+- `Get-SafeguardA2aServiceStatus`
+- `Enable-SafeguardA2aService`
+- `Disable-SafeguardA2aService`
 
 **Registrations:**
-| | | |
-|---|---|---|
-| `Get-SafeguardA2a` | `New-SafeguardA2a` | `Edit-SafeguardA2a` |
-| `Remove-SafeguardA2a` |  |  |
+- `Get-SafeguardA2a`
+- `New-SafeguardA2a`
+- `Edit-SafeguardA2a`
+- `Remove-SafeguardA2a`
 
 **Credential Retrieval Configuration:**
-| | | |
-|---|---|---|
-| `Get-SafeguardA2aCredentialRetrievalInformation` | `Get-SafeguardA2aCredentialRetrieval` | `Add-SafeguardA2aCredentialRetrieval` |
-| `Remove-SafeguardA2aCredentialRetrieval` | `Get-SafeguardA2aCredentialRetrievalIpRestriction` | `Set-SafeguardA2aCredentialRetrievalIpRestriction` |
-| `Clear-SafeguardA2aCredentialRetrievalIpRestriction` | `Get-SafeguardA2aCredentialRetrievalApiKey` | `Reset-SafeguardA2aCredentialRetrievalApiKey` |
+- `Get-SafeguardA2aCredentialRetrievalInformation`
+- `Get-SafeguardA2aCredentialRetrieval`
+- `Add-SafeguardA2aCredentialRetrieval`
+- `Remove-SafeguardA2aCredentialRetrieval`
+- `Get-SafeguardA2aCredentialRetrievalIpRestriction`
+- `Set-SafeguardA2aCredentialRetrievalIpRestriction`
+- `Clear-SafeguardA2aCredentialRetrievalIpRestriction`
+- `Get-SafeguardA2aCredentialRetrievalApiKey`
+- `Reset-SafeguardA2aCredentialRetrievalApiKey`
 
 **Access Request Broker Configuration:**
-| | | |
-|---|---|---|
-| `Get-SafeguardA2aAccessRequestBroker` | `Set-SafeguardA2aAccessRequestBroker` | `Clear-SafeguardA2aAccessRequestBroker` |
-| `Get-SafeguardA2aAccessRequestBrokerIpRestriction` | `Set-SafeguardA2aAccessRequestBrokerIpRestriction` | `Clear-SafeguardA2aAccessRequestBrokerIpRestriction` |
-| `Get-SafeguardA2aAccessRequestBrokerApiKey` | `Reset-SafeguardA2aAccessRequestBrokerApiKey` |  |
+- `Get-SafeguardA2aAccessRequestBroker`
+- `Set-SafeguardA2aAccessRequestBroker`
+- `Clear-SafeguardA2aAccessRequestBroker`
+- `Get-SafeguardA2aAccessRequestBrokerIpRestriction`
+- `Set-SafeguardA2aAccessRequestBrokerIpRestriction`
+- `Clear-SafeguardA2aAccessRequestBrokerIpRestriction`
+- `Get-SafeguardA2aAccessRequestBrokerApiKey`
+- `Reset-SafeguardA2aAccessRequestBrokerApiKey`
 
 **Credential Retrieval (calling A2A):**
-| | | |
-|---|---|---|
-| `Get-SafeguardA2aRetrievableAccount` | `Get-SafeguardA2aPassword` | `Set-SafeguardA2aPassword` |
-| `Get-SafeguardA2aPrivateKey` | `Set-SafeguardA2aPrivateKey` | `Get-SafeguardA2aApiKeySecret` |
+- `Get-SafeguardA2aRetrievableAccount`
+- `Get-SafeguardA2aPassword`
+- `Set-SafeguardA2aPassword`
+- `Get-SafeguardA2aPrivateKey`
+- `Set-SafeguardA2aPrivateKey`
+- `Get-SafeguardA2aApiKeySecret`
 
 **Access Request Broker (calling A2A):**
-| | | |
-|---|---|---|
-| `New-SafeguardA2aAccessRequest` |  |  |
+- `New-SafeguardA2aAccessRequest`
 
 ### One Identity Starling
 
-| | | |
-|---|---|---|
-| `Invoke-SafeguardStarlingJoinBrowser` | `Invoke-SafeguardStarlingJoin` | `Get-SafeguardStarlingJoinUrl` |
-| `Get-SafeguardStarlingJoinInstance` | `Get-SafeguardStarlingSubscription` | `New-SafeguardStarlingSubscription` |
-| `Remove-SafeguardStarlingSubscription` | `Get-SafeguardStarlingSetting` | `Set-SafeguardStarlingSetting` |
+- `Invoke-SafeguardStarlingJoinBrowser`
+- `Invoke-SafeguardStarlingJoin`
+- `Get-SafeguardStarlingJoinUrl`
+- `Get-SafeguardStarlingJoinInstance`
+- `Get-SafeguardStarlingSubscription`
+- `New-SafeguardStarlingSubscription`
+- `Remove-SafeguardStarlingSubscription`
+- `Get-SafeguardStarlingSetting`
+- `Set-SafeguardStarlingSetting`
 
 ### Reports
 
-| | | |
-|---|---|---|
-| `Get-SafeguardReportA2aEntitlement` | `Get-SafeguardReportAccountGroupMembership` | `Get-SafeguardReportAccountWithoutPassword` |
-| `Get-SafeguardReportAssetAccountPasswordHistory` (`Get-SafeguardPasswordHistory`) | `Get-SafeguardReportAssetGroupMembership` | `Get-SafeguardReportAssetManagementConfiguration` |
-| `Get-SafeguardReportDailyAccessRequest` | `Get-SafeguardReportDailyPasswordChangeFail` | `Get-SafeguardReportDailyPasswordChangeSuccess` |
-| `Get-SafeguardReportDailyPasswordCheckFail` | `Get-SafeguardReportDailyPasswordCheckSuccess` | `Get-SafeguardReportPasswordLastChanged` |
-| `Get-SafeguardReportUserEntitlement` | `Get-SafeguardReportUserGroupMembership` |  |
+- `Get-SafeguardReportA2aEntitlement`
+- `Get-SafeguardReportAccountGroupMembership`
+- `Get-SafeguardReportAccountWithoutPassword`
+- `Get-SafeguardReportAssetAccountPasswordHistory` (`Get-SafeguardPasswordHistory`)
+- `Get-SafeguardReportAssetGroupMembership`
+- `Get-SafeguardReportAssetManagementConfiguration`
+- `Get-SafeguardReportDailyAccessRequest`
+- `Get-SafeguardReportDailyPasswordChangeFail`
+- `Get-SafeguardReportDailyPasswordChangeSuccess`
+- `Get-SafeguardReportDailyPasswordCheckFail`
+- `Get-SafeguardReportDailyPasswordCheckSuccess`
+- `Get-SafeguardReportPasswordLastChanged`
+- `Get-SafeguardReportUserEntitlement`
+- `Get-SafeguardReportUserGroupMembership`
 
 ### Archive Servers
 
-| | | |
-|---|---|---|
-| `Get-SafeguardArchiveServer` | `New-SafeguardArchiveServer` | `Edit-SafeguardArchiveServer` |
-| `Remove-SafeguardArchiveServer` | `Test-SafeguardArchiveServer` |  |
+- `Get-SafeguardArchiveServer`
+- `New-SafeguardArchiveServer`
+- `Edit-SafeguardArchiveServer`
+- `Remove-SafeguardArchiveServer`
+- `Test-SafeguardArchiveServer`
 
 ### Settings
 
-| | | |
-|---|---|---|
-| `Get-SafeguardApplianceSetting` | `Set-SafeguardApplianceSetting` | `Get-SafeguardCoreSetting` |
-| `Set-SafeguardCoreSetting` | `Get-SafeguardDebugSettings` | `Set-SafeguardDebugSettings` |
-| `Enable-SafeguardTlsLogging` | `Disable-SafeguardTlsLogging` | `Get-SafeguardSyslogServer` |
-| `New-SafeguardSyslogServer` | `Edit-SafeguardSyslogServer` | `Remove-SafeguardSyslogServer` |
+- `Get-SafeguardApplianceSetting`
+- `Set-SafeguardApplianceSetting`
+- `Get-SafeguardCoreSetting`
+- `Set-SafeguardCoreSetting`
+- `Get-SafeguardDebugSettings`
+- `Set-SafeguardDebugSettings`
+- `Enable-SafeguardTlsLogging`
+- `Disable-SafeguardTlsLogging`
+- `Get-SafeguardSyslogServer`
+- `New-SafeguardSyslogServer`
+- `Edit-SafeguardSyslogServer`
+- `Remove-SafeguardSyslogServer`
 
 ### Deleted Objects
 
-| | | |
-|---|---|---|
-| `Get-SafeguardDeletedAsset` | `Remove-SafeguardDeletedAsset` | `Restore-SafeguardDeletedAsset` |
-| `Get-SafeguardDeletedAssetAccount` | `Remove-SafeguardDeletedAssetAccount` | `Restore-SafeguardDeletedAssetAccount` |
-| `Get-SafeguardDeletedUser` | `Remove-SafeguardDeletedUser` | `Restore-SafeguardDeletedUser` |
-| `Get-SafeguardPurgeSettings` | `Update-SafeguardPurgeSettings` | `Reset-SafeguardPurgeSettings` |
+- `Get-SafeguardDeletedAsset`
+- `Remove-SafeguardDeletedAsset`
+- `Restore-SafeguardDeletedAsset`
+- `Get-SafeguardDeletedAssetAccount`
+- `Remove-SafeguardDeletedAssetAccount`
+- `Restore-SafeguardDeletedAssetAccount`
+- `Get-SafeguardDeletedUser`
+- `Remove-SafeguardDeletedUser`
+- `Restore-SafeguardDeletedUser`
+- `Get-SafeguardPurgeSettings`
+- `Update-SafeguardPurgeSettings`
+- `Reset-SafeguardPurgeSettings`
 
 ### Audit Log
 
-| | | |
-|---|---|---|
-| `Get-SafeguardAuditLog` |  |  |
+- `Get-SafeguardAuditLog`
