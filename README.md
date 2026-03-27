@@ -651,6 +651,12 @@ update this list.
 - Get-SafeguardEntitlement
 - New-SafeguardEntitlement
 - Remove-SafeguardEntitlement
+- Edit-SafeguardEntitlement
+- Add-SafeguardEntitlementMember
+- Remove-SafeguardEntitlementMember
+- Add-SafeguardAccessPolicy
+- Remove-SafeguardAccessPolicy
+- Edit-SafeguardAccessPolicy
 - Get-SafeguardUserLinkedAccount
 - Add-SafeguardUserLinkedAccount
 - Remove-SafeguardUserLinkedAccount
