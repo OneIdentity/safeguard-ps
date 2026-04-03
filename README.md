@@ -34,7 +34,7 @@ remove the v3 API. There are currently no plans to remove the v3 API.
 # Use v3 instead of v4 when connecting
 # Existing scripts can be updated to work with safeguard-ps 7.0 just by adding -Version 3
 # to the Connect-Safeguard command line.
-> Connect-Safeguard 192.168.123.123 local Admin -Version 3
+> Connect-Safeguard 192.168.123.123 local Admin -Pkce -Version 3
 Password: *********
 Login Successful.
 # All subsequent commands will use v3, use -Verbose for any cmdlet to see URL details
@@ -125,8 +125,34 @@ Once you have loaded the module, you can connect to Safeguard using the
 `Connect-Safeguard` cmdlet.  If you do not have SSL properly configured, you
 must use the `-Insecure` parameter to avoid SSL trust errors.
 
-Authentication in Safeguard is based on OAuth2.  In most cases the
-`Connect-Safeguard` cmdlet uses the Resource Owner Grant of OAuth2.
+Authentication in Safeguard is based on OAuth2.  Starting with recent versions
+of Safeguard for Privileged Passwords, the **Resource Owner Grant (ROG) is
+disabled by default**.  This means the traditional username/password login
+requires the `-Pkce` parameter to use the Proof Key for Code Exchange (PKCE)
+flow instead.
+
+The recommended way to connect with a username and password is:
+
+```Powershell
+> Connect-Safeguard -Insecure 192.168.123.123 local Admin -Pkce
+Password: ********
+Login Successful.
+```
+
+Alternatively, you can use the `-Browser` parameter for a fully interactive
+browser-based login.  This is the best option when using two-factor
+authentication or external identity providers, as the built-in secure token
+service can redirect you to multiple authentication providers through the
+browser agent.  This authentication mechanism uses the Authorization Code
+Grant of OAuth2.
+
+```Powershell
+> Connect-Safeguard -Insecure 192.168.123.123 -Browser
+Login Successful.
+```
+
+If your appliance still has Resource Owner Grant enabled, the legacy login
+style (without `-Pkce` or `-Browser`) will continue to work:
 
 ```Powershell
 > Connect-Safeguard -Insecure 192.168.123.123 local Admin
@@ -141,16 +167,6 @@ other cmdlets provided by the module.
 Client certificate authentication is also available in `Connect-Safeguard`.
 This can be done either using a PFX certificate file or a SHA-1 thumbprint
 of a certificate stored in the Current User personal certificate store.
-
-Two-factor authentication can only be performed using the `-Browser` parameter,
-so that the built-in secure token service can use the browser agent to
-redirect you to multiple authentication providers.  This authentication
-mechanism uses the Authorization Code Grant of OAuth2.
-
-```Powershell
-> Connect-Safeguard -Insecure 192.168.123.123 -Browser
-Login Successful.
-```
 
 Once you are logged in, you can call any cmdlet listed below.  For example:
 
