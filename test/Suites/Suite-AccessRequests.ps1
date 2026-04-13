@@ -236,6 +236,51 @@
             # PendingAcknowledgment -> Complete so we can't rely on exact state
             $readback.WasDenied -eq $true -and $readback.State -ne "PendingApproval" -and $readback.State -ne "New"
         }
+
+        # --- Issue #600: account name resolution with multiple entitlements ---
+        # When the same account is covered by multiple policies, Resolve-SafeguardRequestableAccountId
+        # must deduplicate by Account.Id so that name-based lookup still works.
+        $prefix = $Context.TestPrefix
+        $dupEntName = "${prefix}_AREntlDup"
+        $dupPolName = "${prefix}_ARPolicyDup"
+
+        # Pre-cleanup in case a previous run left stale objects
+        Remove-SgPsStaleTestObject -Collection "Roles" -Name $dupEntName
+
+        $dupEntl = New-SafeguardEntitlement -Insecure $dupEntName -MemberUsers $Context.SuiteData["RequesterName"]
+        $Context.SuiteData["DupEntitlementId"] = $dupEntl.Id
+        Register-SgPsTestCleanup -Description "Delete duplicate entitlement (issue 600)" -Action {
+            param($Ctx)
+            try { Remove-SafeguardEntitlement -Insecure $Ctx.SuiteData['DupEntitlementId'] } catch {}
+        }
+
+        Add-SafeguardAccessPolicy -Insecure `
+            -Entitlement $dupEntName `
+            -Name $dupPolName `
+            -AccessRequestType "Password" `
+            -ScopeAccounts $Context.SuiteData["TestAccount"] `
+            -ApproverUsers $Context.SuiteData["ApproverName"] | Out-Null
+
+        Test-SgPsAssert "New-SafeguardAccessRequest resolves account name with multiple entitlements (issue 600)" {
+            $token = Get-UserToken $Context.SuiteData["RequesterName"] $Context.SuiteData["RequesterPassword"]
+            $request = New-SafeguardAccessRequest -Appliance $Context.Appliance `
+                -AccessToken $token -Insecure `
+                -AssetToUse $Context.SuiteData["TestAsset"] `
+                -AccountToUse $Context.SuiteData["TestAccount"] `
+                -AccessRequestType "Password" -AllFields
+            Disconnect-Safeguard -Appliance $Context.Appliance -AccessToken $token -Insecure
+            $Context.SuiteData["DupRequestId"] = $request.Id
+            $null -ne $request.Id -and $request.AccountName -eq $Context.SuiteData["TestAccount"]
+        }
+
+        # Clean up the request so it doesn't block object deletion
+        try {
+            $approverToken = Get-UserToken $Context.SuiteData["ApproverName"] $Context.SuiteData["ApproverPassword"]
+            Deny-SafeguardAccessRequest -Appliance $Context.Appliance `
+                -AccessToken $approverToken -Insecure `
+                -RequestId $Context.SuiteData["DupRequestId"]
+            Disconnect-Safeguard -Appliance $Context.Appliance -AccessToken $approverToken -Insecure
+        } catch {}
     }
 
     Cleanup = {
