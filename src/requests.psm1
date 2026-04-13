@@ -89,12 +89,12 @@ function Resolve-SafeguardRequestableAccountId
         $local:RelativeUrl = "Me/RequestEntitlements"
         try
         {
-            $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl -Parameters @{AccessRequestType = "$AccessRequestType"; assetIds = "$AssetId"; filter = "Account.Name ieq '$Account'" }).Account
+            $local:Accounts = @((Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl -Parameters @{AccessRequestType = "$AccessRequestType"; assetIds = "$AssetId"; filter = "Account.Name ieq '$Account'" }).Account | Sort-Object Id -Unique)
         }
         catch
         {
             Write-Verbose $_
-            $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl -Parameters @{AccessRequestType = "$AccessRequestType"; assetIds = "$AssetId"; q = $Account }).Account
+            $local:Accounts = @((Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl -Parameters @{AccessRequestType = "$AccessRequestType"; assetIds = "$AssetId"; q = $Account }).Account | Sort-Object Id -Unique)
         }
         if (-not $local:Accounts)
         {
@@ -104,7 +104,7 @@ function Resolve-SafeguardRequestableAccountId
         {
             throw "Found $($local:Accounts.Count) requestable accounts matching '$Account'"
         }
-        $local:Accounts.Id
+        $local:Accounts[0].Id
     }
     else
     {
