@@ -1156,6 +1156,11 @@ SecureString containing the password.
 .PARAMETER CertificateFile
 Path to a PFX (PKCS12) file containing the client certificate to use to connect to the RSTS.
 
+.PARAMETER CertificatePassword
+SecureString containing the password for the PFX file specified in CertificateFile. If not
+provided and the PFX file requires a password, you will be prompted interactively. Providing
+this parameter enables non-interactive automation with password-protected PFX files.
+
 .PARAMETER Thumbprint
 Client certificate thumbprint to use to authenticate the connection to the RSTS.
 
@@ -1275,6 +1280,8 @@ function Connect-Safeguard
         [SecureString]$Password,
         [Parameter(ParameterSetName="Certificate",Mandatory=$false)]
         [string]$CertificateFile,
+        [Parameter(ParameterSetName="Certificate",Mandatory=$false)]
+        [SecureString]$CertificatePassword,
         [Parameter(ParameterSetName="Certificate",Mandatory=$false)]
         [string]$Thumbprint,
         [Parameter(ParameterSetName="Gui",Mandatory=$false)]
@@ -1518,7 +1525,8 @@ function Connect-Safeguard
                     {
                         Write-Verbose "Calling RSTS token service for client certificate authentication (PKCS#12 file)..."
                         # From PFX file
-                        $local:ClientCertificate = (Get-PfxCertificate -FilePath $CertificateFile)
+                        Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+                        $local:ClientCertificate = (Use-CertificateFile $CertificateFile $CertificatePassword)
                         $local:RstsResponse = (Invoke-RestMethod -Certificate $local:ClientCertificate -Method POST -Headers @{
                             "Accept" = "application/json";
                             "Content-type" = "application/json"
@@ -1618,6 +1626,7 @@ function Connect-Safeguard
                 "AccessToken" = $local:LoginResponse.UserToken;
                 "Thumbprint" = $Thumbprint;
                 "CertificateFile" = $CertificateFile;
+                "CertificatePassword" = $CertificatePassword;
                 "Insecure" = $Insecure;
                 "Gui" = $Gui -Or $Browser;
                 "NoWindowTitle" = $NoWindowTitle;
@@ -2229,7 +2238,8 @@ function Update-SafeguardAccessToken
         if ($SafeguardSession.CertificateFile)
         {
             Connect-Safeguard -Appliance $SafeguardSession.Appliance -Insecure:$SafeguardSession.Insecure -Version $SafeguardSession.Version `
-                -IdentityProvider $SafeguardSession.IdentityProvider -CertificateFile $SafeguardSession.CertificateFile
+                -IdentityProvider $SafeguardSession.IdentityProvider -CertificateFile $SafeguardSession.CertificateFile `
+                -CertificatePassword $SafeguardSession.CertificatePassword
         }
         else
         {

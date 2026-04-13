@@ -73,6 +73,8 @@ function Connect-SpsCertificate
         [Parameter(Mandatory=$false)]
         [string]$CertificateFile,
         [Parameter(Mandatory=$false)]
+        [SecureString]$CertificatePassword,
+        [Parameter(Mandatory=$false)]
         [string]$Thumbprint,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
@@ -97,7 +99,8 @@ function Connect-SpsCertificate
         if ($CertificateFile)
         {
             Write-Verbose "Authenticating to SPS using X.509 certificate from PFX file..."
-            $local:ClientCertificate = (Get-PfxCertificate -FilePath $CertificateFile)
+            Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+            $local:ClientCertificate = (Use-CertificateFile $CertificateFile $CertificatePassword)
             Invoke-RestMethod -UserAgent $script:SpsUserAgent -Certificate $local:ClientCertificate `
                 -Uri $local:ApiUrl -SessionVariable HttpSession | Write-Verbose
         }
@@ -606,6 +609,11 @@ SecureString containing the password.
 Path to a PFX (PKCS12) file containing the client certificate to use for
 X.509 certificate authentication to SPS. Requires LoginMethod to be specified.
 
+.PARAMETER CertificatePassword
+SecureString containing the password for the PFX file specified in CertificateFile. If not
+provided and the PFX file requires a password, you will be prompted interactively. Providing
+this parameter enables non-interactive automation with password-protected PFX files.
+
 .PARAMETER Thumbprint
 Client certificate thumbprint from the Windows certificate store to use for
 X.509 certificate authentication to SPS. Requires LoginMethod to be specified.
@@ -671,6 +679,8 @@ function Connect-SafeguardSps
         [string]$LoginMethod,
         [Parameter(ParameterSetName="CertificateFile",Mandatory=$true)]
         [string]$CertificateFile,
+        [Parameter(ParameterSetName="CertificateFile",Mandatory=$false)]
+        [SecureString]$CertificatePassword,
         [Parameter(ParameterSetName="CertificateThumbprint",Mandatory=$true)]
         [string]$Thumbprint
     )
@@ -686,6 +696,7 @@ function Connect-SafeguardSps
             LoginMethod = $LoginMethod
         }
         if ($CertificateFile) { $local:SplatArgs["CertificateFile"] = $CertificateFile }
+        if ($CertificatePassword) { $local:SplatArgs["CertificatePassword"] = $CertificatePassword }
         if ($Thumbprint) { $local:SplatArgs["Thumbprint"] = $Thumbprint }
         $local:HttpSession = (Connect-SpsCertificate @local:SplatArgs)
     }
