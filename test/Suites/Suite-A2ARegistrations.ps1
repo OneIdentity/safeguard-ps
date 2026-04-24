@@ -172,6 +172,78 @@
             $null -ne $creds
         }
 
+        # --- Get-SafeguardA2aCredentialRetrieval list all (no filter) ---
+        Test-SgPsAssert "Get-SafeguardA2aCredentialRetrieval list all returns accounts" {
+            $creds = Get-SafeguardA2aCredentialRetrieval -Insecure $Context.SuiteData["A2aId"]
+            $list = @($creds)
+            $list.Count -ge 1 -and ($list | Where-Object { $_.AccountName -eq $Context.SuiteData["TestAccount"] })
+        }
+
+        # --- Get-SafeguardA2aCredentialRetrieval with matching QueryFilter ---
+        Test-SgPsAssert "Get-SafeguardA2aCredentialRetrieval with matching QueryFilter" {
+            $creds = Get-SafeguardA2aCredentialRetrieval -Insecure $Context.SuiteData["A2aId"] `
+                -QueryFilter "AccountName eq '$($Context.SuiteData["TestAccount"])'"
+            $list = @($creds)
+            $list.Count -ge 1 -and $list[0].AccountName -eq $Context.SuiteData["TestAccount"]
+        }
+
+        # --- Get-SafeguardA2aCredentialRetrieval with non-matching QueryFilter ---
+        Test-SgPsAssert "Get-SafeguardA2aCredentialRetrieval with non-matching QueryFilter returns empty" {
+            $creds = Get-SafeguardA2aCredentialRetrieval -Insecure $Context.SuiteData["A2aId"] `
+                -QueryFilter "AccountName eq 'NonExistent_ZZZ_999'"
+            if ($null -eq $creds) { return $true }
+            @($creds).Count -eq 0
+        }
+
+        # --- Get-SafeguardA2aCredentialRetrieval with malformed QueryFilter ---
+        Test-SgPsAssert "Get-SafeguardA2aCredentialRetrieval with malformed QueryFilter throws" {
+            $threw = $false
+            try {
+                $null = Get-SafeguardA2aCredentialRetrieval -Insecure $Context.SuiteData["A2aId"] `
+                    -QueryFilter "this is not a valid filter!!!"
+            } catch {
+                $threw = $true
+            }
+            $threw
+        }
+
+        # --- Get-SafeguardA2aCredentialRetrieval with invalid filter operator ---
+        Test-SgPsAssert "Get-SafeguardA2aCredentialRetrieval with invalid filter operator throws" {
+            $threw = $false
+            try {
+                $null = Get-SafeguardA2aCredentialRetrieval -Insecure $Context.SuiteData["A2aId"] `
+                    -QueryFilter "AccountName INVALIDOP 'foo'"
+            } catch {
+                $threw = $true
+            }
+            $threw
+        }
+
+        # --- Get-SafeguardA2aCredentialRetrieval with Fields ---
+        Test-SgPsAssert "Get-SafeguardA2aCredentialRetrieval with Fields limits properties" {
+            $creds = Get-SafeguardA2aCredentialRetrieval -Insecure $Context.SuiteData["A2aId"] `
+                -Fields AccountName,AccountId
+            $list = @($creds)
+            $list.Count -ge 1 -and $null -ne $list[0].AccountName -and $null -ne $list[0].AccountId
+        }
+
+        # --- Get-SafeguardA2aCredentialRetrieval with OrderBy ---
+        Test-SgPsAssert "Get-SafeguardA2aCredentialRetrieval with OrderBy succeeds" {
+            $creds = Get-SafeguardA2aCredentialRetrieval -Insecure $Context.SuiteData["A2aId"] `
+                -OrderBy AccountName
+            $list = @($creds)
+            $list.Count -ge 1
+        }
+
+        # --- Get-SafeguardA2aCredentialRetrieval with QueryFilter and Fields combined ---
+        Test-SgPsAssert "Get-SafeguardA2aCredentialRetrieval QueryFilter with Fields combined" {
+            $creds = Get-SafeguardA2aCredentialRetrieval -Insecure $Context.SuiteData["A2aId"] `
+                -QueryFilter "AccountName eq '$($Context.SuiteData["TestAccount"])'" `
+                -Fields AccountName
+            $list = @($creds)
+            $list.Count -ge 1 -and $list[0].AccountName -eq $Context.SuiteData["TestAccount"]
+        }
+
         # --- Get-SafeguardA2aCredentialRetrievalApiKey ---
         Test-SgPsAssert "Get-SafeguardA2aCredentialRetrievalApiKey returns key" {
             $key = Get-SafeguardA2aCredentialRetrievalApiKey -Insecure $Context.SuiteData["A2aId"] `

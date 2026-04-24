@@ -602,6 +602,16 @@ An integer containing the ID of the asset or a string containing the name.
 .PARAMETER Account
 An integer containing the ID of the account or a string containing the name.
 
+.PARAMETER QueryFilter
+A string to pass to the -filter query parameter in the Safeguard Web API. Only used
+when listing all retrievable accounts (i.e. without specifying a specific account).
+
+.PARAMETER Fields
+An array of the account property names to return.
+
+.PARAMETER OrderBy
+An array of the account property names to order by.
+
 .INPUTS
 None.
 
@@ -613,6 +623,12 @@ Get-SafeguardA2aCredentialRetrieval -AccessToken $token -Appliance 10.5.32.54 -I
 
 .EXAMPLE
 Get-SafeguardA2aCredentialRetrieval "Ticket System" linux.test.machine root
+
+.EXAMPLE
+Get-SafeguardA2aCredentialRetrieval "Ticket System" -QueryFilter "AccountName eq 'root'"
+
+.EXAMPLE
+Get-SafeguardA2aCredentialRetrieval "Ticket System" -Fields AccountName,AccountId -OrderBy AccountName
 #>
 function Get-SafeguardA2aCredentialRetrieval
 {
@@ -631,7 +647,13 @@ function Get-SafeguardA2aCredentialRetrieval
         [Parameter(ParameterSetName="Names",Mandatory=$true,Position=2)]
         [object]$Account,
         [Parameter(ParameterSetName="Object",Mandatory=$true)]
-        [object]$AccountObj
+        [object]$AccountObj,
+        [Parameter(ParameterSetName="None",Mandatory=$false)]
+        [string]$QueryFilter,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields,
+        [Parameter(ParameterSetName="None",Mandatory=$false)]
+        [string[]]$OrderBy
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -641,8 +663,23 @@ function Get-SafeguardA2aCredentialRetrieval
 
     if ($PsCmdlet.ParameterSetName -eq "None")
     {
+        $local:Parameters = $null
+        if ($QueryFilter)
+        {
+            $local:Parameters = @{ filter = $QueryFilter }
+        }
+        if ($Fields)
+        {
+            if (-not $local:Parameters) { $local:Parameters = @{} }
+            $local:Parameters["fields"] = ($Fields -join ",")
+        }
+        if ($OrderBy)
+        {
+            if (-not $local:Parameters) { $local:Parameters = @{} }
+            $local:Parameters["orderby"] = ($OrderBy -join ",")
+        }
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-            Core GET "A2ARegistrations/$($local:A2aId)/RetrievableAccounts"
+            Core GET "A2ARegistrations/$($local:A2aId)/RetrievableAccounts" -Parameters $local:Parameters
     }
     else
     {
@@ -661,8 +698,13 @@ function Get-SafeguardA2aCredentialRetrieval
                 $local:A2aId $Account -Asset $Asset)
         }
 
+        $local:SingleParameters = $null
+        if ($Fields)
+        {
+            $local:SingleParameters = @{ fields = ($Fields -join ",") }
+        }
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                Core GET "A2ARegistrations/$($local:A2aId)/RetrievableAccounts/$($local:AccountId)"
+                Core GET "A2ARegistrations/$($local:A2aId)/RetrievableAccounts/$($local:AccountId)" -Parameters $local:SingleParameters
     }
 }
 
