@@ -1445,15 +1445,16 @@ function Get-SafeguardDirectoryAccount
 
     if ($PSBoundParameters.ContainsKey("DirectoryToGet"))
     {
+        $local:DirectoryId = (Resolve-SafeguardDirectoryId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToGet)
         if ($PSBoundParameters.ContainsKey("AccountToGet"))
         {
             Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                -AssetToGet $DirectoryToGet -AccountToGet $AccountToGet -Fields $Fields
+                -AssetToGet $local:DirectoryId -AccountToGet $AccountToGet -Fields $Fields
         }
         else
         {
             Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                -AssetToGet $DirectoryToGet -Fields $Fields
+                -AssetToGet $local:DirectoryId -Fields $Fields
         }
     }
     else
