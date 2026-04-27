@@ -1330,9 +1330,8 @@ function Wait-SafeguardEvent
         if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
     }
 
+    $local:SseDisposables = @()
     $local:Reader = $null
-    $local:Stream = $null
-    $local:WebResponse = $null
     $local:BackoffSeconds = 1
     $local:RecordSep = [char]0x1E
 
@@ -1345,43 +1344,28 @@ function Wait-SafeguardEvent
             try
             {
                 # Clean up previous connection if reconnecting
-                if ($local:Reader) { try { $local:Reader.Dispose() } catch {} $local:Reader = $null }
-                if ($local:Stream) { try { $local:Stream.Dispose() } catch {} $local:Stream = $null }
-                if ($local:WebResponse) { try { $local:WebResponse.Close() } catch {} $local:WebResponse = $null }
+                foreach ($local:D in $local:SseDisposables) { try { $local:D.Dispose() } catch {} }
+                $local:SseDisposables = @()
+                $local:Reader = $null
 
                 # Step 1: Negotiate -- get a fresh connectionToken
                 $local:ConnectionToken = Get-SignalRConnectionToken -Appliance $Appliance `
-                    -AccessToken $AccessToken
+                    -AccessToken $AccessToken -Insecure:$Insecure
 
                 # Step 2: Open SSE GET stream
                 $local:EncodedToken = [System.Uri]::EscapeDataString($local:ConnectionToken)
                 $local:SseUrl = "https://$Appliance/service/event/signalr?id=$local:EncodedToken"
-                Write-Verbose "Opening SSE stream: $local:SseUrl"
 
-                $local:Request = [System.Net.HttpWebRequest]::Create($local:SseUrl)
-                $local:Request.Method = "GET"
-                $local:Request.Accept = "text/event-stream"
-                $local:Request.KeepAlive = $true
-                $local:Request.Timeout = [System.Threading.Timeout]::Infinite
-                $local:Request.ReadWriteTimeout = [System.Threading.Timeout]::Infinite
-                $local:Request.Headers.Add("Authorization", "Bearer $AccessToken")
-
-                # On PS 7 (.NET Core), ServicePointManager callback does not apply to
-                # HttpWebRequest. Use the per-request callback for SSL bypass.
-                if ($Insecure -and $PSVersionTable.PSEdition -eq "Core")
-                {
-                    $local:Request.ServerCertificateValidationCallback = {
-                        param($CbSender, $CbCert, $CbChain, $CbPolicy) $true
-                    }
-                }
-
-                $local:WebResponse = $local:Request.GetResponse()
-                $local:Stream = $local:WebResponse.GetResponseStream()
-                $local:Reader = New-Object System.IO.StreamReader($local:Stream)
+                $local:Sse = Open-SignalRSseStream -Url $local:SseUrl `
+                    -Headers @{ "Authorization" = "Bearer $AccessToken" } `
+                    -Insecure:$Insecure
+                $local:Reader = $local:Sse.Reader
+                $local:SseDisposables = $local:Sse.Disposables
 
                 # Step 3: Send handshake via POST (after SSE stream is open)
                 Send-SignalRHandshake -Appliance $Appliance `
-                    -ConnectionToken $local:ConnectionToken -AccessToken $AccessToken
+                    -ConnectionToken $local:ConnectionToken -AccessToken $AccessToken `
+                    -Insecure:$Insecure
 
                 # Step 4: Read and verify handshake response from SSE stream
                 $local:HandshakeData = ""
@@ -1570,9 +1554,9 @@ function Wait-SafeguardEvent
             }
 
             # Clean up before reconnect
-            if ($local:Reader) { try { $local:Reader.Dispose() } catch {} $local:Reader = $null }
-            if ($local:Stream) { try { $local:Stream.Dispose() } catch {} $local:Stream = $null }
-            if ($local:WebResponse) { try { $local:WebResponse.Close() } catch {} $local:WebResponse = $null }
+            foreach ($local:D in $local:SseDisposables) { try { $local:D.Dispose() } catch {} }
+            $local:SseDisposables = @()
+            $local:Reader = $null
 
             Write-Verbose "Reconnecting in $local:BackoffSeconds seconds..."
             Start-Sleep -Seconds $local:BackoffSeconds
@@ -1596,9 +1580,7 @@ function Wait-SafeguardEvent
     }
     finally
     {
-        if ($local:Reader) { try { $local:Reader.Dispose() } catch {} }
-        if ($local:Stream) { try { $local:Stream.Dispose() } catch {} }
-        if ($local:WebResponse) { try { $local:WebResponse.Close() } catch {} }
+        foreach ($local:D in $local:SseDisposables) { try { $local:D.Dispose() } catch {} }
         if ($Insecure)
         {
             Enable-SslVerification
