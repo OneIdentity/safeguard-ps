@@ -247,6 +247,7 @@ FunctionsToExport = @(
     'Get-SafeguardEvent','Get-SafeguardEventCategory','Get-SafeguardEventName','Get-SafeguardEventProperty','Find-SafeguardEvent',
     'Get-SafeguardEventSubscription', 'Find-SafeguardEventSubscription',
     'New-SafeguardEventSubscription', 'Remove-SafeguardEventSubscription', 'Edit-SafeguardEventSubscription',
+    'Wait-SafeguardEvent',
     # clustering.psm1
     'Get-SafeguardClusterMember','Get-SafeguardClusterHealth','Get-SafeguardClusterOperationStatus',
     'Add-SafeguardClusterMember','Remove-SafeguardClusterMember','Get-SafeguardClusterPrimary','Set-SafeguardClusterPrimary',

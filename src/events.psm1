@@ -1197,3 +1197,513 @@ function Remove-SafeguardEventSubscription
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "EventSubscribers/$SubscriptionId"
 
 }
+
+# SignalR SSE event listener cmdlet
+
+<#
+.SYNOPSIS
+Listen for real-time Safeguard events over SignalR using Server-Sent Events.
+
+.DESCRIPTION
+Wait-SafeguardEvent opens a persistent SignalR connection to the Safeguard event
+service and streams live event notifications. This is the PowerShell equivalent of
+the event listener in safeguard-bash and SafeguardDotNet.
+
+The cmdlet blocks until interrupted with Ctrl+C. Events can be processed by a
+script block (-Handler), an external script (-HandlerScript), or emitted to the
+output pipeline as PSCustomObjects when no handler is specified.
+
+Supports both user mode (Bearer token) and A2A mode (certificate + API key).
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ApiKey
+A string containing the A2A API key for authorization.
+
+.PARAMETER CertificateFile
+Path to a PFX certificate file for A2A authentication.
+
+.PARAMETER Password
+A SecureString containing the password for the PFX certificate file.
+
+.PARAMETER Thumbprint
+A string containing the thumbprint of a certificate in the user certificate store
+for A2A authentication.
+
+.PARAMETER Event
+An array of event names to filter for. If omitted, all events are delivered.
+
+.PARAMETER Handler
+A script block to invoke for each event. Receives two arguments: $EventName (string)
+and $EventBody (PSObject).
+
+.PARAMETER HandlerScript
+Path to a .ps1 script to invoke for each event. The script receives two arguments:
+$EventName (string) and $EventBody (PSObject).
+
+.INPUTS
+None.
+
+.OUTPUTS
+When no Handler or HandlerScript is specified, outputs PSCustomObjects with
+EventName and EventBody properties.
+
+.EXAMPLE
+Wait-SafeguardEvent -Insecure
+
+Listen for all events using the current session, emitting objects to the pipeline.
+
+.EXAMPLE
+Wait-SafeguardEvent -Insecure -Event "AssetCreated","AssetRemoved"
+
+Listen for specific events only.
+
+.EXAMPLE
+Wait-SafeguardEvent -Insecure -Handler { param($EventName, $EventBody) Write-Host "Got $EventName" }
+
+Process events with an inline script block.
+
+.EXAMPLE
+Wait-SafeguardEvent -Appliance 10.5.32.54 -ApiKey $key -CertificateFile C:\cert.pfx -Password $pwd -Insecure
+
+Listen for A2A events using certificate file authentication.
+
+.EXAMPLE
+Wait-SafeguardEvent -Appliance 10.5.32.54 -ApiKey $key -Thumbprint $tp -Insecure
+
+Listen for A2A events using certificate thumbprint.
+#>
+function Wait-SafeguardEvent
+{
+    [CmdletBinding(DefaultParameterSetName="UserMode")]
+    Param(
+        [Parameter(Mandatory=$false,ParameterSetName="UserMode")]
+        [Parameter(Mandatory=$true,ParameterSetName="A2AWithFile")]
+        [Parameter(Mandatory=$true,ParameterSetName="A2AWithThumbprint")]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false,ParameterSetName="UserMode")]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,ParameterSetName="A2AWithFile")]
+        [Parameter(Mandatory=$true,ParameterSetName="A2AWithThumbprint")]
+        [string]$ApiKey,
+        [Parameter(Mandatory=$true,ParameterSetName="A2AWithFile")]
+        [string]$CertificateFile,
+        [Parameter(Mandatory=$false,ParameterSetName="A2AWithFile")]
+        [SecureString]$Password,
+        [Parameter(Mandatory=$true,ParameterSetName="A2AWithThumbprint")]
+        [string]$Thumbprint,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Event,
+        [Parameter(Mandatory=$false)]
+        [ScriptBlock]$Handler,
+        [Parameter(Mandatory=$false)]
+        [string]$HandlerScript
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($Handler -and $HandlerScript)
+    {
+        throw "You may specify -Handler or -HandlerScript but not both"
+    }
+    if ($HandlerScript -and -not (Test-Path $HandlerScript))
+    {
+        throw "Handler script not found: $HandlerScript"
+    }
+
+    Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
+    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+    Import-Module -Name "$PSScriptRoot\signalr-utilities.psm1" -Scope Local
+
+    # Determine if this is A2A mode
+    $local:IsA2a = ($PSCmdlet.ParameterSetName -eq "A2AWithFile" -or `
+                    $PSCmdlet.ParameterSetName -eq "A2AWithThumbprint")
+
+    # Resolve session state for user mode
+    if (-not $local:IsA2a)
+    {
+        if (-not $Appliance -and $SafeguardSession)
+        {
+            $Appliance = $SafeguardSession["Appliance"]
+        }
+        if (-not $AccessToken -and $SafeguardSession)
+        {
+            $AccessToken = $SafeguardSession["AccessToken"]
+        }
+        if (-not $PSBoundParameters.ContainsKey("Insecure") -and $SafeguardSession)
+        {
+            $Insecure = $SafeguardSession["Insecure"]
+        }
+        if (-not $Appliance)
+        {
+            $Appliance = (Read-Host "Appliance")
+        }
+        if (-not $AccessToken)
+        {
+            throw "AccessToken required. Use Connect-Safeguard first or pass -AccessToken."
+        }
+    }
+
+    # Resolve certificate for A2A mode
+    $local:Cert = $null
+    if ($PSCmdlet.ParameterSetName -eq "A2AWithFile")
+    {
+        $local:Cert = (Use-CertificateFile $CertificateFile $Password)
+    }
+    elseif ($PSCmdlet.ParameterSetName -eq "A2AWithThumbprint")
+    {
+        $local:Store = New-Object System.Security.Cryptography.X509Certificates.X509Store("My", "CurrentUser")
+        $local:Store.Open("ReadOnly")
+        $local:Certs = $local:Store.Certificates.Find(
+            [System.Security.Cryptography.X509Certificates.X509FindType]::FindByThumbprint, $Thumbprint, $false)
+        $local:Store.Close()
+        if ($local:Certs.Count -eq 0)
+        {
+            throw "Certificate with thumbprint '$Thumbprint' not found in CurrentUser\My store"
+        }
+        $local:Cert = $local:Certs[0]
+    }
+
+    # Build event filter lookup for fast matching
+    $local:EventFilter = $null
+    if ($Event)
+    {
+        $local:EventFilter = @{}
+        foreach ($local:E in $Event)
+        {
+            $local:EventFilter[$local:E] = $true
+        }
+    }
+
+    Edit-SslVersionSupport
+    if ($Insecure)
+    {
+        Disable-SslVerification
+        if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+    }
+
+    $local:Reader = $null
+    $local:Stream = $null
+    $local:WebResponse = $null
+    $local:BackoffSeconds = 1
+    $local:RecordSep = [char]0x1E
+
+    Write-Host "Listening for Safeguard events on $Appliance... (Press Ctrl+C to stop)"
+
+    try
+    {
+        while ($true)
+        {
+            try
+            {
+                # Clean up previous connection if reconnecting
+                if ($local:Reader) { try { $local:Reader.Dispose() } catch {} $local:Reader = $null }
+                if ($local:Stream) { try { $local:Stream.Dispose() } catch {} $local:Stream = $null }
+                if ($local:WebResponse) { try { $local:WebResponse.Close() } catch {} $local:WebResponse = $null }
+
+                # Step 1: Negotiate -- get a fresh connectionToken
+                $local:NegotiateArgs = @{ Appliance = $Appliance }
+                if ($local:IsA2a)
+                {
+                    $local:NegotiateArgs["ApiKey"] = $ApiKey
+                    if ($local:Cert) { $local:NegotiateArgs["Certificate"] = $local:Cert }
+                    elseif ($Thumbprint) { $local:NegotiateArgs["Thumbprint"] = $Thumbprint }
+                }
+                else
+                {
+                    $local:NegotiateArgs["AccessToken"] = $AccessToken
+                }
+
+                $local:ConnectionToken = Get-SignalRConnectionToken @local:NegotiateArgs
+
+                # Step 2: Open SSE GET stream
+                $local:EncodedToken = [System.Uri]::EscapeDataString($local:ConnectionToken)
+                $local:SseUrl = "https://$Appliance/service/event/signalr?id=$local:EncodedToken"
+                Write-Verbose "Opening SSE stream: $local:SseUrl"
+
+                $local:Request = [System.Net.HttpWebRequest]::Create($local:SseUrl)
+                $local:Request.Method = "GET"
+                $local:Request.Accept = "text/event-stream"
+                $local:Request.KeepAlive = $true
+                $local:Request.Timeout = [System.Threading.Timeout]::Infinite
+                $local:Request.ReadWriteTimeout = [System.Threading.Timeout]::Infinite
+
+                if ($local:IsA2a)
+                {
+                    $local:Request.Headers.Add("Authorization", "A2A $ApiKey")
+                    if ($local:Cert)
+                    {
+                        $local:Request.ClientCertificates.Add($local:Cert) | Out-Null
+                    }
+                }
+                else
+                {
+                    $local:Request.Headers.Add("Authorization", "Bearer $AccessToken")
+                }
+
+                # On PS 7 (.NET Core), ServicePointManager callback does not apply to
+                # HttpWebRequest. Use the per-request callback for SSL bypass.
+                if ($Insecure -and $PSVersionTable.PSEdition -eq "Core")
+                {
+                    $local:Request.ServerCertificateValidationCallback = {
+                        param($CbSender, $CbCert, $CbChain, $CbPolicy) $true
+                    }
+                }
+
+                $local:WebResponse = $local:Request.GetResponse()
+                $local:Stream = $local:WebResponse.GetResponseStream()
+                $local:Reader = New-Object System.IO.StreamReader($local:Stream)
+
+                # Step 3: Send handshake via POST (after SSE stream is open)
+                $local:HandshakeArgs = @{
+                    Appliance = $Appliance
+                    ConnectionToken = $local:ConnectionToken
+                }
+                if ($local:IsA2a)
+                {
+                    $local:HandshakeArgs["ApiKey"] = $ApiKey
+                    if ($local:Cert) { $local:HandshakeArgs["Certificate"] = $local:Cert }
+                    elseif ($Thumbprint) { $local:HandshakeArgs["Thumbprint"] = $Thumbprint }
+                }
+                else
+                {
+                    $local:HandshakeArgs["AccessToken"] = $AccessToken
+                }
+
+                Send-SignalRHandshake @local:HandshakeArgs
+
+                # Step 4: Read and verify handshake response from SSE stream
+                $local:HandshakeData = ""
+                $local:HandshakeComplete = $false
+                while (-not $local:HandshakeComplete)
+                {
+                    $local:Line = $local:Reader.ReadLine()
+                    if ($null -eq $local:Line)
+                    {
+                        throw "SSE stream closed before handshake completed"
+                    }
+                    if ($local:Line.StartsWith(":"))
+                    {
+                        continue
+                    }
+                    elseif ($local:Line.StartsWith("data:"))
+                    {
+                        $local:Value = $local:Line.Substring(5)
+                        if ($local:Value.StartsWith(" "))
+                        {
+                            $local:Value = $local:Value.Substring(1)
+                        }
+                        if ($local:HandshakeData.Length -gt 0)
+                        {
+                            $local:HandshakeData += "`n"
+                        }
+                        $local:HandshakeData += $local:Value
+                    }
+                    elseif ($local:Line -eq "" -and $local:HandshakeData.Length -gt 0)
+                    {
+                        $local:HandshakeComplete = $true
+                    }
+                }
+
+                # Parse handshake frames
+                $local:HsFrames = $local:HandshakeData.Split($local:RecordSep)
+                foreach ($local:HsFrame in $local:HsFrames)
+                {
+                    $local:HsFrame = $local:HsFrame.Trim()
+                    if ($local:HsFrame.Length -eq 0) { continue }
+                    $local:HsParsed = ConvertFrom-Json $local:HsFrame
+                    if ($local:HsParsed.error)
+                    {
+                        throw "SignalR handshake error: $($local:HsParsed.error)"
+                    }
+                }
+
+                Write-Verbose "SignalR handshake complete"
+                $local:BackoffSeconds = 1
+
+                # Step 5: Event reading loop
+                $local:DataBuffer = ""
+                $local:CloseReceived = $false
+
+                while (-not $local:CloseReceived)
+                {
+                    $local:Line = $local:Reader.ReadLine()
+                    if ($null -eq $local:Line)
+                    {
+                        Write-Verbose "SSE stream ended (server closed connection)"
+                        break
+                    }
+
+                    if ($local:Line.StartsWith(":"))
+                    {
+                        # SSE comment or heartbeat
+                        continue
+                    }
+                    elseif ($local:Line.StartsWith("data:"))
+                    {
+                        $local:Value = $local:Line.Substring(5)
+                        if ($local:Value.StartsWith(" "))
+                        {
+                            $local:Value = $local:Value.Substring(1)
+                        }
+                        if ($local:DataBuffer.Length -gt 0)
+                        {
+                            $local:DataBuffer += "`n"
+                        }
+                        $local:DataBuffer += $local:Value
+                    }
+                    elseif ($local:Line -eq "" -and $local:DataBuffer.Length -gt 0)
+                    {
+                        # SSE event boundary -- process accumulated data
+                        $local:Frames = $local:DataBuffer.Split($local:RecordSep)
+                        $local:DataBuffer = ""
+
+                        foreach ($local:Frame in $local:Frames)
+                        {
+                            $local:Frame = $local:Frame.Trim()
+                            if ($local:Frame.Length -eq 0) { continue }
+
+                            try
+                            {
+                                $local:Msg = ConvertFrom-Json $local:Frame
+                            }
+                            catch
+                            {
+                                Write-Verbose "Failed to parse SignalR frame: $local:Frame"
+                                continue
+                            }
+
+                            # SignalR message types: 1=Invocation, 6=Ping, 7=Close
+                            if ($local:Msg.type -eq 6)
+                            {
+                                Write-Verbose "Received SignalR ping"
+                                continue
+                            }
+                            elseif ($local:Msg.type -eq 7)
+                            {
+                                Write-Verbose "Received SignalR close frame"
+                                $local:CloseReceived = $true
+                                break
+                            }
+                            elseif ($local:Msg.type -eq 1 -and $local:Msg.target -eq "NotifyEventAsync")
+                            {
+                                $local:EventData = $local:Msg.arguments[0]
+                                $local:EvName = $local:EventData.Name
+                                $local:EvBody = $local:EventData
+
+                                # Apply event name filter
+                                if ($local:EventFilter -and -not $local:EventFilter.ContainsKey($local:EvName))
+                                {
+                                    Write-Verbose "Skipping filtered event: $local:EvName"
+                                    continue
+                                }
+
+                                Write-Verbose "Event received: $local:EvName"
+
+                                if ($Handler)
+                                {
+                                    try
+                                    {
+                                        & $Handler $local:EvName $local:EvBody
+                                    }
+                                    catch
+                                    {
+                                        Write-Warning "Event handler error for '$($local:EvName)': $_"
+                                    }
+                                }
+                                elseif ($HandlerScript)
+                                {
+                                    try
+                                    {
+                                        & $HandlerScript $local:EvName $local:EvBody
+                                    }
+                                    catch
+                                    {
+                                        Write-Warning "Handler script error for '$($local:EvName)': $_"
+                                    }
+                                }
+                                else
+                                {
+                                    New-Object PSObject -Property @{
+                                        EventName = $local:EvName
+                                        EventBody = $local:EvBody
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                # Determine if this is a fatal (4xx) or transient error
+                $local:IsFatal = $false
+                if ($_.Exception -is [System.Net.WebException])
+                {
+                    $local:WebEx = $_.Exception
+                    if ($local:WebEx.Response)
+                    {
+                        $local:StatusCode = [int]$local:WebEx.Response.StatusCode
+                        if ($local:StatusCode -ge 400 -and $local:StatusCode -lt 500)
+                        {
+                            $local:IsFatal = $true
+                        }
+                    }
+                }
+                if ($local:IsFatal)
+                {
+                    throw
+                }
+
+                Write-Warning "Connection error: $($_.Exception.Message)"
+            }
+
+            # Clean up before reconnect
+            if ($local:Reader) { try { $local:Reader.Dispose() } catch {} $local:Reader = $null }
+            if ($local:Stream) { try { $local:Stream.Dispose() } catch {} $local:Stream = $null }
+            if ($local:WebResponse) { try { $local:WebResponse.Close() } catch {} $local:WebResponse = $null }
+
+            Write-Verbose "Reconnecting in $local:BackoffSeconds seconds..."
+            Start-Sleep -Seconds $local:BackoffSeconds
+            $local:BackoffSeconds = [Math]::Min($local:BackoffSeconds * 2, 60)
+
+            # Try to refresh token for session-based user mode connections
+            if (-not $local:IsA2a -and $SafeguardSession -and `
+                -not $PSBoundParameters.ContainsKey("AccessToken"))
+            {
+                try
+                {
+                    Write-Verbose "Attempting token refresh before reconnect..."
+                    Update-SafeguardAccessToken
+                    $AccessToken = $SafeguardSession["AccessToken"]
+                }
+                catch
+                {
+                    Write-Warning "Token refresh failed: $($_.Exception.Message)"
+                }
+            }
+        }
+    }
+    finally
+    {
+        if ($local:Reader) { try { $local:Reader.Dispose() } catch {} }
+        if ($local:Stream) { try { $local:Stream.Dispose() } catch {} }
+        if ($local:WebResponse) { try { $local:WebResponse.Close() } catch {} }
+        if ($Insecure)
+        {
+            Enable-SslVerification
+            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+        }
+        Write-Verbose "Event listener stopped."
+    }
+}
