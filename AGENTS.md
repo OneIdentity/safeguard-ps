@@ -21,7 +21,7 @@ safeguard-ps/
 |-- test/                         # Integration test framework and suites (requires PS 7)
 |   |-- Invoke-SafeguardPsTests.ps1       # Test runner
 |   |-- SafeguardPsTestFramework.psm1     # Framework module
-|   `-- Suites/Suite-*.ps1                # 32 test suite files (~355 tests)
+|   `-- Suites/Suite-*.ps1                # 34 test suite files (~360 tests)
 |-- samples/                      # Example scripts
 |-- docker/                       # Dockerfiles (Ubuntu, Alpine, Mariner, Windows)
 |-- pipeline-templates/           # Azure Pipelines CI/CD templates
@@ -150,7 +150,7 @@ The test runner requires **PowerShell 7** (`pwsh`). It automatically:
 - Runs pre-cleanup to remove stale objects from prior failed runs
 - Reports pass/fail/skip with structured output
 
-A healthy baseline is **344 passed, 0 failed, 8 skipped** (SPS tests skip when no SPS
+A healthy baseline is **350 passed, 0 failed, 8 skipped** (SPS tests skip when no SPS
 appliance is provided).
 
 ### Fixing test failures
@@ -184,8 +184,8 @@ Map feature modules to suites:
 | `groups.psm1` | UserGroups, AssetGroups, AccountGroups |
 | `tags.psm1` | Tags |
 | `directories.psm1` | (no dedicated suite -- test manually) |
-| `events.psm1` | Events |
-| `a2acallers.psm1` | (no dedicated suite -- requires A2A registration on appliance) |
+| `events.psm1` | Events, EventListener |
+| `a2acallers.psm1` | A2ARegistrations, A2ACredentials, A2AEventListener |
 | `certificates.psm1` | Certificates |
 | `reports.psm1` | Reports |
 | `deleted.psm1` | DeletedObjects |
