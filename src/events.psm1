@@ -1333,7 +1333,6 @@ function Wait-SafeguardEvent
     $local:SseDisposables = @()
     $local:Reader = $null
     $local:BackoffSeconds = 1
-    $local:RecordSep = [char]0x1E
 
     Write-Host "Listening for Safeguard events on $Appliance... (Press Ctrl+C to stop)"
 
@@ -1367,198 +1366,18 @@ function Wait-SafeguardEvent
                     -ConnectionToken $local:ConnectionToken -AccessToken $AccessToken `
                     -Insecure:$Insecure
 
-                # Step 4: Read and verify handshake response from SSE stream
-                $local:HandshakeData = ""
-                $local:HandshakeComplete = $false
-                while (-not $local:HandshakeComplete)
-                {
-                    $local:Line = $local:Reader.ReadLine()
-                    if ($null -eq $local:Line)
-                    {
-                        throw "SSE stream closed before handshake completed"
-                    }
-                    if ($local:Line.StartsWith(":"))
-                    {
-                        continue
-                    }
-                    elseif ($local:Line.StartsWith("data:"))
-                    {
-                        $local:Value = $local:Line.Substring(5)
-                        if ($local:Value.StartsWith(" "))
-                        {
-                            $local:Value = $local:Value.Substring(1)
-                        }
-                        if ($local:HandshakeData.Length -gt 0)
-                        {
-                            $local:HandshakeData += "`n"
-                        }
-                        $local:HandshakeData += $local:Value
-                    }
-                    elseif ($local:Line -eq "" -and $local:HandshakeData.Length -gt 0)
-                    {
-                        $local:HandshakeComplete = $true
-                    }
-                }
+                # Step 4: Read and verify handshake response
+                Read-SignalRHandshakeResponse -Reader $local:Reader
 
-                # Parse handshake frames
-                $local:HsFrames = $local:HandshakeData.Split($local:RecordSep)
-                foreach ($local:HsFrame in $local:HsFrames)
-                {
-                    $local:HsFrame = $local:HsFrame.Trim()
-                    if ($local:HsFrame.Length -eq 0) { continue }
-                    $local:HsParsed = ConvertFrom-Json $local:HsFrame
-                    if ($local:HsParsed.error)
-                    {
-                        throw "SignalR handshake error: $($local:HsParsed.error)"
-                    }
-                }
-
-                Write-Verbose "SignalR handshake complete"
                 $local:BackoffSeconds = 1
 
-                # Step 5: Event reading loop
-                $local:DataBuffer = ""
-                $local:CloseReceived = $false
-
-                while (-not $local:CloseReceived)
-                {
-                    $local:Line = $local:Reader.ReadLine()
-                    if ($null -eq $local:Line)
-                    {
-                        Write-Verbose "SSE stream ended (server closed connection)"
-                        break
-                    }
-
-                    if ($local:Line.StartsWith(":"))
-                    {
-                        # SSE comment or heartbeat
-                        continue
-                    }
-                    elseif ($local:Line.StartsWith("data:"))
-                    {
-                        $local:Value = $local:Line.Substring(5)
-                        if ($local:Value.StartsWith(" "))
-                        {
-                            $local:Value = $local:Value.Substring(1)
-                        }
-                        if ($local:DataBuffer.Length -gt 0)
-                        {
-                            $local:DataBuffer += "`n"
-                        }
-                        $local:DataBuffer += $local:Value
-                    }
-                    elseif ($local:Line -eq "" -and $local:DataBuffer.Length -gt 0)
-                    {
-                        # SSE event boundary -- process accumulated data
-                        $local:Frames = $local:DataBuffer.Split($local:RecordSep)
-                        $local:DataBuffer = ""
-
-                        foreach ($local:Frame in $local:Frames)
-                        {
-                            $local:Frame = $local:Frame.Trim()
-                            if ($local:Frame.Length -eq 0) { continue }
-
-                            try
-                            {
-                                $local:Msg = ConvertFrom-Json $local:Frame
-                            }
-                            catch
-                            {
-                                Write-Verbose "Failed to parse SignalR frame: $local:Frame"
-                                continue
-                            }
-
-                            # SignalR message types: 1=Invocation, 6=Ping, 7=Close
-                            if ($local:Msg.type -eq 6)
-                            {
-                                Write-Verbose "Received SignalR ping"
-                                continue
-                            }
-                            elseif ($local:Msg.type -eq 7)
-                            {
-                                Write-Verbose "Received SignalR close frame"
-                                $local:CloseReceived = $true
-                                break
-                            }
-                            elseif ($local:Msg.type -eq 1 -and $local:Msg.target -eq "NotifyEventAsync")
-                            {
-                                $local:EventData = $local:Msg.arguments[0]
-                                $local:EvName = $local:EventData.Name
-                                $local:EvBody = $local:EventData
-
-                                # Apply event name filter
-                                if ($local:EventFilter -and -not $local:EventFilter.ContainsKey($local:EvName))
-                                {
-                                    Write-Verbose "Skipping filtered event: $local:EvName"
-                                    continue
-                                }
-
-                                Write-Verbose "Event received: $local:EvName"
-
-                                if ($Handler)
-                                {
-                                    try
-                                    {
-                                        & $Handler $local:EvName $local:EvBody
-                                    }
-                                    catch
-                                    {
-                                        Write-Warning "Event handler error for '$($local:EvName)': $_"
-                                    }
-                                }
-                                elseif ($HandlerScript)
-                                {
-                                    try
-                                    {
-                                        & $HandlerScript $local:EvName $local:EvBody
-                                    }
-                                    catch
-                                    {
-                                        Write-Warning "Handler script error for '$($local:EvName)': $_"
-                                    }
-                                }
-                                else
-                                {
-                                    New-Object PSObject -Property @{
-                                        EventName = $local:EvName
-                                        EventBody = $local:EvBody
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                # Step 5: Event reading loop (dispatches to handler/script/pipeline)
+                Read-SignalREvents -Reader $local:Reader -EventFilter $local:EventFilter `
+                    -Handler $Handler -HandlerScript $HandlerScript
             }
             catch
             {
-                # Determine if this is a fatal (4xx) or transient error
-                $local:IsFatal = $false
-                if ($_.Exception -is [System.Net.WebException])
-                {
-                    $local:WebEx = $_.Exception
-                    if ($local:WebEx.Response)
-                    {
-                        $local:StatusCode = [int]$local:WebEx.Response.StatusCode
-                        if ($local:StatusCode -ge 400 -and $local:StatusCode -lt 500)
-                        {
-                            $local:IsFatal = $true
-                        }
-                    }
-                }
-                # PS 7+: HttpClient throws HttpRequestException, not WebException
-                elseif ($_.Exception.GetType().FullName -eq "System.Net.Http.HttpRequestException")
-                {
-                    $local:HrStatusCode = $_.Exception.StatusCode
-                    if ($null -ne $local:HrStatusCode)
-                    {
-                        $local:StatusInt = [int]$local:HrStatusCode
-                        if ($local:StatusInt -ge 400 -and $local:StatusInt -lt 500)
-                        {
-                            $local:IsFatal = $true
-                        }
-                    }
-                }
-                if ($local:IsFatal)
+                if (Test-SignalRFatalError -ErrorRecord $_)
                 {
                     throw
                 }

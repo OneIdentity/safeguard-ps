@@ -69,6 +69,7 @@ NestedModules = @(
     'sslhandling.psm1',
     'ps-utilities.psm1',
     'sg-utilities.psm1',
+    'signalr-utilities.psm1',
     'datatypes.psm1',
     'licensing.psm1',
     'certificates.psm1',
