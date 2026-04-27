@@ -1197,3 +1197,227 @@ function Remove-SafeguardEventSubscription
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "EventSubscribers/$SubscriptionId"
 
 }
+
+# SignalR SSE event listener cmdlet
+
+<#
+.SYNOPSIS
+Listen for real-time Safeguard events over SignalR using Server-Sent Events.
+
+.DESCRIPTION
+Wait-SafeguardEvent opens a persistent SignalR connection to the Safeguard event
+service and streams live event notifications. This is the PowerShell equivalent of
+the event listener in safeguard-bash and SafeguardDotNet.
+
+The cmdlet blocks until interrupted with Ctrl+C. Events can be processed by a
+script block (-Handler), an external script (-HandlerScript), or emitted to the
+output pipeline as PSCustomObjects when no handler is specified.
+
+For A2A event listening, use Wait-SafeguardA2aEvent instead.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Event
+An array of event names to filter for. If omitted, all events are delivered.
+
+.PARAMETER Handler
+A script block to invoke for each event. Receives two arguments: $EventName (string)
+and $EventBody (PSObject).
+
+.PARAMETER HandlerScript
+Path to a .ps1 script to invoke for each event. The script receives two arguments:
+$EventName (string) and $EventBody (PSObject).
+
+.INPUTS
+None.
+
+.OUTPUTS
+When no Handler or HandlerScript is specified, outputs PSCustomObjects with
+EventName and EventBody properties.
+
+.EXAMPLE
+Wait-SafeguardEvent -Insecure
+
+Listen for all events using the current session, emitting objects to the pipeline.
+
+.EXAMPLE
+Wait-SafeguardEvent -Insecure -Event "AssetCreated","AssetRemoved"
+
+Listen for specific events only.
+
+.EXAMPLE
+Wait-SafeguardEvent -Insecure -Handler { param($EventName, $EventBody) Write-Host "Got $EventName" }
+
+Process events with an inline script block.
+#>
+function Wait-SafeguardEvent
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Event,
+        [Parameter(Mandatory=$false)]
+        [ScriptBlock]$Handler,
+        [Parameter(Mandatory=$false)]
+        [string]$HandlerScript
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($Handler -and $HandlerScript)
+    {
+        throw "You may specify -Handler or -HandlerScript but not both"
+    }
+    if ($HandlerScript -and -not (Test-Path $HandlerScript))
+    {
+        throw "Handler script not found: $HandlerScript"
+    }
+
+    Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
+    Import-Module -Name "$PSScriptRoot\signalr-utilities.psm1" -Scope Local
+
+    # Resolve session state
+    if (-not $Appliance -and $SafeguardSession)
+    {
+        $Appliance = $SafeguardSession["Appliance"]
+    }
+    if (-not $AccessToken -and $SafeguardSession)
+    {
+        $AccessToken = $SafeguardSession["AccessToken"]
+    }
+    if (-not $PSBoundParameters.ContainsKey("Insecure") -and $SafeguardSession)
+    {
+        $Insecure = $SafeguardSession["Insecure"]
+    }
+    if (-not $Appliance)
+    {
+        $Appliance = (Read-Host "Appliance")
+    }
+    if (-not $AccessToken)
+    {
+        throw "AccessToken required. Use Connect-Safeguard first or pass -AccessToken."
+    }
+
+    # Build event filter lookup for fast matching
+    $local:EventFilter = $null
+    if ($Event)
+    {
+        $local:EventFilter = @{}
+        foreach ($local:E in $Event)
+        {
+            $local:EventFilter[$local:E] = $true
+        }
+    }
+
+    Edit-SslVersionSupport
+    if ($Insecure)
+    {
+        Disable-SslVerification
+        if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+    }
+
+    $local:SseDisposables = @()
+    $local:Reader = $null
+    $local:BackoffSeconds = 1
+
+    Write-Host "Listening for Safeguard events on $Appliance... (Press Ctrl+C to stop)"
+
+    try
+    {
+        while ($true)
+        {
+            try
+            {
+                # Clean up previous connection if reconnecting
+                foreach ($local:D in $local:SseDisposables) { try { $local:D.Dispose() } catch {} }
+                $local:SseDisposables = @()
+                $local:Reader = $null
+
+                # Step 1: Negotiate -- get a fresh connectionToken
+                $local:ConnectionToken = Get-SignalRConnectionToken -Appliance $Appliance `
+                    -AccessToken $AccessToken -Insecure:$Insecure
+
+                # Step 2: Open SSE GET stream
+                $local:EncodedToken = [System.Uri]::EscapeDataString($local:ConnectionToken)
+                $local:SseUrl = "https://$Appliance/service/event/signalr?id=$local:EncodedToken"
+
+                $local:Sse = Open-SignalRSseStream -Url $local:SseUrl `
+                    -Headers @{ "Authorization" = "Bearer $AccessToken" } `
+                    -Insecure:$Insecure
+                $local:Reader = $local:Sse.Reader
+                $local:SseDisposables = $local:Sse.Disposables
+
+                # Step 3: Send handshake via POST (after SSE stream is open)
+                Send-SignalRHandshake -Appliance $Appliance `
+                    -ConnectionToken $local:ConnectionToken -AccessToken $AccessToken `
+                    -Insecure:$Insecure
+
+                # Step 4: Read and verify handshake response
+                Read-SignalRHandshakeResponse -Reader $local:Reader
+
+                $local:BackoffSeconds = 1
+
+                # Step 5: Event reading loop (dispatches to handler/script/pipeline)
+                Read-SignalREvents -Reader $local:Reader -EventFilter $local:EventFilter `
+                    -Handler $Handler -HandlerScript $HandlerScript
+            }
+            catch
+            {
+                if (Test-SignalRFatalError -ErrorRecord $_)
+                {
+                    throw
+                }
+
+                Write-Warning "Connection error: $($_.Exception.Message)"
+            }
+
+            # Clean up before reconnect
+            foreach ($local:D in $local:SseDisposables) { try { $local:D.Dispose() } catch {} }
+            $local:SseDisposables = @()
+            $local:Reader = $null
+
+            Write-Verbose "Reconnecting in $local:BackoffSeconds seconds..."
+            Start-Sleep -Seconds $local:BackoffSeconds
+            $local:BackoffSeconds = [Math]::Min($local:BackoffSeconds * 2, 60)
+
+            # Try to refresh token for session-based connections
+            if ($SafeguardSession -and -not $PSBoundParameters.ContainsKey("AccessToken"))
+            {
+                try
+                {
+                    Write-Verbose "Attempting token refresh before reconnect..."
+                    Update-SafeguardAccessToken
+                    $AccessToken = $SafeguardSession["AccessToken"]
+                }
+                catch
+                {
+                    Write-Warning "Token refresh failed: $($_.Exception.Message)"
+                }
+            }
+        }
+    }
+    finally
+    {
+        foreach ($local:D in $local:SseDisposables) { try { $local:D.Dispose() } catch {} }
+        if ($Insecure)
+        {
+            Enable-SslVerification
+            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+        }
+        Write-Verbose "Event listener stopped."
+    }
+}

@@ -242,6 +242,63 @@ one guaranteed to work.  Please try to match the first and second version
 numbers between Safeguard and safeguard-ps as instructed above to avoid any
 compatibility issues.
 
+## Real-Time Event Listeners
+
+safeguard-ps can listen for real-time events from the Safeguard appliance using
+SignalR over Server-Sent Events (SSE).  This is useful for monitoring changes,
+triggering automated workflows, or building integrations that react to events
+as they happen.
+
+### Listening for Events
+
+After connecting with `Connect-Safeguard`, use `Wait-SafeguardEvent` to listen
+for events.  The cmdlet runs continuously until interrupted with **Ctrl+C**.
+
+When no `-Handler` or `-HandlerScript` is provided, events are emitted to the
+pipeline so you can filter and process them:
+
+```PowerShell
+> Connect-Safeguard -Insecure 192.168.123.123 local Admin -Pkce
+> Wait-SafeguardEvent -Insecure
+```
+
+You can filter to specific event types using the `-Event` parameter:
+
+```PowerShell
+> Wait-SafeguardEvent -Insecure -Event AssetAccountPasswordUpdated,AssetAccountSshKeyUpdated
+```
+
+### Using Handlers
+
+Use `-Handler` to provide a script block, or `-HandlerScript` to point at an
+external `.ps1` file.  These are mutually exclusive.  The handler receives the
+event name and event body as arguments:
+
+```PowerShell
+> Wait-SafeguardEvent -Insecure -Handler { param($EventName, $EventBody) Write-Host "$EventName occurred" }
+```
+
+### A2A Event Listeners
+
+For Application to Application (A2A) scenarios, use `Wait-SafeguardA2aEvent`
+which authenticates with a client certificate and API key rather than an
+interactive session.  It connects to the A2A-specific SignalR endpoint:
+
+```PowerShell
+> Wait-SafeguardA2aEvent -Appliance 192.168.123.123 -Insecure -CertificateFile C:\cert.pfx -Password $pwd -ApiKey $apiKey
+```
+
+The `Invoke-SafeguardA2aPasswordHandler` and `Invoke-SafeguardA2aSshKeyHandler`
+cmdlets are higher-level wrappers that fetch the current credential immediately,
+invoke your handler, then continue listening for changes.  Each time the
+credential is updated on the appliance, the new value is fetched and delivered
+to your handler:
+
+```PowerShell
+> Invoke-SafeguardA2aPasswordHandler 192.168.123.123 $apiKey -CertificateFile C:\cert.pfx -Password $pwd -Insecure `
+    -Handler { param($EventName, $Password) Write-Host "$EventName -- new password received" }
+```
+
 ## Getting Started With A2A
 
 Once you have configured your A2A registration in Safeguard, you can get
@@ -255,7 +312,7 @@ This will report the certificate thumbprint you need to use as well as the
 API key required to request a specific account password.
 
 The best practice is to install your user certificate in the Windows
-User Certificate Store (user the Personal folder).  Then, you can reference
+User Certificate Store (use the Personal folder).  Then, you can reference
 the certificate securely in safeguard-ps just using the thumbprint.
 
 You can see the thumbprints of certificates currently installed in your Windows
@@ -778,6 +835,7 @@ Aliases are shown in parentheses where available.
 - `New-SafeguardEventSubscription`
 - `Edit-SafeguardEventSubscription`
 - `Remove-SafeguardEventSubscription`
+- `Wait-SafeguardEvent`
 
 ### A2A
 
@@ -823,6 +881,11 @@ Aliases are shown in parentheses where available.
 
 **Access Request Broker (calling A2A):**
 - `New-SafeguardA2aAccessRequest`
+
+**Event Listeners (calling A2A):**
+- `Wait-SafeguardA2aEvent`
+- `Invoke-SafeguardA2aPasswordHandler`
+- `Invoke-SafeguardA2aSshKeyHandler`
 
 ### One Identity Starling
 

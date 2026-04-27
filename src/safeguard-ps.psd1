@@ -69,6 +69,7 @@ NestedModules = @(
     'sslhandling.psm1',
     'ps-utilities.psm1',
     'sg-utilities.psm1',
+    'signalr-utilities.psm1',
     'datatypes.psm1',
     'licensing.psm1',
     'certificates.psm1',
@@ -247,6 +248,7 @@ FunctionsToExport = @(
     'Get-SafeguardEvent','Get-SafeguardEventCategory','Get-SafeguardEventName','Get-SafeguardEventProperty','Find-SafeguardEvent',
     'Get-SafeguardEventSubscription', 'Find-SafeguardEventSubscription',
     'New-SafeguardEventSubscription', 'Remove-SafeguardEventSubscription', 'Edit-SafeguardEventSubscription',
+    'Wait-SafeguardEvent',
     # clustering.psm1
     'Get-SafeguardClusterMember','Get-SafeguardClusterHealth','Get-SafeguardClusterOperationStatus',
     'Add-SafeguardClusterMember','Remove-SafeguardClusterMember','Get-SafeguardClusterPrimary','Set-SafeguardClusterPrimary',
@@ -269,6 +271,7 @@ FunctionsToExport = @(
     # a2acallers.psm1
     'Get-SafeguardA2aRetrievableAccount','Get-SafeguardA2aPassword','Get-SafeguardA2aPrivateKey','Get-SafeguardA2aApiKeySecret',
     'New-SafeguardA2aAccessRequest','Set-SafeguardA2aPassword','Set-SafeguardA2aPrivateKey',
+    'Wait-SafeguardA2aEvent','Invoke-SafeguardA2aPasswordHandler','Invoke-SafeguardA2aSshKeyHandler',
     # starling.psm1
     'Get-SafeguardStarlingSubscription','New-SafeguardStarlingSubscription','Remove-SafeguardStarlingSubscription',
     'Get-SafeguardStarlingJoinUrl','Invoke-SafeguardStarlingJoin','Invoke-SafeguardStarlingJoinBrowser',

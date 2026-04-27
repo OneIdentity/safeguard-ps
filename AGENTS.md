@@ -16,11 +16,12 @@ safeguard-ps/
 |   |-- sslhandling.psm1         # SSL/TLS helper (not exported)
 |   |-- ps-utilities.psm1        # Shared PowerShell utilities (not exported)
 |   |-- sg-utilities.psm1        # Shared Safeguard utilities (not exported)
+|   |-- signalr-utilities.psm1   # SignalR SSE helpers for event listeners (not exported)
 |   `-- <feature>.psm1           # Feature modules (assets, users, a2a, policies, customplatforms, etc.)
 |-- test/                         # Integration test framework and suites (requires PS 7)
 |   |-- Invoke-SafeguardPsTests.ps1       # Test runner
 |   |-- SafeguardPsTestFramework.psm1     # Framework module
-|   `-- Suites/Suite-*.ps1                # 32 test suite files (~355 tests)
+|   `-- Suites/Suite-*.ps1                # 34 test suite files (~360 tests)
 |-- samples/                      # Example scripts
 |-- docker/                       # Dockerfiles (Ubuntu, Alpine, Mariner, Windows)
 |-- pipeline-templates/           # Azure Pipelines CI/CD templates
@@ -149,7 +150,7 @@ The test runner requires **PowerShell 7** (`pwsh`). It automatically:
 - Runs pre-cleanup to remove stale objects from prior failed runs
 - Reports pass/fail/skip with structured output
 
-A healthy baseline is **344 passed, 0 failed, 8 skipped** (SPS tests skip when no SPS
+A healthy baseline is **350 passed, 0 failed, 8 skipped** (SPS tests skip when no SPS
 appliance is provided).
 
 ### Fixing test failures
@@ -183,7 +184,8 @@ Map feature modules to suites:
 | `groups.psm1` | UserGroups, AssetGroups, AccountGroups |
 | `tags.psm1` | Tags |
 | `directories.psm1` | (no dedicated suite -- test manually) |
-| `events.psm1` | Events |
+| `events.psm1` | Events, EventListener |
+| `a2acallers.psm1` | A2ARegistrations, A2ACredentials, A2AEventListener |
 | `certificates.psm1` | Certificates |
 | `reports.psm1` | Reports |
 | `deleted.psm1` | DeletedObjects |
@@ -242,6 +244,34 @@ Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
 `$SafeguardSession` and `$SafeguardSpsSession` hold connection/token state. Most cmdlets
 read these implicitly. Do not refactor global state handling in small edits -- it is a
 deliberate architectural choice.
+
+### SignalR event listeners
+
+The module supports real-time event streaming via SignalR Server-Sent Events (SSE). Two
+separate SignalR endpoints exist on the appliance:
+
+- **User mode**: `/service/event/signalr/` -- authenticated with Bearer token.
+  Cmdlet: `Wait-SafeguardEvent` (in `events.psm1`).
+- **A2A mode**: `/service/a2a/signalr/` -- authenticated with client certificate + API key.
+  Cmdlets: `Wait-SafeguardA2aEvent`, `Invoke-SafeguardA2aPasswordHandler`,
+  `Invoke-SafeguardA2aSshKeyHandler` (in `a2acallers.psm1`).
+
+Shared SignalR helpers (`Get-SignalRConnectionToken`, `Send-SignalRHandshake`) live in
+`signalr-utilities.psm1` and accept a `$ServicePath` parameter (`"event"` or `"a2a"`) to
+target the correct endpoint.
+
+**SSE protocol flow**: negotiate (POST) -> open SSE GET stream -> send handshake POST ->
+read handshake response -> read event frames. A fresh negotiate is required on every
+reconnect because connectionTokens are ephemeral.
+
+**PS 5.1 vs PS 7 SSL note**: `ServicePointManager.ServerCertificateValidationCallback` does
+not apply to `HttpWebRequest` on .NET Core (PS 7). The SSE stream code uses per-request
+`ServerCertificateValidationCallback` on PS 7 when `-Insecure` is specified.
+
+**Handler cmdlets** (`Invoke-SafeguardA2aPasswordHandler`, `Invoke-SafeguardA2aSshKeyHandler`)
+fetch the initial credential, call the handler, then listen for change events. On each
+event they fetch the updated credential and call the handler again. The handler receives
+the event name and the credential value (password string or private key string).
 
 ### API versioning
 
