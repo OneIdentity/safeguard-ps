@@ -1213,7 +1213,7 @@ The cmdlet blocks until interrupted with Ctrl+C. Events can be processed by a
 script block (-Handler), an external script (-HandlerScript), or emitted to the
 output pipeline as PSCustomObjects when no handler is specified.
 
-Supports both user mode (Bearer token) and A2A mode (certificate + API key).
+For A2A event listening, use Wait-SafeguardA2aEvent instead.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -1223,19 +1223,6 @@ A string containing the bearer token to be used with Safeguard Web API.
 
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate.
-
-.PARAMETER ApiKey
-A string containing the A2A API key for authorization.
-
-.PARAMETER CertificateFile
-Path to a PFX certificate file for A2A authentication.
-
-.PARAMETER Password
-A SecureString containing the password for the PFX certificate file.
-
-.PARAMETER Thumbprint
-A string containing the thumbprint of a certificate in the user certificate store
-for A2A authentication.
 
 .PARAMETER Event
 An array of event names to filter for. If omitted, all events are delivered.
@@ -1269,38 +1256,17 @@ Listen for specific events only.
 Wait-SafeguardEvent -Insecure -Handler { param($EventName, $EventBody) Write-Host "Got $EventName" }
 
 Process events with an inline script block.
-
-.EXAMPLE
-Wait-SafeguardEvent -Appliance 10.5.32.54 -ApiKey $key -CertificateFile C:\cert.pfx -Password $pwd -Insecure
-
-Listen for A2A events using certificate file authentication.
-
-.EXAMPLE
-Wait-SafeguardEvent -Appliance 10.5.32.54 -ApiKey $key -Thumbprint $tp -Insecure
-
-Listen for A2A events using certificate thumbprint.
 #>
 function Wait-SafeguardEvent
 {
-    [CmdletBinding(DefaultParameterSetName="UserMode")]
+    [CmdletBinding()]
     Param(
-        [Parameter(Mandatory=$false,ParameterSetName="UserMode")]
-        [Parameter(Mandatory=$true,ParameterSetName="A2AWithFile")]
-        [Parameter(Mandatory=$true,ParameterSetName="A2AWithThumbprint")]
+        [Parameter(Mandatory=$false)]
         [string]$Appliance,
-        [Parameter(Mandatory=$false,ParameterSetName="UserMode")]
+        [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true,ParameterSetName="A2AWithFile")]
-        [Parameter(Mandatory=$true,ParameterSetName="A2AWithThumbprint")]
-        [string]$ApiKey,
-        [Parameter(Mandatory=$true,ParameterSetName="A2AWithFile")]
-        [string]$CertificateFile,
-        [Parameter(Mandatory=$false,ParameterSetName="A2AWithFile")]
-        [SecureString]$Password,
-        [Parameter(Mandatory=$true,ParameterSetName="A2AWithThumbprint")]
-        [string]$Thumbprint,
         [Parameter(Mandatory=$false)]
         [string[]]$Event,
         [Parameter(Mandatory=$false)]
@@ -1322,56 +1288,28 @@ function Wait-SafeguardEvent
     }
 
     Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
-    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
     Import-Module -Name "$PSScriptRoot\signalr-utilities.psm1" -Scope Local
 
-    # Determine if this is A2A mode
-    $local:IsA2a = ($PSCmdlet.ParameterSetName -eq "A2AWithFile" -or `
-                    $PSCmdlet.ParameterSetName -eq "A2AWithThumbprint")
-
-    # Resolve session state for user mode
-    if (-not $local:IsA2a)
+    # Resolve session state
+    if (-not $Appliance -and $SafeguardSession)
     {
-        if (-not $Appliance -and $SafeguardSession)
-        {
-            $Appliance = $SafeguardSession["Appliance"]
-        }
-        if (-not $AccessToken -and $SafeguardSession)
-        {
-            $AccessToken = $SafeguardSession["AccessToken"]
-        }
-        if (-not $PSBoundParameters.ContainsKey("Insecure") -and $SafeguardSession)
-        {
-            $Insecure = $SafeguardSession["Insecure"]
-        }
-        if (-not $Appliance)
-        {
-            $Appliance = (Read-Host "Appliance")
-        }
-        if (-not $AccessToken)
-        {
-            throw "AccessToken required. Use Connect-Safeguard first or pass -AccessToken."
-        }
+        $Appliance = $SafeguardSession["Appliance"]
     }
-
-    # Resolve certificate for A2A mode
-    $local:Cert = $null
-    if ($PSCmdlet.ParameterSetName -eq "A2AWithFile")
+    if (-not $AccessToken -and $SafeguardSession)
     {
-        $local:Cert = (Use-CertificateFile $CertificateFile $Password)
+        $AccessToken = $SafeguardSession["AccessToken"]
     }
-    elseif ($PSCmdlet.ParameterSetName -eq "A2AWithThumbprint")
+    if (-not $PSBoundParameters.ContainsKey("Insecure") -and $SafeguardSession)
     {
-        $local:Store = New-Object System.Security.Cryptography.X509Certificates.X509Store("My", "CurrentUser")
-        $local:Store.Open("ReadOnly")
-        $local:Certs = $local:Store.Certificates.Find(
-            [System.Security.Cryptography.X509Certificates.X509FindType]::FindByThumbprint, $Thumbprint, $false)
-        $local:Store.Close()
-        if ($local:Certs.Count -eq 0)
-        {
-            throw "Certificate with thumbprint '$Thumbprint' not found in CurrentUser\My store"
-        }
-        $local:Cert = $local:Certs[0]
+        $Insecure = $SafeguardSession["Insecure"]
+    }
+    if (-not $Appliance)
+    {
+        $Appliance = (Read-Host "Appliance")
+    }
+    if (-not $AccessToken)
+    {
+        throw "AccessToken required. Use Connect-Safeguard first or pass -AccessToken."
     }
 
     # Build event filter lookup for fast matching
@@ -1412,19 +1350,8 @@ function Wait-SafeguardEvent
                 if ($local:WebResponse) { try { $local:WebResponse.Close() } catch {} $local:WebResponse = $null }
 
                 # Step 1: Negotiate -- get a fresh connectionToken
-                $local:NegotiateArgs = @{ Appliance = $Appliance }
-                if ($local:IsA2a)
-                {
-                    $local:NegotiateArgs["ApiKey"] = $ApiKey
-                    if ($local:Cert) { $local:NegotiateArgs["Certificate"] = $local:Cert }
-                    elseif ($Thumbprint) { $local:NegotiateArgs["Thumbprint"] = $Thumbprint }
-                }
-                else
-                {
-                    $local:NegotiateArgs["AccessToken"] = $AccessToken
-                }
-
-                $local:ConnectionToken = Get-SignalRConnectionToken @local:NegotiateArgs
+                $local:ConnectionToken = Get-SignalRConnectionToken -Appliance $Appliance `
+                    -AccessToken $AccessToken
 
                 # Step 2: Open SSE GET stream
                 $local:EncodedToken = [System.Uri]::EscapeDataString($local:ConnectionToken)
@@ -1437,19 +1364,7 @@ function Wait-SafeguardEvent
                 $local:Request.KeepAlive = $true
                 $local:Request.Timeout = [System.Threading.Timeout]::Infinite
                 $local:Request.ReadWriteTimeout = [System.Threading.Timeout]::Infinite
-
-                if ($local:IsA2a)
-                {
-                    $local:Request.Headers.Add("Authorization", "A2A $ApiKey")
-                    if ($local:Cert)
-                    {
-                        $local:Request.ClientCertificates.Add($local:Cert) | Out-Null
-                    }
-                }
-                else
-                {
-                    $local:Request.Headers.Add("Authorization", "Bearer $AccessToken")
-                }
+                $local:Request.Headers.Add("Authorization", "Bearer $AccessToken")
 
                 # On PS 7 (.NET Core), ServicePointManager callback does not apply to
                 # HttpWebRequest. Use the per-request callback for SSL bypass.
@@ -1465,22 +1380,8 @@ function Wait-SafeguardEvent
                 $local:Reader = New-Object System.IO.StreamReader($local:Stream)
 
                 # Step 3: Send handshake via POST (after SSE stream is open)
-                $local:HandshakeArgs = @{
-                    Appliance = $Appliance
-                    ConnectionToken = $local:ConnectionToken
-                }
-                if ($local:IsA2a)
-                {
-                    $local:HandshakeArgs["ApiKey"] = $ApiKey
-                    if ($local:Cert) { $local:HandshakeArgs["Certificate"] = $local:Cert }
-                    elseif ($Thumbprint) { $local:HandshakeArgs["Thumbprint"] = $Thumbprint }
-                }
-                else
-                {
-                    $local:HandshakeArgs["AccessToken"] = $AccessToken
-                }
-
-                Send-SignalRHandshake @local:HandshakeArgs
+                Send-SignalRHandshake -Appliance $Appliance `
+                    -ConnectionToken $local:ConnectionToken -AccessToken $AccessToken
 
                 # Step 4: Read and verify handshake response from SSE stream
                 $local:HandshakeData = ""
@@ -1677,9 +1578,8 @@ function Wait-SafeguardEvent
             Start-Sleep -Seconds $local:BackoffSeconds
             $local:BackoffSeconds = [Math]::Min($local:BackoffSeconds * 2, 60)
 
-            # Try to refresh token for session-based user mode connections
-            if (-not $local:IsA2a -and $SafeguardSession -and `
-                -not $PSBoundParameters.ContainsKey("AccessToken"))
+            # Try to refresh token for session-based connections
+            if ($SafeguardSession -and -not $PSBoundParameters.ContainsKey("AccessToken"))
             {
                 try
                 {

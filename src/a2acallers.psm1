@@ -973,3 +973,782 @@ function New-SafeguardA2aAccessRequest
             -CertificateFile $CertificateFile -Password $Password -Service a2a -Method POST -RelativeUrl AccessRequests -Body $local:Body
     }
 }
+
+<#
+.SYNOPSIS
+Listen for real-time Safeguard A2A events over SignalR using Server-Sent Events.
+
+.DESCRIPTION
+Wait-SafeguardA2aEvent opens a persistent SignalR connection to the Safeguard A2A
+event service (/service/a2a/signalr/) and streams live event notifications using
+certificate-based A2A authentication.
+
+The cmdlet blocks until interrupted with Ctrl+C. Events can be processed by a
+script block (-Handler), an external script (-HandlerScript), or emitted to the
+output pipeline as PSCustomObjects when no handler is specified.
+
+For user-mode event listening with Bearer token authentication, use
+Wait-SafeguardEvent instead.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER CertificateFile
+A string containing the path to a PFX certificate file for A2A authentication.
+
+.PARAMETER Password
+A secure string containing the password for decrypting the certificate file.
+
+.PARAMETER Thumbprint
+A string containing the thumbprint of a certificate in the user certificate store
+for A2A authentication.
+
+.PARAMETER ApiKey
+A string containing the A2A API key for authorization.
+
+.PARAMETER Event
+An array of event names to filter for. If omitted, all events are delivered.
+
+.PARAMETER Handler
+A script block to invoke for each event. Receives two arguments: $EventName (string)
+and $EventBody (PSObject).
+
+.PARAMETER HandlerScript
+Path to a .ps1 script to invoke for each event. The script receives two arguments:
+$EventName (string) and $EventBody (PSObject).
+
+.INPUTS
+None.
+
+.OUTPUTS
+When no Handler or HandlerScript is specified, outputs PSCustomObjects with
+EventName and EventBody properties.
+
+.EXAMPLE
+Wait-SafeguardA2aEvent 10.5.32.54 $apiKey -Thumbprint $tp -Insecure
+
+Listen for all A2A events using certificate store authentication.
+
+.EXAMPLE
+Wait-SafeguardA2aEvent 10.5.32.54 $apiKey -CertificateFile C:\cert.pfx -Password $pwd -Insecure -Event "AssetAccountPasswordUpdated"
+
+Listen for specific A2A events using certificate file authentication.
+
+.EXAMPLE
+Wait-SafeguardA2aEvent 10.5.32.54 $apiKey -Thumbprint $tp -Insecure -Handler { param($n,$b) Write-Host "Got $n" }
+
+Process A2A events with an inline script block.
+#>
+function Wait-SafeguardA2aEvent
+{
+    [CmdletBinding(DefaultParameterSetName="CertStore")]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(ParameterSetName="File",Mandatory=$true)]
+        [string]$CertificateFile,
+        [Parameter(ParameterSetName="File",Mandatory=$false)]
+        [SecureString]$Password,
+        [Parameter(ParameterSetName="CertStore",Mandatory=$true)]
+        [string]$Thumbprint,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$ApiKey,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Event,
+        [Parameter(Mandatory=$false)]
+        [ScriptBlock]$Handler,
+        [Parameter(Mandatory=$false)]
+        [string]$HandlerScript
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($Handler -and $HandlerScript)
+    {
+        throw "You may specify -Handler or -HandlerScript but not both"
+    }
+    if ($HandlerScript -and -not (Test-Path $HandlerScript))
+    {
+        throw "Handler script not found: $HandlerScript"
+    }
+
+    Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
+    Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+    Import-Module -Name "$PSScriptRoot\signalr-utilities.psm1" -Scope Local
+
+    # Resolve certificate
+    $local:Cert = $null
+    if ($PSCmdlet.ParameterSetName -eq "File")
+    {
+        $local:Cert = (Use-CertificateFile $CertificateFile $Password)
+    }
+    elseif ($PSCmdlet.ParameterSetName -eq "CertStore")
+    {
+        $local:Store = New-Object System.Security.Cryptography.X509Certificates.X509Store("My", "CurrentUser")
+        $local:Store.Open("ReadOnly")
+        $local:Certs = $local:Store.Certificates.Find(
+            [System.Security.Cryptography.X509Certificates.X509FindType]::FindByThumbprint, $Thumbprint, $false)
+        $local:Store.Close()
+        if ($local:Certs.Count -eq 0)
+        {
+            throw "Certificate with thumbprint '$Thumbprint' not found in CurrentUser\My store"
+        }
+        $local:Cert = $local:Certs[0]
+    }
+
+    # Build event filter lookup for fast matching
+    $local:EventFilter = $null
+    if ($Event)
+    {
+        $local:EventFilter = @{}
+        foreach ($local:E in $Event)
+        {
+            $local:EventFilter[$local:E] = $true
+        }
+    }
+
+    Edit-SslVersionSupport
+    if ($Insecure)
+    {
+        Disable-SslVerification
+        if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+    }
+
+    $local:Reader = $null
+    $local:Stream = $null
+    $local:WebResponse = $null
+    $local:BackoffSeconds = 1
+    $local:RecordSep = [char]0x1E
+
+    Write-Host "Listening for Safeguard A2A events on $Appliance... (Press Ctrl+C to stop)"
+
+    try
+    {
+        while ($true)
+        {
+            try
+            {
+                # Clean up previous connection if reconnecting
+                if ($local:Reader) { try { $local:Reader.Dispose() } catch {} $local:Reader = $null }
+                if ($local:Stream) { try { $local:Stream.Dispose() } catch {} $local:Stream = $null }
+                if ($local:WebResponse) { try { $local:WebResponse.Close() } catch {} $local:WebResponse = $null }
+
+                # Step 1: Negotiate -- get a fresh connectionToken
+                $local:NegotiateArgs = @{
+                    Appliance = $Appliance
+                    ServicePath = "a2a"
+                    ApiKey = $ApiKey
+                }
+                if ($local:Cert) { $local:NegotiateArgs["Certificate"] = $local:Cert }
+                elseif ($Thumbprint) { $local:NegotiateArgs["Thumbprint"] = $Thumbprint }
+
+                $local:ConnectionToken = Get-SignalRConnectionToken @local:NegotiateArgs
+
+                # Step 2: Open SSE GET stream
+                $local:EncodedToken = [System.Uri]::EscapeDataString($local:ConnectionToken)
+                $local:SseUrl = "https://$Appliance/service/a2a/signalr?id=$local:EncodedToken"
+                Write-Verbose "Opening SSE stream: $local:SseUrl"
+
+                $local:Request = [System.Net.HttpWebRequest]::Create($local:SseUrl)
+                $local:Request.Method = "GET"
+                $local:Request.Accept = "text/event-stream"
+                $local:Request.KeepAlive = $true
+                $local:Request.Timeout = [System.Threading.Timeout]::Infinite
+                $local:Request.ReadWriteTimeout = [System.Threading.Timeout]::Infinite
+                $local:Request.Headers.Add("Authorization", "A2A $ApiKey")
+                if ($local:Cert)
+                {
+                    $local:Request.ClientCertificates.Add($local:Cert) | Out-Null
+                }
+
+                # On PS 7 (.NET Core), ServicePointManager callback does not apply to
+                # HttpWebRequest. Use the per-request callback for SSL bypass.
+                if ($Insecure -and $PSVersionTable.PSEdition -eq "Core")
+                {
+                    $local:Request.ServerCertificateValidationCallback = {
+                        param($CbSender, $CbCert, $CbChain, $CbPolicy) $true
+                    }
+                }
+
+                $local:WebResponse = $local:Request.GetResponse()
+                $local:Stream = $local:WebResponse.GetResponseStream()
+                $local:Reader = New-Object System.IO.StreamReader($local:Stream)
+
+                # Step 3: Send handshake via POST (after SSE stream is open)
+                $local:HandshakeArgs = @{
+                    Appliance = $Appliance
+                    ConnectionToken = $local:ConnectionToken
+                    ServicePath = "a2a"
+                    ApiKey = $ApiKey
+                }
+                if ($local:Cert) { $local:HandshakeArgs["Certificate"] = $local:Cert }
+                elseif ($Thumbprint) { $local:HandshakeArgs["Thumbprint"] = $Thumbprint }
+
+                Send-SignalRHandshake @local:HandshakeArgs
+
+                # Step 4: Read and verify handshake response from SSE stream
+                $local:HandshakeData = ""
+                $local:HandshakeComplete = $false
+                while (-not $local:HandshakeComplete)
+                {
+                    $local:Line = $local:Reader.ReadLine()
+                    if ($null -eq $local:Line)
+                    {
+                        throw "SSE stream closed before handshake completed"
+                    }
+                    if ($local:Line.StartsWith(":"))
+                    {
+                        continue
+                    }
+                    elseif ($local:Line.StartsWith("data:"))
+                    {
+                        $local:Value = $local:Line.Substring(5)
+                        if ($local:Value.StartsWith(" "))
+                        {
+                            $local:Value = $local:Value.Substring(1)
+                        }
+                        if ($local:HandshakeData.Length -gt 0)
+                        {
+                            $local:HandshakeData += "`n"
+                        }
+                        $local:HandshakeData += $local:Value
+                    }
+                    elseif ($local:Line -eq "" -and $local:HandshakeData.Length -gt 0)
+                    {
+                        $local:HandshakeComplete = $true
+                    }
+                }
+
+                # Parse handshake frames
+                $local:HsFrames = $local:HandshakeData.Split($local:RecordSep)
+                foreach ($local:HsFrame in $local:HsFrames)
+                {
+                    $local:HsFrame = $local:HsFrame.Trim()
+                    if ($local:HsFrame.Length -eq 0) { continue }
+                    $local:HsParsed = ConvertFrom-Json $local:HsFrame
+                    if ($local:HsParsed.error)
+                    {
+                        throw "SignalR handshake error: $($local:HsParsed.error)"
+                    }
+                }
+
+                Write-Verbose "SignalR handshake complete"
+                $local:BackoffSeconds = 1
+
+                # Step 5: Event reading loop
+                $local:DataBuffer = ""
+                $local:CloseReceived = $false
+
+                while (-not $local:CloseReceived)
+                {
+                    $local:Line = $local:Reader.ReadLine()
+                    if ($null -eq $local:Line)
+                    {
+                        Write-Verbose "SSE stream ended (server closed connection)"
+                        break
+                    }
+
+                    if ($local:Line.StartsWith(":"))
+                    {
+                        # SSE comment or heartbeat
+                        continue
+                    }
+                    elseif ($local:Line.StartsWith("data:"))
+                    {
+                        $local:Value = $local:Line.Substring(5)
+                        if ($local:Value.StartsWith(" "))
+                        {
+                            $local:Value = $local:Value.Substring(1)
+                        }
+                        if ($local:DataBuffer.Length -gt 0)
+                        {
+                            $local:DataBuffer += "`n"
+                        }
+                        $local:DataBuffer += $local:Value
+                    }
+                    elseif ($local:Line -eq "" -and $local:DataBuffer.Length -gt 0)
+                    {
+                        # SSE event boundary -- process accumulated data
+                        $local:Frames = $local:DataBuffer.Split($local:RecordSep)
+                        $local:DataBuffer = ""
+
+                        foreach ($local:Frame in $local:Frames)
+                        {
+                            $local:Frame = $local:Frame.Trim()
+                            if ($local:Frame.Length -eq 0) { continue }
+
+                            try
+                            {
+                                $local:Msg = ConvertFrom-Json $local:Frame
+                            }
+                            catch
+                            {
+                                Write-Verbose "Failed to parse SignalR frame: $local:Frame"
+                                continue
+                            }
+
+                            # SignalR message types: 1=Invocation, 6=Ping, 7=Close
+                            if ($local:Msg.type -eq 6)
+                            {
+                                Write-Verbose "Received SignalR ping"
+                                continue
+                            }
+                            elseif ($local:Msg.type -eq 7)
+                            {
+                                Write-Verbose "Received SignalR close frame"
+                                $local:CloseReceived = $true
+                                break
+                            }
+                            elseif ($local:Msg.type -eq 1 -and $local:Msg.target -eq "NotifyEventAsync")
+                            {
+                                $local:EventData = $local:Msg.arguments[0]
+                                $local:EvName = $local:EventData.Name
+                                $local:EvBody = $local:EventData
+
+                                # Apply event name filter
+                                if ($local:EventFilter -and -not $local:EventFilter.ContainsKey($local:EvName))
+                                {
+                                    Write-Verbose "Skipping filtered event: $local:EvName"
+                                    continue
+                                }
+
+                                Write-Verbose "A2A event received: $local:EvName"
+
+                                if ($Handler)
+                                {
+                                    try
+                                    {
+                                        & $Handler $local:EvName $local:EvBody
+                                    }
+                                    catch
+                                    {
+                                        Write-Warning "Event handler error for '$($local:EvName)': $_"
+                                    }
+                                }
+                                elseif ($HandlerScript)
+                                {
+                                    try
+                                    {
+                                        & $HandlerScript $local:EvName $local:EvBody
+                                    }
+                                    catch
+                                    {
+                                        Write-Warning "Handler script error for '$($local:EvName)': $_"
+                                    }
+                                }
+                                else
+                                {
+                                    New-Object PSObject -Property @{
+                                        EventName = $local:EvName
+                                        EventBody = $local:EvBody
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                # Determine if this is a fatal (4xx) or transient error
+                $local:IsFatal = $false
+                if ($_.Exception -is [System.Net.WebException])
+                {
+                    $local:WebEx = $_.Exception
+                    if ($local:WebEx.Response)
+                    {
+                        $local:StatusCode = [int]$local:WebEx.Response.StatusCode
+                        if ($local:StatusCode -ge 400 -and $local:StatusCode -lt 500)
+                        {
+                            $local:IsFatal = $true
+                        }
+                    }
+                }
+                if ($local:IsFatal)
+                {
+                    throw
+                }
+
+                Write-Warning "Connection error: $($_.Exception.Message)"
+            }
+
+            # Clean up before reconnect
+            if ($local:Reader) { try { $local:Reader.Dispose() } catch {} $local:Reader = $null }
+            if ($local:Stream) { try { $local:Stream.Dispose() } catch {} $local:Stream = $null }
+            if ($local:WebResponse) { try { $local:WebResponse.Close() } catch {} $local:WebResponse = $null }
+
+            Write-Verbose "Reconnecting in $local:BackoffSeconds seconds..."
+            Start-Sleep -Seconds $local:BackoffSeconds
+            $local:BackoffSeconds = [Math]::Min($local:BackoffSeconds * 2, 60)
+        }
+    }
+    finally
+    {
+        if ($local:Reader) { try { $local:Reader.Dispose() } catch {} }
+        if ($local:Stream) { try { $local:Stream.Dispose() } catch {} }
+        if ($local:WebResponse) { try { $local:WebResponse.Close() } catch {} }
+        if ($Insecure)
+        {
+            Enable-SslVerification
+            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+        }
+        Write-Verbose "A2A event listener stopped."
+    }
+}
+
+<#
+.SYNOPSIS
+Listen for A2A password change events and call a handler with the new password.
+
+.DESCRIPTION
+Invoke-SafeguardA2aPasswordHandler retrieves the current password for an A2A credential
+via the API, passes it to the handler, then opens a persistent SignalR connection to listen
+for AssetAccountPasswordUpdated events. Each time the password changes, the new password
+is fetched and the handler is called again.
+
+This is the PowerShell equivalent of handle-a2a-password-event.sh from safeguard-bash.
+
+The handler receives the event name (string) and the password (string) as its two arguments.
+On initial invocation before any events, the event name is "InitialPassword".
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER CertificateFile
+A string containing the path to a PFX certificate file for A2A authentication.
+
+.PARAMETER Password
+A secure string containing the password for decrypting the certificate file.
+
+.PARAMETER Thumbprint
+A string containing the thumbprint of a certificate in the user certificate store
+for A2A authentication.
+
+.PARAMETER ApiKey
+A string containing the A2A API key that identifies the account being monitored.
+
+.PARAMETER Handler
+A script block to invoke with each password. Receives two arguments: $EventName (string)
+and $Password (string).
+
+.PARAMETER HandlerScript
+Path to a .ps1 script to invoke with each password. Receives two arguments: $EventName
+(string) and $Password (string).
+
+.PARAMETER Version
+Version of the Web API you are using (default: 4).
+
+.INPUTS
+None.
+
+.OUTPUTS
+None.
+
+.EXAMPLE
+Invoke-SafeguardA2aPasswordHandler 10.5.32.54 $apiKey -Thumbprint $tp -Insecure -Handler { param($ev,$pw) Write-Host "Password: $pw" }
+
+Listen for password changes and handle with a script block.
+
+.EXAMPLE
+Invoke-SafeguardA2aPasswordHandler 10.5.32.54 $apiKey -CertificateFile C:\cert.pfx -Password $pwd -Insecure -HandlerScript C:\scripts\rotate.ps1
+
+Listen for password changes and invoke an external script.
+#>
+function Invoke-SafeguardA2aPasswordHandler
+{
+    [CmdletBinding(DefaultParameterSetName="CertStore")]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(ParameterSetName="File",Mandatory=$true)]
+        [string]$CertificateFile,
+        [Parameter(ParameterSetName="File",Mandatory=$false)]
+        [SecureString]$Password,
+        [Parameter(ParameterSetName="CertStore",Mandatory=$true)]
+        [string]$Thumbprint,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$ApiKey,
+        [Parameter(Mandatory=$false)]
+        [ScriptBlock]$Handler,
+        [Parameter(Mandatory=$false)]
+        [string]$HandlerScript,
+        [Parameter(Mandatory=$false)]
+        [int]$Version = 4
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not $Handler -and -not $HandlerScript)
+    {
+        throw "You must specify -Handler or -HandlerScript"
+    }
+    if ($Handler -and $HandlerScript)
+    {
+        throw "You may specify -Handler or -HandlerScript but not both"
+    }
+    if ($HandlerScript -and -not (Test-Path $HandlerScript))
+    {
+        throw "Handler script not found: $HandlerScript"
+    }
+
+    # Build common credential args for Get-SafeguardA2aPassword calls
+    $local:CredArgs = @{
+        Appliance = $Appliance
+        ApiKey = $ApiKey
+        Version = $Version
+    }
+    if ($Insecure) { $local:CredArgs["Insecure"] = $true }
+    if ($PSCmdlet.ParameterSetName -eq "File")
+    {
+        $local:CredArgs["CertificateFile"] = $CertificateFile
+        if ($Password) { $local:CredArgs["Password"] = $Password }
+    }
+    else
+    {
+        $local:CredArgs["Thumbprint"] = $Thumbprint
+    }
+
+    # Step 1: Fetch and deliver initial password
+    Write-Verbose "Fetching initial password via A2A..."
+    $local:InitialPassword = Get-SafeguardA2aPassword @local:CredArgs
+
+    Write-Verbose "Calling handler with initial password"
+    $local:HandlerTarget = $Handler
+    if (-not $local:HandlerTarget) { $local:HandlerTarget = $HandlerScript }
+    try
+    {
+        & $local:HandlerTarget "InitialPassword" $local:InitialPassword
+    }
+    catch
+    {
+        Write-Warning "Handler error for initial password: $_"
+    }
+
+    # Step 2: Listen for password change events and fetch new password on each change
+    Write-Host "Listening for A2A password changes on $Appliance... (Press Ctrl+C to stop)"
+
+    $local:ListenerArgs = @{
+        Appliance = $Appliance
+        ApiKey = $ApiKey
+        Event = @("AssetAccountPasswordUpdated")
+    }
+    if ($Insecure) { $local:ListenerArgs["Insecure"] = $true }
+    if ($PSCmdlet.ParameterSetName -eq "File")
+    {
+        $local:ListenerArgs["CertificateFile"] = $CertificateFile
+        if ($Password) { $local:ListenerArgs["Password"] = $Password }
+    }
+    else
+    {
+        $local:ListenerArgs["Thumbprint"] = $Thumbprint
+    }
+
+    # Use a handler that fetches the new password and forwards to the user's handler
+    $local:ListenerArgs["Handler"] = {
+        param($EvName, $EvBody)
+        Write-Verbose "Password change event received, fetching new password..."
+        try
+        {
+            $local:NewPassword = Get-SafeguardA2aPassword @local:CredArgs
+            & $local:HandlerTarget $EvName $local:NewPassword
+        }
+        catch
+        {
+            Write-Warning "Error handling password change event: $_"
+        }
+    }.GetNewClosure()
+
+    Wait-SafeguardA2aEvent @local:ListenerArgs
+}
+
+<#
+.SYNOPSIS
+Listen for A2A SSH key change events and call a handler with the new private key.
+
+.DESCRIPTION
+Invoke-SafeguardA2aSshKeyHandler retrieves the current SSH private key for an A2A
+credential via the API, passes it to the handler, then opens a persistent SignalR
+connection to listen for AssetAccountSshKeyUpdated events. Each time the SSH key
+changes, the new private key is fetched and the handler is called again.
+
+The handler receives the event name (string) and the private key (string) as its
+two arguments. On initial invocation before any events, the event name is
+"InitialSshKey".
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER CertificateFile
+A string containing the path to a PFX certificate file for A2A authentication.
+
+.PARAMETER Password
+A secure string containing the password for decrypting the certificate file.
+
+.PARAMETER Thumbprint
+A string containing the thumbprint of a certificate in the user certificate store
+for A2A authentication.
+
+.PARAMETER ApiKey
+A string containing the A2A API key that identifies the account being monitored.
+
+.PARAMETER KeyFormat
+A string containing which format to use for the private key. The options are:
+  - OpenSsh: OpenSSH legacy PEM format (default)
+  - Ssh2: Tectia format for use with tools from SSH.com
+  - Putty: Putty format for use with PuTTY tools
+
+.PARAMETER Handler
+A script block to invoke with each SSH key. Receives two arguments: $EventName
+(string) and $PrivateKey (string).
+
+.PARAMETER HandlerScript
+Path to a .ps1 script to invoke with each SSH key. Receives two arguments:
+$EventName (string) and $PrivateKey (string).
+
+.PARAMETER Version
+Version of the Web API you are using (default: 4).
+
+.INPUTS
+None.
+
+.OUTPUTS
+None.
+
+.EXAMPLE
+Invoke-SafeguardA2aSshKeyHandler 10.5.32.54 $apiKey -Thumbprint $tp -Insecure -Handler { param($ev,$key) Set-Content -Path ~/.ssh/id_rsa -Value $key }
+
+Listen for SSH key changes and update a local key file.
+
+.EXAMPLE
+Invoke-SafeguardA2aSshKeyHandler 10.5.32.54 $apiKey -CertificateFile C:\cert.pfx -Password $pwd -Insecure -KeyFormat Putty -HandlerScript C:\scripts\deploy-key.ps1
+
+Listen for SSH key changes in Putty format and invoke an external script.
+#>
+function Invoke-SafeguardA2aSshKeyHandler
+{
+    [CmdletBinding(DefaultParameterSetName="CertStore")]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(ParameterSetName="File",Mandatory=$true)]
+        [string]$CertificateFile,
+        [Parameter(ParameterSetName="File",Mandatory=$false)]
+        [SecureString]$Password,
+        [Parameter(ParameterSetName="CertStore",Mandatory=$true)]
+        [string]$Thumbprint,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$ApiKey,
+        [Parameter(Mandatory=$false)]
+        [ValidateSet("OpenSsh","Ssh2","Putty",IgnoreCase=$true)]
+        [string]$KeyFormat = $null,
+        [Parameter(Mandatory=$false)]
+        [ScriptBlock]$Handler,
+        [Parameter(Mandatory=$false)]
+        [string]$HandlerScript,
+        [Parameter(Mandatory=$false)]
+        [int]$Version = 4
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not $Handler -and -not $HandlerScript)
+    {
+        throw "You must specify -Handler or -HandlerScript"
+    }
+    if ($Handler -and $HandlerScript)
+    {
+        throw "You may specify -Handler or -HandlerScript but not both"
+    }
+    if ($HandlerScript -and -not (Test-Path $HandlerScript))
+    {
+        throw "Handler script not found: $HandlerScript"
+    }
+
+    # Build common credential args for Get-SafeguardA2aPrivateKey calls
+    $local:CredArgs = @{
+        Appliance = $Appliance
+        ApiKey = $ApiKey
+        Version = $Version
+    }
+    if ($Insecure) { $local:CredArgs["Insecure"] = $true }
+    if ($KeyFormat) { $local:CredArgs["KeyFormat"] = $KeyFormat }
+    if ($PSCmdlet.ParameterSetName -eq "File")
+    {
+        $local:CredArgs["CertificateFile"] = $CertificateFile
+        if ($Password) { $local:CredArgs["Password"] = $Password }
+    }
+    else
+    {
+        $local:CredArgs["Thumbprint"] = $Thumbprint
+    }
+
+    # Step 1: Fetch and deliver initial SSH key
+    Write-Verbose "Fetching initial SSH private key via A2A..."
+    $local:InitialKey = Get-SafeguardA2aPrivateKey @local:CredArgs
+
+    Write-Verbose "Calling handler with initial SSH key"
+    $local:HandlerTarget = $Handler
+    if (-not $local:HandlerTarget) { $local:HandlerTarget = $HandlerScript }
+    try
+    {
+        & $local:HandlerTarget "InitialSshKey" $local:InitialKey
+    }
+    catch
+    {
+        Write-Warning "Handler error for initial SSH key: $_"
+    }
+
+    # Step 2: Listen for SSH key change events and fetch new key on each change
+    Write-Host "Listening for A2A SSH key changes on $Appliance... (Press Ctrl+C to stop)"
+
+    $local:ListenerArgs = @{
+        Appliance = $Appliance
+        ApiKey = $ApiKey
+        Event = @("AssetAccountSshKeyUpdated")
+    }
+    if ($Insecure) { $local:ListenerArgs["Insecure"] = $true }
+    if ($PSCmdlet.ParameterSetName -eq "File")
+    {
+        $local:ListenerArgs["CertificateFile"] = $CertificateFile
+        if ($Password) { $local:ListenerArgs["Password"] = $Password }
+    }
+    else
+    {
+        $local:ListenerArgs["Thumbprint"] = $Thumbprint
+    }
+
+    # Use a handler that fetches the new SSH key and forwards to the user's handler
+    $local:ListenerArgs["Handler"] = {
+        param($EvName, $EvBody)
+        Write-Verbose "SSH key change event received, fetching new key..."
+        try
+        {
+            $local:NewKey = Get-SafeguardA2aPrivateKey @local:CredArgs
+            & $local:HandlerTarget $EvName $local:NewKey
+        }
+        catch
+        {
+            Write-Warning "Error handling SSH key change event: $_"
+        }
+    }.GetNewClosure()
+
+    Wait-SafeguardA2aEvent @local:ListenerArgs
+}

@@ -9,6 +9,8 @@ function Get-SignalRConnectionToken
         [Parameter(Mandatory=$true)]
         [string]$Appliance,
         [Parameter(Mandatory=$false)]
+        [string]$ServicePath = "event",
+        [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [string]$ApiKey,
@@ -21,7 +23,7 @@ function Get-SignalRConnectionToken
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:Url = "https://$Appliance/service/event/signalr/negotiate?negotiateVersion=1"
+    $local:Url = "https://$Appliance/service/$ServicePath/signalr/negotiate?negotiateVersion=1"
     $local:Headers = @{
         "Accept" = "application/json";
         "Content-type" = "application/json"
@@ -100,6 +102,8 @@ function Send-SignalRHandshake
         [Parameter(Mandatory=$true)]
         [string]$ConnectionToken,
         [Parameter(Mandatory=$false)]
+        [string]$ServicePath = "event",
+        [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [string]$ApiKey,
@@ -113,7 +117,7 @@ function Send-SignalRHandshake
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:EncodedToken = [System.Uri]::EscapeDataString($ConnectionToken)
-    $local:Url = "https://$Appliance/service/event/signalr?id=$local:EncodedToken"
+    $local:Url = "https://$Appliance/service/$ServicePath/signalr?id=$local:EncodedToken"
     $local:HandshakePayload = '{"protocol":"json","version":1}' + [char]0x1E
     $local:BodyBytes = [System.Text.Encoding]::UTF8.GetBytes($local:HandshakePayload)
 
