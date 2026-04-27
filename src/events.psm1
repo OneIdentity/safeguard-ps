@@ -1545,6 +1545,19 @@ function Wait-SafeguardEvent
                         }
                     }
                 }
+                # PS 7+: HttpClient throws HttpRequestException, not WebException
+                elseif ($_.Exception.GetType().FullName -eq "System.Net.Http.HttpRequestException")
+                {
+                    $local:HrStatusCode = $_.Exception.StatusCode
+                    if ($null -ne $local:HrStatusCode)
+                    {
+                        $local:StatusInt = [int]$local:HrStatusCode
+                        if ($local:StatusInt -ge 400 -and $local:StatusInt -lt 500)
+                        {
+                            $local:IsFatal = $true
+                        }
+                    }
+                }
                 if ($local:IsFatal)
                 {
                     throw

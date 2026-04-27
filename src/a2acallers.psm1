@@ -1356,6 +1356,19 @@ function Wait-SafeguardA2aEvent
                         }
                     }
                 }
+                # PS 7+: HttpClient throws HttpRequestException, not WebException
+                elseif ($_.Exception.GetType().FullName -eq "System.Net.Http.HttpRequestException")
+                {
+                    $local:HrStatusCode = $_.Exception.StatusCode
+                    if ($null -ne $local:HrStatusCode)
+                    {
+                        $local:StatusInt = [int]$local:HrStatusCode
+                        if ($local:StatusInt -ge 400 -and $local:StatusInt -lt 500)
+                        {
+                            $local:IsFatal = $true
+                        }
+                    }
+                }
                 if ($local:IsFatal)
                 {
                     throw
@@ -1540,13 +1553,16 @@ function Invoke-SafeguardA2aPasswordHandler
     }
 
     # Use a handler that fetches the new password and forwards to the user's handler
+    # NOTE: Do not use $local: for captured variables inside .GetNewClosure() --
+    # the closure stores them in a dynamic module scope, and $local: only searches
+    # the scriptblock's own (empty) local scope.
     $local:ListenerArgs["Handler"] = {
         param($EvName, $EvBody)
         Write-Verbose "Password change event received, fetching new password..."
         try
         {
-            $local:NewPassword = Get-SafeguardA2aPassword @local:CredArgs
-            & $local:HandlerTarget $EvName $local:NewPassword
+            $NewPassword = Get-SafeguardA2aPassword @CredArgs
+            & $HandlerTarget $EvName $NewPassword
         }
         catch
         {
@@ -1720,13 +1736,16 @@ function Invoke-SafeguardA2aSshKeyHandler
     }
 
     # Use a handler that fetches the new SSH key and forwards to the user's handler
+    # NOTE: Do not use $local: for captured variables inside .GetNewClosure() --
+    # the closure stores them in a dynamic module scope, and $local: only searches
+    # the scriptblock's own (empty) local scope.
     $local:ListenerArgs["Handler"] = {
         param($EvName, $EvBody)
         Write-Verbose "SSH key change event received, fetching new key..."
         try
         {
-            $local:NewKey = Get-SafeguardA2aPrivateKey @local:CredArgs
-            & $local:HandlerTarget $EvName $local:NewKey
+            $NewKey = Get-SafeguardA2aPrivateKey @CredArgs
+            & $HandlerTarget $EvName $NewKey
         }
         catch
         {
