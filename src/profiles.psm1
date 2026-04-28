@@ -696,7 +696,7 @@ function New-SafeguardAccountPasswordRule
     if ($AllowedLastCharType) { $local:Body.AllowedLastCharacterType = $AllowedLastCharType }
 
     if ($MaxConsecutiveAlpha) { $local:Body.MaxConsecutiveAlphabeticCharacters = $MaxConsecutiveAlpha }
-    if ($MaxConsecutiveAlphanumeric) { $local:Body.MaxConsecutiveAlphaNumericCharacters = $MaxConsecutiveAlpha }
+    if ($MaxConsecutiveAlphanumeric) { $local:Body.MaxConsecutiveAlphaNumericCharacters = $MaxConsecutiveAlphanumeric }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
         POST "AssetPartitions/$($local:AssetPartitionId)/PasswordRules" -Body $local:Body
@@ -902,7 +902,7 @@ function Edit-SafeguardAccountPasswordRule
     if ($PSBoundParameters.ContainsKey("AllowLowercase")) { $local:RuleObj.AllowLowercaseCharacters = $AllowLowercase }
     if ($PSBoundParameters.ContainsKey("MinLowercase")) { $local:RuleObj.MinLowercaseCharacters = $MinLowercase }
     if ($PSBoundParameters.ContainsKey("AllowNumeric")) { $local:RuleObj.AllowNumericCharacters = $AllowNumeric }
-    if ($PSBoundParameters.ContainsKey("MinNumeric")) { $local:RuleObj.MaxConsecutiveUppercaseCharacters = $MinNumeric }
+    if ($PSBoundParameters.ContainsKey("MinNumeric")) { $local:RuleObj.MinNumericCharacters = $MinNumeric }
     if ($PSBoundParameters.ContainsKey("AllowSymbols")) { $local:RuleObj.AllowNonAlphaNumericCharacters = $AllowSymbols }
     if ($PSBoundParameters.ContainsKey("MinSymbols")) { $local:RuleObj.MinNonAlphaNumericCharacters = $MinSymbols }
     if ($PSBoundParameters.ContainsKey("RepeatedCharRestriction")) { $local:RuleObj.RepeatedCharacterRestriction = $RepeatedCharRestriction }
@@ -933,7 +933,7 @@ function Edit-SafeguardAccountPasswordRule
     if ($PSBoundParameters.ContainsKey("AllowedLastCharType")) { $local:RuleObj.AllowedLastCharacterType = $AllowedLastCharType }
 
     if ($PSBoundParameters.ContainsKey("MaxConsecutiveAlpha")) { $local:RuleObj.MaxConsecutiveAlphabeticCharacters = $MaxConsecutiveAlpha }
-    if ($PSBoundParameters.ContainsKey("MaxConsecutiveAlphanumeric")) { $local:RuleObj.MaxConsecutiveAlphaNumericCharacters = $MaxConsecutiveAlpha }
+    if ($PSBoundParameters.ContainsKey("MaxConsecutiveAlphanumeric")) { $local:RuleObj.MaxConsecutiveAlphaNumericCharacters = $MaxConsecutiveAlphanumeric }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
         PUT "AssetPartitions/$($local:RuleObj.AssetPartitionId)/PasswordRules/$($local:RuleObj.Id)" -Body $local:RuleObj

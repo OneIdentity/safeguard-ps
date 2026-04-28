@@ -539,3 +539,442 @@ function Set-SafeguardLoginMessage
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "LoginMessage" -Body $local:Body
     }
 }
+
+
+<#
+.SYNOPSIS
+Get the user password rule from Safeguard via the Web API.
+
+.DESCRIPTION
+Get the password rule that governs Safeguard user passwords. This is the
+appliance-wide password policy for local Safeguard user accounts (not managed
+asset account passwords, which are controlled by account password rules under
+asset partitions).
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardUserPasswordRule
+
+.EXAMPLE
+Get-SafeguardUserPasswordRule -Appliance 10.5.32.54 -Insecure
+#>
+function Get-SafeguardUserPasswordRule
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "UserPasswordRule"
+}
+
+
+<#
+.SYNOPSIS
+Set the user password rule in Safeguard via the Web API.
+
+.DESCRIPTION
+Update the password rule that governs Safeguard user passwords. You can pass
+individual attributes to modify specific settings, or pass a full rule object
+retrieved from Get-SafeguardUserPasswordRule. When using individual attributes,
+the current rule is fetched, your changes are merged, and the result is saved.
+To clear nullable properties (such as MaxConsecutive* fields), use the
+-RuleObject parameter with the desired values set to null.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Name
+A string containing the name of the password rule (max 255 characters).
+
+.PARAMETER Description
+A string containing the description of the password rule.
+
+.PARAMETER MinCharacters
+An integer for the minimum password length (min 3, max 255).
+
+.PARAMETER MaxCharacters
+An integer for the maximum password length (min 3, max 255).
+
+.PARAMETER AllowUppercase
+A boolean for whether to allow uppercase characters.
+
+.PARAMETER MinUppercase
+An integer for the minimum number of uppercase characters.
+
+.PARAMETER MaxConsecutiveUppercase
+An integer for the maximum number of consecutive uppercase characters.
+
+.PARAMETER InvalidUppercaseChars
+A string array of uppercase characters that may not be used.
+
+.PARAMETER AllowLowercase
+A boolean for whether to allow lowercase characters.
+
+.PARAMETER MinLowercase
+An integer for the minimum number of lowercase characters.
+
+.PARAMETER MaxConsecutiveLowercase
+An integer for the maximum number of consecutive lowercase characters.
+
+.PARAMETER InvalidLowercaseChars
+A string containing invalid lowercase characters. Each character is split
+into individual array elements.
+
+.PARAMETER AllowNumeric
+A boolean for whether to allow numeric characters.
+
+.PARAMETER MinNumeric
+An integer for the minimum number of numeric characters.
+
+.PARAMETER MaxConsecutiveNumeric
+An integer for the maximum number of consecutive numeric characters.
+
+.PARAMETER InvalidNumericChars
+A string containing invalid numeric characters. Each character is split
+into individual array elements.
+
+.PARAMETER AllowSymbols
+A boolean for whether to allow non-alphanumeric (symbol) characters.
+
+.PARAMETER MinSymbols
+An integer for the minimum number of symbol characters.
+
+.PARAMETER MaxConsecutiveSymbols
+An integer for the maximum number of consecutive symbol characters.
+
+.PARAMETER InvalidSymbolChars
+A string containing symbol characters to exclude. Mutually exclusive with
+AllowedSymbolChars.
+
+.PARAMETER AllowedSymbolChars
+A string containing the only symbol characters to allow. Mutually exclusive
+with InvalidSymbolChars.
+
+.PARAMETER AllowedFirstCharType
+The type of character allowed as the first character (All, AlphaNumeric,
+or Alphabetic).
+
+.PARAMETER AllowedLastCharType
+The type of character allowed as the last character (All, AlphaNumeric,
+or Alphabetic).
+
+.PARAMETER MaxConsecutiveAlpha
+An integer for the maximum number of consecutive alphabetic characters.
+
+.PARAMETER MaxConsecutiveAlphanumeric
+An integer for the maximum number of consecutive alphanumeric characters.
+
+.PARAMETER RepeatedCharRestriction
+The repeated character restriction (NotSpecified,
+NoConsecutiveRepeatedCharacters, NoRepeatedCharacters,
+AllowRepeatedCharacters).
+
+.PARAMETER RuleObject
+An object containing the full user password rule. Use
+Get-SafeguardUserPasswordRule to retrieve the current object, modify it,
+and pass it to this parameter.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Set-SafeguardUserPasswordRule -MinCharacters 14 -MaxCharacters 64
+
+.EXAMPLE
+$rule = Get-SafeguardUserPasswordRule
+$rule.MinCharacters = 16
+Set-SafeguardUserPasswordRule -RuleObject $rule
+#>
+function Set-SafeguardUserPasswordRule
+{
+    [CmdletBinding(DefaultParameterSetName="Attributes")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$Name,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$Description,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [int]$MinCharacters,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [int]$MaxCharacters,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [bool]$AllowUppercase,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [int]$MinUppercase,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [int]$MaxConsecutiveUppercase,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string[]]$InvalidUppercaseChars,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [bool]$AllowLowercase,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [int]$MinLowercase,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [int]$MaxConsecutiveLowercase,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$InvalidLowercaseChars,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [bool]$AllowNumeric,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [int]$MinNumeric,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [int]$MaxConsecutiveNumeric,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$InvalidNumericChars,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [bool]$AllowSymbols,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [int]$MinSymbols,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [int]$MaxConsecutiveSymbols,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$InvalidSymbolChars,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$AllowedSymbolChars,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [ValidateSet("All", "AlphaNumeric", "Alphabetic", IgnoreCase=$true)]
+        [string]$AllowedFirstCharType,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [ValidateSet("All", "AlphaNumeric", "Alphabetic", IgnoreCase=$true)]
+        [string]$AllowedLastCharType,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [int]$MaxConsecutiveAlpha,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [int]$MaxConsecutiveAlphanumeric,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [ValidateSet("NotSpecified", "NoConsecutiveRepeatedCharacters", "NoRepeatedCharacters", "AllowRepeatedCharacters", IgnoreCase=$true)]
+        [string]$RepeatedCharRestriction,
+        [Parameter(ParameterSetName="Object",Mandatory=$true,Position=0)]
+        [object]$RuleObject
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($PsCmdlet.ParameterSetName -eq "Object")
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "UserPasswordRule" -Body $RuleObject
+    }
+    else
+    {
+        if ($PSBoundParameters.ContainsKey("InvalidSymbolChars") -and $PSBoundParameters.ContainsKey("AllowedSymbolChars"))
+        {
+            throw "InvalidSymbolChars and AllowedSymbolChars are mutually exclusive."
+        }
+
+        $local:RuleObj = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "UserPasswordRule")
+
+        if ($PSBoundParameters.ContainsKey("Name")) { $local:RuleObj.Name = $Name }
+        if ($PSBoundParameters.ContainsKey("Description")) { $local:RuleObj.Description = $Description }
+        if ($PSBoundParameters.ContainsKey("MinCharacters")) { $local:RuleObj.MinCharacters = $MinCharacters }
+        if ($PSBoundParameters.ContainsKey("MaxCharacters")) { $local:RuleObj.MaxCharacters = $MaxCharacters }
+        if ($PSBoundParameters.ContainsKey("AllowUppercase")) { $local:RuleObj.AllowUppercaseCharacters = $AllowUppercase }
+        if ($PSBoundParameters.ContainsKey("MinUppercase")) { $local:RuleObj.MinUppercaseCharacters = $MinUppercase }
+        if ($PSBoundParameters.ContainsKey("MaxConsecutiveUppercase")) { $local:RuleObj.MaxConsecutiveUppercaseCharacters = $MaxConsecutiveUppercase }
+        if ($PSBoundParameters.ContainsKey("InvalidUppercaseChars")) { $local:RuleObj.InvalidUppercaseCharacters = $InvalidUppercaseChars }
+        if ($PSBoundParameters.ContainsKey("AllowLowercase")) { $local:RuleObj.AllowLowercaseCharacters = $AllowLowercase }
+        if ($PSBoundParameters.ContainsKey("MinLowercase")) { $local:RuleObj.MinLowercaseCharacters = $MinLowercase }
+        if ($PSBoundParameters.ContainsKey("MaxConsecutiveLowercase")) { $local:RuleObj.MaxConsecutiveLowercaseCharacters = $MaxConsecutiveLowercase }
+        if ($PSBoundParameters.ContainsKey("InvalidLowercaseChars")) { $local:RuleObj.InvalidLowercaseCharacters = [string[]]($InvalidLowercaseChars -split "(?<=.)(?=.)") }
+        if ($PSBoundParameters.ContainsKey("AllowNumeric")) { $local:RuleObj.AllowNumericCharacters = $AllowNumeric }
+        if ($PSBoundParameters.ContainsKey("MinNumeric")) { $local:RuleObj.MinNumericCharacters = $MinNumeric }
+        if ($PSBoundParameters.ContainsKey("MaxConsecutiveNumeric")) { $local:RuleObj.MaxConsecutiveNumericCharacters = $MaxConsecutiveNumeric }
+        if ($PSBoundParameters.ContainsKey("InvalidNumericChars")) { $local:RuleObj.InvalidNumericCharacters = [string[]]($InvalidNumericChars -split "(?<=.)(?=.)") }
+        if ($PSBoundParameters.ContainsKey("AllowSymbols")) { $local:RuleObj.AllowNonAlphaNumericCharacters = $AllowSymbols }
+        if ($PSBoundParameters.ContainsKey("MinSymbols")) { $local:RuleObj.MinNonAlphaNumericCharacters = $MinSymbols }
+        if ($PSBoundParameters.ContainsKey("MaxConsecutiveSymbols")) { $local:RuleObj.MaxConsecutiveNonAlphaNumericCharacters = $MaxConsecutiveSymbols }
+        if ($PSBoundParameters.ContainsKey("InvalidSymbolChars"))
+        {
+            $local:RuleObj.InvalidNonAlphaNumericCharacters = [string[]]($InvalidSymbolChars -split "(?<=.)(?=.)")
+            $local:RuleObj.NonAlphaNumericRestrictionType = "Exclude"
+        }
+        if ($PSBoundParameters.ContainsKey("AllowedSymbolChars"))
+        {
+            $local:RuleObj.AllowedNonAlphaNumericCharacters = [string[]]($AllowedSymbolChars -split "(?<=.)(?=.)")
+            $local:RuleObj.NonAlphaNumericRestrictionType = "Include"
+        }
+        if ($PSBoundParameters.ContainsKey("AllowedFirstCharType")) { $local:RuleObj.AllowedFirstCharacterType = $AllowedFirstCharType }
+        if ($PSBoundParameters.ContainsKey("AllowedLastCharType")) { $local:RuleObj.AllowedLastCharacterType = $AllowedLastCharType }
+        if ($PSBoundParameters.ContainsKey("MaxConsecutiveAlpha")) { $local:RuleObj.MaxConsecutiveAlphabeticCharacters = $MaxConsecutiveAlpha }
+        if ($PSBoundParameters.ContainsKey("MaxConsecutiveAlphanumeric")) { $local:RuleObj.MaxConsecutiveAlphaNumericCharacters = $MaxConsecutiveAlphanumeric }
+        if ($PSBoundParameters.ContainsKey("RepeatedCharRestriction")) { $local:RuleObj.RepeatedCharacterRestriction = $RepeatedCharRestriction }
+
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "UserPasswordRule" -Body $local:RuleObj
+    }
+}
+
+
+<#
+.SYNOPSIS
+Generate a random password using the Safeguard user password rule via the
+Web API.
+
+.DESCRIPTION
+Generate a random password that complies with the current user password rule
+configured on the Safeguard appliance. Optionally pass a custom rule object
+to generate a password using different constraints without modifying the
+saved rule.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER RuleObject
+An optional UserPasswordRule object to use for generation instead of the
+currently saved rule. Retrieve with Get-SafeguardUserPasswordRule.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A string containing the generated password.
+
+.EXAMPLE
+New-SafeguardUserPassword
+
+.EXAMPLE
+$rule = Get-SafeguardUserPasswordRule
+$rule.MinCharacters = 20
+New-SafeguardUserPassword -RuleObject $rule
+#>
+function New-SafeguardUserPassword
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$RuleObject
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if (-not $RuleObject)
+    {
+        $RuleObject = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "UserPasswordRule")
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "UserPasswordRule/GeneratePassword" -Body $RuleObject
+}
+
+
+<#
+.SYNOPSIS
+Validate a password against the Safeguard user password rule via the Web API.
+
+.DESCRIPTION
+Test whether a proposed password meets the requirements of the user password
+rule configured on the Safeguard appliance. Returns $true if the password is
+valid, or $false if it does not meet the rule requirements. Other errors
+(authentication failures, network errors) are thrown as exceptions.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Password
+A SecureString containing the password to validate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A boolean indicating whether the password is valid.
+
+.EXAMPLE
+Test-SafeguardUserPassword -Password (ConvertTo-SecureString "MyP@ssw0rd123" -AsPlainText -Force)
+
+.EXAMPLE
+Test-SafeguardUserPassword -Password (Read-Host "Password" -AsSecureString)
+#>
+function Test-SafeguardUserPassword
+{
+    [CmdletBinding()]
+    [OutputType([bool])]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [SecureString]$Password
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $Password).Password
+
+    try
+    {
+        $null = Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            POST "UserPasswordRule/ValidatePassword" -JsonBody (ConvertTo-Json $local:PasswordPlainText)
+        $true
+    }
+    catch
+    {
+        if ($_.Exception.HttpStatusCode -eq 400 -and $_.Exception.ErrorCode -eq 60247)
+        {
+            $false
+        }
+        else
+        {
+            throw
+        }
+    }
+}
