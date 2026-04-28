@@ -626,3 +626,234 @@ function Get-SafeguardAuditLogAccessRequestSession
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
                            Core GET $local:RelUrl -Parameters $local:Parameters -JsonOutput:$JsonOutput
 }
+
+<#
+.SYNOPSIS
+Get object change audit log data from Safeguard via the web API.
+
+.DESCRIPTION
+This cmdlet drills into the object change audit log, allowing you to list changes
+by object type, filter to a specific object, or retrieve the detail of a single
+change entry.
+
+At minimum, -ObjectType is required.  Provide -ObjectId to narrow to a single
+object, and -LogId to retrieve a specific change entry.
+
+The API accepts many object types including User, Asset, AssetAccount, Policy,
+Role, Directory, IdentityProvider, UserGroup, AssetGroup, AccountGroup, and more.
+Use the Swagger documentation for a complete list.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ObjectType
+The type of object to retrieve changes for (e.g., User, Asset, AssetAccount,
+Policy, Role).  Required for all modes.
+
+.PARAMETER ObjectId
+The ID of the specific object to retrieve changes for.  Requires -ObjectType.
+
+.PARAMETER LogId
+The unique ID of a specific change log entry.  Requires -ObjectType and -ObjectId.
+Use the Id field from the list output.
+
+.PARAMETER StartDate
+Get changes that occurred after this date.  Only used for list queries (not with -LogId).
+
+.PARAMETER EndDate
+Get changes that occurred before this date.  Only used for list queries (not with -LogId).
+
+.PARAMETER QueryFilter
+A string to pass to the -filter query parameter in the Safeguard Web API.
+
+.PARAMETER Fields
+An array of the property names to return.
+
+.PARAMETER JsonOutput
+A switch to return data as pretty JSON string.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON or Objects
+
+.EXAMPLE
+Get-SafeguardAuditLogObjectChange -Insecure User
+
+.EXAMPLE
+Get-SafeguardAuditLogObjectChange -Insecure User -ObjectId 123
+
+.EXAMPLE
+Get-SafeguardAuditLogObjectChange -Insecure User -ObjectId 123 -LogId "abc-def-123"
+
+.EXAMPLE
+Get-SafeguardAuditLogObjectChange -Insecure Asset -StartDate (Get-Date).AddDays(-7) -QueryFilter "EventName eq 'AssetCreated'"
+#>
+function Get-SafeguardAuditLogObjectChange
+{
+    [CmdletBinding(DefaultParameterSetName="ByType")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [ValidateNotNullOrEmpty()]
+        [string]$ObjectType,
+        [Parameter(ParameterSetName="ByObject",Mandatory=$true,Position=1)]
+        [Parameter(ParameterSetName="Detail",Mandatory=$true,Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string]$ObjectId,
+        [Parameter(ParameterSetName="Detail",Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$LogId,
+        [Parameter(ParameterSetName="ByType",Mandatory=$false)]
+        [Parameter(ParameterSetName="ByObject",Mandatory=$false)]
+        [DateTime]$StartDate,
+        [Parameter(ParameterSetName="ByType",Mandatory=$false)]
+        [Parameter(ParameterSetName="ByObject",Mandatory=$false)]
+        [DateTime]$EndDate,
+        [Parameter(ParameterSetName="ByType",Mandatory=$false)]
+        [Parameter(ParameterSetName="ByObject",Mandatory=$false)]
+        [string]$QueryFilter,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields,
+        [Parameter(Mandatory=$false)]
+        [switch]$JsonOutput
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($PSBoundParameters.ContainsKey("StartDate") -and $PSBoundParameters.ContainsKey("EndDate"))
+    {
+        if ($StartDate -gt $EndDate)
+        {
+            throw "-StartDate must not be later than -EndDate."
+        }
+    }
+
+    if ($PSCmdlet.ParameterSetName -eq "Detail")
+    {
+        $local:RelUrl = "AuditLog/ObjectChanges/$ObjectType/$ObjectId/$LogId"
+        $local:Parameters = @{}
+        if ($Fields)
+        {
+            $local:Parameters["fields"] = ($Fields -join ",")
+        }
+    }
+    else
+    {
+        $local:RelUrl = "AuditLog/ObjectChanges/$ObjectType"
+        if ($PSCmdlet.ParameterSetName -eq "ByObject")
+        {
+            $local:RelUrl += "/$ObjectId"
+        }
+        $local:Parameters = (Get-AuditLogListParameters -StartDate $StartDate -EndDate $EndDate `
+                                -QueryFilter $QueryFilter -Fields $Fields)
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                           Core GET $local:RelUrl -Parameters $local:Parameters -JsonOutput:$JsonOutput
+}
+
+<#
+.SYNOPSIS
+Get items discovered during a specific discovery job from the Safeguard audit log.
+
+.DESCRIPTION
+This cmdlet retrieves the actual accounts, assets, or services that were discovered
+during a specific discovery job run.  The discovery job is identified by its audit
+log entry ID, which can be obtained from Get-SafeguardAuditLog (e.g.,
+Get-SafeguardAuditLog DiscoveryAccounts -Id <logEntryId>).
+
+This endpoint requires AssetAdmin or Auditor roles.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER DiscoveryType
+The type of discovery results to retrieve: Accounts, Assets, or Services.
+
+.PARAMETER DiscoveryLogId
+The ID of the discovery audit log entry.  Obtain this from the Id field of
+Get-SafeguardAuditLog DiscoveryAccounts (or DiscoveryAssets, DiscoveryServices).
+
+.PARAMETER QueryFilter
+A string to pass to the -filter query parameter in the Safeguard Web API.
+
+.PARAMETER Fields
+An array of the property names to return.
+
+.PARAMETER JsonOutput
+A switch to return data as pretty JSON string.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON or Objects
+
+.EXAMPLE
+Get-SafeguardAuditLogDiscoveredItem -Insecure Accounts -DiscoveryLogId "abc-123"
+
+.EXAMPLE
+Get-SafeguardAuditLogDiscoveredItem -Insecure Assets -DiscoveryLogId "abc-123" -Fields "Name","IpAddress"
+#>
+function Get-SafeguardAuditLogDiscoveredItem
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [ValidateSet("Accounts","Assets","Services")]
+        [string]$DiscoveryType,
+        [Parameter(Mandatory=$true,Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string]$DiscoveryLogId,
+        [Parameter(Mandatory=$false)]
+        [string]$QueryFilter,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields,
+        [Parameter(Mandatory=$false)]
+        [switch]$JsonOutput
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:RelUrl = "AuditLog/Discovery/$DiscoveryType/$DiscoveryLogId/Discovered$DiscoveryType"
+
+    $local:Parameters = @{}
+    if ($QueryFilter)
+    {
+        $local:Parameters["filter"] = $QueryFilter
+    }
+    if ($Fields)
+    {
+        $local:Parameters["fields"] = ($Fields -join ",")
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                           Core GET $local:RelUrl -Parameters $local:Parameters -JsonOutput:$JsonOutput
+}
