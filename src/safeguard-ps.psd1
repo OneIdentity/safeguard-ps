@@ -102,7 +102,9 @@ NestedModules = @(
     'syslog.psm1',
     'auditlog.psm1',
     'tags.psm1',
-    'customplatforms.psm1'
+    'customplatforms.psm1',
+    'reasoncodes.psm1',
+    'runningtasks.psm1'
     )
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
@@ -292,6 +294,7 @@ FunctionsToExport = @(
     'Get-SafeguardReportAssetAccountPasswordHistory',
     # setting.psm1
     'Get-SafeguardApplianceSetting','Set-SafeguardApplianceSetting','Get-SafeguardCoreSetting','Set-SafeguardCoreSetting',
+    'Get-SafeguardDailyMessage','Set-SafeguardDailyMessage','Get-SafeguardLoginMessage','Set-SafeguardLoginMessage',
     # deleted.psm1
     'Get-SafeguardDeletedAsset','Remove-SafeguardDeletedAsset','Restore-SafeguardDeletedAsset',
     'Get-SafeguardDeletedAssetAccount','Remove-SafeguardDeletedAssetAccount','Restore-SafeguardDeletedAssetAccount',
@@ -320,7 +323,12 @@ FunctionsToExport = @(
     'Test-SafeguardCustomPlatformScript'
     'Get-SafeguardCustomPlatformScriptParameter'
     'New-SafeguardCustomPlatformAsset'
-    'Set-SafeguardCustomPlatformAssetParameter'
+    'Set-SafeguardCustomPlatformAssetParameter',
+    # reasoncodes.psm1
+    'Get-SafeguardReasonCode','Find-SafeguardReasonCode','New-SafeguardReasonCode',
+    'Edit-SafeguardReasonCode','Remove-SafeguardReasonCode',
+    # runningtasks.psm1
+    'Get-SafeguardRunningTask','Stop-SafeguardRunningTask'
 )
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
