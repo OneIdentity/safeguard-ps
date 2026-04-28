@@ -10,9 +10,12 @@ objects, JSON, or CSV.  This is a generic cmdlet that is meant for search.
 More specific audit log cmdlets may be provided in the future for the more
 efficiently retrieving data from the individual log endpoints.
 
-This cmdlet only supports querying data in discreet units of time: days,
+When querying by time range, this cmdlet supports discreet units of time: days,
 hours, or minutes.  You can query for 10 days of data or 2 hours of data, but
 you can't mix and match to query for 2 days and 5 hours of data.
+
+When looking up a specific audit log entry by ID, use the -Id parameter to
+retrieve a single record without time range filtering.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -25,6 +28,12 @@ Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER Log
 The name of the Log to search.
+
+.PARAMETER Id
+The unique identifier of a specific audit log entry to retrieve.  Supported
+for: AccessRequests, Appliance, Archives, DiscoveryAccounts, DiscoveryAssets,
+DiscoveryServices, DiscoverySshKeys, Logins, Patches.  For log types with
+hierarchical drill-down paths use Invoke-SafeguardMethod directly.
 
 .PARAMETER StartDate
 An optional start date for the query.
@@ -57,13 +66,16 @@ None.
 JSON, CSV, or Objects
 
 .EXAMPLE
-Get-SafeguardAuditLog ObjectChanges -Fields "-UserProperties,-Changes,SessionSpsNodeIpAddress" -Hours 12 -Csv
+Get-SafeguardAuditLog ObjectChanges -Fields "-UserProperties,-Changes,SessionSpsNodeIpAddress" -Hours 12 -CsvOutput
 
 .EXAMPLE
 Get-SafeguardAuditLog AllActivity -Fields "Id,LogTime,UserId,UserProperties,EventName" -Days 2
 
 .EXAMPLE
 Get-SafeguardAuditLog CredentialManagement -Fields "-UserProperties,-ConnectionProperties,-RequestStatus" -StartDate "2021-12-14" -Days 2 -JsonOutput -QueryFilter "EventName eq 'SshKeyChangeFailed'"
+
+.EXAMPLE
+Get-SafeguardAuditLog Logins -Id "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
 #>
 function Get-SafeguardAuditLog
 {
@@ -78,9 +90,14 @@ function Get-SafeguardAuditLog
         [Parameter(Mandatory=$true,Position=0)]
         [ValidateSet("AccessRequests","AccessRequestActivities","AccessRequestSessions","Appliance","Archives","CredentialManagement",
                      "DirectorySync","DiscoveryAccounts","DiscoveryAssets","DiscoveryServices","DiscoverySshKeys","Licenses",
-                     "Logins","Maintenance","ObjectChanges","Patches","AllActivity")]
+                     "Logins","Maintenance","ObjectChanges","Patches","PlatformScripts","AllActivity")]
         [string]$Log,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$true,ParameterSetName="Id",Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Id,
+        [Parameter(Mandatory=$false,ParameterSetName="Days")]
+        [Parameter(Mandatory=$false,ParameterSetName="Hours")]
+        [Parameter(Mandatory=$false,ParameterSetName="Minutes")]
         [DateTime]$StartDate,
         [Parameter(Mandatory=$false,ParameterSetName="Days")]
         [int]$Days = 1,
@@ -88,13 +105,17 @@ function Get-SafeguardAuditLog
         [int]$Hours,
         [Parameter(Mandatory=$false,ParameterSetName="Minutes")]
         [int]$Minutes,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Days")]
+        [Parameter(Mandatory=$false,ParameterSetName="Hours")]
+        [Parameter(Mandatory=$false,ParameterSetName="Minutes")]
         [string]$QueryFilter,
         [Parameter(Mandatory=$false)]
         [string[]]$Fields,
         [Parameter(Mandatory=$false)]
         [switch]$JsonOutput,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory=$false,ParameterSetName="Days")]
+        [Parameter(Mandatory=$false,ParameterSetName="Hours")]
+        [Parameter(Mandatory=$false,ParameterSetName="Minutes")]
         [switch]$CsvOutput
     )
 
@@ -112,71 +133,96 @@ function Get-SafeguardAuditLog
         "DirectorySync" { $local:RelUrl = "AuditLog/DirectorySync"; break }
         "DiscoveryAccounts" { $local:RelUrl = "AuditLog/Discovery/Accounts"; break }
         "DiscoveryAssets" { $local:RelUrl = "AuditLog/Discovery/Assets"; break }
-        "DiscoveryServices" { $local:RelUrl = "AuditLog/Services"; break }
-        "DiscoverySshKeys" { $local:RelUrl = "AuditLog/SshKeys"; break }
+        "DiscoveryServices" { $local:RelUrl = "AuditLog/Discovery/Services"; break }
+        "DiscoverySshKeys" { $local:RelUrl = "AuditLog/Discovery/SshKeys"; break }
         "Licenses" { $local:RelUrl = "AuditLog/Licenses"; break }
         "Logins" { $local:RelUrl = "AuditLog/Logins"; break }
         "Maintenance" { $local:RelUrl = "AuditLog/Maintenance"; break }
         "ObjectChanges" { $local:RelUrl = "AuditLog/ObjectChanges"; break }
         "Patches" { $local:RelUrl = "AuditLog/Patches"; break }
+        "PlatformScripts" { $local:RelUrl = "AuditLog/PlatformScripts"; break }
         "AllActivity"  { $local:RelUrl = "AuditLog/Search"; break }
     }
 
-    if ($StartDate)
+    if ($PSCmdlet.ParameterSetName -eq "Id")
     {
-        $local:UtcStartDate = $StartDate.ToUniversalTime()
-        if ($PSBoundParameters.ContainsKey("Minutes"))
+        # Detail lookup -- validate that this log type supports simple /{id} paths
+        $local:DetailTypes = @("AccessRequests","Appliance","Archives","DiscoveryAccounts","DiscoveryAssets",
+                               "DiscoveryServices","DiscoverySshKeys","Logins","Patches")
+        if ($local:DetailTypes -notcontains $Log)
         {
-            $local:UtcEndDate = ($local:UtcStartDate.AddMinutes($Minutes))
+            throw ("The $Log log type uses hierarchical drill-down paths and does not support -Id. " +
+                   "Use Invoke-SafeguardMethod for detail access, e.g. " +
+                   "Invoke-SafeguardMethod Core GET '$($local:RelUrl)/<subtype>/<id>'")
         }
-        elseif ($PSBoundParameters.ContainsKey("Hours"))
+
+        $local:Parameters = @{}
+        if ($Fields)
         {
-            $local:UtcEndDate = ($local:UtcStartDate.AddHours($Hours))
+            $local:Parameters["fields"] = ($Fields -join ",")
         }
-        else
-        {
-            $local:UtcEndDate = ($local:UtcStartDate.AddDays($Days))
-        }
+
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                               Core GET "$($local:RelUrl)/$Id" -Parameters $local:Parameters -JsonOutput:$JsonOutput
     }
     else
     {
-        if ($PSBoundParameters.ContainsKey("Minutes"))
+        if ($StartDate)
         {
-            $local:UtcStartDate = ([DateTime]::UtcNow.AddMinutes(0 - $Minutes))
-        }
-        elseif ($PSBoundParameters.ContainsKey("Hours"))
-        {
-            $local:UtcStartDate = ([DateTime]::UtcNow.AddHours(0 - $Hours))
+            $local:UtcStartDate = $StartDate.ToUniversalTime()
+            if ($PSBoundParameters.ContainsKey("Minutes"))
+            {
+                $local:UtcEndDate = ($local:UtcStartDate.AddMinutes($Minutes))
+            }
+            elseif ($PSBoundParameters.ContainsKey("Hours"))
+            {
+                $local:UtcEndDate = ($local:UtcStartDate.AddHours($Hours))
+            }
+            else
+            {
+                $local:UtcEndDate = ($local:UtcStartDate.AddDays($Days))
+            }
         }
         else
         {
-            $local:UtcStartDate = ([DateTime]::UtcNow.AddDays(0 - $Days))
+            if ($PSBoundParameters.ContainsKey("Minutes"))
+            {
+                $local:UtcStartDate = ([DateTime]::UtcNow.AddMinutes(0 - $Minutes))
+            }
+            elseif ($PSBoundParameters.ContainsKey("Hours"))
+            {
+                $local:UtcStartDate = ([DateTime]::UtcNow.AddHours(0 - $Hours))
+            }
+            else
+            {
+                $local:UtcStartDate = ([DateTime]::UtcNow.AddDays(0 - $Days))
+            }
         }
-    }
-    Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-    $local:Parameters = @{ startDate = (Format-UtcDateTimeAsString $local:UtcStartDate) }
-    if ($local:UtcEndDate)
-    {
-        $local:Parameters["endDate"] = (Format-UtcDateTimeAsString $local:UtcEndDate)
-    }
-    if ($QueryFilter)
-    {
-        $local:Parameters["filter"] = $QueryFilter
-    }
-    if ($Fields)
-    {
-        $local:Parameters["fields"] = ($Fields -join ",")
-    }
+        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+        $local:Parameters = @{ startDate = (Format-UtcDateTimeAsString $local:UtcStartDate) }
+        if ($local:UtcEndDate)
+        {
+            $local:Parameters["endDate"] = (Format-UtcDateTimeAsString $local:UtcEndDate)
+        }
+        if ($QueryFilter)
+        {
+            $local:Parameters["filter"] = $QueryFilter
+        }
+        if ($Fields)
+        {
+            $local:Parameters["fields"] = ($Fields -join ",")
+        }
 
-    if ($CsvOutput)
-    {
-        $local:Accept = "text/csv"
-    }
-    else
-    {
-        $local:Accept = "application/json"
-    }
+        if ($CsvOutput)
+        {
+            $local:Accept = "text/csv"
+        }
+        else
+        {
+            $local:Accept = "application/json"
+        }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Accept $local:Accept `
-                           Core GET $local:RelUrl -Parameters $local:Parameters -JsonOutput:$JsonOutput
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Accept $local:Accept `
+                               Core GET $local:RelUrl -Parameters $local:Parameters -JsonOutput:$JsonOutput
+    }
 }
