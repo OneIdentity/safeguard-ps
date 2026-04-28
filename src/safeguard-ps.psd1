@@ -307,6 +307,7 @@ FunctionsToExport = @(
     'Get-SafeguardSyslogServer','New-SafeguardSyslogServer','Remove-SafeguardSyslogServer','Edit-SafeguardSyslogServer',
     # auditlog.psm1
     'Get-SafeguardAuditLog',
+    'Get-SafeguardAuditLogAccessRequestActivity','Get-SafeguardAuditLogAccessRequestSession',
     # tags.psm1
     'Get-SafeguardTag', 'Get-SafeguardTagOccurrence', 'Get-SafeguardAssetTag', 'Update-SafeguardAssetTag',
     'Add-SafeguardAssetTag', 'Remove-SafeguardAssetTag',

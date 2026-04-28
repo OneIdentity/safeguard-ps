@@ -226,3 +226,403 @@ function Get-SafeguardAuditLog
                                Core GET $local:RelUrl -Parameters $local:Parameters -JsonOutput:$JsonOutput
     }
 }
+
+# Helper to build common query parameters for audit log list endpoints
+function Get-AuditLogListParameters
+{
+    [CmdletBinding()]
+    [OutputType([hashtable])]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [object]$StartDate,
+        [Parameter(Mandatory=$false)]
+        [object]$EndDate,
+        [Parameter(Mandatory=$false)]
+        [string]$QueryFilter,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
+    )
+
+    Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+    $local:Parameters = @{}
+    if ($null -ne $StartDate)
+    {
+        $local:Parameters["startDate"] = (Format-UtcDateTimeAsString ([DateTime]$StartDate).ToUniversalTime())
+    }
+    if ($null -ne $EndDate)
+    {
+        $local:Parameters["endDate"] = (Format-UtcDateTimeAsString ([DateTime]$EndDate).ToUniversalTime())
+    }
+    if ($QueryFilter)
+    {
+        $local:Parameters["filter"] = $QueryFilter
+    }
+    if ($Fields)
+    {
+        $local:Parameters["fields"] = ($Fields -join ",")
+    }
+    $local:Parameters
+}
+
+<#
+.SYNOPSIS
+Get access request activity audit log data from Safeguard via the web API.
+
+.DESCRIPTION
+This cmdlet drills into the access request activity audit log, allowing you to list
+activities, filter by request, retrieve individual log entries, or get session log
+data for a specific activity.
+
+Without parameters, returns all access request activity entries from the last 24 hours
+(API default).  Use -StartDate and -EndDate to control the time range.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER RequestId
+The unique ID of the access request to filter by.  When provided alone, returns
+all activity entries for that request.
+
+.PARAMETER LogId
+The database ID of a specific activity log entry.  Requires -RequestId.
+
+.PARAMETER SessionLog
+Switch to retrieve session log entries for a specific activity.  Requires both
+-RequestId and -LogId.
+
+.PARAMETER StartDate
+Get activity that occurred after this date.  Defaults to 1 day before EndDate.
+
+.PARAMETER EndDate
+Get activity that occurred before this date.  Defaults to now.
+
+.PARAMETER QueryFilter
+A string to pass to the -filter query parameter in the Safeguard Web API.
+
+.PARAMETER UserId
+Get activity for a specific user (top-level list only).
+
+.PARAMETER AssetId
+Get activity for a specific asset (top-level list only).
+
+.PARAMETER AccountId
+Get activity for a specific account (top-level list only).
+
+.PARAMETER Fields
+An array of the property names to return.
+
+.PARAMETER JsonOutput
+A switch to return data as pretty JSON string.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON or Objects
+
+.EXAMPLE
+Get-SafeguardAuditLogAccessRequestActivity -Insecure
+
+.EXAMPLE
+Get-SafeguardAuditLogAccessRequestActivity -Insecure -RequestId "abc-123" -LogId "def-456"
+
+.EXAMPLE
+Get-SafeguardAuditLogAccessRequestActivity -Insecure -RequestId "abc-123" -LogId "def-456" -SessionLog
+#>
+function Get-SafeguardAuditLogAccessRequestActivity
+{
+    [CmdletBinding(DefaultParameterSetName="List")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,ParameterSetName="List",Position=0)]
+        [Parameter(Mandatory=$true,ParameterSetName="Detail",Position=0)]
+        [Parameter(Mandatory=$true,ParameterSetName="SessionLog",Position=0)]
+        [string]$RequestId,
+        [Parameter(Mandatory=$true,ParameterSetName="Detail",Position=1)]
+        [Parameter(Mandatory=$true,ParameterSetName="SessionLog",Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string]$LogId,
+        [Parameter(Mandatory=$true,ParameterSetName="SessionLog")]
+        [switch]$SessionLog,
+        [Parameter(Mandatory=$false,ParameterSetName="List")]
+        [Parameter(Mandatory=$false,ParameterSetName="SessionLog")]
+        [DateTime]$StartDate,
+        [Parameter(Mandatory=$false,ParameterSetName="List")]
+        [Parameter(Mandatory=$false,ParameterSetName="SessionLog")]
+        [DateTime]$EndDate,
+        [Parameter(Mandatory=$false,ParameterSetName="List")]
+        [Parameter(Mandatory=$false,ParameterSetName="SessionLog")]
+        [string]$QueryFilter,
+        [Parameter(Mandatory=$false,ParameterSetName="List")]
+        [ValidateRange(1,[int]::MaxValue)]
+        [int]$UserId,
+        [Parameter(Mandatory=$false,ParameterSetName="List")]
+        [ValidateRange(1,[int]::MaxValue)]
+        [int]$AssetId,
+        [Parameter(Mandatory=$false,ParameterSetName="List")]
+        [ValidateRange(1,[int]::MaxValue)]
+        [int]$AccountId,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields,
+        [Parameter(Mandatory=$false)]
+        [switch]$JsonOutput
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($PSCmdlet.ParameterSetName -eq "Detail")
+    {
+        $local:RelUrl = "AuditLog/AccessRequests/Activities/$RequestId/$LogId"
+        $local:Parameters = @{}
+        if ($Fields)
+        {
+            $local:Parameters["fields"] = ($Fields -join ",")
+        }
+    }
+    elseif ($PSCmdlet.ParameterSetName -eq "SessionLog")
+    {
+        $local:RelUrl = "AuditLog/AccessRequests/Activities/$RequestId/$LogId/SessionLog"
+        $local:Parameters = (Get-AuditLogListParameters -StartDate $StartDate -EndDate $EndDate `
+                                -QueryFilter $QueryFilter -Fields $Fields)
+    }
+    else
+    {
+        # List mode -- top-level or filtered by RequestId
+        if ($RequestId)
+        {
+            # UserId/AssetId/AccountId are only valid on the top-level list endpoint
+            if ($PSBoundParameters.ContainsKey("UserId") -or $PSBoundParameters.ContainsKey("AssetId") -or `
+                $PSBoundParameters.ContainsKey("AccountId"))
+            {
+                throw "-UserId, -AssetId, and -AccountId filters are only supported on the top-level list " +
+                      "(without -RequestId). Use -QueryFilter for request-level filtering."
+            }
+            $local:RelUrl = "AuditLog/AccessRequests/Activities/$RequestId"
+        }
+        else
+        {
+            $local:RelUrl = "AuditLog/AccessRequests/Activities"
+        }
+        $local:Parameters = (Get-AuditLogListParameters -StartDate $StartDate -EndDate $EndDate `
+                                -QueryFilter $QueryFilter -Fields $Fields)
+        if ($PSBoundParameters.ContainsKey("UserId"))
+        {
+            $local:Parameters["userId"] = $UserId
+        }
+        if ($PSBoundParameters.ContainsKey("AssetId"))
+        {
+            $local:Parameters["assetId"] = $AssetId
+        }
+        if ($PSBoundParameters.ContainsKey("AccountId"))
+        {
+            $local:Parameters["accountId"] = $AccountId
+        }
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                           Core GET $local:RelUrl -Parameters $local:Parameters -JsonOutput:$JsonOutput
+}
+
+<#
+.SYNOPSIS
+Get access request session audit log data from Safeguard via the web API.
+
+.DESCRIPTION
+This cmdlet drills into the access request session audit log, allowing you to list
+session activities, filter by request and session, retrieve individual log entries,
+get session playback data, or get the SPS audit portal link for a session.
+
+Without parameters, returns all access request session entries from the last 24 hours
+(API default).  Use -StartDate and -EndDate to control the time range.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER RequestId
+The unique ID of the access request to filter by.
+
+.PARAMETER SessionId
+The unique session ID within an access request.  Requires -RequestId.
+
+.PARAMETER LogId
+The database ID of a specific session log entry.  Requires -RequestId and -SessionId.
+
+.PARAMETER Playback
+Switch to retrieve session playback data.  Requires -RequestId and -SessionId.
+
+.PARAMETER AuditPortalLink
+Switch to retrieve the SPS audit portal permalink.  Requires -RequestId and -SessionId.
+
+.PARAMETER StartDate
+Get activity that occurred after this date.  Defaults to 1 day before EndDate.
+
+.PARAMETER EndDate
+Get activity that occurred before this date.  Defaults to now.
+
+.PARAMETER QueryFilter
+A string to pass to the -filter query parameter in the Safeguard Web API.
+
+.PARAMETER UserId
+Get activity for a specific user (top-level list only).
+
+.PARAMETER AssetId
+Get activity for a specific asset (top-level list only).
+
+.PARAMETER AccountId
+Get activity for a specific account (top-level list only).
+
+.PARAMETER Fields
+An array of the property names to return.
+
+.PARAMETER JsonOutput
+A switch to return data as pretty JSON string.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON, Objects, or String (for AuditPortalLink)
+
+.EXAMPLE
+Get-SafeguardAuditLogAccessRequestSession -Insecure
+
+.EXAMPLE
+Get-SafeguardAuditLogAccessRequestSession -Insecure -RequestId "abc-123" -SessionId 1
+
+.EXAMPLE
+Get-SafeguardAuditLogAccessRequestSession -Insecure -RequestId "abc-123" -SessionId 1 -Playback
+
+.EXAMPLE
+Get-SafeguardAuditLogAccessRequestSession -Insecure -RequestId "abc-123" -SessionId 1 -AuditPortalLink
+#>
+function Get-SafeguardAuditLogAccessRequestSession
+{
+    [CmdletBinding(DefaultParameterSetName="List")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,ParameterSetName="List",Position=0)]
+        [Parameter(Mandatory=$true,ParameterSetName="Detail",Position=0)]
+        [Parameter(Mandatory=$true,ParameterSetName="Playback",Position=0)]
+        [Parameter(Mandatory=$true,ParameterSetName="AuditPortalLink",Position=0)]
+        [string]$RequestId,
+        [Parameter(Mandatory=$false,ParameterSetName="List",Position=1)]
+        [Parameter(Mandatory=$true,ParameterSetName="Detail",Position=1)]
+        [Parameter(Mandatory=$true,ParameterSetName="Playback",Position=1)]
+        [Parameter(Mandatory=$true,ParameterSetName="AuditPortalLink",Position=1)]
+        [ValidateRange(1,[int]::MaxValue)]
+        [int]$SessionId,
+        [Parameter(Mandatory=$true,ParameterSetName="Detail",Position=2)]
+        [ValidateNotNullOrEmpty()]
+        [string]$LogId,
+        [Parameter(Mandatory=$true,ParameterSetName="Playback")]
+        [switch]$Playback,
+        [Parameter(Mandatory=$true,ParameterSetName="AuditPortalLink")]
+        [switch]$AuditPortalLink,
+        [Parameter(Mandatory=$false,ParameterSetName="List")]
+        [DateTime]$StartDate,
+        [Parameter(Mandatory=$false,ParameterSetName="List")]
+        [DateTime]$EndDate,
+        [Parameter(Mandatory=$false,ParameterSetName="List")]
+        [string]$QueryFilter,
+        [Parameter(Mandatory=$false,ParameterSetName="List")]
+        [ValidateRange(1,[int]::MaxValue)]
+        [int]$UserId,
+        [Parameter(Mandatory=$false,ParameterSetName="List")]
+        [ValidateRange(1,[int]::MaxValue)]
+        [int]$AssetId,
+        [Parameter(Mandatory=$false,ParameterSetName="List")]
+        [ValidateRange(1,[int]::MaxValue)]
+        [int]$AccountId,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields,
+        [Parameter(Mandatory=$false)]
+        [switch]$JsonOutput
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($PSCmdlet.ParameterSetName -eq "Detail")
+    {
+        $local:RelUrl = "AuditLog/AccessRequests/Sessions/$RequestId/$SessionId/$LogId"
+        $local:Parameters = @{}
+        if ($Fields)
+        {
+            $local:Parameters["fields"] = ($Fields -join ",")
+        }
+    }
+    elseif ($PSCmdlet.ParameterSetName -eq "Playback")
+    {
+        $local:RelUrl = "AuditLog/AccessRequests/Sessions/$RequestId/$SessionId/Playback"
+        $local:Parameters = @{}
+    }
+    elseif ($PSCmdlet.ParameterSetName -eq "AuditPortalLink")
+    {
+        $local:RelUrl = "AuditLog/AccessRequests/Sessions/$RequestId/$SessionId/AuditPortalLink"
+        $local:Parameters = @{}
+    }
+    else
+    {
+        # List mode -- validate parameter combinations
+        if ($PSBoundParameters.ContainsKey("SessionId") -and -not $RequestId)
+        {
+            throw "-SessionId requires -RequestId. Provide a RequestId to filter sessions within a request."
+        }
+        if ($RequestId -and ($PSBoundParameters.ContainsKey("UserId") -or $PSBoundParameters.ContainsKey("AssetId") -or `
+            $PSBoundParameters.ContainsKey("AccountId")))
+        {
+            throw "-UserId, -AssetId, and -AccountId filters are only supported on the top-level list " +
+                  "(without -RequestId). Use -QueryFilter for request-level filtering."
+        }
+
+        $local:RelUrl = "AuditLog/AccessRequests/Sessions"
+        if ($RequestId)
+        {
+            $local:RelUrl += "/$RequestId"
+            if ($PSBoundParameters.ContainsKey("SessionId"))
+            {
+                $local:RelUrl += "/$SessionId"
+            }
+        }
+        $local:Parameters = (Get-AuditLogListParameters -StartDate $StartDate -EndDate $EndDate `
+                                -QueryFilter $QueryFilter -Fields $Fields)
+        if ($PSBoundParameters.ContainsKey("UserId"))
+        {
+            $local:Parameters["userId"] = $UserId
+        }
+        if ($PSBoundParameters.ContainsKey("AssetId"))
+        {
+            $local:Parameters["assetId"] = $AssetId
+        }
+        if ($PSBoundParameters.ContainsKey("AccountId"))
+        {
+            $local:Parameters["accountId"] = $AccountId
+        }
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                           Core GET $local:RelUrl -Parameters $local:Parameters -JsonOutput:$JsonOutput
+}
