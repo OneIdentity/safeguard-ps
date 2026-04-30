@@ -1373,7 +1373,7 @@ function Edit-SafeguardScheduledAuditLogReport
             $ReportObject = Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
                                                    Core GET "Me/ScheduledAuditLogReports/$ReportId"
         }
-        $local:Id = if ($PSBoundParameters.ContainsKey("ReportId")) { $ReportId } else { $ReportObject.Id }
+        if ($PSBoundParameters.ContainsKey("ReportId")) { $local:Id = $ReportId } else { $local:Id = $ReportObject.Id }
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
                                Core PUT "Me/ScheduledAuditLogReports/$($local:Id)" -Body $ReportObject
     }
