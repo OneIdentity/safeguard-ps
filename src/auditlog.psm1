@@ -986,3 +986,182 @@ function Get-SafeguardAuditLogPlatformScript
                                Core GET $local:RelUrl -Parameters $local:Parameters -JsonOutput:$JsonOutput
     }
 }
+
+<#
+.SYNOPSIS
+Get audit log maintenance configuration from Safeguard via the web API.
+
+.DESCRIPTION
+This cmdlet retrieves the current audit log maintenance configuration including
+retention periods, schedule settings, archive server configuration, and timestamps
+for the last maintenance operations.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.EXAMPLE
+Get-SafeguardAuditLogMaintenanceConfig -Insecure
+
+.EXAMPLE
+Get-SafeguardAuditLogMaintenanceConfig -Appliance 10.5.32.54 -AccessToken $token
+#>
+function Get-SafeguardAuditLogMaintenanceConfig
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                           Core GET "AuditLog/Maintenance"
+}
+
+<#
+.SYNOPSIS
+Set audit log maintenance configuration in Safeguard via the web API.
+
+.DESCRIPTION
+This cmdlet updates the audit log maintenance configuration. You can modify
+retention periods, schedule settings, and archive server configuration. Pass
+the full configuration object (from Get-SafeguardAuditLogMaintenanceConfig)
+with your modifications applied.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER MaintenanceObject
+A PSObject or hashtable containing the maintenance configuration to set.
+
+.EXAMPLE
+$config = Get-SafeguardAuditLogMaintenanceConfig -Insecure
+$config.DaysToRetainLogs = 180
+Set-SafeguardAuditLogMaintenanceConfig -Insecure $config
+
+.EXAMPLE
+Set-SafeguardAuditLogMaintenanceConfig -Insecure -MaintenanceObject @{ DaysToRetainLogs = 365; DayOfWeek = "Sunday"; StartHour = 3 }
+#>
+function Set-SafeguardAuditLogMaintenanceConfig
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$MaintenanceObject
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                           Core PUT "AuditLog/Maintenance" -Body $MaintenanceObject
+}
+
+<#
+.SYNOPSIS
+Trigger an immediate audit log maintenance run in Safeguard via the web API.
+
+.DESCRIPTION
+This cmdlet triggers an immediate audit log maintenance cycle on the appliance.
+The maintenance operation runs asynchronously. Monitor progress by polling
+Get-SafeguardAuditLogMaintenanceConfig and watching the LastScheduledMaintenance
+timestamp update.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.EXAMPLE
+Invoke-SafeguardAuditLogMaintenance -Insecure
+#>
+function Invoke-SafeguardAuditLogMaintenance
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                           Core POST "AuditLog/Maintenance/RunNow"
+}
+
+<#
+.SYNOPSIS
+Get audit log signing certificate history from Safeguard via the web API.
+
+.DESCRIPTION
+This cmdlet retrieves the history of signing certificates used for audit log
+integrity verification. Each entry includes the certificate details, installation
+date, and replacement date (if superseded).
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.EXAMPLE
+Get-SafeguardAuditLogSigningCertificateHistory -Insecure
+
+.EXAMPLE
+Get-SafeguardAuditLogSigningCertificateHistory | Select-Object Subject, InstalledDate, ReplacedDate
+#>
+function Get-SafeguardAuditLogSigningCertificateHistory
+{
+    [CmdletBinding()]
+    [OutputType([object[]])]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                           Core GET "AuditLog/Retention/SigningCertificate/History"
+}
