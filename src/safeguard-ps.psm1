@@ -1512,6 +1512,13 @@ function Connect-Safeguard
                     }
                     catch
                     {
+                        if ($_.Exception.Message -match "resource owner" -or
+                            ($_.ErrorDetails -and $_.ErrorDetails.Message -match "resource owner"))
+                        {
+                            throw "Resource Owner password grant is disabled on this appliance. " +
+                                  "Use Connect-Safeguard with -Pkce for non-interactive login, " +
+                                  "or -Browser for interactive browser-based login."
+                        }
                         Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
                         Out-SafeguardExceptionIfPossible $_
                     }
