@@ -312,6 +312,9 @@ FunctionsToExport = @(
     'Get-SafeguardAuditLogPlatformScript',
     'Get-SafeguardAuditLogMaintenanceConfig','Set-SafeguardAuditLogMaintenanceConfig',
     'Invoke-SafeguardAuditLogMaintenance','Get-SafeguardAuditLogSigningCertificateHistory',
+    'Get-SafeguardScheduledAuditLogReport','New-SafeguardScheduledAuditLogReport',
+    'Edit-SafeguardScheduledAuditLogReport','Remove-SafeguardScheduledAuditLogReport',
+    'Invoke-SafeguardScheduledAuditLogReport',
     # tags.psm1
     'Get-SafeguardTag', 'Get-SafeguardTagOccurrence', 'Get-SafeguardAssetTag', 'Update-SafeguardAssetTag',
     'Add-SafeguardAssetTag', 'Remove-SafeguardAssetTag',

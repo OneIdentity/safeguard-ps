@@ -1165,3 +1165,304 @@ function Get-SafeguardAuditLogSigningCertificateHistory
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
                            Core GET "AuditLog/Retention/SigningCertificate/History"
 }
+
+<#
+.SYNOPSIS
+Get scheduled audit log reports for the current user from Safeguard via the web API.
+
+.DESCRIPTION
+This cmdlet retrieves scheduled audit log reports belonging to the currently
+authenticated user. When called without parameters it returns all reports.
+When called with -ReportId it returns a specific report.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ReportId
+The ID of a specific scheduled audit log report to retrieve.
+
+.EXAMPLE
+Get-SafeguardScheduledAuditLogReport -Insecure
+
+.EXAMPLE
+Get-SafeguardScheduledAuditLogReport -Insecure -ReportId 42
+#>
+function Get-SafeguardScheduledAuditLogReport
+{
+    [CmdletBinding()]
+    [OutputType([object[]])]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [int]$ReportId
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($PSBoundParameters.ContainsKey("ReportId"))
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                               Core GET "Me/ScheduledAuditLogReports/$ReportId"
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                               Core GET "Me/ScheduledAuditLogReports"
+    }
+}
+
+<#
+.SYNOPSIS
+Create a new scheduled audit log report for the current user in Safeguard via the web API.
+
+.DESCRIPTION
+This cmdlet creates a new scheduled audit log report. At minimum, a Name is required.
+You can optionally specify the category, schedule, format, and filtering options.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER Name
+The name of the scheduled report (required).
+
+.PARAMETER Description
+An optional description for the report.
+
+.PARAMETER CategoryOption
+The audit log category to report on. Valid values include: AccessRequestActivity,
+AccessRequestSession, Password, ObjectChange, Appliance, Archive, Login, Patch,
+License, DirectorySync.
+
+.PARAMETER SerializationFormat
+The output format for the report: Json or Csv.
+
+.PARAMETER Body
+A hashtable or PSObject containing the full report configuration. Use this for
+advanced configuration instead of individual parameters.
+
+.EXAMPLE
+New-SafeguardScheduledAuditLogReport -Insecure -Name "Weekly Logins" -CategoryOption Login -SerializationFormat Csv
+
+.EXAMPLE
+New-SafeguardScheduledAuditLogReport -Insecure -Body @{ Name = "My Report"; CategoryOption = "Password"; ScheduleType = "Weekly" }
+#>
+function New-SafeguardScheduledAuditLogReport
+{
+    [CmdletBinding(DefaultParameterSetName="Attributes")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$true,Position=0)]
+        [string]$Name,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$Description,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [ValidateSet("AccessRequestActivity","AccessRequestSession","Password","ObjectChange",
+                     "Appliance","Archive","Login","Patch","License","DirectorySync",IgnoreCase=$true)]
+        [string]$CategoryOption,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [ValidateSet("Json","Csv",IgnoreCase=$true)]
+        [string]$SerializationFormat,
+        [Parameter(ParameterSetName="Body",Mandatory=$true)]
+        [object]$Body
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($PSCmdlet.ParameterSetName -eq "Body")
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                               Core POST "Me/ScheduledAuditLogReports" -Body $Body
+    }
+    else
+    {
+        $local:ReportBody = @{ Name = $Name }
+        if ($Description) { $local:ReportBody.Description = $Description }
+        if ($CategoryOption) { $local:ReportBody.CategoryOption = $CategoryOption }
+        if ($SerializationFormat) { $local:ReportBody.SerializationFormat = $SerializationFormat }
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                               Core POST "Me/ScheduledAuditLogReports" -Body $local:ReportBody
+    }
+}
+
+<#
+.SYNOPSIS
+Update an existing scheduled audit log report in Safeguard via the web API.
+
+.DESCRIPTION
+This cmdlet updates an existing scheduled audit log report. Pass the full report
+object (from Get-SafeguardScheduledAuditLogReport) with modifications applied.
+Supports pipeline input for the report object.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ReportId
+The ID of the scheduled report to update.
+
+.PARAMETER ReportObject
+A PSObject containing the full report configuration to set. Supports pipeline input.
+
+.EXAMPLE
+$report = Get-SafeguardScheduledAuditLogReport -Insecure -ReportId 42
+$report.Description = "Updated description"
+Edit-SafeguardScheduledAuditLogReport -Insecure -ReportId 42 -ReportObject $report
+
+.EXAMPLE
+Get-SafeguardScheduledAuditLogReport -Insecure -ReportId 42 | Edit-SafeguardScheduledAuditLogReport -Insecure
+#>
+function Edit-SafeguardScheduledAuditLogReport
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [int]$ReportId,
+        [Parameter(Mandatory=$false,ValueFromPipeline=$true)]
+        [object]$ReportObject
+    )
+
+    begin
+    {
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+    }
+
+    process
+    {
+        if (-not $ReportObject)
+        {
+            if (-not $PSBoundParameters.ContainsKey("ReportId"))
+            {
+                throw "You must specify a ReportId or pipe a report object"
+            }
+            $ReportObject = Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                                   Core GET "Me/ScheduledAuditLogReports/$ReportId"
+        }
+        $local:Id = if ($PSBoundParameters.ContainsKey("ReportId")) { $ReportId } else { $ReportObject.Id }
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                               Core PUT "Me/ScheduledAuditLogReports/$($local:Id)" -Body $ReportObject
+    }
+}
+
+<#
+.SYNOPSIS
+Remove a scheduled audit log report from Safeguard via the web API.
+
+.DESCRIPTION
+This cmdlet deletes a scheduled audit log report belonging to the current user.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ReportId
+The ID of the scheduled report to delete.
+
+.EXAMPLE
+Remove-SafeguardScheduledAuditLogReport -Insecure -ReportId 42
+#>
+function Remove-SafeguardScheduledAuditLogReport
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [int]$ReportId
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                           Core DELETE "Me/ScheduledAuditLogReports/$ReportId"
+}
+
+<#
+.SYNOPSIS
+Execute a scheduled audit log report immediately in Safeguard via the web API.
+
+.DESCRIPTION
+This cmdlet triggers immediate execution of a scheduled audit log report and
+returns the report results. The report runs synchronously and returns the data
+in the configured format (JSON or CSV).
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER ReportId
+The ID of the scheduled report to execute.
+
+.EXAMPLE
+Invoke-SafeguardScheduledAuditLogReport -Insecure -ReportId 42
+#>
+function Invoke-SafeguardScheduledAuditLogReport
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [int]$ReportId
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                           Core POST "Me/ScheduledAuditLogReports/$ReportId/Execute"
+}
