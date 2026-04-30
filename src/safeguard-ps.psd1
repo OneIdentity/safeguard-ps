@@ -335,7 +335,7 @@ FunctionsToExport = @(
     'Set-SafeguardCustomPlatformAssetParameter',
     # reasoncodes.psm1
     'Get-SafeguardReasonCode','Find-SafeguardReasonCode','New-SafeguardReasonCode',
-    'Edit-SafeguardReasonCode','Remove-SafeguardReasonCode',
+    'Edit-SafeguardReasonCode','Remove-SafeguardReasonCode','Get-SafeguardReasonCodeScope',
     # runningtasks.psm1
     'Get-SafeguardRunningTask','Stop-SafeguardRunningTask'
 )
