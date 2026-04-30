@@ -857,3 +857,132 @@ function Get-SafeguardAuditLogDiscoveredItem
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
                            Core GET $local:RelUrl -Parameters $local:Parameters -JsonOutput:$JsonOutput
 }
+<#
+.SYNOPSIS
+Get platform script change audit log data from Safeguard via the web API.
+
+.DESCRIPTION
+This cmdlet drills into the platform script audit log, allowing you to list all
+script changes, filter by platform, retrieve a specific script version, or download
+the raw script content as it existed at that point in time.
+
+The list endpoints return metadata (Id, PlatformId, PlatformDisplayName, LogTime).
+The detail endpoint (-PlatformId -LogId) returns the actual script content at that
+version.  The -Raw switch returns the script as raw bytes.
+
+This endpoint requires AssetAdmin or Auditor roles.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER PlatformId
+The ID of the platform to filter script changes for.  Required for detail and
+raw lookups.
+
+.PARAMETER LogId
+The unique ID of a specific script change log entry.  Requires -PlatformId.
+Use the Id field from the list output.
+
+.PARAMETER Raw
+Switch to retrieve the raw script content at the time of this change entry.
+Requires both -PlatformId and -LogId.
+
+.PARAMETER QueryFilter
+A string to pass to the -filter query parameter in the Safeguard Web API.
+
+.PARAMETER Fields
+An array of the property names to return.
+
+.PARAMETER JsonOutput
+A switch to return data as pretty JSON string.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON, Objects, or String (for -Raw)
+
+.EXAMPLE
+Get-SafeguardAuditLogPlatformScript -Insecure
+
+.EXAMPLE
+Get-SafeguardAuditLogPlatformScript -Insecure -PlatformId 12345
+
+.EXAMPLE
+Get-SafeguardAuditLogPlatformScript -Insecure -PlatformId 12345 -LogId "abc-123"
+
+.EXAMPLE
+Get-SafeguardAuditLogPlatformScript -Insecure -PlatformId 12345 -LogId "abc-123" -Raw
+#>
+function Get-SafeguardAuditLogPlatformScript
+{
+    [CmdletBinding(DefaultParameterSetName="List")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(ParameterSetName="ByPlatform",Mandatory=$true,Position=0)]
+        [Parameter(ParameterSetName="Detail",Mandatory=$true,Position=0)]
+        [Parameter(ParameterSetName="Raw",Mandatory=$true,Position=0)]
+        [ValidateRange(1,[int]::MaxValue)]
+        [int]$PlatformId,
+        [Parameter(ParameterSetName="Detail",Mandatory=$true,Position=1)]
+        [Parameter(ParameterSetName="Raw",Mandatory=$true,Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string]$LogId,
+        [Parameter(ParameterSetName="Raw",Mandatory=$true)]
+        [switch]$Raw,
+        [Parameter(ParameterSetName="List",Mandatory=$false)]
+        [Parameter(ParameterSetName="ByPlatform",Mandatory=$false)]
+        [string]$QueryFilter,
+        [Parameter(ParameterSetName="List",Mandatory=$false)]
+        [Parameter(ParameterSetName="ByPlatform",Mandatory=$false)]
+        [string[]]$Fields,
+        [Parameter(Mandatory=$false)]
+        [switch]$JsonOutput
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($PSCmdlet.ParameterSetName -eq "Raw")
+    {
+        $local:RelUrl = "AuditLog/PlatformScripts/$PlatformId/$LogId/Raw"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                               Core GET $local:RelUrl
+    }
+    elseif ($PSCmdlet.ParameterSetName -eq "Detail")
+    {
+        $local:RelUrl = "AuditLog/PlatformScripts/$PlatformId/$LogId"
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                               Core GET $local:RelUrl -JsonOutput:$JsonOutput
+    }
+    else
+    {
+        $local:RelUrl = "AuditLog/PlatformScripts"
+        if ($PSCmdlet.ParameterSetName -eq "ByPlatform")
+        {
+            $local:RelUrl += "/$PlatformId"
+        }
+        $local:Parameters = @{}
+        if ($QueryFilter)
+        {
+            $local:Parameters["filter"] = $QueryFilter
+        }
+        if ($Fields)
+        {
+            $local:Parameters["fields"] = ($Fields -join ",")
+        }
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                               Core GET $local:RelUrl -Parameters $local:Parameters -JsonOutput:$JsonOutput
+    }
+}
