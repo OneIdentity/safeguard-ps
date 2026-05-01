@@ -393,9 +393,45 @@ PrivateData = @{
 
         # ReleaseNotes of this module
         ReleaseNotes = @"
-safeguard-ps Release Notes:
+safeguard-ps 8.3 Release Notes:
 
-- bug fixes
+New Features:
+- Real-time Event Listeners: Wait-SafeguardEvent, Wait-SafeguardA2aEvent,
+  Invoke-SafeguardA2aPasswordHandler, Invoke-SafeguardA2aSshKeyHandler
+- Audit Log Expansion: access request drill-down, platform script change auditing,
+  object change history, discovery job results, maintenance config management,
+  signing certificate rotation history, scheduled audit log reports
+- Reason Codes: Get/Find/New/Edit/Remove-SafeguardReasonCode, Get-SafeguardReasonCodeScope
+- Running Tasks: Get-SafeguardRunningTask, Stop-SafeguardRunningTask
+- Messages and Password Rules: Get/Set-SafeguardDailyMessage, Get/Set-SafeguardLoginMessage,
+  Get/Set-SafeguardUserPasswordRule, New-SafeguardUserPassword, Test-SafeguardUserPassword
+- Custom Platform Support: New/Get/Edit/Remove-SafeguardCustomPlatform,
+  Import/Export/Test-SafeguardCustomPlatformScript, New-SafeguardCustomPlatformAsset,
+  Get-SafeguardCustomPlatformScriptParameter, Set-SafeguardCustomPlatformAssetParameter
+- Access Policy Management: New/Edit/Remove-SafeguardAccessPolicy
+- SPS X.509 Certificate Authentication for Connect-SafeguardSps
+- A2A Retrievable Account Filtering: -Filter, -Fields, -OrderBy support
+- DNS Diagnostics cmdlets for appliance troubleshooting
+- Edit-SafeguardAssetAccount for editing existing asset account properties
+- Edit-SafeguardEntitlement with -Description support on New-SafeguardEntitlement
+
+Bug Fixes:
+- Connect-Safeguard: ROG-disabled error detection suggests -Pkce or -Browser
+- Connect-Safeguard: Support -CertificatePassword for PFX files (fixes #599)
+- Connect-Safeguard: Added -Pkce flag for PKCE authentication flow
+- New-SafeguardAccessRequest: Fixed failure with duplicate policy accounts (fixes #600)
+- New-SafeguardAsset: Resolve directory via domain name (fixes #601)
+- Edit-SafeguardUserGroup: Fixed to include directory properties (fixes #565)
+- Connect-Safeguard: Resolve provider ID for browser URL (fixes #545)
+- Edit-SafeguardAccountPasswordRule: Fixed 3 copy-paste bugs
+- Get-SafeguardAuditLog: Fixed DiscoveryServices/DiscoverySshKeys URL mappings
+- Identity provider lookup: Fail with clear error on TLS errors
+- Fixed certificate loading from PFX on PowerShell 7.5.4
+
+Improvements:
+- New-SafeguardAccessRequest auto-copies request ID to clipboard
+- Docker images updated to modern base images (Ubuntu, Alpine, Mariner)
+- New sample script: Initialize-SafeguardDefaults.ps1
 "@
 
     } # End of PSData hashtable
