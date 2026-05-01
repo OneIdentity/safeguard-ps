@@ -5,7 +5,6 @@
 
     Setup = {
         param($Context)
-        $prefix = $Context.TestPrefix
 
         # Save original rule so we can restore it in cleanup
         $originalRule = Get-SafeguardUserPasswordRule -Insecure
