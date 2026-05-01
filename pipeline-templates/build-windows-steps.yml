@@ -48,6 +48,40 @@ steps:
 - task: PowerShell@2
   inputs:
     targetType: inline
+    pwsh: false
+    failOnStderr: true
+    script: |
+      $ErrorActionPreference = "Stop"
+      Write-Host "PowerShell version: $($PSVersionTable.PSVersion)"
+      Write-Host "Verifying src/ parses correctly under Windows PowerShell 5.1..."
+      $srcDir = Join-Path "$(System.DefaultWorkingDirectory)" "src"
+      $files = Get-ChildItem -Path $srcDir -Include "*.psm1","*.ps1","*.psd1" -Recurse
+      $failures = @()
+      foreach ($file in $files)
+      {
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.PSParser]::Tokenize((Get-Content $file.FullName -Raw), [ref]$errors)
+          if ($errors.Count -gt 0)
+          {
+              $failures += "$($file.Name): $($errors[0].Message) (line $($errors[0].Token.StartLine))"
+          }
+      }
+      if ($failures.Count -gt 0)
+      {
+          Write-Host "##[error]PS 5.1 parse failures detected:"
+          $failures | ForEach-Object { Write-Host "##[error]  $_" }
+          throw "$($failures.Count) file(s) failed to parse under Windows PowerShell 5.1"
+      }
+      Write-Host "All $($files.Count) src/ files parse successfully under PS 5.1"
+      Write-Host "Attempting module import under Windows PowerShell 5.1..."
+      Import-Module -Name safeguard-ps -Verbose
+      Write-Host "Module imported successfully under PS 5.1"
+  displayName: 'Verify PS 5.1 compatibility (parse and import)'
+
+- task: PowerShell@2
+  inputs:
+    targetType: inline
     failOnStderr: true
     script: |
       $env:VERSION_STRING = "$(VersionString)"
