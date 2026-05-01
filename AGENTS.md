@@ -303,21 +303,103 @@ Invoke-SafeguardMethod Core PUT "Platforms/$id/Script/Raw" -JsonBody $scriptJson
 
 For raw content uploads (scripts, certificates), also pass `-ContentType "application/octet-stream"`.
 
-### SCIM-style filtering
+### Prefer cmdlets over Invoke-SafeguardMethod
 
-Many GET endpoints support server-side filtering via a `filter` query parameter using a
-syntax inspired by SCIM (System for Cross-domain Identity Management). Pass it through
-`-Parameters`:
+When interacting with the appliance (ad-hoc testing, cleanup, investigation), **always
+prefer the high-level cmdlets** (`Get-Safeguard*`, `Find-Safeguard*`, `New-Safeguard*`,
+`Remove-Safeguard*`, `Edit-Safeguard*`, `Close-Safeguard*`) over raw
+`Invoke-SafeguardMethod` calls. The cmdlets handle parameter resolution, error formatting,
+and interactive prompts. Only fall back to `Invoke-SafeguardMethod` for endpoints that do
+not have a corresponding cmdlet.
+
+### `Get-` vs `Find-` cmdlets
+
+The module has two families of read cmdlets with different scopes:
+
+- **`Get-Safeguard<Entity>`** -- retrieves objects by ID or returns objects scoped to the
+  current user. For example, `Get-SafeguardAccessRequest` returns only the logged-in
+  user's own requests.
+- **`Find-Safeguard<Entity>`** -- performs a system-wide text search (uses the `q` query
+  parameter under the hood). For example, `Find-SafeguardAccessRequest "SgAns"` searches
+  all access requests across all users matching the text "SgAns".
+
+**Use `Find-` when you need to search across all objects regardless of ownership**, such
+as finding orphaned requests, bulk cleanup, or investigating objects created by other users.
+
+### Close-SafeguardAccessRequest (universal request cleanup)
+
+`Close-SafeguardAccessRequest` is a convenience cmdlet that transitions any access request
+to its terminal state regardless of current state. It inspects the request's `State` and
+automatically applies the correct action:
+
+| Current State | Action Taken |
+|---------------|-------------|
+| New, PendingApproval, Approved, PendingTimeRequested, RequestAvailable, PendingAccountRestored, PendingPasswordReset | Cancel |
+| PasswordCheckedOut, SshKeyCheckedOut, SessionInitialized | CheckIn |
+| RequestCheckedIn, Terminated, PendingReview, PendingAccountSuspended | Close |
+| Expired, PendingAcknowledgment | Acknowledge |
+| Closed, Complete, Reclaimed | (no-op) |
+
+This is invaluable for bulk cleanup -- for example, when accounts cannot be deleted because
+they have pending password resets:
+
+```powershell
+$reqs = Find-SafeguardAccessRequest -Insecure "SgAns"
+$reqs | Where-Object { $_.State -notin @('Closed','Complete','Reclaimed') } |
+    ForEach-Object { Close-SafeguardAccessRequest -Insecure $_.Id }
+```
+
+### Query parameters and filtering
+
+Many GET endpoints support query parameters for server-side filtering, paging, field
+selection, and ordering. Pass them through `-Parameters` on `Invoke-SafeguardMethod`:
 
 ```powershell
 Invoke-SafeguardMethod -Insecure Core GET "Platforms" `
     -Parameters @{ filter = "PlatformFamily eq 'Custom'" }
 ```
 
-This is more efficient than client-side filtering with `Where-Object` and is required when
-building cmdlets that need to return a subset of objects (e.g., only custom platforms).
-Refer to the Safeguard API documentation or Swagger for the supported filter operators
-and field names for each endpoint.
+**Full reference** (from [safeguard-api-tutorial](https://github.com/OneIdentity/safeguard-api-tutorial)):
+
+| Parameter | Example | Notes |
+|-----------|---------|-------|
+| `fields` | `GET /Users?fields=FirstName,LastName` | Return only specified fields |
+| `orderby` | `GET /AssetAccounts?orderby=-AssetName,Name` | `-` prefix = descending |
+| `count` | `GET /Users?count=true` | Return total count in response header |
+| `page` / `limit` | `GET /Users?page=0&limit=2` | Pagination (0-based page index) |
+
+**Filter operators:**
+
+| Operator | Example | Description |
+|----------|---------|-------------|
+| `eq` | `Name eq 'George'` | Equal to |
+| `ieq` | `Name ieq 'george'` | Case-insensitive equal to |
+| `ne` | `LastName ne 'Bailey'` | Not equal to |
+| `gt` | `Id gt 10` | Greater than |
+| `ge` | `Id ge 10` | Greater than or equal to |
+| `lt` | `Id lt 10` | Less than |
+| `le` | `Id le 10` | Less than or equal to |
+| `sw` | `Name sw 'Geo'` | Starts with |
+| `isw` | `Name isw 'geo'` | Case-insensitive starts with |
+| `ew` | `Name ew 'rge'` | Ends with |
+| `iew` | `Name iew 'rge'` | Case-insensitive ends with |
+| `contains` | `Description contains 'greedy'` | Contains substring |
+| `icontains` | `Description icontains 'greedy'` | Case-insensitive contains |
+| `in` | `UserName in [ 'bob', 'sally' ]` | Value in set |
+| `and` | `(Id eq 1) and (Name eq 'X')` | Logical AND |
+| `or` | `(Id eq 1) or (Name eq 'Y')` | Logical OR |
+| `not` | `(Id eq 1) and not (Name eq 'Z')` | Logical NOT |
+
+| Search | Example | Notes |
+|--------|---------|-------|
+| `q` | `GET /Users?q=bob` | Text search across all relevant string properties |
+
+**Important:** The operators are short forms (`sw`, `ew`, `contains`). Do NOT use
+`startswith`, `istartswith`, or `endswith` -- these are not valid and return error 70003.
+Use `\` to escape quotes, asterisks, and backslashes in filter string values.
+
+Server-side filtering is more efficient than client-side `Where-Object` and is required
+when building cmdlets that need to return a subset of objects.
 
 ### Built-in Admin role limitations
 
@@ -412,6 +494,20 @@ explicit credentials, but fall back to `$SafeguardSession` globals when omitted.
 Each feature module has internal `Resolve-Safeguard*` functions that accept either an
 integer ID or a name string, look up the object via the API, and return the ID. Follow this
 pattern when adding new entity types.
+
+### Remove-SafeguardAssetAccount parameter ordering
+
+`Remove-SafeguardAssetAccount` has `AssetToUse` at Position=0 (optional) and
+`AccountToDelete` at Position=1 (mandatory). When deleting by account ID alone, you must
+use the named parameter:
+
+```powershell
+# WRONG -- positional arg hits AssetToUse (Position=0), prompts for AccountToDelete
+Remove-SafeguardAssetAccount -Insecure $accountId
+
+# RIGHT -- explicitly name the parameter
+Remove-SafeguardAssetAccount -Insecure -AccountToDelete $accountId
+```
 
 ### Pipeline support
 

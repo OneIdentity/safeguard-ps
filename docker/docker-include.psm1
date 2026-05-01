@@ -18,8 +18,6 @@ function Get-SafeguardDockerFileName
         {$_ -ieq "mariner" -or $_ -ieq "mariner-2.0"} {"Dockerfile_mariner"}
         # Alpine
         {$_ -ieq "alpine" -or $_ -ieq "alpine-3.20"} {"Dockerfile_alpine"}
-        # Windows Server Core LTSC
-        "windowsservercore" {"Dockerfile_windowsservercore"}
         # Unknown
         default { throw "Invalid ImageType specified."}
     }
@@ -34,7 +32,6 @@ function Get-SafeguardDockerFile
             "ubuntu","ubuntu-24.04",
             "mariner","mariner-2.0",
             "alpine","alpine-3.20",
-            "windowsservercore",
             IgnoreCase=$true)]
         [string]$ImageType = "alpine"
     )

@@ -79,12 +79,3 @@ steps:
       Write-Host "Module imported successfully under PS 5.1"
   displayName: 'Verify PS 5.1 compatibility (parse and import)'
 
-- task: PowerShell@2
-  inputs:
-    targetType: inline
-    failOnStderr: true
-    script: |
-      $env:VERSION_STRING = "$(VersionString)"
-      & $(System.DefaultWorkingDirectory)\invoke-docker-build.ps1 windowsservercore $(VersionString)
-      docker tag oneidentity/safeguard-ps:$(VersionString)-windowsservercore oneidentity/safeguard-ps:$(VersionString)-windows
-  displayName: 'Building Windows Docker image'

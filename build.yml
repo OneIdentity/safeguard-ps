@@ -26,7 +26,7 @@ pr:
 jobs:
 # Job 1: PR Validation Windows - runs only on pull requests
 - job: PRValidation_Windows
-  displayName: "PR Validation: Windows - Build module and Docker image"
+  displayName: "PR Validation: Windows - Build module"
   condition: eq(variables['Build.Reason'], 'PullRequest')
   pool:
     vmImage: 'windows-latest'
@@ -44,7 +44,7 @@ jobs:
 
 # Job 3: Build and Publish Windows - runs only on successful merges (not PRs)
 - job: BuildAndPublish_Windows
-  displayName: "Build and publish Windows module and Docker image"
+  displayName: "Build and publish Windows module"
   condition: ne(variables['Build.Reason'], 'PullRequest')
   pool:
     vmImage: 'windows-latest'
@@ -141,26 +141,6 @@ jobs:
           Get-PSRepository
           Publish-Module -Name safeguard-ps -NuGetApiKey "$(PowerShellGalleryApiKey)" -Verbose -SkipAutomaticTags -Force
       displayName: 'Publish PowerShell module to PowerShell Gallery'
-
-    - task: AzureKeyVault@2
-      inputs:
-        azureSubscription: 'SafeguardOpenSource'
-        KeyVaultName: 'SafeguardBuildSecrets'
-        SecretsFilter: 'DockerHubAccessToken,DockerHubPassword'
-      displayName: 'Get Docker Hub Access Token from Sandbox Azure Key Vault'
-      continueOnError: false
-      condition: and( succeeded(), eq( variables.shouldPublishDocker, true ) )
-
-    - task: Bash@3
-      inputs:
-        targetType: 'inline'
-        failOnStderr: true
-        script: |
-          docker login -u danpetersonoi --password-stdin <<<$(DockerHubAccessToken) 2>/dev/null
-          docker push oneidentity/safeguard-ps:$(VersionString)-windowsservercore
-          docker logout
-      displayName: 'Pushing Docker Windows Server Core image to Docker Hub'
-      condition: and( succeeded(), eq( variables.shouldPublishDocker, true ) )
 
 # Job 4: Build and Publish Linux - runs only on successful merges (not PRs)
 - job: BuildAndPublish_Linux
