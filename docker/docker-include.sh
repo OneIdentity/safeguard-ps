@@ -11,7 +11,7 @@ USAGE: run-docker.sh [imagetype] [-h]
 imagetype should be one of the following:
 
   'ubuntu', 'ubuntu-24.04',
-  'mariner', 'mariner-2.0'
+  'azurelinux', 'azurelinux-3.0', 'mariner'
   'alpine', 'alpine-3.20'
 
 EOF
@@ -27,8 +27,8 @@ get_safeguard_dockerfile()
     alpine | alpine-3.20)
         DockerFile="Dockerfile_alpine"
         ;;
-    mariner | mariner-2.0)
-        DockerFile="Dockerfile_mariner"
+    azurelinux | azurelinux-3.0 | mariner)
+        DockerFile="Dockerfile_azurelinux"
         ;;
     *)
         print_usage

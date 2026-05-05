@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/powershell:lts-mariner-2.0
+FROM mcr.microsoft.com/powershell:azurelinux-3.0
 LABEL maintainer="support@oneidentity.com"
 
 RUN tdnf install -y shadow-utils \

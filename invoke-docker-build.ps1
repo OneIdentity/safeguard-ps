@@ -34,4 +34,4 @@ if (Invoke-Expression "docker images -q oneidentity/safeguard-ps:$ImageType")
 }
 
 Write-Host "Building a new image: oneidentity/safeguard-ps:$ImageType ..."
-& docker build --no-cache -t "oneidentity/safeguard-ps:$Version$ImageType" -f "$SafeguardDockerFile" "$PSScriptRoot"
+& docker buildx build --no-cache --load -t "oneidentity/safeguard-ps:$Version$ImageType" -f "$SafeguardDockerFile" "$PSScriptRoot"
