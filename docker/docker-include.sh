@@ -11,8 +11,8 @@ USAGE: run-docker.sh [imagetype] [-h]
 imagetype should be one of the following:
 
   'ubuntu', 'ubuntu-24.04',
-  'mariner', 'mariner-2.0'
-  'alpine', 'alpine-3.20'
+  'azurelinux', 'azurelinux-3.0', 'mariner'
+  'alpine', 'alpine-3.22'
 
 EOF
     kill -s TERM $TOP_PID
@@ -24,11 +24,11 @@ get_safeguard_dockerfile()
     ubuntu | ubuntu-24.04)
         DockerFile="Dockerfile_ubuntu"
         ;;
-    alpine | alpine-3.20)
+    alpine | alpine-3.22)
         DockerFile="Dockerfile_alpine"
         ;;
-    mariner | mariner-2.0)
-        DockerFile="Dockerfile_mariner"
+    azurelinux | azurelinux-3.0 | mariner)
+        DockerFile="Dockerfile_azurelinux"
         ;;
     *)
         print_usage
