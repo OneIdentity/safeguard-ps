@@ -41,8 +41,9 @@ steps:
       targetType: inline
       failOnStderr: true
       script: |
+        export DOCKER_BUILDKIT=1
         $(System.DefaultWorkingDirectory)/build-docker.sh ubuntu $(VersionString)
-        $(System.DefaultWorkingDirectory)/build-docker.sh mariner $(VersionString)
+        $(System.DefaultWorkingDirectory)/build-docker.sh azurelinux $(VersionString)
         $(System.DefaultWorkingDirectory)/build-docker.sh alpine $(VersionString)
         docker tag oneidentity/safeguard-ps:$(VersionString)-alpine oneidentity/safeguard-ps:latest
     displayName: 'Build Linux Docker images'
