@@ -14,6 +14,8 @@ function Invoke-SafeguardA2aMethodWithCertificate
         [SecureString]$Password,
         [Parameter(ParameterSetName="CertStore",Mandatory=$true)]
         [string]$Thumbprint,
+        [Parameter(ParameterSetName="CertObject",Mandatory=$true)]
+        [System.Security.Cryptography.X509Certificates.X509Certificate2]$CertificateObject,
         [Parameter(Mandatory=$false)]
         [string]$Authorization,
         [Parameter(Mandatory=$true)]
@@ -63,24 +65,28 @@ function Invoke-SafeguardA2aMethodWithCertificate
         Write-Verbose "$($local:BodyInternal)"
     }
 
-    if (-not $Thumbprint)
+    if ($PSCmdlet.ParameterSetName -eq "File")
     {
         Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
         $local:Cert = (Use-CertificateFile $CertificateFile $Password)
     }
+    elseif ($PSCmdlet.ParameterSetName -eq "CertObject")
+    {
+        $local:Cert = $CertificateObject
+    }
 
     try
     {
-        if (-not $Thumbprint)
+        if ($PSCmdlet.ParameterSetName -eq "CertStore")
         {
             if (-not $local:BodyInternal)
             {
-                Invoke-RestMethod -Certificate $local:Cert -Method $Method -Headers $local:Headers `
+                Invoke-RestMethod -CertificateThumbprint $Thumbprint -Method $Method -Headers $local:Headers `
                     -Uri "https://$Appliance/service/$Service/v$Version/$RelativeUrl"
             }
             else
             {
-                Invoke-RestMethod -Certificate $local:Cert -Method $Method -Headers $local:Headers `
+                Invoke-RestMethod -CertificateThumbprint $Thumbprint -Method $Method -Headers $local:Headers `
                     -Uri "https://$Appliance/service/$Service/v$Version/$RelativeUrl" -Body ([System.Text.Encoding]::UTF8.GetBytes($local:BodyInternal))
             }
         }
@@ -88,12 +94,12 @@ function Invoke-SafeguardA2aMethodWithCertificate
         {
             if (-not $local:BodyInternal)
             {
-                Invoke-RestMethod -CertificateThumbprint $Thumbprint -Method $Method -Headers $local:Headers `
+                Invoke-RestMethod -Certificate $local:Cert -Method $Method -Headers $local:Headers `
                     -Uri "https://$Appliance/service/$Service/v$Version/$RelativeUrl"
             }
             else
             {
-                Invoke-RestMethod -CertificateThumbprint $Thumbprint -Method $Method -Headers $local:Headers `
+                Invoke-RestMethod -Certificate $local:Cert -Method $Method -Headers $local:Headers `
                     -Uri "https://$Appliance/service/$Service/v$Version/$RelativeUrl" -Body ([System.Text.Encoding]::UTF8.GetBytes($local:BodyInternal))
             }
         }
@@ -132,6 +138,8 @@ function Invoke-SafeguardA2aCredentialRetrieval
         [Parameter(Mandatory=$false)]
         [string]$Thumbprint,
         [Parameter(Mandatory=$false)]
+        [System.Security.Cryptography.X509Certificates.X509Certificate2]$CertificateObject,
+        [Parameter(Mandatory=$false)]
         [string]$Authorization,
         [Parameter(Mandatory=$false)]
         [ValidateSet("Password","PrivateKey","ApiKey",IgnoreCase=$true)]
@@ -165,7 +173,12 @@ function Invoke-SafeguardA2aCredentialRetrieval
         $local:RelativeUrl = "Credentials?type=$CredentialType&keyFormat=$KeyFormat"
     }
 
-    if (-not $Thumbprint)
+    if ($CertificateObject)
+    {
+        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization $Authorization `
+            -CertificateObject $CertificateObject -Service a2a -Method GET -RelativeUrl $local:RelativeUrl -Version $Version
+    }
+    elseif (-not $Thumbprint)
     {
         Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization $Authorization `
             -CertificateFile $CertificateFile -Password $Password -Service a2a -Method GET -RelativeUrl $local:RelativeUrl -Version $Version

@@ -1164,6 +1164,12 @@ this parameter enables non-interactive automation with password-protected PFX fi
 .PARAMETER Thumbprint
 Client certificate thumbprint to use to authenticate the connection to the RSTS.
 
+.PARAMETER CertificateObject
+An in-memory X509Certificate2 object to use for client certificate authentication. This
+enables integration with external secret managers (e.g. Azure Key Vault) where certificates
+are retrieved programmatically without persisting to disk or the local certificate store.
+The object must not be disposed while the session is active.
+
 .PARAMETER Version
 Version of the Web API you are using (default: 4).
 
@@ -1230,6 +1236,15 @@ Login Successful.
 
 
 .EXAMPLE
+$cert = Get-AzKeyVaultCertificate -VaultName "MyVault" -Name "SafeguardCert" | Select-Object -ExpandProperty Certificate
+Connect-Safeguard 10.5.32.162 -CertificateObject $cert -Insecure
+
+Login Successful.
+
+Uses an in-memory X509Certificate2 object retrieved from Azure Key Vault.
+
+
+.EXAMPLE
 Connect-Safeguard 10.5.32.162 ad18-green.vas
 Username: petrsnd
 Password: **********
@@ -1284,6 +1299,8 @@ function Connect-Safeguard
         [SecureString]$CertificatePassword,
         [Parameter(ParameterSetName="Certificate",Mandatory=$false)]
         [string]$Thumbprint,
+        [Parameter(ParameterSetName="Certificate",Mandatory=$false)]
+        [System.Security.Cryptography.X509Certificates.X509Certificate2]$CertificateObject,
         [Parameter(ParameterSetName="Gui",Mandatory=$false)]
         [switch]$Gui,
         [Parameter(ParameterSetName="Browser",Mandatory=$false)]
@@ -1386,7 +1403,7 @@ function Connect-Safeguard
             if (-not $IdentityProvider)
             {
                 Write-Verbose "Identity provider not passed in"
-                if ($Thumbprint -or $CertificateFile)
+                if ($Thumbprint -or $CertificateFile -or $CertificateObject)
                 {
                     $IdentityProvider = "certificate"
                 }
@@ -1419,7 +1436,7 @@ function Connect-Safeguard
 
             if ($IdentityProvider -ieq "certificate")
             {
-                if (-not $Thumbprint -and -not $CertificateFile)
+                if (-not $Thumbprint -and -not $CertificateFile -and -not $CertificateObject)
                 {
                     $Thumbprint = (Read-Host "Thumbprint")
                 }
@@ -1528,7 +1545,20 @@ function Connect-Safeguard
             {
                 try
                 {
-                    if (-not $Thumbprint)
+                    if ($CertificateObject)
+                    {
+                        Write-Verbose "Calling RSTS token service for client certificate authentication (in-memory object)..."
+                        $local:RstsResponse = (Invoke-RestMethod -Certificate $CertificateObject -Method POST -Headers @{
+                            "Accept" = "application/json";
+                            "Content-type" = "application/json"
+                        } -Uri "https://$Appliance/RSTS/oauth2/token" -Body @"
+{
+    "grant_type": "client_credentials",
+    "scope": "$($local:Scope)"
+}
+"@)
+                    }
+                    elseif (-not $Thumbprint)
                     {
                         Write-Verbose "Calling RSTS token service for client certificate authentication (PKCS#12 file)..."
                         # From PFX file
@@ -1634,6 +1664,7 @@ function Connect-Safeguard
                 "Thumbprint" = $Thumbprint;
                 "CertificateFile" = $CertificateFile;
                 "CertificatePassword" = $CertificatePassword;
+                "CertificateObject" = $CertificateObject;
                 "Insecure" = $Insecure;
                 "Gui" = $Gui -Or $Browser;
                 "NoWindowTitle" = $NoWindowTitle;
