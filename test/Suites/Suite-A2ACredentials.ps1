@@ -182,6 +182,38 @@
                 $true
             }
         }
+
+        # --- CertificateObject tests (in-memory X509Certificate2) ---
+        $certObj = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(
+            $pfx, [System.Net.NetworkCredential]::new("", $pfxPwd).Password)
+
+        Test-SgPsAssert "Get-SafeguardA2aRetrievableAccount via CertificateObject" {
+            $accounts = Get-SafeguardA2aRetrievableAccount -Appliance $appliance -Insecure `
+                -CertificateObject $certObj
+            $list = @($accounts)
+            $list.Count -ge 1
+        }
+
+        Test-SgPsAssert "Get-SafeguardA2aPassword retrieves password via CertificateObject" {
+            $a2aPassword = Get-SafeguardA2aPassword -Appliance $appliance -Insecure `
+                -CertificateObject $certObj -ApiKey $apiKey
+            $null -ne $a2aPassword
+        }
+
+        Test-SgPsAssert "Get-SafeguardA2aApiKeySecret retrieves secret via CertificateObject" {
+            $secret = Get-SafeguardA2aApiKeySecret -Appliance $appliance -Insecure `
+                -CertificateObject $certObj -ApiKey $apiKey
+            $null -ne $secret
+        }
+
+        Test-SgPsAssert "Set-SafeguardA2aPassword sets password via CertificateObject" {
+            $setPwd = ConvertTo-SecureString "CertObjPwd_3kLm!" -AsPlainText -Force
+            Set-SafeguardA2aPassword -Appliance $appliance -Insecure `
+                -CertificateObject $certObj -ApiKey $apiKey -NewPassword $setPwd
+            $retrieved = Get-SafeguardA2aPassword -Appliance $appliance -Insecure `
+                -CertificateObject $certObj -ApiKey $apiKey
+            $retrieved -eq "CertObjPwd_3kLm!"
+        }
     }
 
     Cleanup = {
