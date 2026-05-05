@@ -17,7 +17,7 @@ function Get-SafeguardDockerFileName
         # Azure Linux (formerly Mariner)
         {$_ -ieq "azurelinux" -or $_ -ieq "azurelinux-3.0" -or $_ -ieq "mariner"} {"Dockerfile_azurelinux"}
         # Alpine
-        {$_ -ieq "alpine" -or $_ -ieq "alpine-3.22"} {"Dockerfile_alpine"}
+        {$_ -ieq "alpine" -or $_ -ieq "alpine-3.20"} {"Dockerfile_alpine"}
         # Unknown
         default { throw "Invalid ImageType specified."}
     }
@@ -31,7 +31,7 @@ function Get-SafeguardDockerFile
         [ValidateSet(
             "ubuntu","ubuntu-24.04",
             "azurelinux","azurelinux-3.0","mariner",
-            "alpine","alpine-3.22",
+            "alpine","alpine-3.20",
             IgnoreCase=$true)]
         [string]$ImageType = "alpine"
     )
