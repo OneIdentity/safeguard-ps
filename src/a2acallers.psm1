@@ -215,6 +215,10 @@ A secure string containing the password for decrypting the certificate file.
 .PARAMETER Thumbprint
 A string containing the thumbprint of a certificate the system certificate store.
 
+.PARAMETER CertificateObject
+An in-memory X509Certificate2 object for A2A authentication. Enables integration with
+external secret managers (e.g. Azure Key Vault) without persisting certificates to disk.
+
 .PARAMETER Version
 Version of the Web API you are using (default: 4).
 
@@ -229,6 +233,9 @@ Get-SafeguardA2aRetrievableAccount -Appliance 10.5.32.54 -CertificateFile C:\cer
 
 .EXAMPLE
 Get-SafeguardA2aRetrievableAccount 10.5.32.54 -Thumbprint 756766BB590D7FA9CA9E1971A4AE41BB9CEC82F1
+
+.EXAMPLE
+Get-SafeguardA2aRetrievableAccount 10.5.32.54 -CertificateObject $cert
 #>
 function Get-SafeguardA2aRetrievableAccount
 {
@@ -244,6 +251,8 @@ function Get-SafeguardA2aRetrievableAccount
         [SecureString]$Password,
         [Parameter(ParameterSetName="CertStore",Mandatory=$true)]
         [string]$Thumbprint,
+        [Parameter(ParameterSetName="CertObject",Mandatory=$true)]
+        [System.Security.Cryptography.X509Certificates.X509Certificate2]$CertificateObject,
         [Parameter(Mandatory=$false)]
         [int]$Version = 4
     )
@@ -251,7 +260,12 @@ function Get-SafeguardA2aRetrievableAccount
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if (-not $Thumbprint)
+    if ($PSCmdlet.ParameterSetName -eq "CertObject")
+    {
+        $local:Registrations = (Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Version $Version `
+            -CertificateObject $CertificateObject -Service core -Method GET -RelativeUrl "A2ARegistrations")
+    }
+    elseif ($PSCmdlet.ParameterSetName -eq "File")
     {
         if (-not $Password)
         {
@@ -267,7 +281,12 @@ function Get-SafeguardA2aRetrievableAccount
     }
     $local:Registrations | ForEach-Object {
         $local:Reg = $_
-        if (-not $Thumbprint)
+        if ($PSCmdlet.ParameterSetName -eq "CertObject")
+        {
+            $local:Accounts = (Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Version $Version `
+                -CertificateObject $CertificateObject -Service core -Method GET -RelativeUrl "A2ARegistrations/$($local:Reg.Id)/RetrievableAccounts")
+        }
+        elseif ($PSCmdlet.ParameterSetName -eq "File")
         {
             $local:Accounts = (Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Version $Version `
                 -CertificateFile $CertificateFile -Password $Password -Service core -Method GET -RelativeUrl "A2ARegistrations/$($local:Reg.Id)/RetrievableAccounts")
@@ -327,6 +346,10 @@ A secure string containing the password for decrypting the certificate file.
 .PARAMETER Thumbprint
 A string containing the thumbprint of a certificate the system certificate store.
 
+.PARAMETER CertificateObject
+An in-memory X509Certificate2 object for A2A authentication. Enables integration with
+external secret managers (e.g. Azure Key Vault) without persisting certificates to disk.
+
 .PARAMETER ApiKey
 A string containing the API key that identifies the account being requested.
 
@@ -344,6 +367,9 @@ Get-SafeguardA2aPassword -Appliance 10.5.32.54 -CertificateFile C:\certs\file.pf
 
 .EXAMPLE
 Get-SafeguardA2aPassword 10.5.32.54 6A4psUnrLv1hvoWSB3jsm2V50eFT62vwAI9Zlj/dDWw= -Thumbprint 756766BB590D7FA9CA9E1971A4AE41BB9CEC82F1
+
+.EXAMPLE
+Get-SafeguardA2aPassword 10.5.32.54 $apiKey -CertificateObject $cert
 #>
 function Get-SafeguardA2aPassword
 {
@@ -359,6 +385,8 @@ function Get-SafeguardA2aPassword
         [SecureString]$Password,
         [Parameter(ParameterSetName="CertStore",Mandatory=$true)]
         [string]$Thumbprint,
+        [Parameter(ParameterSetName="CertObject",Mandatory=$true)]
+        [System.Security.Cryptography.X509Certificates.X509Certificate2]$CertificateObject,
         [Parameter(Mandatory=$true,Position=1)]
         [string]$ApiKey,
         [Parameter(Mandatory=$false)]
@@ -368,7 +396,12 @@ function Get-SafeguardA2aPassword
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($PsCmdlet.ParameterSetName -eq "CertStore")
+    if ($PsCmdlet.ParameterSetName -eq "CertObject")
+    {
+        Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+            -CertificateObject $CertificateObject -CredentialType Password -Version $Version
+    }
+    elseif ($PsCmdlet.ParameterSetName -eq "CertStore")
     {
         Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
             -Thumbprint $Thumbprint -CredentialType Password -Version $Version
@@ -403,6 +436,10 @@ A secure string containing the password for decrypting the certificate file.
 .PARAMETER Thumbprint
 A string containing the thumbprint of a certificate the system certificate store.
 
+.PARAMETER CertificateObject
+An in-memory X509Certificate2 object for A2A authentication. Enables integration with
+external secret managers (e.g. Azure Key Vault) without persisting certificates to disk.
+
 .PARAMETER ApiKey
 A string containing the API key that identifies the account being requested.
 
@@ -423,6 +460,9 @@ Set-SafeguardA2aPassword -Appliance 10.5.32.54 -CertificateFile C:\certs\file.pf
 
 .EXAMPLE
 Set-SafeguardA2aPassword 10.5.32.54 6A4psUnrLv1hvoWSB3jsm2V50eFT62vwAI9Zlj/dDWw= -Thumbprint 756766BB590D7FA9CA9E1971A4AE41BB9CEC82F1
+
+.EXAMPLE
+Set-SafeguardA2aPassword 10.5.32.54 $apiKey -CertificateObject $cert
 #>
 function Set-SafeguardA2aPassword
 {
@@ -438,6 +478,8 @@ function Set-SafeguardA2aPassword
         [SecureString]$Password,
         [Parameter(ParameterSetName="CertStore",Mandatory=$true)]
         [string]$Thumbprint,
+        [Parameter(ParameterSetName="CertObject",Mandatory=$true)]
+        [System.Security.Cryptography.X509Certificates.X509Certificate2]$CertificateObject,
         [Parameter(Mandatory=$true,Position=1)]
         [string]$ApiKey,
         [Parameter(Mandatory=$false,Position=2)]
@@ -455,14 +497,19 @@ function Set-SafeguardA2aPassword
     }
     $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $NewPassword).Password
 
-    if ($PsCmdlet.ParameterSetName -eq "CertStore")
+    if ($PsCmdlet.ParameterSetName -eq "CertObject")
+    {
+        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+            -CertificateObject $CertificateObject -Service a2a -Method PUT -RelativeUrl Credentials/Password -Body $local:PasswordPlainText -Version $Version
+    }
+    elseif ($PsCmdlet.ParameterSetName -eq "CertStore")
     {
         Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
             -Thumbprint $Thumbprint -Service a2a -Method PUT -RelativeUrl Credentials/Password -Body $local:PasswordPlainText -Version $Version
     }
     else
     {
-        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey"  -Version $Version `
+        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" -Version $Version `
             -CertificateFile $CertificateFile -Password $Password -Service a2a -Method PUT -RelativeUrl Credentials/Password -Body $local:PasswordPlainText
     }
 
@@ -492,6 +539,10 @@ A secure string containing the password for decrypting the certificate file.
 .PARAMETER Thumbprint
 A string containing the thumbprint of a certificate the system certificate store.
 
+.PARAMETER CertificateObject
+An in-memory X509Certificate2 object for A2A authentication. Enables integration with
+external secret managers (e.g. Azure Key Vault) without persisting certificates to disk.
+
 .PARAMETER ApiKey
 A string containing the API key that identifies the account being requested.
 
@@ -515,6 +566,9 @@ Get-SafeguardA2aPrivateKey -Appliance 10.5.32.54 -CertificateFile C:\certs\file.
 
 .EXAMPLE
 Get-SafeguardA2aPrivateKey 10.5.32.54 6A4psUnrLv1hvoWSB3jsm2V50eFT62vwAI9Zlj/dDWw= -Thumbprint 756766BB590D7FA9CA9E1971A4AE41BB9CEC82F1
+
+.EXAMPLE
+Get-SafeguardA2aPrivateKey 10.5.32.54 $apiKey -CertificateObject $cert
 #>
 function Get-SafeguardA2aPrivateKey
 {
@@ -530,6 +584,8 @@ function Get-SafeguardA2aPrivateKey
         [SecureString]$Password,
         [Parameter(ParameterSetName="CertStore",Mandatory=$true)]
         [string]$Thumbprint,
+        [Parameter(ParameterSetName="CertObject",Mandatory=$true)]
+        [System.Security.Cryptography.X509Certificates.X509Certificate2]$CertificateObject,
         [Parameter(Mandatory=$true,Position=1)]
         [string]$ApiKey,
         [Parameter(Mandatory=$false)]
@@ -542,7 +598,20 @@ function Get-SafeguardA2aPrivateKey
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($PsCmdlet.ParameterSetName -eq "CertStore")
+    if ($PsCmdlet.ParameterSetName -eq "CertObject")
+    {
+        if ($KeyFormat)
+        {
+            Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+                -CertificateObject $CertificateObject -CredentialType PrivateKey -KeyFormat $KeyFormat -Version $Version
+        }
+        else
+        {
+            Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+                -CertificateObject $CertificateObject -CredentialType PrivateKey -Version $Version
+        }
+    }
+    elseif ($PsCmdlet.ParameterSetName -eq "CertStore")
     {
         if ($KeyFormat)
         {
@@ -593,6 +662,10 @@ A secure string containing the password for decrypting the certificate file.
 .PARAMETER Thumbprint
 A string containing the thumbprint of a certificate the system certificate store.
 
+.PARAMETER CertificateObject
+An in-memory X509Certificate2 object for A2A authentication. Enables integration with
+external secret managers (e.g. Azure Key Vault) without persisting certificates to disk.
+
 .PARAMETER ApiKey
 A string containing the API key that identifies the account being requested.
 
@@ -622,6 +695,9 @@ Set-SafeguardA2aPrivateKey -Appliance 10.5.32.54 -CertificateFile C:\certs\file.
 
 .EXAMPLE
 Set-SafeguardA2aPrivateKey 10.5.32.54 6A4psUnrLv1hvoWSB3jsm2V50eFT62vwAI9Zlj/dDWw= -Thumbprint 756766BB590D7FA9CA9E1971A4AE41BB9CEC82F1
+
+.EXAMPLE
+Set-SafeguardA2aPrivateKey 10.5.32.54 $apiKey -CertificateObject $cert -PrivateKey $key
 #>
 function Set-SafeguardA2aPrivateKey
 {
@@ -637,6 +713,8 @@ function Set-SafeguardA2aPrivateKey
         [SecureString]$Password,
         [Parameter(ParameterSetName="CertStore",Mandatory=$true)]
         [string]$Thumbprint,
+        [Parameter(ParameterSetName="CertObject",Mandatory=$true)]
+        [System.Security.Cryptography.X509Certificates.X509Certificate2]$CertificateObject,
         [Parameter(Mandatory=$true,Position=1)]
         [string]$ApiKey,
         [Parameter(Mandatory=$false)]
@@ -678,7 +756,12 @@ function Set-SafeguardA2aPrivateKey
         $local:RelativeUrl = "Credentials/SshKey?keyFormat=$KeyFormat"
     }
 
-    if ($PsCmdlet.ParameterSetName -eq "CertStore")
+    if ($PsCmdlet.ParameterSetName -eq "CertObject")
+    {
+        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+            -CertificateObject $CertificateObject -Service a2a -Method PUT -RelativeUrl $local:RelativeUrl -Body $local:Body -Version $Version
+    }
+    elseif ($PsCmdlet.ParameterSetName -eq "CertStore")
     {
         Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
             -Thumbprint $Thumbprint -Service a2a -Method PUT -RelativeUrl $local:RelativeUrl -Body $local:Body -Version $Version
@@ -716,6 +799,10 @@ A secure string containing the password for decrypting the certificate file.
 .PARAMETER Thumbprint
 A string containing the thumbprint of a certificate the system certificate store.
 
+.PARAMETER CertificateObject
+An in-memory X509Certificate2 object for A2A authentication. Enables integration with
+external secret managers (e.g. Azure Key Vault) without persisting certificates to disk.
+
 .PARAMETER ApiKey
 A string containing the API key that identifies the account being requested.
 
@@ -733,6 +820,9 @@ Get-SafeguardA2aApiKeySecret -Appliance 10.5.32.54 -CertificateFile C:\certs\fil
 
 .EXAMPLE
 Get-SafeguardA2aApiKeySecret 10.5.32.54 6A4psUnrLv1hvoWSB3jsm2V50eFT62vwAI9Zlj/dDWw= -Thumbprint 756766BB590D7FA9CA9E1971A4AE41BB9CEC82F1
+
+.EXAMPLE
+Get-SafeguardA2aApiKeySecret 10.5.32.54 $apiKey -CertificateObject $cert
 #>
 function Get-SafeguardA2aApiKeySecret
 {
@@ -748,6 +838,8 @@ function Get-SafeguardA2aApiKeySecret
         [SecureString]$Password,
         [Parameter(ParameterSetName="CertStore",Mandatory=$true)]
         [string]$Thumbprint,
+        [Parameter(ParameterSetName="CertObject",Mandatory=$true)]
+        [System.Security.Cryptography.X509Certificates.X509Certificate2]$CertificateObject,
         [Parameter(Mandatory=$true,Position=1)]
         [string]$ApiKey,
         [Parameter(Mandatory=$false)]
@@ -757,7 +849,12 @@ function Get-SafeguardA2aApiKeySecret
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    if ($PsCmdlet.ParameterSetName -eq "CertStore")
+    if ($PsCmdlet.ParameterSetName -eq "CertObject")
+    {
+        Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+            -CertificateObject $CertificateObject -CredentialType ApiKey -Version $Version
+    }
+    elseif ($PsCmdlet.ParameterSetName -eq "CertStore")
     {
         Invoke-SafeguardA2aCredentialRetrieval -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
             -Thumbprint $Thumbprint -CredentialType ApiKey -Version $Version
@@ -794,6 +891,10 @@ A secure string containing the password for decrypting the certificate file.
 
 .PARAMETER Thumbprint
 A string containing the thumbprint of a certificate the system certificate store.
+
+.PARAMETER CertificateObject
+An in-memory X509Certificate2 object for A2A authentication. Enables integration with
+external secret managers (e.g. Azure Key Vault) without persisting certificates to disk.
 
 .PARAMETER ApiKey
 A string containing the API key that identifies the account being requested.
@@ -860,6 +961,9 @@ New-SafeguardA2aAccessRequest
 
 .EXAMPLE
 New-SafeguardA2aAccessRequest 10.5.32.23 -CertificateFile .\CERT.pfx UK1Pf45hvWa7OVBu4l87U3dvgydWXMElRZhQ3DDYVwo= TestUser linux.sample.com root SSH
+
+.EXAMPLE
+New-SafeguardA2aAccessRequest 10.5.32.23 $apiKey -CertificateObject $cert TestUser linux.sample.com root SSH
 #>
 function New-SafeguardA2aAccessRequest
 {
@@ -878,27 +982,36 @@ function New-SafeguardA2aAccessRequest
         [Parameter(ParameterSetName="CertStoreAndNames",Mandatory=$true)]
         [Parameter(ParameterSetName="CertStoreAndIds",Mandatory=$true)]
         [string]$Thumbprint,
+        [Parameter(ParameterSetName="CertObjectAndNames",Mandatory=$true)]
+        [Parameter(ParameterSetName="CertObjectAndIds",Mandatory=$true)]
+        [System.Security.Cryptography.X509Certificates.X509Certificate2]$CertificateObject,
         [Parameter(Mandatory=$true,Position=1)]
         [string]$ApiKey,
         [Parameter(Mandatory=$false)]
         [string]$ForProviderName,
         [Parameter(ParameterSetName="FileAndNames",Mandatory=$true,Position=2)]
         [Parameter(ParameterSetName="CertStoreAndNames",Mandatory=$true,Position=2)]
+        [Parameter(ParameterSetName="CertObjectAndNames",Mandatory=$true,Position=2)]
         [string]$ForUserName,
         [Parameter(ParameterSetName="FileAndIds",Mandatory=$true,Position=2)]
         [Parameter(ParameterSetName="CertStoreAndIds",Mandatory=$true,Position=2)]
+        [Parameter(ParameterSetName="CertObjectAndIds",Mandatory=$true,Position=2)]
         [int]$ForUserId,
         [Parameter(ParameterSetName="FileAndNames",Mandatory=$true,Position=3)]
         [Parameter(ParameterSetName="CertStoreAndNames",Mandatory=$true,Position=3)]
+        [Parameter(ParameterSetName="CertObjectAndNames",Mandatory=$true,Position=3)]
         [string]$AssetToUse,
         [Parameter(ParameterSetName="FileAndIds",Mandatory=$true,Position=3)]
         [Parameter(ParameterSetName="CertStoreAndIds",Mandatory=$true,Position=3)]
+        [Parameter(ParameterSetName="CertObjectAndIds",Mandatory=$true,Position=3)]
         [int]$AssetIdToUse,
         [Parameter(ParameterSetName="FileAndNames",Mandatory=$false,Position=4)]
         [Parameter(ParameterSetName="CertStoreAndNames",Mandatory=$false,Position=4)]
+        [Parameter(ParameterSetName="CertObjectAndNames",Mandatory=$false,Position=4)]
         [string]$AccountToUse,
         [Parameter(ParameterSetName="FileAndIds",Mandatory=$false,Position=4)]
         [Parameter(ParameterSetName="CertStoreAndIds",Mandatory=$false,Position=4)]
+        [Parameter(ParameterSetName="CertObjectAndIds",Mandatory=$false,Position=4)]
         [int]$AccountIdToUse,
         [Parameter(Mandatory=$false,Position=5)]
         [ValidateSet("Password", "SSHKey", "SSH", "RemoteDesktop", "RDP", "RemoteDesktopApplication", "RDPApplication", "RDPApp", "Telnet", "APIKey", "File", IgnoreCase=$true)]
@@ -938,7 +1051,7 @@ function New-SafeguardA2aAccessRequest
         $AccessRequestType = "RemoteDesktopApplication"
     }
 
-    if ($PsCmdlet.ParameterSetName -eq "CertStoreAndNames" -or $PsCmdlet.ParameterSetName -eq "FileAndNames")
+    if ($PsCmdlet.ParameterSetName -eq "CertStoreAndNames" -or $PsCmdlet.ParameterSetName -eq "FileAndNames" -or $PsCmdlet.ParameterSetName -eq "CertObjectAndNames")
     {
         $local:Body = @{
             ForUser = $ForUserName;
@@ -975,14 +1088,19 @@ function New-SafeguardA2aAccessRequest
     if ($RequestedDurationHours) { $local:Body["RequestedDurationHours"] = $RequestedDurationHours }
     if ($RequestedDurationMinutes) { $local:Body["RequestedDurationMinutes"] = $RequestedDurationMinutes }
 
-    if ($PsCmdlet.ParameterSetName -eq "CertStoreAndNames" -or $PsCmdlet.ParameterSetName -eq "CertStoreAndIds")
+    if ($PsCmdlet.ParameterSetName -eq "CertObjectAndNames" -or $PsCmdlet.ParameterSetName -eq "CertObjectAndIds")
+    {
+        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
+            -CertificateObject $CertificateObject -Service a2a -Method POST -RelativeUrl AccessRequests -Body $local:Body -Version $Version
+    }
+    elseif ($PsCmdlet.ParameterSetName -eq "CertStoreAndNames" -or $PsCmdlet.ParameterSetName -eq "CertStoreAndIds")
     {
         Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" `
             -Thumbprint $Thumbprint -Service a2a -Method POST -RelativeUrl AccessRequests -Body $local:Body -Version $Version
     }
     else
     {
-        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey"  -Version $Version `
+        Invoke-SafeguardA2aMethodWithCertificate -Insecure:$Insecure -Appliance $Appliance -Authorization "A2A $ApiKey" -Version $Version `
             -CertificateFile $CertificateFile -Password $Password -Service a2a -Method POST -RelativeUrl AccessRequests -Body $local:Body
     }
 }
@@ -1019,6 +1137,10 @@ A secure string containing the password for decrypting the certificate file.
 A string containing the thumbprint of a certificate in the user certificate store
 for A2A authentication.
 
+.PARAMETER CertificateObject
+An in-memory X509Certificate2 object for A2A authentication. Enables integration with
+external secret managers (e.g. Azure Key Vault) without persisting certificates to disk.
+
 .PARAMETER ApiKey
 A string containing the A2A API key for authorization.
 
@@ -1054,6 +1176,9 @@ Listen for specific A2A events using certificate file authentication.
 Wait-SafeguardA2aEvent 10.5.32.54 $apiKey -Thumbprint $tp -Insecure -Handler { param($n,$b) Write-Host "Got $n" }
 
 Process A2A events with an inline script block.
+
+.EXAMPLE
+Wait-SafeguardA2aEvent 10.5.32.54 $apiKey -CertificateObject $cert -Insecure
 #>
 function Wait-SafeguardA2aEvent
 {
@@ -1069,6 +1194,8 @@ function Wait-SafeguardA2aEvent
         [SecureString]$Password,
         [Parameter(ParameterSetName="CertStore",Mandatory=$true)]
         [string]$Thumbprint,
+        [Parameter(ParameterSetName="CertObject",Mandatory=$true)]
+        [System.Security.Cryptography.X509Certificates.X509Certificate2]$CertificateObject,
         [Parameter(Mandatory=$true,Position=1)]
         [string]$ApiKey,
         [Parameter(Mandatory=$false)]
@@ -1100,6 +1227,10 @@ function Wait-SafeguardA2aEvent
     if ($PSCmdlet.ParameterSetName -eq "File")
     {
         $local:Cert = (Use-CertificateFile $CertificateFile $Password)
+    }
+    elseif ($PSCmdlet.ParameterSetName -eq "CertObject")
+    {
+        $local:Cert = $CertificateObject
     }
     elseif ($PSCmdlet.ParameterSetName -eq "CertStore")
     {
@@ -1262,6 +1393,10 @@ A secure string containing the password for decrypting the certificate file.
 A string containing the thumbprint of a certificate in the user certificate store
 for A2A authentication.
 
+.PARAMETER CertificateObject
+An in-memory X509Certificate2 object for A2A authentication. Enables integration with
+external secret managers (e.g. Azure Key Vault) without persisting certificates to disk.
+
 .PARAMETER ApiKey
 A string containing the A2A API key that identifies the account being monitored.
 
@@ -1291,6 +1426,9 @@ Listen for password changes and handle with a script block.
 Invoke-SafeguardA2aPasswordHandler 10.5.32.54 $apiKey -CertificateFile C:\cert.pfx -Password $pwd -Insecure -HandlerScript C:\scripts\rotate.ps1
 
 Listen for password changes and invoke an external script.
+
+.EXAMPLE
+Invoke-SafeguardA2aPasswordHandler 10.5.32.54 $apiKey -CertificateObject $cert -Insecure -Handler { param($ev,$pw) Write-Host "Password: $pw" }
 #>
 function Invoke-SafeguardA2aPasswordHandler
 {
@@ -1306,6 +1444,8 @@ function Invoke-SafeguardA2aPasswordHandler
         [SecureString]$Password,
         [Parameter(ParameterSetName="CertStore",Mandatory=$true)]
         [string]$Thumbprint,
+        [Parameter(ParameterSetName="CertObject",Mandatory=$true)]
+        [System.Security.Cryptography.X509Certificates.X509Certificate2]$CertificateObject,
         [Parameter(Mandatory=$true,Position=1)]
         [string]$ApiKey,
         [Parameter(Mandatory=$false)]
@@ -1344,6 +1484,10 @@ function Invoke-SafeguardA2aPasswordHandler
         $local:CredArgs["CertificateFile"] = $CertificateFile
         if ($Password) { $local:CredArgs["Password"] = $Password }
     }
+    elseif ($PSCmdlet.ParameterSetName -eq "CertObject")
+    {
+        $local:CredArgs["CertificateObject"] = $CertificateObject
+    }
     else
     {
         $local:CredArgs["Thumbprint"] = $Thumbprint
@@ -1378,6 +1522,10 @@ function Invoke-SafeguardA2aPasswordHandler
     {
         $local:ListenerArgs["CertificateFile"] = $CertificateFile
         if ($Password) { $local:ListenerArgs["Password"] = $Password }
+    }
+    elseif ($PSCmdlet.ParameterSetName -eq "CertObject")
+    {
+        $local:ListenerArgs["CertificateObject"] = $CertificateObject
     }
     else
     {
@@ -1435,6 +1583,10 @@ A secure string containing the password for decrypting the certificate file.
 A string containing the thumbprint of a certificate in the user certificate store
 for A2A authentication.
 
+.PARAMETER CertificateObject
+An in-memory X509Certificate2 object for A2A authentication. Enables integration with
+external secret managers (e.g. Azure Key Vault) without persisting certificates to disk.
+
 .PARAMETER ApiKey
 A string containing the A2A API key that identifies the account being monitored.
 
@@ -1470,6 +1622,9 @@ Listen for SSH key changes and update a local key file.
 Invoke-SafeguardA2aSshKeyHandler 10.5.32.54 $apiKey -CertificateFile C:\cert.pfx -Password $pwd -Insecure -KeyFormat Putty -HandlerScript C:\scripts\deploy-key.ps1
 
 Listen for SSH key changes in Putty format and invoke an external script.
+
+.EXAMPLE
+Invoke-SafeguardA2aSshKeyHandler 10.5.32.54 $apiKey -CertificateObject $cert -Insecure -Handler { param($ev,$key) Write-Host "SSH key updated" }
 #>
 function Invoke-SafeguardA2aSshKeyHandler
 {
@@ -1485,6 +1640,8 @@ function Invoke-SafeguardA2aSshKeyHandler
         [SecureString]$Password,
         [Parameter(ParameterSetName="CertStore",Mandatory=$true)]
         [string]$Thumbprint,
+        [Parameter(ParameterSetName="CertObject",Mandatory=$true)]
+        [System.Security.Cryptography.X509Certificates.X509Certificate2]$CertificateObject,
         [Parameter(Mandatory=$true,Position=1)]
         [string]$ApiKey,
         [Parameter(Mandatory=$false)]
@@ -1527,6 +1684,10 @@ function Invoke-SafeguardA2aSshKeyHandler
         $local:CredArgs["CertificateFile"] = $CertificateFile
         if ($Password) { $local:CredArgs["Password"] = $Password }
     }
+    elseif ($PSCmdlet.ParameterSetName -eq "CertObject")
+    {
+        $local:CredArgs["CertificateObject"] = $CertificateObject
+    }
     else
     {
         $local:CredArgs["Thumbprint"] = $Thumbprint
@@ -1561,6 +1722,10 @@ function Invoke-SafeguardA2aSshKeyHandler
     {
         $local:ListenerArgs["CertificateFile"] = $CertificateFile
         if ($Password) { $local:ListenerArgs["Password"] = $Password }
+    }
+    elseif ($PSCmdlet.ParameterSetName -eq "CertObject")
+    {
+        $local:ListenerArgs["CertificateObject"] = $CertificateObject
     }
     else
     {

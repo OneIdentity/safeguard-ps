@@ -37,6 +37,10 @@ function Get-SessionConnectionIdentifier
                 {
                     $local:Identifier = "$($local:Identifier)\$($SafeguardSession["Thumbprint"]))"
                 }
+                elseif ($SafeguardSession["CertificateObject"])
+                {
+                    $local:Identifier = "$($local:Identifier)\$($SafeguardSession["CertificateObject"].Thumbprint))"
+                }
                 else
                 {
                     $local:Identifier = "$($local:Identifier)\$($SafeguardSession["CertificateFile"]))"
@@ -2273,7 +2277,12 @@ function Update-SafeguardAccessToken
     }
     elseif ($SafeguardSession.IdentityProvider -ieq "certificate")
     {
-        if ($SafeguardSession.CertificateFile)
+        if ($SafeguardSession.CertificateObject)
+        {
+            Connect-Safeguard -Appliance $SafeguardSession.Appliance -Insecure:$SafeguardSession.Insecure -Version $SafeguardSession.Version `
+                -IdentityProvider $SafeguardSession.IdentityProvider -CertificateObject $SafeguardSession.CertificateObject
+        }
+        elseif ($SafeguardSession.CertificateFile)
         {
             Connect-Safeguard -Appliance $SafeguardSession.Appliance -Insecure:$SafeguardSession.Insecure -Version $SafeguardSession.Version `
                 -IdentityProvider $SafeguardSession.IdentityProvider -CertificateFile $SafeguardSession.CertificateFile `
