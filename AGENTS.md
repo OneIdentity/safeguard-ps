@@ -144,6 +144,14 @@ pwsh -File ./test/Invoke-SafeguardPsTests.ps1 `
 pwsh -File ./test/Invoke-SafeguardPsTests.ps1 -ListSuites
 ```
 
+**Windows invocation note:** When calling from a `powershell.exe` (PS 5.1) host shell, use
+`-Command` with an explicit array instead of `-File` with comma-separated values:
+
+```powershell
+# From PS 5.1 host -- -File may not parse the -Suite array correctly
+pwsh -NoProfile -Command "& .\test\Invoke-SafeguardPsTests.ps1 -Appliance '10.0.0.1' -AdminPassword 'pwd' -Suite @('Connect','Users')"
+```
+
 The test runner requires **PowerShell 7** (`pwsh`). It automatically:
 - Creates a temporary admin user for isolation
 - Enables Resource Owner grant if disabled (and restores the original setting afterward)
@@ -174,7 +182,7 @@ Map feature modules to suites:
 
 | Module | Relevant suites |
 |--------|----------------|
-| `safeguard-ps.psm1` | Connect, ApplianceStatus, DataTypes, ManagementShell |
+| `safeguard-ps.psm1` | Connect, CertificateAuthentication, ApplianceStatus, DataTypes, ManagementShell |
 | `users.psm1` | Users |
 | `assets.psm1` | Assets, AssetAccounts |
 | `assetpartitions.psm1` | AssetPartitions, PasswordProfiles |
@@ -305,12 +313,29 @@ For raw content uploads (scripts, certificates), also pass `-ContentType "applic
 
 ### Prefer cmdlets over Invoke-SafeguardMethod
 
-When interacting with the appliance (ad-hoc testing, cleanup, investigation), **always
-prefer the high-level cmdlets** (`Get-Safeguard*`, `Find-Safeguard*`, `New-Safeguard*`,
-`Remove-Safeguard*`, `Edit-Safeguard*`, `Close-Safeguard*`) over raw
-`Invoke-SafeguardMethod` calls. The cmdlets handle parameter resolution, error formatting,
-and interactive prompts. Only fall back to `Invoke-SafeguardMethod` for endpoints that do
-not have a corresponding cmdlet.
+**Always prefer the high-level cmdlets** (`Get-Safeguard*`, `Find-Safeguard*`,
+`New-Safeguard*`, `Remove-Safeguard*`, `Edit-Safeguard*`, `Close-Safeguard*`) over raw
+`Invoke-SafeguardMethod` calls -- in ad-hoc testing, test suites, **and** implementation
+code. The cmdlets handle parameter resolution, error formatting, and interactive prompts.
+Only fall back to `Invoke-SafeguardMethod` for endpoints that do not have a corresponding
+cmdlet.
+
+This applies to **test suites** especially. For example:
+
+```powershell
+# WRONG -- raw API call when a cmdlet exists
+$user = Invoke-SafeguardMethod -Insecure Core POST "Users" -Body @{
+    PrimaryAuthenticationProvider = @{ Id = -2; Identity = $thumbprint }
+    Name = $userName
+}
+
+# RIGHT -- use the idiomatic cmdlet
+$user = New-SafeguardUser -Insecure -Provider certificate `
+    -NewUserName $userName -Thumbprint $thumbprint -NoPassword
+```
+
+When writing new tests or implementation code, check `Get-SafeguardCommand <keyword>` to
+discover if a cmdlet already exists for the operation you need.
 
 ### `Get-` vs `Find-` cmdlets
 
@@ -488,6 +513,11 @@ if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCm
 
 Public cmdlets accept `$Appliance`, `$AccessToken`, and `[switch]$Insecure` to allow
 explicit credentials, but fall back to `$SafeguardSession` globals when omitted.
+
+**Exception -- A2A caller cmdlets** (`a2acallers.psm1`): These 10 public cmdlets use client
+certificate + API key authentication instead of access tokens. They accept `-CertificateFile`,
+`-Thumbprint`, or `-CertificateObject` (not `-AccessToken`). This is by design -- A2A is a
+machine-to-machine credential retrieval protocol that authenticates via mutual TLS.
 
 ### Resolve helpers
 
@@ -684,6 +714,18 @@ $scriptPath = Join-Path $PSScriptRoot "..\TestData\GenericLinuxWithSSHKeySupport
 When test data contains identifiers that must be globally unique (e.g., platform script IDs),
 replace them with test-prefixed values at runtime to avoid collisions with other tests or
 pre-existing data on the appliance.
+
+#### Certificate test data (`test/TestData/CERTS/`)
+
+Two separate certificate chains exist for different test scenarios:
+
+- **3-level chain** (`RootCA.pem` + `IntermediateCA.pem` + `UserCert.pfx`): Used by A2A
+  suites (A2ACredentials, A2ARegistrations, A2AEventListener). Requires installing both
+  Root and Intermediate CAs as trusted.
+- **Simple CA** (`CertAuthCA.pem` + `CertAuthUser.pfx`): Used by CertificateAuthentication
+  and Connect suites. Single CA install required.
+
+All PFX files use password `"a"`. These are self-signed test-only certificates.
 
 ### Pre-cleanup for test reliability
 
