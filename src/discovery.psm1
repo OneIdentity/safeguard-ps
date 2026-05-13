@@ -841,3 +841,264 @@ function Remove-SafeguardAccountDiscoveryScheduleAsset
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST `
         "AssetPartitions/$AssetPartitionId/AccountDiscoverySchedules/$($local:ScheduleId)/Assets/Remove" -Body $local:Assets
 }
+
+<#
+.SYNOPSIS
+Get account discovery rules from an account discovery schedule in Safeguard via the Web API.
+
+.DESCRIPTION
+Get the list of account discovery rules configured on a specific account discovery
+schedule. Rules control which accounts are discovered and whether they are
+automatically brought under management.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+containing the account discovery schedule.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID containing the account discovery schedule.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER Schedule
+An integer containing the ID of the account discovery schedule or a string containing the name.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardAccountDiscoveryRule -Insecure -Schedule "My Unix Schedule"
+
+.EXAMPLE
+Get-SafeguardAccountDiscoveryRule -Insecure -Schedule 3
+#>
+function Get-SafeguardAccountDiscoveryRule
+{
+    [CmdletBinding()]
+    [OutputType([object[]])]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Schedule
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
+    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -UseDefault)
+
+    $local:ScheduleId = (Resolve-SafeguardAccountDiscoveryScheduleId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                             -AssetPartitionId $AssetPartitionId $Schedule)
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET `
+        "AssetPartitions/$AssetPartitionId/AccountDiscoverySchedules/$($local:ScheduleId)/Rules"
+}
+
+<#
+.SYNOPSIS
+Add an account discovery rule to an account discovery schedule in Safeguard via the Web API.
+
+.DESCRIPTION
+Add a new rule to an account discovery schedule. Rules define which accounts are
+discovered and whether they should be automatically brought under management.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+containing the account discovery schedule.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID containing the account discovery schedule.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER Schedule
+An integer containing the ID of the account discovery schedule or a string containing the name.
+
+.PARAMETER RuleName
+A string containing the name for the new discovery rule.
+
+.PARAMETER AutoManageDiscoveredAccounts
+Whether discovered accounts matching this rule should be automatically brought under management.
+
+.PARAMETER RuleObject
+A hashtable or PSObject containing the full rule definition including type-specific
+properties (e.g., UnixAccountDiscoveryProperties, WindowsAccountDiscoveryProperties).
+When specified, RuleName and AutoManageDiscoveredAccounts are ignored.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Add-SafeguardAccountDiscoveryRule -Insecure -Schedule "My Schedule" -RuleName "Discover All"
+
+.EXAMPLE
+Add-SafeguardAccountDiscoveryRule -Insecure -Schedule 3 -RuleName "Auto Manage" -AutoManageDiscoveredAccounts
+#>
+function Add-SafeguardAccountDiscoveryRule
+{
+    [CmdletBinding(DefaultParameterSetName="Attributes")]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Schedule,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$true)]
+        [string]$RuleName,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [switch]$AutoManageDiscoveredAccounts,
+        [Parameter(ParameterSetName="Object",Mandatory=$true)]
+        [object]$RuleObject
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
+    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -UseDefault)
+
+    $local:ScheduleId = (Resolve-SafeguardAccountDiscoveryScheduleId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                             -AssetPartitionId $AssetPartitionId $Schedule)
+
+    if ($PSCmdlet.ParameterSetName -eq "Object")
+    {
+        $local:Body = @($RuleObject)
+    }
+    else
+    {
+        $local:Rule = @{
+            "Name" = $RuleName;
+            "AutoManageDiscoveredAccounts" = [bool]$AutoManageDiscoveredAccounts;
+        }
+        $local:Body = @($local:Rule)
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST `
+        "AssetPartitions/$AssetPartitionId/AccountDiscoverySchedules/$($local:ScheduleId)/Rules/Add" -Body $local:Body
+}
+
+<#
+.SYNOPSIS
+Remove an account discovery rule from an account discovery schedule in Safeguard via the Web API.
+
+.DESCRIPTION
+Remove a rule from an account discovery schedule by name. The rule will no longer
+apply to future discovery runs.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+containing the account discovery schedule.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID containing the account discovery schedule.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER Schedule
+An integer containing the ID of the account discovery schedule or a string containing the name.
+
+.PARAMETER RuleName
+A string containing the name of the discovery rule to remove.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardAccountDiscoveryRule -Insecure -Schedule "My Schedule" -RuleName "Old Rule"
+
+.EXAMPLE
+Remove-SafeguardAccountDiscoveryRule -Insecure -Schedule 3 -RuleName "Deprecated Rule"
+#>
+function Remove-SafeguardAccountDiscoveryRule
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Schedule,
+        [Parameter(Mandatory=$true)]
+        [string]$RuleName
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
+    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -UseDefault)
+
+    $local:ScheduleId = (Resolve-SafeguardAccountDiscoveryScheduleId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                             -AssetPartitionId $AssetPartitionId $Schedule)
+
+    $local:Rules = @(Get-SafeguardAccountDiscoveryRule -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                         -AssetPartitionId $AssetPartitionId -Schedule $Schedule)
+    $local:RuleToRemove = ($local:Rules | Where-Object { $_.Name -ieq $RuleName })
+    if (-not $local:RuleToRemove)
+    {
+        throw "Unable to find account discovery rule '$RuleName' on schedule (Id=$($local:ScheduleId))"
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST `
+        "AssetPartitions/$AssetPartitionId/AccountDiscoverySchedules/$($local:ScheduleId)/Rules/Remove" -Body @($local:RuleToRemove)
+}
