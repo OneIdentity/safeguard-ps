@@ -590,3 +590,254 @@ function Copy-SafeguardAccountDiscoverySchedule
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
         POST "AssetPartitions/$AssetPartitionId/AccountDiscoverySchedules" -Body $local:Item
 }
+
+<#
+.SYNOPSIS
+Get assets assigned to an account discovery schedule in Safeguard via the Web API.
+
+.DESCRIPTION
+Get the list of assets that are assigned to a specific account discovery schedule.
+These are the assets that will be scanned when the schedule runs.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+containing the account discovery schedule.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID containing the account discovery schedule.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER Schedule
+An integer containing the ID of the account discovery schedule or a string containing the name.
+
+.PARAMETER Fields
+An array of property names to return.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardAccountDiscoveryScheduleAsset -Insecure "My Unix Schedule"
+
+.EXAMPLE
+Get-SafeguardAccountDiscoveryScheduleAsset -Insecure 3
+#>
+function Get-SafeguardAccountDiscoveryScheduleAsset
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Schedule,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
+    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -UseDefault)
+
+    $local:ScheduleId = (Resolve-SafeguardAccountDiscoveryScheduleId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                             -AssetPartitionId $AssetPartitionId $Schedule)
+
+    $local:Parameters = $null
+    if ($Fields)
+    {
+        $local:Parameters = @{ fields = ($Fields -join ",") }
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET `
+        "AssetPartitions/$AssetPartitionId/AccountDiscoverySchedules/$($local:ScheduleId)/Assets" -Parameters $local:Parameters
+}
+
+<#
+.SYNOPSIS
+Add assets to an account discovery schedule in Safeguard via the Web API.
+
+.DESCRIPTION
+Add one or more assets to an account discovery schedule. The assets will be scanned
+for new accounts when the schedule runs or when discovery is triggered manually.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+containing the account discovery schedule.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID containing the account discovery schedule.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER Schedule
+An integer containing the ID of the account discovery schedule or a string containing the name.
+
+.PARAMETER AssetsToAdd
+A list of integers or strings containing the IDs or names of the assets to add to the schedule.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Add-SafeguardAccountDiscoveryScheduleAsset -Insecure -Schedule "My Schedule" -AssetsToAdd "linux-server1","linux-server2"
+
+.EXAMPLE
+Add-SafeguardAccountDiscoveryScheduleAsset -Insecure -Schedule 3 -AssetsToAdd 42,55
+#>
+function Add-SafeguardAccountDiscoveryScheduleAsset
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Schedule,
+        [Parameter(Mandatory=$true,Position=1)]
+        [object[]]$AssetsToAdd
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
+    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -UseDefault)
+
+    $local:ScheduleId = (Resolve-SafeguardAccountDiscoveryScheduleId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                             -AssetPartitionId $AssetPartitionId $Schedule)
+
+    [object[]]$local:Assets = $null
+    foreach ($local:Asset in $AssetsToAdd)
+    {
+        $local:ResolvedAsset = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:Asset)
+        $local:Assets += $($local:ResolvedAsset)
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST `
+        "AssetPartitions/$AssetPartitionId/AccountDiscoverySchedules/$($local:ScheduleId)/Assets/Add" -Body $local:Assets
+}
+
+<#
+.SYNOPSIS
+Remove assets from an account discovery schedule in Safeguard via the Web API.
+
+.DESCRIPTION
+Remove one or more assets from an account discovery schedule. The assets will no
+longer be scanned when the schedule runs.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+containing the account discovery schedule.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID containing the account discovery schedule.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER Schedule
+An integer containing the ID of the account discovery schedule or a string containing the name.
+
+.PARAMETER AssetsToRemove
+A list of integers or strings containing the IDs or names of the assets to remove from the schedule.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Remove-SafeguardAccountDiscoveryScheduleAsset -Insecure -Schedule "My Schedule" -AssetsToRemove "linux-server1"
+
+.EXAMPLE
+Remove-SafeguardAccountDiscoveryScheduleAsset -Insecure -Schedule 3 -AssetsToRemove 42
+#>
+function Remove-SafeguardAccountDiscoveryScheduleAsset
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Schedule,
+        [Parameter(Mandatory=$true,Position=1)]
+        [object[]]$AssetsToRemove
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
+    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -UseDefault)
+
+    $local:ScheduleId = (Resolve-SafeguardAccountDiscoveryScheduleId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                             -AssetPartitionId $AssetPartitionId $Schedule)
+
+    [object[]]$local:Assets = $null
+    foreach ($local:Asset in $AssetsToRemove)
+    {
+        $local:ResolvedAsset = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:Asset)
+        $local:Assets += $($local:ResolvedAsset)
+    }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST `
+        "AssetPartitions/$AssetPartitionId/AccountDiscoverySchedules/$($local:ScheduleId)/Assets/Remove" -Body $local:Assets
+}
