@@ -385,6 +385,159 @@ function Invoke-SafeguardAssetSshHostKeyDiscovery
 
 <#
 .SYNOPSIS
+Trigger account discovery on an asset managed by Safeguard via the Web API.
+
+.DESCRIPTION
+This cmdlet runs account discovery on a specified asset. The asset must have an
+account discovery schedule assigned, or this will fail. The discovery runs
+asynchronously on the appliance and results can be viewed with
+Get-SafeguardDiscoveredAccount.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID.
+
+.PARAMETER Asset
+An integer containing the asset ID or a string containing the name of the asset.
+
+.PARAMETER ExtendedLogging
+Generate debug task log for the discovery action.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API (AccountDiscoveryLog).
+
+.EXAMPLE
+Invoke-SafeguardAssetAccountDiscovery -Insecure "linux-server-01"
+
+.EXAMPLE
+Invoke-SafeguardAssetAccountDiscovery -Insecure -Asset 42 -ExtendedLogging
+#>
+function Invoke-SafeguardAssetAccountDiscovery
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Asset,
+        [Parameter(Mandatory=$false)]
+        [switch]$ExtendedLogging
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                          -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $Asset)
+
+    $local:Parameters = @{}
+    if ($ExtendedLogging) { $local:Parameters.extendedLogging = $true }
+
+    Write-Host "Triggering account discovery..."
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        POST "Assets/$($local:AssetId)/DiscoverAccounts" -Parameters $local:Parameters
+}
+
+<#
+.SYNOPSIS
+Trigger service discovery on an asset managed by Safeguard via the Web API.
+
+.DESCRIPTION
+This cmdlet runs service discovery on a specified asset to find Windows services
+or other dependent systems running under managed accounts. The discovery runs
+asynchronously on the appliance.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID.
+
+.PARAMETER Asset
+An integer containing the asset ID or a string containing the name of the asset.
+
+.PARAMETER ExtendedLogging
+Generate debug task log for the discovery action.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API (ServiceDiscoveryLog).
+
+.EXAMPLE
+Invoke-SafeguardAssetServiceDiscovery -Insecure "windows-server-01"
+
+.EXAMPLE
+Invoke-SafeguardAssetServiceDiscovery -Insecure -Asset 42 -ExtendedLogging
+#>
+function Invoke-SafeguardAssetServiceDiscovery
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Asset,
+        [Parameter(Mandatory=$false)]
+        [switch]$ExtendedLogging
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                          -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $Asset)
+
+    $local:Parameters = @{}
+    if ($ExtendedLogging) { $local:Parameters.extendedLogging = $true }
+
+    Write-Host "Triggering service discovery..."
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        POST "Assets/$($local:AssetId)/DiscoverServices" -Parameters $local:Parameters
+}
+
+<#
+.SYNOPSIS
 Get assets managed by Safeguard via the Web API.
 
 .DESCRIPTION
