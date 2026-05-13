@@ -1690,3 +1690,338 @@ function New-SafeguardAccountDiscoveryRuleRoleBased
 
     $local:Rule
 }
+
+# Discovered Account cmdlets
+
+<#
+.SYNOPSIS
+Get discovered accounts from Safeguard via the Web API.
+
+.DESCRIPTION
+Get a list of accounts that have been discovered on assets. Can be scoped to a
+specific asset, partition, or all partitions. Use -Filter to narrow results by
+status or other properties.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID.
+
+.PARAMETER Asset
+An integer containing the asset ID or a string containing the asset name.
+When specified, only returns discovered accounts for that asset.
+
+.PARAMETER Fields
+An array of property names to return.
+
+.PARAMETER Filter
+A filter string (e.g., "Status eq 'None'" for unmanaged accounts).
+
+.PARAMETER IncludeIgnored
+Include accounts that have been marked as ignored. By default, ignored accounts
+are excluded from results.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardDiscoveredAccount -Insecure -Asset "linux-server-01"
+
+.EXAMPLE
+Get-SafeguardDiscoveredAccount -Insecure -Filter "Status eq 'None'"
+
+.EXAMPLE
+Get-SafeguardDiscoveredAccount -Insecure -AssetPartition "Unix Servers"
+
+.EXAMPLE
+Get-SafeguardDiscoveredAccount -Insecure -IncludeIgnored
+#>
+function Get-SafeguardDiscoveredAccount
+{
+    [CmdletBinding()]
+    [OutputType([object[]])]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$Asset,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Fields,
+        [Parameter(Mandatory=$false)]
+        [string]$Filter,
+        [Parameter(Mandatory=$false)]
+        [switch]$IncludeIgnored
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Parameters = @{}
+    if ($Fields) { $local:Parameters.fields = ($Fields -join ",") }
+    if (-not $IncludeIgnored)
+    {
+        if ($Filter)
+        {
+            $local:Parameters.filter = "($Filter) and (Status ne 'Ignored')"
+        }
+        else
+        {
+            $local:Parameters.filter = "Status ne 'Ignored'"
+        }
+    }
+    elseif ($Filter)
+    {
+        $local:Parameters.filter = $Filter
+    }
+
+    if ($PSBoundParameters.ContainsKey("Asset"))
+    {
+        Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
+        $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                              -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $Asset)
+        $local:RelPath = "Assets/$($local:AssetId)/DiscoveredAccounts"
+    }
+    elseif ($PSBoundParameters.ContainsKey("AssetPartition") -or $AssetPartitionId)
+    {
+        Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
+        $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                                 -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId)
+        $local:RelPath = "AssetPartitions/$AssetPartitionId/DiscoveredAccounts"
+    }
+    else
+    {
+        $local:RelPath = "AssetPartitions/DiscoveredAccounts"
+    }
+
+    if ($local:Parameters.Count -gt 0)
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET `
+            "$($local:RelPath)" -Parameters $local:Parameters
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET `
+            "$($local:RelPath)"
+    }
+}
+
+<#
+.SYNOPSIS
+Bring a discovered account under management in Safeguard via the Web API.
+
+.DESCRIPTION
+Takes a discovered account and imports it into Safeguard management. This is
+equivalent to "Manage" in the UI. Optionally specify profile assignments and
+release permissions via parameters.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID.
+
+.PARAMETER Asset
+An integer containing the asset ID or a string containing the asset name.
+
+.PARAMETER AccountName
+The name of the discovered account to manage.
+
+.PARAMETER Description
+A string containing a description for the managed account.
+
+.PARAMETER ProfileId
+An integer containing the ID of a password profile to assign to the managed account.
+
+.PARAMETER AllowPasswordRelease
+Allow password requests on the newly managed account.
+
+.PARAMETER AllowSessionRelease
+Allow session requests on the newly managed account.
+
+.PARAMETER AllowSshKeyRelease
+Allow SSH key requests on the newly managed account.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API (AssetAccount).
+
+.EXAMPLE
+Import-SafeguardDiscoveredAccount -Insecure -Asset "linux01" -AccountName "jsmith"
+
+.EXAMPLE
+Import-SafeguardDiscoveredAccount -Insecure -Asset 42 -AccountName "svc_backup" -AllowPasswordRelease -ProfileId 3
+#>
+function Import-SafeguardDiscoveredAccount
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Asset,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$AccountName,
+        [Parameter(Mandatory=$false)]
+        [string]$Description,
+        [Parameter(Mandatory=$false)]
+        [int]$ProfileId,
+        [Parameter(Mandatory=$false)]
+        [switch]$AllowPasswordRelease,
+        [Parameter(Mandatory=$false)]
+        [switch]$AllowSessionRelease,
+        [Parameter(Mandatory=$false)]
+        [switch]$AllowSshKeyRelease
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
+    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
+
+    $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                          -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $Asset)
+    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -UseDefault)
+
+    $local:Body = @{}
+    if ($PSBoundParameters.ContainsKey("Description")) { $local:Body.Description = $Description }
+    if ($PSBoundParameters.ContainsKey("ProfileId")) { $local:Body.ProfileId = $ProfileId }
+    if ($PSBoundParameters.ContainsKey("AllowPasswordRelease")) { $local:Body.AllowPasswordRelease = [bool]$AllowPasswordRelease }
+    if ($PSBoundParameters.ContainsKey("AllowSessionRelease")) { $local:Body.AllowSessionRelease = [bool]$AllowSessionRelease }
+    if ($PSBoundParameters.ContainsKey("AllowSshKeyRelease")) { $local:Body.AllowSshKeyRelease = [bool]$AllowSshKeyRelease }
+
+    if ($local:Body.Count -gt 0)
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST `
+            "AssetPartitions/$AssetPartitionId/DiscoveredAccounts/$($local:AssetId)/$AccountName/Manage" -Body $local:Body
+    }
+    else
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST `
+            "AssetPartitions/$AssetPartitionId/DiscoveredAccounts/$($local:AssetId)/$AccountName/Manage"
+    }
+}
+
+<#
+.SYNOPSIS
+Set the status of a discovered account (Ignore or Show) in Safeguard via the Web API.
+
+.DESCRIPTION
+Mark a discovered account as ignored (hiding it from default views) or show a
+previously-ignored account. Use Import-SafeguardDiscoveredAccount to bring an
+account under management instead.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID.
+
+.PARAMETER Asset
+An integer containing the asset ID or a string containing the asset name.
+
+.PARAMETER AccountName
+The name of the discovered account.
+
+.PARAMETER Action
+The action to perform: Ignore or Show.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Set-SafeguardDiscoveredAccountStatus -Insecure -Asset "linux01" -AccountName "nobody" -Action Ignore
+
+.EXAMPLE
+Set-SafeguardDiscoveredAccountStatus -Insecure -Asset 42 -AccountName "guest" -Action Show
+#>
+function Set-SafeguardDiscoveredAccountStatus
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Asset,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$AccountName,
+        [Parameter(Mandatory=$true)]
+        [ValidateSet("Ignore","Show",IgnoreCase=$true)]
+        [string]$Action
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
+    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
+
+    $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                          -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $Asset)
+    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -UseDefault)
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST `
+        "AssetPartitions/$AssetPartitionId/DiscoveredAccounts/$($local:AssetId)/$AccountName/$Action"
+}
