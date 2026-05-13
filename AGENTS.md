@@ -21,9 +21,9 @@ safeguard-ps/
 |-- test/                         # Integration test framework and suites (requires PS 7)
 |   |-- Invoke-SafeguardPsTests.ps1       # Test runner
 |   |-- SafeguardPsTestFramework.psm1     # Framework module
-|   `-- Suites/Suite-*.ps1                # 34 test suite files (~360 tests)
+|   `-- Suites/Suite-*.ps1                # 44 test suite files
 |-- samples/                      # Example scripts
-|-- docker/                       # Dockerfiles (Ubuntu, Alpine, Mariner, Windows)
+|-- docker/                       # Dockerfiles (Ubuntu, Alpine, Azure Linux)
 |-- pipeline-templates/           # Azure Pipelines CI/CD templates
 |-- Invoke-PsLint.ps1            # PSScriptAnalyzer lint script
 |-- install-local.ps1            # Local development install
@@ -158,7 +158,7 @@ The test runner requires **PowerShell 7** (`pwsh`). It automatically:
 - Runs pre-cleanup to remove stale objects from prior failed runs
 - Reports pass/fail/skip with structured output
 
-A healthy baseline is **350 passed, 0 failed, 8 skipped** (SPS tests skip when no SPS
+A healthy baseline is **350+ passed, 0 failed, ~8 skipped** (SPS tests skip when no SPS
 appliance is provided).
 
 ### Fixing test failures
@@ -205,6 +205,19 @@ Map feature modules to suites:
 | `sessionapi.psm1` | SpsIntegration (requires SPS appliance) |
 | `maintenance.psm1` | BackupRestore (optional, must be explicitly requested) |
 | `customplatforms.psm1` | CustomPlatforms |
+| `auditlog.psm1` | AuditLog, AuditLogAccessRequests, AuditLogMaintenance, AuditLogObjectChanges, AuditLogPlatformScripts, AuditLogScheduledReports |
+| `reasoncodes.psm1` | ReasonCodes |
+| `runningtasks.psm1` | RunningTasks |
+| `clustering.psm1` | (no dedicated suite -- test manually) |
+| `archives.psm1` | (no dedicated suite -- test manually) |
+| `syslog.psm1` | (no dedicated suite -- test manually) |
+| `starling.psm1` | (no dedicated suite -- test manually) |
+| `service.psm1` | (no dedicated suite -- test manually) |
+| `sessionjoin.psm1` | SpsApi (requires SPS appliance) |
+| `schedules.psm1` | (utility -- used by profiles and policies) |
+| `datatypes.psm1` | DataTypes |
+| `profiles.psm1` | PasswordProfiles |
+| `managementShell.psm1` | ManagementShell |
 
 ## Exploring the Safeguard API
 
@@ -280,6 +293,21 @@ not apply to `HttpWebRequest` on .NET Core (PS 7). The SSE stream code uses per-
 fetch the initial credential, call the handler, then listen for change events. On each
 event they fetch the updated credential and call the handler again. The handler receives
 the event name and the credential value (password string or private key string).
+
+### `ConvertTo-Json` depth
+
+PowerShell's `ConvertTo-Json` defaults to depth 2, silently truncating deeper objects into
+type name strings. The root module uses `-Depth 100` when serializing `-Body` parameters.
+When writing cmdlets that manually call `ConvertTo-Json` (e.g., for verbose logging or file
+export), always specify `-Depth 100` to avoid silent data loss:
+
+```powershell
+# WRONG -- nested objects beyond depth 2 become "System.Collections.Hashtable"
+$json = ConvertTo-Json $complexObject
+
+# RIGHT
+$json = ConvertTo-Json -Depth 100 $complexObject
+```
 
 ### API versioning
 
@@ -514,7 +542,7 @@ if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCm
 Public cmdlets accept `$Appliance`, `$AccessToken`, and `[switch]$Insecure` to allow
 explicit credentials, but fall back to `$SafeguardSession` globals when omitted.
 
-**Exception -- A2A caller cmdlets** (`a2acallers.psm1`): These 10 public cmdlets use client
+**Exception -- A2A caller cmdlets** (`a2acallers.psm1`): These 12 public cmdlets use client
 certificate + API key authentication instead of access tokens. They accept `-CertificateFile`,
 `-Thumbprint`, or `-CertificateObject` (not `-AccessToken`). This is by design -- A2A is a
 machine-to-machine credential retrieval protocol that authenticates via mutual TLS.
@@ -702,6 +730,30 @@ assumes those secrets exist locally.
 }
 ```
 
+### Test framework helpers
+
+The test framework (`SafeguardPsTestFramework.psm1`) exports these key functions:
+
+| Function | Purpose |
+|----------|---------|
+| `Test-SgPsAssert` | Primary assertion -- takes a description and a scriptblock that returns `$true`/`$false` |
+| `Register-SgPsTestCleanup` | Register a cleanup action that runs automatically after suite Cleanup block |
+| `Invoke-SgPsTestCleanup` | Manually trigger registered cleanups (rarely needed) |
+| `Remove-SgPsStaleTestObject` | Pre-cleanup helper -- removes objects by name from a collection |
+| `Connect-SgPsTestAppliance` | Connect to the test appliance (handles PKCE/ROG automatically) |
+| `Connect-SgPsTestSession` | Establish a test session with the run-admin user |
+| `Connect-SgPsTestUser` | Connect as a specific test user |
+| `Invoke-SgPsApi` | Low-level API call wrapper used by the framework |
+| `Import-SgPsModule` | Import the safeguard-ps module into the test session |
+| `Write-SgPsTestReport` | Output structured test results to console |
+| `Export-SgPsTestReport` | Export test results to file |
+
+The `$Context` object passed to Setup/Execute/Cleanup blocks contains:
+- `$Context.TestPrefix` -- default `SgPsTest`, used to namespace all test objects
+- `$Context.SuiteData` -- hashtable for passing state between Setup and Execute
+- `$Context.Appliance` -- the target appliance address
+- `$Context.RunAdmin` -- credentials for the temporary admin user
+
 ### Test data files
 
 Static test data (scripts, certificates, JSON fixtures) lives in `test/TestData/`. Reference
@@ -867,8 +919,20 @@ should be followed by an independent GET readback that confirms the change persi
 ## Sample scripts
 
 The `samples/` directory contains example scripts demonstrating common workflows:
-certificate authentication, bulk asset loading, entitlement setup, event monitoring, etc.
-Refer users to these for usage patterns.
+
+| Script | Purpose |
+|--------|---------|
+| `certificate-user-demo.ps1` | Certificate-based user authentication |
+| `new-test-entitlement.ps1` | Creating entitlements with policies |
+| `fix-service-account-ssh-keys.ps1` | Bulk SSH key remediation |
+| `rsts-login.ps1` | Direct RSTS token login flow |
+| `load-bulk-assets.ps1` | Importing assets from CSV |
+| `initialize-safeguard-defaults.ps1` | Setting up a fresh appliance |
+| `Start-SafeguardMonitor.ps1` | Real-time event monitoring |
+| `simulate-webui-login.ps1` | Simulating browser login flow |
+| `tag-examples.ps1` | Tag creation and assignment |
+
+See `samples/README.md` for detailed descriptions. Refer users to these for usage patterns.
 
 ## Keeping this file current
 
