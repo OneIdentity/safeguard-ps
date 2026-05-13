@@ -21,9 +21,9 @@ safeguard-ps/
 |-- test/                         # Integration test framework and suites (requires PS 7)
 |   |-- Invoke-SafeguardPsTests.ps1       # Test runner
 |   |-- SafeguardPsTestFramework.psm1     # Framework module
-|   `-- Suites/Suite-*.ps1                # 34 test suite files (~360 tests)
+|   `-- Suites/Suite-*.ps1                # 44 test suite files
 |-- samples/                      # Example scripts
-|-- docker/                       # Dockerfiles (Ubuntu, Alpine, Mariner, Windows)
+|-- docker/                       # Dockerfiles (Ubuntu, Alpine, Azure Linux)
 |-- pipeline-templates/           # Azure Pipelines CI/CD templates
 |-- Invoke-PsLint.ps1            # PSScriptAnalyzer lint script
 |-- install-local.ps1            # Local development install
@@ -144,13 +144,21 @@ pwsh -File ./test/Invoke-SafeguardPsTests.ps1 `
 pwsh -File ./test/Invoke-SafeguardPsTests.ps1 -ListSuites
 ```
 
+**Windows invocation note:** When calling from a `powershell.exe` (PS 5.1) host shell, use
+`-Command` with an explicit array instead of `-File` with comma-separated values:
+
+```powershell
+# From PS 5.1 host -- -File may not parse the -Suite array correctly
+pwsh -NoProfile -Command "& .\test\Invoke-SafeguardPsTests.ps1 -Appliance '10.0.0.1' -AdminPassword 'pwd' -Suite @('Connect','Users')"
+```
+
 The test runner requires **PowerShell 7** (`pwsh`). It automatically:
 - Creates a temporary admin user for isolation
 - Enables Resource Owner grant if disabled (and restores the original setting afterward)
 - Runs pre-cleanup to remove stale objects from prior failed runs
 - Reports pass/fail/skip with structured output
 
-A healthy baseline is **350 passed, 0 failed, 8 skipped** (SPS tests skip when no SPS
+A healthy baseline is **350+ passed, 0 failed, ~8 skipped** (SPS tests skip when no SPS
 appliance is provided).
 
 ### Fixing test failures
@@ -174,7 +182,7 @@ Map feature modules to suites:
 
 | Module | Relevant suites |
 |--------|----------------|
-| `safeguard-ps.psm1` | Connect, ApplianceStatus, DataTypes, ManagementShell |
+| `safeguard-ps.psm1` | Connect, CertificateAuthentication, ApplianceStatus, DataTypes, ManagementShell |
 | `users.psm1` | Users |
 | `assets.psm1` | Assets, AssetAccounts |
 | `assetpartitions.psm1` | AssetPartitions, PasswordProfiles |
@@ -197,6 +205,19 @@ Map feature modules to suites:
 | `sessionapi.psm1` | SpsIntegration (requires SPS appliance) |
 | `maintenance.psm1` | BackupRestore (optional, must be explicitly requested) |
 | `customplatforms.psm1` | CustomPlatforms |
+| `auditlog.psm1` | AuditLog, AuditLogAccessRequests, AuditLogMaintenance, AuditLogObjectChanges, AuditLogPlatformScripts, AuditLogScheduledReports |
+| `reasoncodes.psm1` | ReasonCodes |
+| `runningtasks.psm1` | RunningTasks |
+| `clustering.psm1` | (no dedicated suite -- test manually) |
+| `archives.psm1` | (no dedicated suite -- test manually) |
+| `syslog.psm1` | (no dedicated suite -- test manually) |
+| `starling.psm1` | (no dedicated suite -- test manually) |
+| `service.psm1` | (no dedicated suite -- test manually) |
+| `sessionjoin.psm1` | SpsApi (requires SPS appliance) |
+| `schedules.psm1` | (utility -- used by profiles and policies) |
+| `datatypes.psm1` | DataTypes |
+| `profiles.psm1` | PasswordProfiles |
+| `managementShell.psm1` | ManagementShell |
 
 ## Exploring the Safeguard API
 
@@ -273,6 +294,21 @@ fetch the initial credential, call the handler, then listen for change events. O
 event they fetch the updated credential and call the handler again. The handler receives
 the event name and the credential value (password string or private key string).
 
+### `ConvertTo-Json` depth
+
+PowerShell's `ConvertTo-Json` defaults to depth 2, silently truncating deeper objects into
+type name strings. The root module uses `-Depth 100` when serializing `-Body` parameters.
+When writing cmdlets that manually call `ConvertTo-Json` (e.g., for verbose logging or file
+export), always specify `-Depth 100` to avoid silent data loss:
+
+```powershell
+# WRONG -- nested objects beyond depth 2 become "System.Collections.Hashtable"
+$json = ConvertTo-Json $complexObject
+
+# RIGHT
+$json = ConvertTo-Json -Depth 100 $complexObject
+```
+
 ### API versioning
 
 The default API version is **v4** (since module version 7.0). Callers can pass `-Version 3`.
@@ -305,12 +341,29 @@ For raw content uploads (scripts, certificates), also pass `-ContentType "applic
 
 ### Prefer cmdlets over Invoke-SafeguardMethod
 
-When interacting with the appliance (ad-hoc testing, cleanup, investigation), **always
-prefer the high-level cmdlets** (`Get-Safeguard*`, `Find-Safeguard*`, `New-Safeguard*`,
-`Remove-Safeguard*`, `Edit-Safeguard*`, `Close-Safeguard*`) over raw
-`Invoke-SafeguardMethod` calls. The cmdlets handle parameter resolution, error formatting,
-and interactive prompts. Only fall back to `Invoke-SafeguardMethod` for endpoints that do
-not have a corresponding cmdlet.
+**Always prefer the high-level cmdlets** (`Get-Safeguard*`, `Find-Safeguard*`,
+`New-Safeguard*`, `Remove-Safeguard*`, `Edit-Safeguard*`, `Close-Safeguard*`) over raw
+`Invoke-SafeguardMethod` calls -- in ad-hoc testing, test suites, **and** implementation
+code. The cmdlets handle parameter resolution, error formatting, and interactive prompts.
+Only fall back to `Invoke-SafeguardMethod` for endpoints that do not have a corresponding
+cmdlet.
+
+This applies to **test suites** especially. For example:
+
+```powershell
+# WRONG -- raw API call when a cmdlet exists
+$user = Invoke-SafeguardMethod -Insecure Core POST "Users" -Body @{
+    PrimaryAuthenticationProvider = @{ Id = -2; Identity = $thumbprint }
+    Name = $userName
+}
+
+# RIGHT -- use the idiomatic cmdlet
+$user = New-SafeguardUser -Insecure -Provider certificate `
+    -NewUserName $userName -Thumbprint $thumbprint -NoPassword
+```
+
+When writing new tests or implementation code, check `Get-SafeguardCommand <keyword>` to
+discover if a cmdlet already exists for the operation you need.
 
 ### `Get-` vs `Find-` cmdlets
 
@@ -488,6 +541,11 @@ if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCm
 
 Public cmdlets accept `$Appliance`, `$AccessToken`, and `[switch]$Insecure` to allow
 explicit credentials, but fall back to `$SafeguardSession` globals when omitted.
+
+**Exception -- A2A caller cmdlets** (`a2acallers.psm1`): These 12 public cmdlets use client
+certificate + API key authentication instead of access tokens. They accept `-CertificateFile`,
+`-Thumbprint`, or `-CertificateObject` (not `-AccessToken`). This is by design -- A2A is a
+machine-to-machine credential retrieval protocol that authenticates via mutual TLS.
 
 ### Resolve helpers
 
@@ -672,6 +730,30 @@ assumes those secrets exist locally.
 }
 ```
 
+### Test framework helpers
+
+The test framework (`SafeguardPsTestFramework.psm1`) exports these key functions:
+
+| Function | Purpose |
+|----------|---------|
+| `Test-SgPsAssert` | Primary assertion -- takes a description and a scriptblock that returns `$true`/`$false` |
+| `Register-SgPsTestCleanup` | Register a cleanup action that runs automatically after suite Cleanup block |
+| `Invoke-SgPsTestCleanup` | Manually trigger registered cleanups (rarely needed) |
+| `Remove-SgPsStaleTestObject` | Pre-cleanup helper -- removes objects by name from a collection |
+| `Connect-SgPsTestAppliance` | Connect to the test appliance (handles PKCE/ROG automatically) |
+| `Connect-SgPsTestSession` | Establish a test session with the run-admin user |
+| `Connect-SgPsTestUser` | Connect as a specific test user |
+| `Invoke-SgPsApi` | Low-level API call wrapper used by the framework |
+| `Import-SgPsModule` | Import the safeguard-ps module into the test session |
+| `Write-SgPsTestReport` | Output structured test results to console |
+| `Export-SgPsTestReport` | Export test results to file |
+
+The `$Context` object passed to Setup/Execute/Cleanup blocks contains:
+- `$Context.TestPrefix` -- default `SgPsTest`, used to namespace all test objects
+- `$Context.SuiteData` -- hashtable for passing state between Setup and Execute
+- `$Context.Appliance` -- the target appliance address
+- `$Context.RunAdmin` -- credentials for the temporary admin user
+
 ### Test data files
 
 Static test data (scripts, certificates, JSON fixtures) lives in `test/TestData/`. Reference
@@ -684,6 +766,18 @@ $scriptPath = Join-Path $PSScriptRoot "..\TestData\GenericLinuxWithSSHKeySupport
 When test data contains identifiers that must be globally unique (e.g., platform script IDs),
 replace them with test-prefixed values at runtime to avoid collisions with other tests or
 pre-existing data on the appliance.
+
+#### Certificate test data (`test/TestData/CERTS/`)
+
+Two separate certificate chains exist for different test scenarios:
+
+- **3-level chain** (`RootCA.pem` + `IntermediateCA.pem` + `UserCert.pfx`): Used by A2A
+  suites (A2ACredentials, A2ARegistrations, A2AEventListener). Requires installing both
+  Root and Intermediate CAs as trusted.
+- **Simple CA** (`CertAuthCA.pem` + `CertAuthUser.pfx`): Used by CertificateAuthentication
+  and Connect suites. Single CA install required.
+
+All PFX files use password `"a"`. These are self-signed test-only certificates.
 
 ### Pre-cleanup for test reliability
 
@@ -825,8 +919,20 @@ should be followed by an independent GET readback that confirms the change persi
 ## Sample scripts
 
 The `samples/` directory contains example scripts demonstrating common workflows:
-certificate authentication, bulk asset loading, entitlement setup, event monitoring, etc.
-Refer users to these for usage patterns.
+
+| Script | Purpose |
+|--------|---------|
+| `certificate-user-demo.ps1` | Certificate-based user authentication |
+| `new-test-entitlement.ps1` | Creating entitlements with policies |
+| `fix-service-account-ssh-keys.ps1` | Bulk SSH key remediation |
+| `rsts-login.ps1` | Direct RSTS token login flow |
+| `load-bulk-assets.ps1` | Importing assets from CSV |
+| `initialize-safeguard-defaults.ps1` | Setting up a fresh appliance |
+| `Start-SafeguardMonitor.ps1` | Real-time event monitoring |
+| `simulate-webui-login.ps1` | Simulating browser login flow |
+| `tag-examples.ps1` | Tag creation and assignment |
+
+See `samples/README.md` for detailed descriptions. Refer users to these for usage patterns.
 
 ## Keeping this file current
 
