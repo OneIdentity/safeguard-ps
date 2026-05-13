@@ -1102,3 +1102,591 @@ function Remove-SafeguardAccountDiscoveryRule
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST `
         "AssetPartitions/$AssetPartitionId/AccountDiscoverySchedules/$($local:ScheduleId)/Rules/Remove" -Body @($local:RuleToRemove)
 }
+
+# Rule builder cmdlets
+
+<#
+.SYNOPSIS
+Create a new Unix account discovery rule object for use with Add-SafeguardAccountDiscoveryRule.
+
+.DESCRIPTION
+Create a hashtable representing a Unix account discovery rule. Use -FindAll to discover
+all accounts, or specify one or more filter parameters to use PropertyConstraint mode.
+The resulting object can be passed to Add-SafeguardAccountDiscoveryRule -RuleObject.
+
+.PARAMETER Name
+A string containing the name for the discovery rule.
+
+.PARAMETER FindAll
+Discover all Unix accounts without filtering.
+
+.PARAMETER AutoManageDiscoveredAccounts
+Whether discovered accounts matching this rule should be automatically brought under management.
+
+.PARAMETER NameFilter
+A regular expression to filter account names.
+
+.PARAMETER GroupFilter
+A regular expression to filter account group names.
+
+.PARAMETER UidFilter
+An array of UID filters. Specify single IDs or ranges (e.g., "0", "500-1000").
+
+.PARAMETER GidFilter
+An array of GID filters. Specify single IDs or ranges (e.g., "0", "100-200").
+
+.EXAMPLE
+New-SafeguardAccountDiscoveryRuleUnix -Name "All Unix Accounts" -FindAll
+
+.EXAMPLE
+New-SafeguardAccountDiscoveryRuleUnix -Name "Root Only" -NameFilter "^root$" -AutoManageDiscoveredAccounts
+
+.EXAMPLE
+New-SafeguardAccountDiscoveryRuleUnix -Name "Service Accounts" -UidFilter "0","500-999"
+#>
+function New-SafeguardAccountDiscoveryRuleUnix
+{
+    [CmdletBinding(DefaultParameterSetName="PropertyConstraint")]
+    [OutputType([hashtable])]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Name,
+        [Parameter(ParameterSetName="FindAll",Mandatory=$true)]
+        [switch]$FindAll,
+        [Parameter(Mandatory=$false)]
+        [switch]$AutoManageDiscoveredAccounts,
+        [Parameter(ParameterSetName="PropertyConstraint",Mandatory=$false)]
+        [string]$NameFilter,
+        [Parameter(ParameterSetName="PropertyConstraint",Mandatory=$false)]
+        [string]$GroupFilter,
+        [Parameter(ParameterSetName="PropertyConstraint",Mandatory=$false)]
+        [string[]]$UidFilter,
+        [Parameter(ParameterSetName="PropertyConstraint",Mandatory=$false)]
+        [string[]]$GidFilter
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Rule = @{
+        "Name" = $Name;
+        "AutoManageDiscoveredAccounts" = [bool]$AutoManageDiscoveredAccounts;
+    }
+
+    if ($FindAll)
+    {
+        $local:Rule.UnixAccountDiscoveryProperties = @{ "RuleType" = "FindAll" }
+    }
+    else
+    {
+        $local:Constraints = @{}
+        if ($PSBoundParameters.ContainsKey("NameFilter")) { $local:Constraints.NameFilter = $NameFilter }
+        if ($PSBoundParameters.ContainsKey("GroupFilter")) { $local:Constraints.GroupFilter = $GroupFilter }
+        if ($PSBoundParameters.ContainsKey("UidFilter")) { $local:Constraints.UidFilter = $UidFilter }
+        if ($PSBoundParameters.ContainsKey("GidFilter")) { $local:Constraints.GidFilter = $GidFilter }
+        $local:Rule.UnixAccountDiscoveryProperties = @{
+            "RuleType" = "PropertyConstraint";
+            "PropertyConstraintProperties" = $local:Constraints;
+        }
+    }
+
+    $local:Rule
+}
+
+<#
+.SYNOPSIS
+Create a new Windows account discovery rule object for use with Add-SafeguardAccountDiscoveryRule.
+
+.DESCRIPTION
+Create a hashtable representing a Windows account discovery rule. Use -FindAll to discover
+all accounts, or specify one or more filter parameters to use PropertyConstraint mode.
+The resulting object can be passed to Add-SafeguardAccountDiscoveryRule -RuleObject.
+
+.PARAMETER Name
+A string containing the name for the discovery rule.
+
+.PARAMETER FindAll
+Discover all Windows accounts without filtering.
+
+.PARAMETER AutoManageDiscoveredAccounts
+Whether discovered accounts matching this rule should be automatically brought under management.
+
+.PARAMETER NameFilter
+A regular expression to filter account names.
+
+.PARAMETER GroupFilter
+A regular expression to filter account group names.
+
+.PARAMETER RidFilter
+An array of Windows relative identifier filters. Specify single IDs or ranges (e.g., "500", "1000-1100").
+
+.PARAMETER GidFilter
+An array of GID filters. Specify single IDs or ranges (e.g., "0", "100-200").
+
+.EXAMPLE
+New-SafeguardAccountDiscoveryRuleWindows -Name "All Windows Accounts" -FindAll
+
+.EXAMPLE
+New-SafeguardAccountDiscoveryRuleWindows -Name "Admins Only" -GroupFilter "Administrators"
+
+.EXAMPLE
+New-SafeguardAccountDiscoveryRuleWindows -Name "Built-in Accounts" -RidFilter "500","501"
+#>
+function New-SafeguardAccountDiscoveryRuleWindows
+{
+    [CmdletBinding(DefaultParameterSetName="PropertyConstraint")]
+    [OutputType([hashtable])]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Name,
+        [Parameter(ParameterSetName="FindAll",Mandatory=$true)]
+        [switch]$FindAll,
+        [Parameter(Mandatory=$false)]
+        [switch]$AutoManageDiscoveredAccounts,
+        [Parameter(ParameterSetName="PropertyConstraint",Mandatory=$false)]
+        [string]$NameFilter,
+        [Parameter(ParameterSetName="PropertyConstraint",Mandatory=$false)]
+        [string]$GroupFilter,
+        [Parameter(ParameterSetName="PropertyConstraint",Mandatory=$false)]
+        [string[]]$RidFilter,
+        [Parameter(ParameterSetName="PropertyConstraint",Mandatory=$false)]
+        [string[]]$GidFilter
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Rule = @{
+        "Name" = $Name;
+        "AutoManageDiscoveredAccounts" = [bool]$AutoManageDiscoveredAccounts;
+    }
+
+    if ($FindAll)
+    {
+        $local:Rule.WindowsAccountDiscoveryProperties = @{ "RuleType" = "FindAll" }
+    }
+    else
+    {
+        $local:Constraints = @{}
+        if ($PSBoundParameters.ContainsKey("NameFilter")) { $local:Constraints.NameFilter = $NameFilter }
+        if ($PSBoundParameters.ContainsKey("GroupFilter")) { $local:Constraints.GroupFilter = $GroupFilter }
+        if ($PSBoundParameters.ContainsKey("RidFilter")) { $local:Constraints.RidFilter = $RidFilter }
+        if ($PSBoundParameters.ContainsKey("GidFilter")) { $local:Constraints.GidFilter = $GidFilter }
+        $local:Rule.WindowsAccountDiscoveryProperties = @{
+            "RuleType" = "PropertyConstraint";
+            "PropertyConstraintProperties" = $local:Constraints;
+        }
+    }
+
+    $local:Rule
+}
+
+<#
+.SYNOPSIS
+Create a new Directory account discovery rule object for use with Add-SafeguardAccountDiscoveryRule.
+
+.DESCRIPTION
+Create a hashtable representing a Directory (Active Directory/LDAP) account discovery rule.
+Directory rules support multiple rule types: FindAll, Name, Group, LdapFilter, and
+PropertyConstraint. The resulting object can be passed to Add-SafeguardAccountDiscoveryRule -RuleObject.
+
+.PARAMETER Name
+A string containing the name for the discovery rule.
+
+.PARAMETER FindAll
+Discover all directory accounts without filtering.
+
+.PARAMETER SearchByName
+Use name-based search (ANR search for Active Directory).
+
+.PARAMETER SearchByGroup
+Use group membership search.
+
+.PARAMETER SearchByLdapFilter
+Use a custom LDAP filter for discovery.
+
+.PARAMETER AutoManageDiscoveredAccounts
+Whether discovered accounts matching this rule should be automatically brought under management.
+
+.PARAMETER SearchBase
+An LDAP distinguished name for the search base (e.g., "OU=Users,DC=corp,DC=local").
+
+.PARAMETER SearchScope
+How far to search: OneLevel or SubTree. (default: SubTree)
+
+.PARAMETER SearchName
+The name to search for when using -SearchByName rule type.
+
+.PARAMETER SearchNameType
+How to match the search name: StartsWith or Contains. (default: StartsWith)
+
+.PARAMETER LdapFilter
+A custom LDAP filter string when using -SearchByLdapFilter rule type.
+
+.PARAMETER Groups
+An array of group distinguished names when using -SearchByGroup rule type.
+
+.PARAMETER NameFilter
+A regular expression to filter account names (PropertyConstraint mode).
+
+.PARAMETER GroupFilter
+A regular expression to filter account group names (PropertyConstraint mode).
+
+.PARAMETER UidFilter
+An array of uidNumber filters (Active Directory only). Specify single IDs or ranges.
+
+.PARAMETER RidFilter
+An array of Windows relative identifier filters (Active Directory only). Specify single IDs or ranges.
+
+.PARAMETER GidFilter
+An array of gidNumber filters (Active Directory only). Specify single IDs or ranges.
+
+.PARAMETER PrimaryGidFilter
+An array of primaryGroupID filters (Active Directory only). Specify single IDs or ranges.
+
+.EXAMPLE
+New-SafeguardAccountDiscoveryRuleDirectory -Name "All Directory" -FindAll
+
+.EXAMPLE
+New-SafeguardAccountDiscoveryRuleDirectory -Name "Service Accounts" -SearchByName -SearchName "svc_" -SearchNameType StartsWith -SearchBase "OU=ServiceAccounts,DC=corp,DC=local"
+
+.EXAMPLE
+New-SafeguardAccountDiscoveryRuleDirectory -Name "Admin Group" -SearchByGroup -Groups "CN=Domain Admins,CN=Users,DC=corp,DC=local"
+
+.EXAMPLE
+New-SafeguardAccountDiscoveryRuleDirectory -Name "Custom LDAP" -SearchByLdapFilter -LdapFilter "(&(objectClass=user)(adminCount=1))"
+#>
+function New-SafeguardAccountDiscoveryRuleDirectory
+{
+    [CmdletBinding(DefaultParameterSetName="PropertyConstraint")]
+    [OutputType([hashtable])]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Name,
+        [Parameter(ParameterSetName="FindAll",Mandatory=$true)]
+        [switch]$FindAll,
+        [Parameter(ParameterSetName="Name",Mandatory=$true)]
+        [switch]$SearchByName,
+        [Parameter(ParameterSetName="Group",Mandatory=$true)]
+        [switch]$SearchByGroup,
+        [Parameter(ParameterSetName="LdapFilter",Mandatory=$true)]
+        [switch]$SearchByLdapFilter,
+        [Parameter(Mandatory=$false)]
+        [switch]$AutoManageDiscoveredAccounts,
+        [Parameter(ParameterSetName="FindAll",Mandatory=$false)]
+        [Parameter(ParameterSetName="Name",Mandatory=$false)]
+        [Parameter(ParameterSetName="Group",Mandatory=$false)]
+        [Parameter(ParameterSetName="LdapFilter",Mandatory=$false)]
+        [Parameter(ParameterSetName="PropertyConstraint",Mandatory=$false)]
+        [string]$SearchBase,
+        [Parameter(ParameterSetName="FindAll",Mandatory=$false)]
+        [Parameter(ParameterSetName="Name",Mandatory=$false)]
+        [Parameter(ParameterSetName="Group",Mandatory=$false)]
+        [Parameter(ParameterSetName="LdapFilter",Mandatory=$false)]
+        [Parameter(ParameterSetName="PropertyConstraint",Mandatory=$false)]
+        [ValidateSet("OneLevel","SubTree",IgnoreCase=$true)]
+        [string]$SearchScope,
+        [Parameter(ParameterSetName="Name",Mandatory=$true)]
+        [string]$SearchName,
+        [Parameter(ParameterSetName="Name",Mandatory=$false)]
+        [ValidateSet("StartsWith","Contains",IgnoreCase=$true)]
+        [string]$SearchNameType = "StartsWith",
+        [Parameter(ParameterSetName="LdapFilter",Mandatory=$true)]
+        [string]$LdapFilter,
+        [Parameter(ParameterSetName="Group",Mandatory=$true)]
+        [string[]]$Groups,
+        [Parameter(ParameterSetName="PropertyConstraint",Mandatory=$false)]
+        [string]$NameFilter,
+        [Parameter(ParameterSetName="PropertyConstraint",Mandatory=$false)]
+        [string]$GroupFilter,
+        [Parameter(ParameterSetName="PropertyConstraint",Mandatory=$false)]
+        [string[]]$UidFilter,
+        [Parameter(ParameterSetName="PropertyConstraint",Mandatory=$false)]
+        [string[]]$RidFilter,
+        [Parameter(ParameterSetName="PropertyConstraint",Mandatory=$false)]
+        [string[]]$GidFilter,
+        [Parameter(ParameterSetName="PropertyConstraint",Mandatory=$false)]
+        [string[]]$PrimaryGidFilter
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Rule = @{
+        "Name" = $Name;
+        "AutoManageDiscoveredAccounts" = [bool]$AutoManageDiscoveredAccounts;
+    }
+
+    $local:Props = @{}
+
+    switch ($PSCmdlet.ParameterSetName)
+    {
+        "FindAll" {
+            $local:Props.RuleType = "FindAll"
+        }
+        "Name" {
+            $local:Props.RuleType = "Name"
+            $local:Props.SearchName = $SearchName
+            $local:Props.SearchNameType = $SearchNameType
+        }
+        "Group" {
+            $local:Props.RuleType = "Group"
+            $local:Props.Groups = $Groups
+        }
+        "LdapFilter" {
+            $local:Props.RuleType = "LdapFilter"
+            $local:Props.LdapFilter = $LdapFilter
+        }
+        "PropertyConstraint" {
+            $local:Props.RuleType = "PropertyConstraint"
+            $local:Constraints = @{}
+            if ($PSBoundParameters.ContainsKey("NameFilter")) { $local:Constraints.NameFilter = $NameFilter }
+            if ($PSBoundParameters.ContainsKey("GroupFilter")) { $local:Constraints.GroupFilter = $GroupFilter }
+            if ($PSBoundParameters.ContainsKey("UidFilter")) { $local:Constraints.UidFilter = $UidFilter }
+            if ($PSBoundParameters.ContainsKey("RidFilter")) { $local:Constraints.RidFilter = $RidFilter }
+            if ($PSBoundParameters.ContainsKey("GidFilter")) { $local:Constraints.GidFilter = $GidFilter }
+            if ($PSBoundParameters.ContainsKey("PrimaryGidFilter")) { $local:Constraints.PrimaryGidFilter = $PrimaryGidFilter }
+            $local:Props.PropertyConstraintProperties = $local:Constraints
+        }
+    }
+
+    if ($PSBoundParameters.ContainsKey("SearchBase")) { $local:Props.SearchBase = $SearchBase }
+    if ($PSBoundParameters.ContainsKey("SearchScope")) { $local:Props.SearchScope = $SearchScope }
+
+    $local:Rule.DirectoryAccountDiscoveryProperties = $local:Props
+    $local:Rule
+}
+
+<#
+.SYNOPSIS
+Create a new SPS account discovery rule object for use with Add-SafeguardAccountDiscoveryRule.
+
+.DESCRIPTION
+Create a hashtable representing an SPS (Safeguard for Privileged Sessions) account discovery
+rule. Use -FindAll to discover all accounts, or specify filter parameters for PropertyConstraint
+mode. The resulting object can be passed to Add-SafeguardAccountDiscoveryRule -RuleObject.
+
+.PARAMETER Name
+A string containing the name for the discovery rule.
+
+.PARAMETER FindAll
+Discover all SPS accounts without filtering.
+
+.PARAMETER AutoManageDiscoveredAccounts
+Whether discovered accounts matching this rule should be automatically brought under management.
+
+.PARAMETER NameFilter
+A regular expression to filter account names.
+
+.PARAMETER GroupFilter
+A regular expression to filter account group names.
+
+.EXAMPLE
+New-SafeguardAccountDiscoveryRuleSps -Name "All SPS Accounts" -FindAll
+
+.EXAMPLE
+New-SafeguardAccountDiscoveryRuleSps -Name "Admin Accounts" -NameFilter "^admin"
+#>
+function New-SafeguardAccountDiscoveryRuleSps
+{
+    [CmdletBinding(DefaultParameterSetName="PropertyConstraint")]
+    [OutputType([hashtable])]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Name,
+        [Parameter(ParameterSetName="FindAll",Mandatory=$true)]
+        [switch]$FindAll,
+        [Parameter(Mandatory=$false)]
+        [switch]$AutoManageDiscoveredAccounts,
+        [Parameter(ParameterSetName="PropertyConstraint",Mandatory=$false)]
+        [string]$NameFilter,
+        [Parameter(ParameterSetName="PropertyConstraint",Mandatory=$false)]
+        [string]$GroupFilter
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Rule = @{
+        "Name" = $Name;
+        "AutoManageDiscoveredAccounts" = [bool]$AutoManageDiscoveredAccounts;
+    }
+
+    if ($FindAll)
+    {
+        $local:Rule.SpsAccountDiscoveryProperties = @{ "RuleType" = "FindAll" }
+    }
+    else
+    {
+        $local:Constraints = @{}
+        if ($PSBoundParameters.ContainsKey("NameFilter")) { $local:Constraints.NameFilter = $NameFilter }
+        if ($PSBoundParameters.ContainsKey("GroupFilter")) { $local:Constraints.GroupFilter = $GroupFilter }
+        $local:Rule.SpsAccountDiscoveryProperties = @{
+            "RuleType" = "PropertyConstraint";
+            "PropertyConstraintProperties" = $local:Constraints;
+        }
+    }
+
+    $local:Rule
+}
+
+<#
+.SYNOPSIS
+Create a new Starling Connect account discovery rule object for use with Add-SafeguardAccountDiscoveryRule.
+
+.DESCRIPTION
+Create a hashtable representing a Starling Connect account discovery rule. Use -FindAll to
+discover all accounts, or specify filter parameters for PropertyConstraint mode.
+The resulting object can be passed to Add-SafeguardAccountDiscoveryRule -RuleObject.
+
+.PARAMETER Name
+A string containing the name for the discovery rule.
+
+.PARAMETER FindAll
+Discover all Starling Connect accounts without filtering.
+
+.PARAMETER AutoManageDiscoveredAccounts
+Whether discovered accounts matching this rule should be automatically brought under management.
+
+.PARAMETER NameFilter
+A regular expression to filter account names.
+
+.PARAMETER GroupFilter
+A regular expression to filter account group names.
+
+.PARAMETER RoleFilter
+A regular expression to filter account roles.
+
+.EXAMPLE
+New-SafeguardAccountDiscoveryRuleStarlingConnect -Name "All Starling" -FindAll
+
+.EXAMPLE
+New-SafeguardAccountDiscoveryRuleStarlingConnect -Name "By Role" -RoleFilter "admin"
+#>
+function New-SafeguardAccountDiscoveryRuleStarlingConnect
+{
+    [CmdletBinding(DefaultParameterSetName="PropertyConstraint")]
+    [OutputType([hashtable])]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Name,
+        [Parameter(ParameterSetName="FindAll",Mandatory=$true)]
+        [switch]$FindAll,
+        [Parameter(Mandatory=$false)]
+        [switch]$AutoManageDiscoveredAccounts,
+        [Parameter(ParameterSetName="PropertyConstraint",Mandatory=$false)]
+        [string]$NameFilter,
+        [Parameter(ParameterSetName="PropertyConstraint",Mandatory=$false)]
+        [string]$GroupFilter,
+        [Parameter(ParameterSetName="PropertyConstraint",Mandatory=$false)]
+        [string]$RoleFilter
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Rule = @{
+        "Name" = $Name;
+        "AutoManageDiscoveredAccounts" = [bool]$AutoManageDiscoveredAccounts;
+    }
+
+    if ($FindAll)
+    {
+        $local:Rule.StarlingConnectAccountDiscoveryProperties = @{ "RuleType" = "FindAll" }
+    }
+    else
+    {
+        $local:Constraints = @{}
+        if ($PSBoundParameters.ContainsKey("NameFilter")) { $local:Constraints.NameFilter = $NameFilter }
+        if ($PSBoundParameters.ContainsKey("GroupFilter")) { $local:Constraints.GroupFilter = $GroupFilter }
+        if ($PSBoundParameters.ContainsKey("RoleFilter")) { $local:Constraints.RoleFilter = $RoleFilter }
+        $local:Rule.StarlingConnectAccountDiscoveryProperties = @{
+            "RuleType" = "PropertyConstraint";
+            "PropertyConstraintProperties" = $local:Constraints;
+        }
+    }
+
+    $local:Rule
+}
+
+<#
+.SYNOPSIS
+Create a new role-based account discovery rule object for use with Add-SafeguardAccountDiscoveryRule.
+
+.DESCRIPTION
+Create a hashtable representing a role-based account discovery rule. Use -FindAll to
+discover all accounts, or specify filter parameters for PropertyConstraint mode.
+The resulting object can be passed to Add-SafeguardAccountDiscoveryRule -RuleObject.
+
+.PARAMETER Name
+A string containing the name for the discovery rule.
+
+.PARAMETER FindAll
+Discover all role-based accounts without filtering.
+
+.PARAMETER AutoManageDiscoveredAccounts
+Whether discovered accounts matching this rule should be automatically brought under management.
+
+.PARAMETER NameFilter
+A regular expression to filter account names.
+
+.PARAMETER RoleFilter
+A regular expression to filter account roles.
+
+.PARAMETER PermissionFilter
+A regular expression to filter account permissions.
+
+.EXAMPLE
+New-SafeguardAccountDiscoveryRuleRoleBased -Name "All Role Based" -FindAll
+
+.EXAMPLE
+New-SafeguardAccountDiscoveryRuleRoleBased -Name "DBAs" -RoleFilter "db_owner"
+
+.EXAMPLE
+New-SafeguardAccountDiscoveryRuleRoleBased -Name "Write Access" -PermissionFilter "INSERT|UPDATE|DELETE"
+#>
+function New-SafeguardAccountDiscoveryRuleRoleBased
+{
+    [CmdletBinding(DefaultParameterSetName="PropertyConstraint")]
+    [OutputType([hashtable])]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Name,
+        [Parameter(ParameterSetName="FindAll",Mandatory=$true)]
+        [switch]$FindAll,
+        [Parameter(Mandatory=$false)]
+        [switch]$AutoManageDiscoveredAccounts,
+        [Parameter(ParameterSetName="PropertyConstraint",Mandatory=$false)]
+        [string]$NameFilter,
+        [Parameter(ParameterSetName="PropertyConstraint",Mandatory=$false)]
+        [string]$RoleFilter,
+        [Parameter(ParameterSetName="PropertyConstraint",Mandatory=$false)]
+        [string]$PermissionFilter
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Rule = @{
+        "Name" = $Name;
+        "AutoManageDiscoveredAccounts" = [bool]$AutoManageDiscoveredAccounts;
+    }
+
+    if ($FindAll)
+    {
+        $local:Rule.RoleBasedAccountDiscoveryProperties = @{ "RuleType" = "FindAll" }
+    }
+    else
+    {
+        $local:Constraints = @{}
+        if ($PSBoundParameters.ContainsKey("NameFilter")) { $local:Constraints.NameFilter = $NameFilter }
+        if ($PSBoundParameters.ContainsKey("RoleFilter")) { $local:Constraints.RoleFilter = $RoleFilter }
+        if ($PSBoundParameters.ContainsKey("PermissionFilter")) { $local:Constraints.PermissionFilter = $PermissionFilter }
+        $local:Rule.RoleBasedAccountDiscoveryProperties = @{
+            "RuleType" = "PropertyConstraint";
+            "PropertyConstraintProperties" = $local:Constraints;
+        }
+    }
+
+    $local:Rule
+}
