@@ -820,6 +820,10 @@ Do not verify Server SSL certificate of LDAP directory.
 .PARAMETER PrivilegeElevationCommand
 A string containing the privilege elevation command, ex. sudo.
 
+.PARAMETER AccountDiscoverySchedule
+An integer containing the ID of an account discovery schedule or a string containing the name.
+When specified, the new asset will be assigned to this discovery schedule.
+
 .INPUTS
 None.
 
@@ -887,7 +891,9 @@ function New-SafeguardAsset
         [Parameter(Mandatory=$false,ParameterSetName="Ldap",Position=1)]
         [SecureString]$ServiceAccountPassword,
         [Parameter(Mandatory=$false,ParameterSetName="Asset")]
-        [string]$PrivilegeElevationCommand
+        [string]$PrivilegeElevationCommand,
+        [Parameter(Mandatory=$false)]
+        [object]$AccountDiscoverySchedule
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -1039,6 +1045,15 @@ function New-SafeguardAsset
         AssetPartitionId = $AssetPartitionId;
         ConnectionProperties = $local:ConnectionProperties;
         DirectoryAssetProperties = $local:DirectoryAssetProperties
+    }
+
+    if ($PSBoundParameters.ContainsKey("AccountDiscoverySchedule"))
+    {
+        Import-Module -Name "$PSScriptRoot\discovery.psm1" -Scope Local
+        $local:Body.AccountDiscoveryScheduleId = (Resolve-SafeguardAccountDiscoveryScheduleId -AccessToken $AccessToken `
+                                                      -Appliance $Appliance -Insecure:$Insecure `
+                                                      -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId `
+                                                      $AccountDiscoverySchedule)
     }
 
     $local:NewAsset = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
@@ -1277,6 +1292,10 @@ A string containing the privilege elevation command, ex. sudo.
 .PARAMETER AllowSessionRequests
 Whether or not to allow session access requests.
 
+.PARAMETER AccountDiscoverySchedule
+An integer containing the ID of an account discovery schedule or a string containing the name.
+When specified, the asset will be assigned to this discovery schedule.
+
 .PARAMETER AssetObject
 An object containing the existing asset with desired properties set.
 
@@ -1344,6 +1363,8 @@ function Edit-SafeguardAsset
         [string]$PrivilegeElevationCommand,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [bool]$AllowSessionRequests,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [object]$AccountDiscoverySchedule,
         [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
         [object]$AssetObject
     )
@@ -1460,6 +1481,14 @@ function Edit-SafeguardAsset
             if ($PSBoundParameters.ContainsKey("Description")) { $AssetObject.Description = $Description }
             if ($PSBoundParameters.ContainsKey("NetworkAddress")) { $AssetObject.NetworkAddress = $NetworkAddress }
             if ($PSBoundParameters.ContainsKey("AllowSessionRequests")) { $AssetObject.AllowSessionRequests = $AllowSessionRequests }
+            if ($PSBoundParameters.ContainsKey("AccountDiscoverySchedule"))
+            {
+                Import-Module -Name "$PSScriptRoot\discovery.psm1" -Scope Local
+                $AssetObject.AccountDiscoveryScheduleId = (Resolve-SafeguardAccountDiscoveryScheduleId -AccessToken $AccessToken `
+                                                              -Appliance $Appliance -Insecure:$Insecure `
+                                                              -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId `
+                                                              $AccountDiscoverySchedule)
+            }
             if ($PSBoundParameters.ContainsKey("Platform"))
             {
                 Import-Module -Name "$PSScriptRoot\datatypes.psm1" -Scope Local
