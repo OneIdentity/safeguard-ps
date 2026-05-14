@@ -964,6 +964,14 @@ Aliases are shown in parentheses where available.
 - `New-SafeguardSyslogServer`
 - `Edit-SafeguardSyslogServer`
 - `Remove-SafeguardSyslogServer`
+- `Get-SafeguardUserPasswordRule`
+- `Set-SafeguardUserPasswordRule`
+- `New-SafeguardUserPassword`
+- `Test-SafeguardUserPassword`
+- `Get-SafeguardLoginMessage`
+- `Set-SafeguardLoginMessage`
+- `Get-SafeguardDailyMessage`
+- `Set-SafeguardDailyMessage`
 
 ### Deleted Objects
 
@@ -983,3 +991,31 @@ Aliases are shown in parentheses where available.
 ### Audit Log
 
 - `Get-SafeguardAuditLog`
+- `Get-SafeguardAuditLogAccessRequestActivity`
+- `Get-SafeguardAuditLogAccessRequestSession`
+- `Get-SafeguardAuditLogDiscoveredItem`
+- `Get-SafeguardAuditLogMaintenanceConfig`
+- `Set-SafeguardAuditLogMaintenanceConfig`
+- `Invoke-SafeguardAuditLogMaintenance`
+- `Get-SafeguardAuditLogObjectChange`
+- `Get-SafeguardAuditLogPlatformScript`
+- `Get-SafeguardAuditLogSigningCertificateHistory`
+- `Get-SafeguardScheduledAuditLogReport`
+- `New-SafeguardScheduledAuditLogReport`
+- `Edit-SafeguardScheduledAuditLogReport`
+- `Remove-SafeguardScheduledAuditLogReport`
+- `Invoke-SafeguardScheduledAuditLogReport`
+
+### Reason Codes
+
+- `Get-SafeguardReasonCode`
+- `Find-SafeguardReasonCode`
+- `New-SafeguardReasonCode`
+- `Edit-SafeguardReasonCode`
+- `Remove-SafeguardReasonCode`
+- `Get-SafeguardReasonCodeScope`
+
+### Running Tasks
+
+- `Get-SafeguardRunningTask`
+- `Stop-SafeguardRunningTask`
