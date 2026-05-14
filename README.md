@@ -638,6 +638,32 @@ Aliases are shown in parentheses where available.
 - `New-SafeguardAssetAccountPasswordImportTemplate`
 - `New-SafeguardAssetAccountSshKeyImportTemplate`
 
+### Account Discovery
+
+- `Get-SafeguardAccountDiscoverySchedule`
+- `New-SafeguardAccountDiscoverySchedule`
+- `Edit-SafeguardAccountDiscoverySchedule`
+- `Remove-SafeguardAccountDiscoverySchedule`
+- `Rename-SafeguardAccountDiscoverySchedule`
+- `Copy-SafeguardAccountDiscoverySchedule`
+- `Get-SafeguardAccountDiscoveryScheduleAsset`
+- `Add-SafeguardAccountDiscoveryScheduleAsset`
+- `Remove-SafeguardAccountDiscoveryScheduleAsset`
+- `Get-SafeguardAccountDiscoveryRule`
+- `Add-SafeguardAccountDiscoveryRule`
+- `Remove-SafeguardAccountDiscoveryRule`
+- `New-SafeguardAccountDiscoveryRuleUnix`
+- `New-SafeguardAccountDiscoveryRuleWindows`
+- `New-SafeguardAccountDiscoveryRuleDirectory`
+- `New-SafeguardAccountDiscoveryRuleSps`
+- `New-SafeguardAccountDiscoveryRuleStarlingConnect`
+- `New-SafeguardAccountDiscoveryRuleRoleBased`
+- `Get-SafeguardDiscoveredAccount`
+- `Import-SafeguardDiscoveredAccount`
+- `Set-SafeguardDiscoveredAccountStatus`
+- `Invoke-SafeguardAssetAccountDiscovery`
+- `Invoke-SafeguardAssetServiceDiscovery`
+
 ### Custom Platforms
 
 - `Get-SafeguardCustomPlatform`
