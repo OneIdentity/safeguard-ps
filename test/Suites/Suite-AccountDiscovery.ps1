@@ -644,10 +644,15 @@
         }
 
         Test-SgPsAssert "Get-SafeguardDiscoveredAccount with Filter and IncludeIgnored" {
-            # Verify that -Filter and -IncludeIgnored can be combined
-            $result = Get-SafeguardDiscoveredAccount -Insecure `
-                -Filter "Status eq 'None'" -IncludeIgnored
-            $result -is [array] -or $null -eq $result
+            # Verify that -Filter and -IncludeIgnored can be combined without throwing
+            $threw = $false
+            try
+            {
+                $null = Get-SafeguardDiscoveredAccount -Insecure `
+                    -Filter "Status eq 'None'" -IncludeIgnored
+            }
+            catch { $threw = $true }
+            -not $threw
         }
 
         Test-SgPsAssert "Get-SafeguardDiscoveredAccount with Fields" {

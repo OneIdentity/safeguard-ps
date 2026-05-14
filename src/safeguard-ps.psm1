@@ -981,7 +981,15 @@ function Invoke-WithoutBody
     }
     else
     {
-        Invoke-RestMethod @arguments
+        $local:Result = (Invoke-RestMethod @arguments)
+        if ($local:Result -is [array] -and $local:Result.Count -gt 0)
+        {
+            $local:Result
+        }
+        elseif ($null -ne $local:Result)
+        {
+            $PSCmdlet.WriteObject($local:Result, $false)
+        }
     }
 }
 function Invoke-WithBody
@@ -1048,7 +1056,15 @@ function Invoke-WithBody
     }
     else
     {
-        Invoke-RestMethod @arguments
+        $local:Result = (Invoke-RestMethod @arguments)
+        if ($local:Result -is [array] -and $local:Result.Count -gt 0)
+        {
+            $local:Result
+        }
+        elseif ($null -ne $local:Result)
+        {
+            $PSCmdlet.WriteObject($local:Result, $false)
+        }
     }
 }
 
