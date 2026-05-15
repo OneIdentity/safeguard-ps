@@ -182,3 +182,133 @@ function Stop-SafeguardRunningTask
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "RunningTasks/$TaskName/$TaskId"
 }
+
+<#
+.SYNOPSIS
+Get extended task log data from Safeguard via the Web API.
+
+.DESCRIPTION
+Retrieve extended debug log data captured when a platform task was run
+with the ExtendedLogging option. Without parameters, returns a list of
+task IDs that have extended log data available. With a TaskId, fetches
+all available log content for that task. With both TaskId and LogName,
+returns only the specified log.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER TaskId
+A string containing the task GUID to retrieve logs for. When specified
+without LogName, all available logs for the task are returned.
+
+.PARAMETER LogName
+A string containing the specific log name to retrieve (e.g. Operation).
+Requires TaskId.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Get-SafeguardTaskLog
+
+.EXAMPLE
+Get-SafeguardTaskLog "ed51c2b3-4fd2-11f1-b56c-dcad45f4455d"
+
+.EXAMPLE
+Get-SafeguardTaskLog "ed51c2b3-4fd2-11f1-b56c-dcad45f4455d" -LogName Operation
+#>
+function Get-SafeguardTaskLog
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false,Position=0)]
+        [string]$TaskId,
+        [Parameter(Mandatory=$false)]
+        [string]$LogName
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($LogName -and -not $TaskId)
+    {
+        throw "TaskId is required when specifying LogName"
+    }
+
+    if (-not $TaskId)
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "TaskLogs"
+    }
+    elseif ($LogName)
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "TaskLogs/$TaskId/$LogName"
+    }
+    else
+    {
+        $local:LogNames = Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "TaskLogs/$TaskId"
+        foreach ($local:Name in $local:LogNames)
+        {
+            [PSCustomObject]@{ Recorded = ""; Level = ""; Event = "--- $($local:Name) ---" }
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "TaskLogs/$TaskId/$($local:Name)"
+        }
+    }
+}
+
+<#
+.SYNOPSIS
+Remove all extended task log data from Safeguard via the Web API.
+
+.DESCRIPTION
+Remove all stored extended debug logging data for platform tasks from
+the Safeguard appliance. This requires ApplianceAdmin permission.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+Nothing.
+
+.EXAMPLE
+Clear-SafeguardTaskLog
+#>
+function Clear-SafeguardTaskLog
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core DELETE "TaskLogs"
+}

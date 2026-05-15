@@ -873,7 +873,9 @@ function Wait-LongRunningTask
         [Parameter(Mandatory=$true,Position=1)]
         [object]$Headers,
         [Parameter(Mandatory=$true,Position=2)]
-        [int]$Timeout
+        [int]$Timeout,
+        [Parameter(Mandatory=$false)]
+        [object]$Parameters
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -899,7 +901,7 @@ function Wait-LongRunningTask
         if ($local:TaskStatus.PercentComplete -eq 100)
         {
             Write-Progress -Activity "Waiting for long-running task" -Status "Step: $($local:TaskStatus.Message)" -PercentComplete $local:TaskStatus.PercentComplete
-            $local:TaskResult = $local:TaskStatus.Message + "`n " + ($local:TaskResponse.Log | ForEach-Object { "{0,-26} {1,-12} {2}`n" -f $_.Timestamp,$_.Status,$_.Message })
+            $local:TaskResult = $local:TaskStatus.Message + [Environment]::NewLine + (($local:TaskResponse.Log | ForEach-Object { " {0,-26} {1,-12} {2}" -f $_.Timestamp,$_.Status,$_.Message }) -join [Environment]::NewLine)
         }
         else
         {
@@ -918,8 +920,20 @@ function Wait-LongRunningTask
     } until ($local:TaskResult)
     if ($local:TaskStatus.State -ieq "Failure")
     {
+        Write-Host ""
+        $local:TaskResponse.Log | ForEach-Object {
+            Write-Host (" {0,-26} {1,-12} {2}" -f $_.Timestamp,$_.Status,$_.Message)
+        }
+        if ($Parameters.extendedLogging)
+        {
+            Write-Host "See extended logs: Get-SafeguardTaskLog $($local:TaskResponse.Id)"
+        }
         Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-        throw (New-LongRunningTaskException $local:TaskResult $local:TaskResponse)
+        throw (New-LongRunningTaskException $local:TaskStatus.Message $local:TaskResponse)
+    }
+    if ($Parameters.extendedLogging)
+    {
+        Write-Host "See extended logs: Get-SafeguardTaskLog $($local:TaskResponse.Id)"
     }
     $local:TaskResult
 }
@@ -977,11 +991,19 @@ function Invoke-WithoutBody
     if ($LongRunningTask)
     {
         $local:Response = (Invoke-WebRequest @arguments)
-        Wait-LongRunningTask -Response $local:Response -Headers $Headers -Timeout $Timeout
+        Wait-LongRunningTask -Response $local:Response -Headers $Headers -Timeout $Timeout -Parameters $Parameters
     }
     else
     {
-        Invoke-RestMethod @arguments
+        $local:Result = (Invoke-RestMethod @arguments)
+        if ($local:Result -is [array] -and $local:Result.Count -gt 0)
+        {
+            $local:Result
+        }
+        elseif ($null -ne $local:Result)
+        {
+            $PSCmdlet.WriteObject($local:Result, $false)
+        }
     }
 }
 function Invoke-WithBody
@@ -1044,11 +1066,19 @@ function Invoke-WithBody
     if ($LongRunningTask)
     {
         $local:Response = (Invoke-WebRequest @arguments)
-        Wait-LongRunningTask -Response $local:Response -Headers $Headers -Timeout $Timeout
+        Wait-LongRunningTask -Response $local:Response -Headers $Headers -Timeout $Timeout -Parameters $Parameters
     }
     else
     {
-        Invoke-RestMethod @arguments
+        $local:Result = (Invoke-RestMethod @arguments)
+        if ($local:Result -is [array] -and $local:Result.Count -gt 0)
+        {
+            $local:Result
+        }
+        elseif ($null -ne $local:Result)
+        {
+            $PSCmdlet.WriteObject($local:Result, $false)
+        }
     }
 }
 

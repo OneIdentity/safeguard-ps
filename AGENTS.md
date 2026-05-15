@@ -21,7 +21,7 @@ safeguard-ps/
 |-- test/                         # Integration test framework and suites (requires PS 7)
 |   |-- Invoke-SafeguardPsTests.ps1       # Test runner
 |   |-- SafeguardPsTestFramework.psm1     # Framework module
-|   `-- Suites/Suite-*.ps1                # 44 test suite files
+|   `-- Suites/Suite-*.ps1                # 45 test suite files
 |-- samples/                      # Example scripts
 |-- docker/                       # Dockerfiles (Ubuntu, Alpine, Azure Linux)
 |-- pipeline-templates/           # Azure Pipelines CI/CD templates
@@ -205,6 +205,7 @@ Map feature modules to suites:
 | `sessionapi.psm1` | SpsIntegration (requires SPS appliance) |
 | `maintenance.psm1` | BackupRestore (optional, must be explicitly requested) |
 | `customplatforms.psm1` | CustomPlatforms |
+| `discovery.psm1` | AccountDiscovery |
 | `auditlog.psm1` | AuditLog, AuditLogAccessRequests, AuditLogMaintenance, AuditLogObjectChanges, AuditLogPlatformScripts, AuditLogScheduledReports |
 | `reasoncodes.psm1` | ReasonCodes |
 | `runningtasks.psm1` | RunningTasks |

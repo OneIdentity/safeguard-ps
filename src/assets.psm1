@@ -385,6 +385,159 @@ function Invoke-SafeguardAssetSshHostKeyDiscovery
 
 <#
 .SYNOPSIS
+Trigger account discovery on an asset managed by Safeguard via the Web API.
+
+.DESCRIPTION
+This cmdlet runs account discovery on a specified asset. The asset must have an
+account discovery schedule assigned, or this will fail. The discovery runs
+asynchronously on the appliance and results can be viewed with
+Get-SafeguardDiscoveredAccount.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID.
+
+.PARAMETER Asset
+An integer containing the asset ID or a string containing the name of the asset.
+
+.PARAMETER ExtendedLogging
+Generate debug task log for the discovery action.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API (AccountDiscoveryLog).
+
+.EXAMPLE
+Invoke-SafeguardAssetAccountDiscovery -Insecure "linux-server-01"
+
+.EXAMPLE
+Invoke-SafeguardAssetAccountDiscovery -Insecure -Asset 42 -ExtendedLogging
+#>
+function Invoke-SafeguardAssetAccountDiscovery
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Asset,
+        [Parameter(Mandatory=$false)]
+        [switch]$ExtendedLogging
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                          -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $Asset)
+
+    $local:Parameters = @{}
+    if ($ExtendedLogging) { $local:Parameters.extendedLogging = $true }
+
+    Write-Host "Triggering account discovery..."
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        POST "Assets/$($local:AssetId)/DiscoverAccounts" -Parameters $local:Parameters
+}
+
+<#
+.SYNOPSIS
+Trigger service discovery on an asset managed by Safeguard via the Web API.
+
+.DESCRIPTION
+This cmdlet runs service discovery on a specified asset to find Windows services
+or other dependent systems running under managed accounts. The discovery runs
+asynchronously on the appliance.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID.
+
+.PARAMETER Asset
+An integer containing the asset ID or a string containing the name of the asset.
+
+.PARAMETER ExtendedLogging
+Generate debug task log for the discovery action.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API (ServiceDiscoveryLog).
+
+.EXAMPLE
+Invoke-SafeguardAssetServiceDiscovery -Insecure "windows-server-01"
+
+.EXAMPLE
+Invoke-SafeguardAssetServiceDiscovery -Insecure -Asset 42 -ExtendedLogging
+#>
+function Invoke-SafeguardAssetServiceDiscovery
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Asset,
+        [Parameter(Mandatory=$false)]
+        [switch]$ExtendedLogging
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                          -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $Asset)
+
+    $local:Parameters = @{}
+    if ($ExtendedLogging) { $local:Parameters.extendedLogging = $true }
+
+    Write-Host "Triggering service discovery..."
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        POST "Assets/$($local:AssetId)/DiscoverServices" -Parameters $local:Parameters
+}
+
+<#
+.SYNOPSIS
 Get assets managed by Safeguard via the Web API.
 
 .DESCRIPTION
@@ -667,6 +820,10 @@ Do not verify Server SSL certificate of LDAP directory.
 .PARAMETER PrivilegeElevationCommand
 A string containing the privilege elevation command, ex. sudo.
 
+.PARAMETER AccountDiscoverySchedule
+An integer containing the ID of an account discovery schedule or a string containing the name.
+When specified, the new asset will be assigned to this discovery schedule.
+
 .INPUTS
 None.
 
@@ -714,8 +871,12 @@ function New-SafeguardAsset
         [Parameter(Mandatory=$true,ParameterSetName="Ldap",Position=0)]
         [string]$ServiceAccountDistinguishedName,
         [Parameter(Mandatory=$false,ParameterSetName="Ldap")]
+        [Parameter(Mandatory=$false,ParameterSetName="Asset")]
+        [Parameter(Mandatory=$false,ParameterSetName="Ad")]
         [switch]$NoSslEncryption,
         [Parameter(Mandatory=$false,ParameterSetName="Ldap")]
+        [Parameter(Mandatory=$false,ParameterSetName="Asset")]
+        [Parameter(Mandatory=$false,ParameterSetName="Ad")]
         [switch]$DoNotVerifyServerSslCertificate,
         [Parameter(Mandatory=$false,ParameterSetName="Asset")]
         [Parameter(Mandatory=$true,ParameterSetName="Ad",Position=0)]
@@ -734,7 +895,9 @@ function New-SafeguardAsset
         [Parameter(Mandatory=$false,ParameterSetName="Ldap",Position=1)]
         [SecureString]$ServiceAccountPassword,
         [Parameter(Mandatory=$false,ParameterSetName="Asset")]
-        [string]$PrivilegeElevationCommand
+        [string]$PrivilegeElevationCommand,
+        [Parameter(Mandatory=$false)]
+        [object]$AccountDiscoverySchedule
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -851,19 +1014,18 @@ function New-SafeguardAsset
     #Ldap Connection properties
     if ($PSCmdlet.ParameterSetName -eq "Ldap")
     {
-        $local:ConnectionProperties.UseSslEncryption = $true;
-        $local:ConnectionProperties.VerifySslCertificate = $true;
         $local:ConnectionProperties.ServiceAccountDistinguishedName = $ServiceAccountDistinguishedName;
+    }
 
-        if ($NoSslEncryption)
-        {
-            $local:ConnectionProperties.UseSslEncryption = $false
-            $local:ConnectionProperties.VerifySslCertificate = $false
-        }
-        if ($DoNotVerifyServerSslCertificate)
-        {
-            $local:ConnectionProperties.VerifySslCertificate = $false
-        }
+    # SSL connection properties (all parameter sets)
+    if ($NoSslEncryption)
+    {
+        $local:ConnectionProperties.UseSslEncryption = $false
+        $local:ConnectionProperties.VerifySslCertificate = $false
+    }
+    if ($DoNotVerifyServerSslCertificate)
+    {
+        $local:ConnectionProperties.VerifySslCertificate = $false
     }
 
     $local:DirectoryAssetProperties = @{ }
@@ -886,6 +1048,15 @@ function New-SafeguardAsset
         AssetPartitionId = $AssetPartitionId;
         ConnectionProperties = $local:ConnectionProperties;
         DirectoryAssetProperties = $local:DirectoryAssetProperties
+    }
+
+    if ($PSBoundParameters.ContainsKey("AccountDiscoverySchedule"))
+    {
+        Import-Module -Name "$PSScriptRoot\discovery.psm1" -Scope Local
+        $local:Body.AccountDiscoveryScheduleId = (Resolve-SafeguardAccountDiscoveryScheduleId -AccessToken $AccessToken `
+                                                      -Appliance $Appliance -Insecure:$Insecure `
+                                                      -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId `
+                                                      $AccountDiscoverySchedule)
     }
 
     $local:NewAsset = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
@@ -939,6 +1110,9 @@ An integer containing the asset partition ID to test the asset in.
 .PARAMETER AssetToTest
 An integer containing the ID of the asset to test connection to or a string containing the name.
 
+.PARAMETER ExtendedLogging
+Generate debug task log for the test connection action.
+
 .INPUTS
 None.
 
@@ -950,6 +1124,9 @@ Test-SafeguardAsset -AccessToken $token -Appliance 10.5.32.54 -Insecure 5
 
 .EXAMPLE
 Test-SafeguardAsset 5
+
+.EXAMPLE
+Test-SafeguardAsset -Insecure 5 -ExtendedLogging
 #>
 function Test-SafeguardAsset
 {
@@ -966,7 +1143,9 @@ function Test-SafeguardAsset
         [Parameter(Mandatory=$false)]
         [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$true,Position=0)]
-        [object]$AssetToTest
+        [object]$AssetToTest,
+        [Parameter(Mandatory=$false)]
+        [switch]$ExtendedLogging
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -975,8 +1154,11 @@ function Test-SafeguardAsset
     $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
                           -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $AssetToTest)
 
+    $local:Parameters = @{}
+    if ($ExtendedLogging) { $local:Parameters.extendedLogging = $true }
+
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-        POST "Assets/$($local:AssetId)/TestConnection" -LongRunningTask
+        POST "Assets/$($local:AssetId)/TestConnection" -Parameters $local:Parameters -LongRunningTask
 }
 
 <#
@@ -1124,6 +1306,10 @@ A string containing the privilege elevation command, ex. sudo.
 .PARAMETER AllowSessionRequests
 Whether or not to allow session access requests.
 
+.PARAMETER AccountDiscoverySchedule
+An integer containing the ID of an account discovery schedule or a string containing the name.
+When specified, the asset will be assigned to this discovery schedule.
+
 .PARAMETER AssetObject
 An object containing the existing asset with desired properties set.
 
@@ -1191,6 +1377,8 @@ function Edit-SafeguardAsset
         [string]$PrivilegeElevationCommand,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [bool]$AllowSessionRequests,
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [object]$AccountDiscoverySchedule,
         [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
         [object]$AssetObject
     )
@@ -1307,6 +1495,14 @@ function Edit-SafeguardAsset
             if ($PSBoundParameters.ContainsKey("Description")) { $AssetObject.Description = $Description }
             if ($PSBoundParameters.ContainsKey("NetworkAddress")) { $AssetObject.NetworkAddress = $NetworkAddress }
             if ($PSBoundParameters.ContainsKey("AllowSessionRequests")) { $AssetObject.AllowSessionRequests = $AllowSessionRequests }
+            if ($PSBoundParameters.ContainsKey("AccountDiscoverySchedule"))
+            {
+                Import-Module -Name "$PSScriptRoot\discovery.psm1" -Scope Local
+                $AssetObject.AccountDiscoveryScheduleId = (Resolve-SafeguardAccountDiscoveryScheduleId -AccessToken $AccessToken `
+                                                              -Appliance $Appliance -Insecure:$Insecure `
+                                                              -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId `
+                                                              $AccountDiscoverySchedule)
+            }
             if ($PSBoundParameters.ContainsKey("Platform"))
             {
                 Import-Module -Name "$PSScriptRoot\datatypes.psm1" -Scope Local
@@ -2194,6 +2390,9 @@ An integer containing the ID of the asset to check password for or a string cont
 .PARAMETER AccountToUse
 An integer containing the ID of the account to check password for or a string containing the name.
 
+.PARAMETER ExtendedLogging
+Generate debug task log for the check password action.
+
 .INPUTS
 None.
 
@@ -2205,6 +2404,9 @@ Test-SafeguardAssetAccountPassword -AccessToken $token -Appliance 10.5.32.54 -In
 
 .EXAMPLE
 Test-SafeguardAssetAccountPassword -AccountToUse oracle
+
+.EXAMPLE
+Test-SafeguardAssetAccountPassword -Insecure windows.blah.corp administrator -ExtendedLogging
 #>
 function Test-SafeguardAssetAccountPassword
 {
@@ -2223,7 +2425,9 @@ function Test-SafeguardAssetAccountPassword
         [Parameter(Mandatory=$false,Position=0)]
         [object]$AssetToUse,
         [Parameter(Mandatory=$true,Position=1)]
-        [object]$AccountToUse
+        [object]$AccountToUse,
+        [Parameter(Mandatory=$false)]
+        [switch]$ExtendedLogging
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -2231,7 +2435,12 @@ function Test-SafeguardAssetAccountPassword
 
     $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToUse -Account $AccountToUse)
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts/$($local:AccountId)/CheckPassword" -LongRunningTask
+
+    $local:Parameters = @{}
+    if ($ExtendedLogging) { $local:Parameters.extendedLogging = $true }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        POST "AssetAccounts/$($local:AccountId)/CheckPassword" -Parameters $local:Parameters -LongRunningTask
 }
 
 <#
@@ -2265,6 +2474,9 @@ An integer containing the ID of the asset to change password for or a string con
 .PARAMETER AccountToUse
 An integer containing the ID of the account to change password for or a string containing the name.
 
+.PARAMETER ExtendedLogging
+Generate debug task log for the change password action.
+
 .INPUTS
 None.
 
@@ -2294,7 +2506,9 @@ function Invoke-SafeguardAssetAccountPasswordChange
         [Parameter(Mandatory=$false,Position=0)]
         [object]$AssetToUse,
         [Parameter(Mandatory=$true,Position=1)]
-        [object]$AccountToUse
+        [object]$AccountToUse,
+        [Parameter(Mandatory=$false)]
+        [switch]$ExtendedLogging
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -2302,7 +2516,12 @@ function Invoke-SafeguardAssetAccountPasswordChange
 
     $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToUse -Account $AccountToUse)
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts/$($local:AccountId)/ChangePassword" -LongRunningTask
+
+    $local:Parameters = @{}
+    if ($ExtendedLogging) { $local:Parameters.extendedLogging = $true }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        POST "AssetAccounts/$($local:AccountId)/ChangePassword" -Parameters $local:Parameters -LongRunningTask
 }
 
 <#
@@ -2336,6 +2555,9 @@ An integer containing the ID of the asset to check SSH key for or a string conta
 .PARAMETER AccountToUse
 An integer containing the ID of the account to check SSH key for or a string containing the name.
 
+.PARAMETER ExtendedLogging
+Generate debug task log for the check SSH key action.
+
 .INPUTS
 None.
 
@@ -2365,7 +2587,9 @@ function Test-SafeguardAssetAccountSshKey
         [Parameter(Mandatory=$false,Position=0)]
         [object]$AssetToUse,
         [Parameter(Mandatory=$true,Position=1)]
-        [object]$AccountToUse
+        [object]$AccountToUse,
+        [Parameter(Mandatory=$false)]
+        [switch]$ExtendedLogging
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -2373,7 +2597,12 @@ function Test-SafeguardAssetAccountSshKey
 
     $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToUse -Account $AccountToUse)
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts/$($local:AccountId)/CheckSshKey" -LongRunningTask
+
+    $local:Parameters = @{}
+    if ($ExtendedLogging) { $local:Parameters.extendedLogging = $true }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        POST "AssetAccounts/$($local:AccountId)/CheckSshKey" -Parameters $local:Parameters -LongRunningTask
 }
 
 <#
@@ -2407,6 +2636,9 @@ An integer containing the ID of the asset to change SSH key for or a string cont
 .PARAMETER AccountToUse
 An integer containing the ID of the account to change SSH key for or a string containing the name.
 
+.PARAMETER ExtendedLogging
+Generate debug task log for the change SSH key action.
+
 .INPUTS
 None.
 
@@ -2436,7 +2668,9 @@ function Invoke-SafeguardAssetAccountSshKeyChange
         [Parameter(Mandatory=$false,Position=0)]
         [object]$AssetToUse,
         [Parameter(Mandatory=$true,Position=1)]
-        [object]$AccountToUse
+        [object]$AccountToUse,
+        [Parameter(Mandatory=$false)]
+        [switch]$ExtendedLogging
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -2444,7 +2678,12 @@ function Invoke-SafeguardAssetAccountSshKeyChange
 
     $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToUse -Account $AccountToUse)
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts/$($local:AccountId)/ChangeSshKey" -LongRunningTask
+
+    $local:Parameters = @{}
+    if ($ExtendedLogging) { $local:Parameters.extendedLogging = $true }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        POST "AssetAccounts/$($local:AccountId)/ChangeSshKey" -Parameters $local:Parameters -LongRunningTask
 }
 
 <#

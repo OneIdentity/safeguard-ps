@@ -104,7 +104,8 @@ NestedModules = @(
     'tags.psm1',
     'customplatforms.psm1',
     'reasoncodes.psm1',
-    'runningtasks.psm1'
+    'runningtasks.psm1',
+    'discovery.psm1'
     )
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
@@ -200,6 +201,7 @@ FunctionsToExport = @(
     'New-SafeguardAssetAccountImportTemplate','Import-SafeguardAssetAccount',
     'New-SafeguardAssetAccountPasswordImportTemplate','Import-SafeguardAssetAccountPassword',
     'New-SafeguardAssetAccountSshKeyImportTemplate','Import-SafeguardAssetAccountSshKey',
+    'Invoke-SafeguardAssetAccountDiscovery','Invoke-SafeguardAssetServiceDiscovery',
     # assetpartitions.psm1
     'Get-SafeguardAssetPartition','New-SafeguardAssetPartition','Remove-SafeguardAssetPartition','Edit-SafeguardAssetPartition',
     'Get-SafeguardAssetPartitionOwner','Add-SafeguardAssetPartitionOwner','Remove-SafeguardAssetPartitionOwner',
@@ -218,6 +220,17 @@ FunctionsToExport = @(
     'Rename-SafeguardPasswordProfile','Copy-SafeguardPasswordProfile','Edit-SafeguardPasswordProfile',
     'Get-SafeguardPasswordProfileAsset','Add-SafeguardPasswordProfileAsset','Remove-SafeguardPasswordProfileAsset',
     'Get-SafeguardPasswordProfileAccount','Add-SafeguardPasswordProfileAccount','Remove-SafeguardPasswordProfileAccount',
+    # discovery.psm1
+    'Get-SafeguardAccountDiscoverySchedule','New-SafeguardAccountDiscoverySchedule',
+    'Edit-SafeguardAccountDiscoverySchedule','Remove-SafeguardAccountDiscoverySchedule',
+    'Rename-SafeguardAccountDiscoverySchedule','Copy-SafeguardAccountDiscoverySchedule',
+    'Get-SafeguardAccountDiscoveryScheduleAsset','Add-SafeguardAccountDiscoveryScheduleAsset',
+    'Remove-SafeguardAccountDiscoveryScheduleAsset',
+    'Get-SafeguardAccountDiscoveryRule','Add-SafeguardAccountDiscoveryRule','Remove-SafeguardAccountDiscoveryRule',
+    'New-SafeguardAccountDiscoveryRuleUnix','New-SafeguardAccountDiscoveryRuleWindows',
+    'New-SafeguardAccountDiscoveryRuleDirectory','New-SafeguardAccountDiscoveryRuleSps',
+    'New-SafeguardAccountDiscoveryRuleStarlingConnect','New-SafeguardAccountDiscoveryRuleRoleBased',
+    'Get-SafeguardDiscoveredAccount','Import-SafeguardDiscoveredAccount','Set-SafeguardDiscoveredAccountStatus',
     # directories.psm1
     'Get-SafeguardDirectoryIdentityProvider','New-SafeguardDirectoryIdentityProvider',
     'Remove-SafeguardDirectoryIdentityProvider','Edit-SafeguardDirectoryIdentityProvider',
@@ -337,7 +350,8 @@ FunctionsToExport = @(
     'Get-SafeguardReasonCode','Find-SafeguardReasonCode','New-SafeguardReasonCode',
     'Edit-SafeguardReasonCode','Remove-SafeguardReasonCode','Get-SafeguardReasonCodeScope',
     # runningtasks.psm1
-    'Get-SafeguardRunningTask','Stop-SafeguardRunningTask'
+    'Get-SafeguardRunningTask','Stop-SafeguardRunningTask',
+    'Get-SafeguardTaskLog','Clear-SafeguardTaskLog'
 )
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.

@@ -302,6 +302,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 .PARAMETER ArchiveServerId
 An integer containing the ID of the archive server to test connection to.
 
+.PARAMETER ExtendedLogging
+Generate debug task log for the test connection action.
+
 .INPUTS
 None.
 
@@ -325,7 +328,9 @@ function Test-SafeguardArchiveServer
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [int]$ArchiveServerId
+        [int]$ArchiveServerId,
+        [Parameter(Mandatory=$false)]
+        [switch]$ExtendedLogging
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -343,8 +348,11 @@ function Test-SafeguardArchiveServer
         $ArchiveServerId = (Read-Host "ArchiveServerId")
     }
 
+    $local:Parameters = @{}
+    if ($ExtendedLogging) { $local:Parameters.extendedLogging = $true }
+
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-        POST "ArchiveServers/$ArchiveServerId/TestConnection" -LongRunningTask
+        POST "ArchiveServers/$ArchiveServerId/TestConnection" -Parameters $local:Parameters -LongRunningTask
 }
 
 <#

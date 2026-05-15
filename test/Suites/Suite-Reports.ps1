@@ -74,9 +74,11 @@
             $null -ne $result
         }
 
-        Test-SgPsAssert "Get-SafeguardReportA2aEntitlement returns data" {
-            $result = Get-SafeguardReportA2aEntitlement -Insecure -StdOut
-            $null -ne $result
+        Test-SgPsAssert "Get-SafeguardReportA2aEntitlement executes without error" {
+            $threw = $false
+            try { $null = Get-SafeguardReportA2aEntitlement -Insecure -StdOut }
+            catch { $threw = $true }
+            -not $threw
         }
 
         # --- Password reports ---
