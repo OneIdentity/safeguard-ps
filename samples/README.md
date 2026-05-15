@@ -33,3 +33,11 @@ nearly every cmdlet in the safeguard-ps module is implemented using `Invoke-Safe
 
   A sample script posted to correct specific problem that occurred in the Safeguard 2.2 upgrade.
   The API was used to automate the fix for the bug for our customers.
+
+- **new-windows-asset-with-discovery.ps1**
+
+  End-to-end script that adds a Windows asset with WinRM connection, verifies connectivity, and
+  sets up account discovery for the local Administrators group (or a custom group). Supports
+  directory account (preferred) or explicit username/password for connection. The directory
+  account can be specified as an ID, `name@domain`, `domain\name`, or plain name. Runs fully
+  non-interactive when all parameters are supplied, or prompts interactively for anything missing.
