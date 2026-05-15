@@ -18,7 +18,6 @@ function Out-SafeguardExceptionIfPossible
     {
         Add-Type -TypeDefinition @"
 using System;
-using System.Runtime.Serialization;
 
 namespace Ex
 {
@@ -44,10 +43,6 @@ namespace Ex
         }
         public SafeguardMethodException(string message, Exception innerException)
             : base(message, innerException) {}
-        [Obsolete]
-        protected SafeguardMethodException
-            (SerializationInfo info, StreamingContext context)
-            : base(info, context) {}
         public int HttpStatusCode { get; set; }
         public int ErrorCode { get; set; }
         public string ErrorMessage { get; set; }
@@ -200,7 +195,6 @@ function New-LongRunningTaskException
         Add-Type -TypeDefinition @"
 using System;
 using System.Collections.Generic;
-using System.Runtime.Serialization;
 using System.Management.Automation;
 
 namespace Ex
@@ -233,9 +227,6 @@ namespace Ex
                 list.Add(new SafeguardTaskLog(entry));
             TaskLog = list.ToArray();
         }
-        protected SafeguardLongRunningTaskException
-            (SerializationInfo info, StreamingContext context)
-            : base(info, context) {}
         public SafeguardTaskLog[] TaskLog { get; set; }
     }
 }
