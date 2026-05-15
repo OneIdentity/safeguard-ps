@@ -76,7 +76,7 @@
         Test-SgPsAssert "Edit report changes description" {
             $report = Get-SafeguardScheduledAuditLogReport -Insecure -ReportId $Context.SuiteData["BasicId"]
             $report.Description = "Edited description"
-            $edited = Edit-SafeguardScheduledAuditLogReport -Insecure -ReportId $report.Id -ReportObject $report
+            $edited = Edit-SafeguardScheduledAuditLogReport -Insecure -ReportObject $report
             $edited.Description -eq "Edited description"
         }
         Test-SgPsAssert "Edit report description persisted" {
@@ -86,7 +86,7 @@
         Test-SgPsAssert "Edit report changes category" {
             $report = Get-SafeguardScheduledAuditLogReport -Insecure -ReportId $Context.SuiteData["BasicId"]
             $report.CategoryOption = "ObjectChange"
-            $edited = Edit-SafeguardScheduledAuditLogReport -Insecure -ReportId $report.Id -ReportObject $report
+            $edited = Edit-SafeguardScheduledAuditLogReport -Insecure -ReportObject $report
             $edited.CategoryOption -eq "ObjectChange"
         }
         Test-SgPsAssert "Edit report via pipeline" {

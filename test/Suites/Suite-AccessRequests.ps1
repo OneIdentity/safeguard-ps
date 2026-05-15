@@ -273,14 +273,18 @@
             $null -ne $request.Id -and $request.AccountName -eq $Context.SuiteData["TestAccount"]
         }
 
-        # Clean up the request so it doesn't block object deletion
-        try {
-            $approverToken = Get-UserToken $Context.SuiteData["ApproverName"] $Context.SuiteData["ApproverPassword"]
-            Deny-SafeguardAccessRequest -Appliance $Context.Appliance `
-                -AccessToken $approverToken -Insecure `
-                -RequestId $Context.SuiteData["DupRequestId"]
-            Disconnect-Safeguard -Appliance $Context.Appliance -AccessToken $approverToken -Insecure
-        } catch {}
+        # --- Edit-SafeguardAccessRequest via pipeline ---
+        Test-SgPsAssert "Edit-SafeguardAccessRequest via pipeline" {
+            $reqToken = Get-UserToken $Context.SuiteData["RequesterName"] $Context.SuiteData["RequesterPassword"]
+            $req = Get-SafeguardAccessRequest -Appliance $Context.Appliance `
+                -AccessToken $reqToken -Insecure $Context.SuiteData["DupRequestId"] -AllFields
+            $result = $req | Edit-SafeguardAccessRequest -Appliance $Context.Appliance `
+                -AccessToken $reqToken -Insecure -Action Cancel -AllFields
+            Disconnect-Safeguard -Appliance $Context.Appliance -AccessToken $reqToken -Insecure
+            $result.WasCancelled -eq $true
+        }
+
+        # DupRequest was cancelled by pipeline test above -- no deny needed
     }
 
     Cleanup = {

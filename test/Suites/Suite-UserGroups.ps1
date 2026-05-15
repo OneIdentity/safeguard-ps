@@ -83,6 +83,18 @@
             $readback.Description -eq "Updated description"
         }
 
+        # --- Edit-SafeguardUserGroup via pipeline ---
+        Test-SgPsAssert "Edit-SafeguardUserGroup via pipeline" {
+            $ug = Get-SafeguardUserGroup -Insecure $Context.SuiteData["GroupId"]
+            $ug.Description = "Pipeline edit"
+            $edited = $ug | Edit-SafeguardUserGroup -Insecure
+            $edited.Description -eq "Pipeline edit"
+        }
+        Test-SgPsAssert "Edit-SafeguardUserGroup pipeline edit persisted" {
+            $readback = Get-SafeguardUserGroup -Insecure $Context.SuiteData["GroupId"]
+            $readback.Description -eq "Pipeline edit"
+        }
+
         # --- Add-SafeguardUserGroupMember ---
         Test-SgPsAssert "Add-SafeguardUserGroupMember adds a member" {
             Add-SafeguardUserGroupMember -Insecure $testGroup -UserList $Context.SuiteData["TestUser"]

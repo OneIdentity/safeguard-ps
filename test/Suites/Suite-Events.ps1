@@ -104,6 +104,18 @@
             $list.Count -ge 1
         }
 
+        # --- Edit-SafeguardEventSubscription via pipeline ---
+        Test-SgPsAssert "Edit-SafeguardEventSubscription via pipeline" {
+            $sub = Get-SafeguardEventSubscription -Insecure $Context.SuiteData["SubId"]
+            $sub.Description = "Pipeline edit"
+            $edited = $sub | Edit-SafeguardEventSubscription -Insecure
+            $edited.Description -eq "Pipeline edit"
+        }
+        Test-SgPsAssert "Edit-SafeguardEventSubscription pipeline edit persisted" {
+            $readback = Get-SafeguardEventSubscription -Insecure $Context.SuiteData["SubId"]
+            $readback.Description -eq "Pipeline edit"
+        }
+
         # --- Remove-SafeguardEventSubscription ---
         Test-SgPsAssert "Remove-SafeguardEventSubscription deletes subscription" {
             Remove-SafeguardEventSubscription -Insecure $Context.SuiteData["SubId"]

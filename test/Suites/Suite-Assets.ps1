@@ -83,6 +83,18 @@
             $readback.Description -eq "Modified via object" -and $readback.NetworkAddress -eq "10.0.0.101"
         }
 
+        # --- Edit-SafeguardAsset via pipeline ---
+        Test-SgPsAssert "Edit-SafeguardAsset via pipeline" {
+            $asset = Get-SafeguardAsset -Insecure $Context.SuiteData["AssetId"]
+            $asset.Description = "Pipeline edit"
+            $edited = $asset | Edit-SafeguardAsset -Insecure
+            $edited.Description -eq "Pipeline edit"
+        }
+        Test-SgPsAssert "Edit-SafeguardAsset pipeline edit persisted" {
+            $readback = Get-SafeguardAsset -Insecure $Context.SuiteData["AssetId"]
+            $readback.Description -eq "Pipeline edit"
+        }
+
         # --- Find-SafeguardAsset (search string) ---
         Test-SgPsAssert "Find-SafeguardAsset by search string" {
             $results = Find-SafeguardAsset -Insecure $testAsset

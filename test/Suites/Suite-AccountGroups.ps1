@@ -15,6 +15,7 @@
         # Pre-cleanup
         Remove-SgPsStaleTestObject -Collection "AccountGroups" -Name $testGroup
         Remove-SgPsStaleTestObject -Collection "AccountGroups" -Name $testGroup2
+        Remove-SgPsStaleTestObject -Collection "AccountGroups" -Name "${prefix}_DynAcctG"
         Remove-SgPsStaleTestObject -Collection "AssetAccounts" -Name $testAccount
         Remove-SgPsStaleTestObject -Collection "Assets" -Name $testAsset
 
@@ -87,6 +88,18 @@
             $readback.Description -eq "Updated description"
         }
 
+        # --- Edit-SafeguardAccountGroup via pipeline ---
+        Test-SgPsAssert "Edit-SafeguardAccountGroup via pipeline" {
+            $ag = Get-SafeguardAccountGroup -Insecure $Context.SuiteData["GroupId"]
+            $ag.Description = "Pipeline edit"
+            $edited = $ag | Edit-SafeguardAccountGroup -Insecure
+            $edited.Description -eq "Pipeline edit"
+        }
+        Test-SgPsAssert "Edit-SafeguardAccountGroup pipeline edit persisted" {
+            $readback = Get-SafeguardAccountGroup -Insecure $Context.SuiteData["GroupId"]
+            $readback.Description -eq "Pipeline edit"
+        }
+
         # --- Add-SafeguardAccountGroupMember ---
         Test-SgPsAssert "Add-SafeguardAccountGroupMember adds a member" {
             $acctRef = "$($Context.SuiteData['TestAsset'])\$($Context.SuiteData['TestAccount'])"
@@ -110,6 +123,37 @@
             $members = Get-SafeguardAccountGroupMember -Insecure $testGroup
             $list = @($members)
             -not ($list | Where-Object { $_.Id -eq $Context.SuiteData["AccountId"] })
+        }
+
+        # =========================================
+        # Dynamic Account Groups
+        # =========================================
+
+        # --- New-SafeguardDynamicAccountGroup ---
+        Test-SgPsAssert "New-SafeguardDynamicAccountGroup creates a group" {
+            $prefix = $Context.TestPrefix
+            $dynGroup = New-SafeguardDynamicAccountGroup -Insecure "${prefix}_DynAcctG" `
+                -Description "Dynamic account group test" `
+                -GroupingRule "([Name contains '${prefix}'])"
+            $Context.SuiteData["DynGroupId"] = $dynGroup.Id
+
+            Register-SgPsTestCleanup -Description "Delete dynamic account group" -Action {
+                param($Ctx)
+                try { Remove-SafeguardAccountGroup -Insecure $Ctx.SuiteData['DynGroupId'] } catch {}
+            }
+            $dynGroup.Name -eq "${prefix}_DynAcctG"
+        }
+
+        # --- Edit-SafeguardDynamicAccountGroup via pipeline ---
+        Test-SgPsAssert "Edit-SafeguardDynamicAccountGroup via pipeline" {
+            $dg = Get-SafeguardAccountGroup -Insecure $Context.SuiteData["DynGroupId"]
+            $dg | Add-Member -NotePropertyName Description -NotePropertyValue "Pipeline dynamic AcctG edit" -Force
+            $edited = $dg | Edit-SafeguardDynamicAccountGroup -Insecure
+            $edited.Description -eq "Pipeline dynamic AcctG edit"
+        }
+        Test-SgPsAssert "Edit-SafeguardDynamicAccountGroup pipeline edit persisted" {
+            $readback = Get-SafeguardAccountGroup -Insecure $Context.SuiteData["DynGroupId"]
+            $readback.Description -eq "Pipeline dynamic AcctG edit"
         }
 
         # --- New-SafeguardAccountGroup (second, for remove test) ---

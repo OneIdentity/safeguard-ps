@@ -143,6 +143,19 @@
                 $readback.ScheduleDiscoverServices -eq $true
         }
 
+        # --- Edit-SafeguardAccountDiscoverySchedule via pipeline ---
+        Test-SgPsAssert "Edit-SafeguardAccountDiscoverySchedule via pipeline" {
+            $sched = Get-SafeguardAccountDiscoverySchedule -Insecure $Context.SuiteData["SchedId"]
+            $sched.Description = "Pipeline schedule edit"
+            $edited = $sched | Edit-SafeguardAccountDiscoverySchedule -Insecure
+            $edited.Description -eq "Pipeline schedule edit"
+        }
+        Test-SgPsAssert "Edit-SafeguardAccountDiscoverySchedule pipeline edit persisted" {
+            $readback = Get-SafeguardAccountDiscoverySchedule -Insecure $Context.SuiteData["SchedId"]
+            $readback.Description -eq "Pipeline schedule edit" -and
+                $readback.AutoConfigureDependentSystems -eq $true
+        }
+
         # --- Rename-SafeguardAccountDiscoverySchedule ---
         Test-SgPsAssert "Rename-SafeguardAccountDiscoverySchedule changes name" {
             $renamed = Rename-SafeguardAccountDiscoverySchedule -Insecure `
@@ -506,6 +519,25 @@
             $list.Count -ge 2 -and
                 ($list | Where-Object { $_.Name -eq "UnixSvc" }) -ne $null
         }
+
+        # --- Add-SafeguardAccountDiscoveryRule via pipeline ---
+        Test-SgPsAssert "Add-SafeguardAccountDiscoveryRule via pipeline" {
+            $rule = New-SafeguardAccountDiscoveryRuleUnix -Name "PipeRule" -FindAll
+            $result = $rule | Add-SafeguardAccountDiscoveryRule -Insecure `
+                -Schedule $Context.SuiteData["SchedId"]
+            $null -ne $result
+        }
+        Test-SgPsAssert "Add-SafeguardAccountDiscoveryRule pipeline rule persisted" {
+            $rules = Get-SafeguardAccountDiscoveryRule -Insecure `
+                -Schedule $Context.SuiteData["SchedId"]
+            $found = @($rules) | Where-Object { $_.Name -eq "PipeRule" }
+            $null -ne $found
+        }
+        # Clean up pipeline rule
+        try {
+            Remove-SafeguardAccountDiscoveryRule -Insecure `
+                -Schedule $Context.SuiteData["SchedId"] -RuleName "PipeRule"
+        } catch {}
 
         # --- Remove-SafeguardAccountDiscoveryRule ---
         Test-SgPsAssert "Remove-SafeguardAccountDiscoveryRule removes a rule by name" {

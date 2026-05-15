@@ -86,6 +86,18 @@
             $readback.FirstName -eq "Modified" -and $readback.Description -eq "Updated description" -and $readback.LastName -eq "Updated"
         }
 
+        # --- Edit-SafeguardUser via pipeline ---
+        Test-SgPsAssert "Edit-SafeguardUser via pipeline" {
+            $user = Get-SafeguardUser -Insecure $Context.SuiteData["UserId"]
+            $user.Description = "Pipeline edit"
+            $edited = $user | Edit-SafeguardUser -Insecure
+            $edited.Description -eq "Pipeline edit"
+        }
+        Test-SgPsAssert "Edit-SafeguardUser pipeline edit persisted" {
+            $readback = Get-SafeguardUser -Insecure $Context.SuiteData["UserId"]
+            $readback.Description -eq "Pipeline edit"
+        }
+
         # --- Find-SafeguardUser ---
         Test-SgPsAssert "Find-SafeguardUser by search string" {
             $results = Find-SafeguardUser -Insecure $testUser
