@@ -667,6 +667,9 @@ An integer containing the ID of the directory identity provider to synchronize o
 .PARAMETER FullSync
 When this switch is specified, a full synchronization is performed instead of a delta sync.
 
+.PARAMETER ExtendedLogging
+Generate debug task log for the directory synchronization action.
+
 .INPUTS
 None.
 
@@ -692,17 +695,18 @@ function Sync-SafeguardDirectoryIdentityProvider
         [Parameter(Mandatory=$true,Position=0)]
         [object]$DirectoryToSync,
         [Parameter(Mandatory=$false)]
-        [switch]$FullSync
+        [switch]$FullSync,
+        [Parameter(Mandatory=$false)]
+        [switch]$ExtendedLogging
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
     $local:IdpId = (Resolve-SafeguardDirectoryIdentityProviderId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $DirectoryToSync)
-    if ($FullSync)
-    {
-        $Parameters = @{ fullSync = $true }
-    }
+    $Parameters = @{}
+    if ($FullSync) { $Parameters.fullSync = $true }
+    if ($ExtendedLogging) { $Parameters.extendedLogging = $true }
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
         POST "IdentityProviders/$($local:IdpId)/Synchronize" -LongRunningTask -Parameters $Parameters
 }
