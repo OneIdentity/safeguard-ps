@@ -557,7 +557,7 @@ Edit-SafeguardAccessRequest 123 Deny -Comment "testComment"
 #>
 function Edit-SafeguardAccessRequest
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Attributes")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -567,7 +567,7 @@ function Edit-SafeguardAccessRequest
         [switch]$Insecure,
         [Parameter(Mandatory=$false)]
         [HashTable]$Parameters,
-        [Parameter(Mandatory=$true, Position=0)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$true, Position=0)]
         [string]$RequestId,
         [Parameter(Mandatory=$true, Position=1)]
         [ValidateSet("Approve", "Deny", "Review", "Cancel", "Close", "CheckIn", "CheckOutPassword", "CheckOutSshKey", "CheckOutApiKey", "CheckOutApiKeys", "CheckOut", "InitializeSession", "Acknowledge", IgnoreCase=$true)]
@@ -575,48 +575,62 @@ function Edit-SafeguardAccessRequest
         [Parameter(Mandatory=$false)]
         [string]$Comment,
         [Parameter(Mandatory=$false)]
-        [switch]$AllFields
+        [switch]$AllFields,
+        [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
+        [object]$RequestObject
     )
 
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    # Allow case insensitive actions to translate to appropriate case sensitive URL path
-    switch ($Action)
+    begin
     {
-        "approve" { $Action = "Approve"; break }
-        "deny" { $Action = "Deny"; break }
-        "review" { $Action = "Review"; break }
-        "cancel" { $Action = "Cancel"; break }
-        "close" { $Action = "Close"; break }
-        "checkin" { $Action = "CheckIn"; break }
-        "checkout" { $Action = "CheckOutPassword"; break }
-        "checkoutpassword" { $Action = "CheckOutPassword"; break }
-        "checkoutsshkey" { $Action = "CheckOutSshKey"; break }
-        "checkoutapikey" { $Action = "CheckOutApiKeys"; break }
-        "checkoutapikeys" { $Action = "CheckOutApiKeys"; break }
-        "initializesession" { $Action = "InitializeSession"; break }
-        "acknowledge" { $Action = "Acknowledge"; break }
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     }
 
-    if ($AllFields -or $Action -eq "CheckOutPassword" -or $Action -eq "CheckOutSshKey" -or $Action -eq "InitializeSession" -or $Action -eq "CheckOutApiKeys")
+    process
     {
-        $local:RequestFields = $null
-    }
-    else
-    {
-        $local:RequestFields = $script:SgAccessRequestFields
-    }
+        if ($PsCmdlet.ParameterSetName -eq "Object")
+        {
+            if (-not $RequestObject) { throw "RequestObject must not be null" }
+            $RequestId = $RequestObject.Id
+        }
 
-    if ($Comment)
-    {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-            POST "AccessRequests/$RequestId/$Action" -Parameters $Parameters -Body "$Comment" | Select-Object -Property $local:RequestFields
-    }
-    else
-    {
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-            POST "AccessRequests/$RequestId/$Action" -Parameters $Parameters | Select-Object -Property $local:RequestFields
+        # Allow case insensitive actions to translate to appropriate case sensitive URL path
+        switch ($Action)
+        {
+            "approve" { $Action = "Approve"; break }
+            "deny" { $Action = "Deny"; break }
+            "review" { $Action = "Review"; break }
+            "cancel" { $Action = "Cancel"; break }
+            "close" { $Action = "Close"; break }
+            "checkin" { $Action = "CheckIn"; break }
+            "checkout" { $Action = "CheckOutPassword"; break }
+            "checkoutpassword" { $Action = "CheckOutPassword"; break }
+            "checkoutsshkey" { $Action = "CheckOutSshKey"; break }
+            "checkoutapikey" { $Action = "CheckOutApiKeys"; break }
+            "checkoutapikeys" { $Action = "CheckOutApiKeys"; break }
+            "initializesession" { $Action = "InitializeSession"; break }
+            "acknowledge" { $Action = "Acknowledge"; break }
+        }
+
+        if ($AllFields -or $Action -eq "CheckOutPassword" -or $Action -eq "CheckOutSshKey" -or $Action -eq "InitializeSession" -or $Action -eq "CheckOutApiKeys")
+        {
+            $local:RequestFields = $null
+        }
+        else
+        {
+            $local:RequestFields = $script:SgAccessRequestFields
+        }
+
+        if ($Comment)
+        {
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                POST "AccessRequests/$RequestId/$Action" -Parameters $Parameters -Body "$Comment" | Select-Object -Property $local:RequestFields
+        }
+        else
+        {
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                POST "AccessRequests/$RequestId/$Action" -Parameters $Parameters | Select-Object -Property $local:RequestFields
+        }
     }
 }
 

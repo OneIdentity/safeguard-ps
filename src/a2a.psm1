@@ -770,62 +770,68 @@ function Add-SafeguardA2aCredentialRetrieval
         [object]$Asset,
         [Parameter(ParameterSetName="Names",Mandatory=$true,Position=2)]
         [object]$Account,
-        [Parameter(ParameterSetName="Object",Mandatory=$true)]
+        [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
         [object]$AccountObj,
         [Parameter(Mandatory=$false)]
         [string[]]$IpRestrictions
     )
 
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $AccountObj)
+    begin
     {
-        throw "AccountObj must not be null"
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     }
 
-    if ($IpRestrictions)
+    process
     {
-        Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
-        $IpRestrictions | ForEach-Object {
-            if (-not (Test-IpAddress $_))
-            {
-                throw "IP restriction '$_' is not an IP address"
+        if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $AccountObj)
+        {
+            throw "AccountObj must not be null"
+        }
+
+        if ($IpRestrictions)
+        {
+            Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
+            $IpRestrictions | ForEach-Object {
+                if (-not (Test-IpAddress $_))
+                {
+                    throw "IP restriction '$_' is not an IP address"
+                }
             }
         }
-    }
 
-    $local:A2aId = (Resolve-SafeguardA2aId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ParentA2a)
+        $local:A2aId = (Resolve-SafeguardA2aId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $ParentA2a)
 
-    $local:Body = @{}
-    if ($PsCmdlet.ParameterSetName -eq "Object")
-    {
-        $local:Body.AccountId = $AccountObj.Id
-        $local:Body.AssetId = $AccountObj.AssetId
-    }
-    else
-    {
-        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-        if ($Asset)
+        $local:Body = @{}
+        if ($PsCmdlet.ParameterSetName -eq "Object")
         {
-            $local:Body.AssetId = (Resolve-SafeguardAssetId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $Asset)
-            $local:Body.AccountId = (Resolve-SafeguardAccountIdWithAssetId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
-                $local:Body.AssetId $Account)
+            $local:Body.AccountId = $AccountObj.Id
+            $local:Body.AssetId = $AccountObj.AssetId
         }
         else
         {
-            Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
-            $local:Body.AccountId = (Resolve-SafeguardAccountIdWithoutAssetId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $Account)
+            Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+            if ($Asset)
+            {
+                $local:Body.AssetId = (Resolve-SafeguardAssetId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $Asset)
+                $local:Body.AccountId = (Resolve-SafeguardAccountIdWithAssetId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                    $local:Body.AssetId $Account)
+            }
+            else
+            {
+                Import-Module -Name "$PSScriptRoot\assets.psm1" -Scope Local
+                $local:Body.AccountId = (Resolve-SafeguardAccountIdWithoutAssetId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure $Account)
+            }
         }
-    }
 
-    if ($IpRestrictions)
-    {
-        $local:Body.IpRestrictions = $IpRestrictions
-    }
+        if ($IpRestrictions)
+        {
+            $local:Body.IpRestrictions = $IpRestrictions
+        }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-        Core POST "A2ARegistrations/$($local:A2aId)/RetrievableAccounts" -Body $local:Body
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+            Core POST "A2ARegistrations/$($local:A2aId)/RetrievableAccounts" -Body $local:Body
+    }
 }
 
 <#

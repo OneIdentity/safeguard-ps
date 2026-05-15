@@ -591,7 +591,8 @@ function Edit-SafeguardUserGroup
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true, Position=0)]
+        [Parameter(ParameterSetName="Operation",Mandatory=$true,Position=0)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$true,Position=0)]
         [object]$GroupToEdit,
         [Parameter(Mandatory=$false, ParameterSetName="Attributes")]
         [string]$Description,
@@ -603,44 +604,59 @@ function Edit-SafeguardUserGroup
         [ValidateSet("Add", "Remove", IgnoreCase=$true)]
         [string]$Operation,
         [Parameter(Mandatory=$true, ParameterSetName="Operation", Position=2)]
-        [object[]]$UserList
+        [object[]]$UserList,
+        [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
+        [object]$GroupObject
     )
 
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    if ($PsCmdlet.ParameterSetName -eq "Attributes")
+    begin
     {
-        $local:Group = (Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure User $GroupToEdit)
-        if ($Description) { $local:Group.Description = $Description }
-        if ($AdminRoles)
-        {
-            if ($AdminRoles -contains "All")
-            {
-                Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
-                if (Test-SafeguardMinVersionInternal -Appliance $Appliance -Insecure:$Insecure -MinVersion "2.7")
-                {
-                    $AdminRoles = @('GlobalAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
-                }
-                else
-                {
-                    $AdminRoles = @('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
-                }
-            }
-            $local:Group.DirectoryGroupSyncProperties.AdminRoles = $AdminRoles
-        }
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core PUT "UserGroups/$($local:Group.Id)" -Body $local:Group
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     }
-    else
+
+    process
     {
-        [object[]]$local:Users = $null
-        foreach ($local:User in $UserList)
+        if ($PsCmdlet.ParameterSetName -eq "Object")
         {
-            $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User -Fields Id,Name,PrimaryAuthenticationProvider.Id,DirectoryProperties)
-            $local:Users += $($local:ResolvedUser)
+            if (-not $GroupObject) { throw "GroupObject must not be null" }
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core PUT "UserGroups/$($GroupObject.Id)" -Body $GroupObject
+            return
         }
 
-        Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -GroupType User -GroupToEdit $GroupToEdit -Operation $Operation -ObjectToOperate $local:Users
+        if ($PsCmdlet.ParameterSetName -eq "Attributes")
+        {
+            $local:Group = (Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure User $GroupToEdit)
+            if ($Description) { $local:Group.Description = $Description }
+            if ($AdminRoles)
+            {
+                if ($AdminRoles -contains "All")
+                {
+                    Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+                    if (Test-SafeguardMinVersionInternal -Appliance $Appliance -Insecure:$Insecure -MinVersion "2.7")
+                    {
+                        $AdminRoles = @('GlobalAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
+                    }
+                    else
+                    {
+                        $AdminRoles = @('GlobalAdmin','DirectoryAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
+                    }
+                }
+                $local:Group.DirectoryGroupSyncProperties.AdminRoles = $AdminRoles
+            }
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core PUT "UserGroups/$($local:Group.Id)" -Body $local:Group
+        }
+        else
+        {
+            [object[]]$local:Users = $null
+            foreach ($local:User in $UserList)
+            {
+                $local:ResolvedUser = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -UserToGet $local:User -Fields Id,Name,PrimaryAuthenticationProvider.Id,DirectoryProperties)
+                $local:Users += $($local:ResolvedUser)
+            }
+
+            Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -GroupType User -GroupToEdit $GroupToEdit -Operation $Operation -ObjectToOperate $local:Users
+        }
     }
 }
 
@@ -1091,7 +1107,7 @@ Edit-SafeguardAssetGroup testassetgroup -Description "Updated description"
 #>
 function Edit-SafeguardAssetGroup
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Attributes")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -1099,45 +1115,60 @@ function Edit-SafeguardAssetGroup
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true, Position=0)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$true, Position=0)]
         [object]$GroupToEdit,
-        [Parameter(Mandatory=$false, Position=1)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false, Position=1)]
         [ValidateSet("Add", "Remove", IgnoreCase=$true)]
         [string]$Operation,
-        [Parameter(Mandatory=$false, Position=2)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false, Position=2)]
         [object[]]$AssetList,
-        [Parameter(Mandatory=$false)]
-        [string]$Description
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$Description,
+        [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
+        [object]$GroupObject
     )
 
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    if ($PSBoundParameters.ContainsKey("Description"))
+    begin
     {
-        $local:GroupId = (Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $GroupToEdit)
-        $local:GroupObject = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetGroups/$($local:GroupId)")
-        $local:GroupObject.Description = $Description
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AssetGroups/$($local:GroupId)" -Body $local:GroupObject
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     }
 
-    if ($PSBoundParameters.ContainsKey("Operation"))
+    process
     {
-        if (-not $PSBoundParameters.ContainsKey("AssetList"))
+        if ($PsCmdlet.ParameterSetName -eq "Object")
         {
-            throw "AssetList is required when specifying an Operation"
+            if (-not $GroupObject) { throw "GroupObject must not be null" }
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AssetGroups/$($GroupObject.Id)" -Body $GroupObject
+            return
         }
-        [object[]]$local:Assets = $null
-        foreach ($local:Asset in $AssetList)
+
+        if ($PSBoundParameters.ContainsKey("Description"))
         {
-            $local:ResolvedAsset = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetToGet $local:Asset -Fields Id,Name)
-            $local:Assets += $($local:ResolvedAsset)
+            $local:GroupId = (Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $GroupToEdit)
+            $local:GroupObject = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AssetGroups/$($local:GroupId)")
+            $local:GroupObject.Description = $Description
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AssetGroups/$($local:GroupId)" -Body $local:GroupObject
         }
-        Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -GroupType Asset -GroupToEdit $GroupToEdit -Operation $Operation -ObjectToOperate $local:Assets
-    }
-    elseif (-not $PSBoundParameters.ContainsKey("Description"))
-    {
-        throw "You must specify either -Operation with -AssetList, or -Description, or both"
+
+        if ($PSBoundParameters.ContainsKey("Operation"))
+        {
+            if (-not $PSBoundParameters.ContainsKey("AssetList"))
+            {
+                throw "AssetList is required when specifying an Operation"
+            }
+            [object[]]$local:Assets = $null
+            foreach ($local:Asset in $AssetList)
+            {
+                $local:ResolvedAsset = (Get-SafeguardAsset -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -AssetToGet $local:Asset -Fields Id,Name)
+                $local:Assets += $($local:ResolvedAsset)
+            }
+            Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -GroupType Asset -GroupToEdit $GroupToEdit -Operation $Operation -ObjectToOperate $local:Assets
+        }
+        elseif (-not $PSBoundParameters.ContainsKey("Description"))
+        {
+            throw "You must specify either -Operation with -AssetList, or -Description, or both"
+        }
     }
 }
 
@@ -1535,7 +1566,7 @@ Edit-SafeguardAccountGroup testaccountgroup -Description "Updated description"
 #>
 function Edit-SafeguardAccountGroup
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Attributes")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -1543,51 +1574,66 @@ function Edit-SafeguardAccountGroup
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true, Position=0)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$true, Position=0)]
         [object]$GroupToEdit,
-        [Parameter(Mandatory=$false, Position=1)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false, Position=1)]
         [ValidateSet("Add", "Remove", IgnoreCase=$true)]
         [string]$Operation,
-        [Parameter(Mandatory=$false, Position=2)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false, Position=2)]
         [object[]]$AccountList,
-        [Parameter(Mandatory=$false)]
-        [string]$Description
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [string]$Description,
+        [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
+        [object]$GroupObject
     )
 
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    if ($PSBoundParameters.ContainsKey("Description"))
+    begin
     {
-        $local:GroupId = (Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToEdit)
-        $local:GroupObject = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AccountGroups/$($local:GroupId)")
-        $local:GroupObject.Description = $Description
-        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AccountGroups/$($local:GroupId)" -Body $local:GroupObject
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     }
 
-    if ($PSBoundParameters.ContainsKey("Operation"))
+    process
     {
-        if (-not $PSBoundParameters.ContainsKey("AccountList"))
+        if ($PsCmdlet.ParameterSetName -eq "Object")
         {
-            throw "AccountList is required when specifying an Operation"
+            if (-not $GroupObject) { throw "GroupObject must not be null" }
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AccountGroups/$($GroupObject.Id)" -Body $GroupObject
+            return
         }
-        [object[]]$local:Accounts = $null
-        foreach ($local:AccountPair in $AccountList)
+
+        if ($PSBoundParameters.ContainsKey("Description"))
         {
-            $local:Pair = ($local:AccountPair -split "\\")
-            if ($local:Pair.Length -ne 2)
+            $local:GroupId = (Resolve-SafeguardGroupId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToEdit)
+            $local:GroupObject = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AccountGroups/$($local:GroupId)")
+            $local:GroupObject.Description = $Description
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AccountGroups/$($local:GroupId)" -Body $local:GroupObject
+        }
+
+        if ($PSBoundParameters.ContainsKey("Operation"))
+        {
+            if (-not $PSBoundParameters.ContainsKey("AccountList"))
             {
-                throw "Unable to parse '$($local:AccountPair)' using expected format of 'asset\account'."
+                throw "AccountList is required when specifying an Operation"
             }
-            $local:ResolvedAccount = (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                -AssetToGet $local:Pair[0] -AccountToGet $local:Pair[1] -Fields Asset.Id,Id,Asset.Name,Name)
-            $local:Accounts += $($local:ResolvedAccount)
+            [object[]]$local:Accounts = $null
+            foreach ($local:AccountPair in $AccountList)
+            {
+                $local:Pair = ($local:AccountPair -split "\\")
+                if ($local:Pair.Length -ne 2)
+                {
+                    throw "Unable to parse '$($local:AccountPair)' using expected format of 'asset\account'."
+                }
+                $local:ResolvedAccount = (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                    -AssetToGet $local:Pair[0] -AccountToGet $local:Pair[1] -Fields Asset.Id,Id,Asset.Name,Name)
+                $local:Accounts += $($local:ResolvedAccount)
+            }
+            Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -GroupType Account -GroupToEdit $GroupToEdit -Operation $Operation -ObjectToOperate $local:Accounts
         }
-        Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -GroupType Account -GroupToEdit $GroupToEdit -Operation $Operation -ObjectToOperate $local:Accounts
-    }
-    elseif (-not $PSBoundParameters.ContainsKey("Description"))
-    {
-        throw "You must specify either -Operation with -AccountList, or -Description, or both"
+        elseif (-not $PSBoundParameters.ContainsKey("Description"))
+        {
+            throw "You must specify either -Operation with -AccountList, or -Description, or both"
+        }
     }
 }
 
@@ -1944,7 +1990,7 @@ Edit-SafeguardDynamicAccountGroup "B_OracleServerRoots" "([Platform startswith '
 #>
 function Edit-SafeguardDynamicAccountGroup
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Attributes")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -1952,42 +1998,69 @@ function Edit-SafeguardDynamicAccountGroup
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$false,Position=0)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false,Position=0)]
         [object]$GroupToEdit,
-        [Parameter(Mandatory=$false)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$Description,
-        [Parameter(Mandatory=$false, Position=1)]
-        [string]$GroupingRule
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false, Position=1)]
+        [string]$GroupingRule,
+        [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
+        [object]$GroupObject
     )
 
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    $local:Group = (Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToEdit)
-    if (-not $local:Group.IsDynamic)
+    begin
     {
-        throw "$($local:Group.Name) is not a dynamic account group"
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+        Import-Module -Name "$PSScriptRoot\grouptag-utilities.psm1" -Scope Local
     }
 
-    Import-Module -Name "$PSScriptRoot\grouptag-utilities.psm1" -Scope Local
-    if ($Description) { $local:Group.Description = $Description }
-    if ($GroupingRule)
+    process
     {
-        $local:Group.GroupingRule = (Convert-StringToRule $GroupingRule "account")
+        if ($PsCmdlet.ParameterSetName -eq "Object")
+        {
+            if (-not $GroupObject) { throw "GroupObject must not be null" }
+            $local:Group = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT `
+                                "AccountGroups/$($GroupObject.Id)" -Body $GroupObject)
+            $local:Hash = [ordered]@{
+                Id = $local:Group.Id;
+                Name = $local:Group.Name;
+                Description = $local:Group.Description;
+                IsDynamic = $local:Group.IsDynamic;
+                CreatedDate = $local:Group.CreatedDate;
+                CreatedByUserId = $local:Group.CreatedByUserId;
+                CreatedByUserDisplayName = $local:Group.CreatedByUserDisplayName;
+                GroupingRule = (Convert-RuleToString $local:Group.GroupingRule "account");
+            }
+            New-Object PSObject -Property $local:Hash
+            return
+        }
+
+        $local:Group = (Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Account $GroupToEdit)
+        if (-not $local:Group.IsDynamic)
+        {
+            throw "$($local:Group.Name) is not a dynamic account group"
+        }
+
+        if ($Description) { $local:Group.Description = $Description }
+        if ($GroupingRule)
+        {
+            $local:Group.GroupingRule = (Convert-StringToRule $GroupingRule "account")
+        }
+        $local:Group = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT `
+                            "AccountGroups/$($local:Group.Id)" -Body $local:Group)
+        $local:Hash = [ordered]@{
+            Id = $local:Group.Id;
+            Name = $local:Group.Name;
+            Description = $local:Group.Description;
+            IsDynamic = $local:Group.IsDynamic;
+            CreatedDate = $local:Group.CreatedDate;
+            CreatedByUserId = $local:Group.CreatedByUserId;
+            CreatedByUserDisplayName = $local:Group.CreatedByUserDisplayName;
+            GroupingRule = (Convert-RuleToString $local:Group.GroupingRule "account");
+        }
+        New-Object PSObject -Property $local:Hash
     }
-    $local:Group = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT `
-                        "AccountGroups/$($local:Group.Id)" -Body $local:Group)
-    $local:Hash = [ordered]@{
-        Id = $local:Group.Id;
-        Name = $local:Group.Name;
-        Description = $local:Group.Description;
-        IsDynamic = $local:Group.IsDynamic;
-        CreatedDate = $local:Group.CreatedDate;
-        CreatedByUserId = $local:Group.CreatedByUserId;
-        CreatedByUserDisplayName = $local:Group.CreatedByUserDisplayName;
-        GroupingRule = (Convert-RuleToString $local:Group.GroupingRule "account");
-    }
-    New-Object PSObject -Property $local:Hash
 }
 
 <#
@@ -2216,7 +2289,7 @@ Edit-SafeguardDynamicAssetGroup "LinuxMachines" "([Tag eq 'Linux'])"
 #>
 function Edit-SafeguardDynamicAssetGroup
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Attributes")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -2224,40 +2297,67 @@ function Edit-SafeguardDynamicAssetGroup
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$false,Position=0)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false,Position=0)]
         [object]$GroupToEdit,
-        [Parameter(Mandatory=$false)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$Description,
-        [Parameter(Mandatory=$false, Position=1)]
-        [string]$GroupingRule
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false, Position=1)]
+        [string]$GroupingRule,
+        [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
+        [object]$GroupObject
     )
 
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    $local:Group = (Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $GroupToEdit)
-    if (-not $local:Group.IsDynamic)
+    begin
     {
-        throw "$($local:Group.Name) is not a dynamic asset group"
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+        Import-Module -Name "$PSScriptRoot\grouptag-utilities.psm1" -Scope Local
     }
 
-    Import-Module -Name "$PSScriptRoot\grouptag-utilities.psm1" -Scope Local
-    if ($Description) { $local:Group.Description = $Description }
-    if ($GroupingRule)
+    process
     {
-        $local:Group.AssetGroupingRule = (Convert-StringToRule $GroupingRule "asset")
+        if ($PsCmdlet.ParameterSetName -eq "Object")
+        {
+            if (-not $GroupObject) { throw "GroupObject must not be null" }
+            $local:Group = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT `
+                                "AssetGroups/$($GroupObject.Id)" -Body $GroupObject)
+            $local:Hash = [ordered]@{
+                Id = $local:Group.Id;
+                Name = $local:Group.Name;
+                Description = $local:Group.Description;
+                IsDynamic = $local:Group.IsDynamic;
+                CreatedDate = $local:Group.CreatedDate;
+                CreatedByUserId = $local:Group.CreatedByUserId;
+                CreatedByUserDisplayName = $local:Group.CreatedByUserDisplayName;
+                AssetGroupingRule = (Convert-RuleToString $local:Group.AssetGroupingRule "asset");
+            }
+            New-Object PSObject -Property $local:Hash
+            return
+        }
+
+        $local:Group = (Get-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Asset $GroupToEdit)
+        if (-not $local:Group.IsDynamic)
+        {
+            throw "$($local:Group.Name) is not a dynamic asset group"
+        }
+
+        if ($Description) { $local:Group.Description = $Description }
+        if ($GroupingRule)
+        {
+            $local:Group.AssetGroupingRule = (Convert-StringToRule $GroupingRule "asset")
+        }
+        $local:Group = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT `
+                            "AssetGroups/$($local:Group.Id)" -Body $local:Group)
+        $local:Hash = [ordered]@{
+            Id = $local:Group.Id;
+            Name = $local:Group.Name;
+            Description = $local:Group.Description;
+            IsDynamic = $local:Group.IsDynamic;
+            CreatedDate = $local:Group.CreatedDate;
+            CreatedByUserId = $local:Group.CreatedByUserId;
+            CreatedByUserDisplayName = $local:Group.CreatedByUserDisplayName;
+            AssetGroupingRule = (Convert-RuleToString $local:Group.AssetGroupingRule "asset");
+        }
+        New-Object PSObject -Property $local:Hash
     }
-    $local:Group = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT `
-                        "AssetGroups/$($local:Group.Id)" -Body $local:Group)
-    $local:Hash = [ordered]@{
-        Id = $local:Group.Id;
-        Name = $local:Group.Name;
-        Description = $local:Group.Description;
-        IsDynamic = $local:Group.IsDynamic;
-        CreatedDate = $local:Group.CreatedDate;
-        CreatedByUserId = $local:Group.CreatedByUserId;
-        CreatedByUserDisplayName = $local:Group.CreatedByUserDisplayName;
-        AssetGroupingRule = (Convert-RuleToString $local:Group.AssetGroupingRule "asset");
-    }
-    New-Object PSObject -Property $local:Hash
 }

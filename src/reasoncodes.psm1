@@ -312,7 +312,7 @@ Get-SafeguardReasonCode 5 | Edit-SafeguardReasonCode
 #>
 function Edit-SafeguardReasonCode
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Object")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -320,7 +320,7 @@ function Edit-SafeguardReasonCode
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true,Position=0,ValueFromPipeline=$true)]
+        [Parameter(ParameterSetName="Object",Mandatory=$true,Position=0,ValueFromPipeline=$true)]
         [object]$ReasonCodeObject
     )
 

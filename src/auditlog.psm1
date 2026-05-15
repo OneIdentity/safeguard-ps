@@ -1342,7 +1342,7 @@ Get-SafeguardScheduledAuditLogReport -Insecure -ReportId 42 | Edit-SafeguardSche
 #>
 function Edit-SafeguardScheduledAuditLogReport
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Attributes")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -1350,9 +1350,9 @@ function Edit-SafeguardScheduledAuditLogReport
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$false,Position=0)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false,Position=0)]
         [int]$ReportId,
-        [Parameter(Mandatory=$false,ValueFromPipeline=$true)]
+        [Parameter(ParameterSetName="Object",Mandatory=$false,ValueFromPipeline=$true)]
         [object]$ReportObject
     )
 

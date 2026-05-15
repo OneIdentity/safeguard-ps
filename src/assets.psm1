@@ -2014,52 +2014,58 @@ function Edit-SafeguardAssetAccount
         [object]$PasswordProfile,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string[]]$PrivilegeGroupMembershipList,
-        [Parameter(ParameterSetName="Object",Mandatory=$true)]
+        [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
         [object]$AccountObject
     )
 
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $AccountObject)
+    begin
     {
-        throw "AccountObject must not be null"
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     }
 
-    if ($PsCmdlet.ParameterSetName -eq "Attributes")
+    process
     {
-        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                                -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToEdit -Account $AccountToEdit)
-    }
-
-    if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
-    {
-        $AccountObject = (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                              -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -AssetToGet $AssetToEdit -AccountToGet $local:AccountId)
-
-        if ($PSBoundParameters.ContainsKey("Description")) { $AccountObject.Description = $Description }
-        if ($PSBoundParameters.ContainsKey("DomainName")) { $AccountObject.DomainName = $DomainName }
-        if ($PSBoundParameters.ContainsKey("PasswordProfile"))
+        if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $AccountObject)
         {
-            Import-Module -Name "$PSScriptRoot\profiles.psm1" -Scope Local
-            $local:ProfileId = (Resolve-SafeguardPasswordProfileId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                                    -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $PasswordProfile)
-            if (-not $AccountObject.PasswordProfile) { $AccountObject.PasswordProfile = @{} }
-            $AccountObject.PasswordProfile.Id = $local:ProfileId
+            throw "AccountObject must not be null"
         }
-        if ($PSBoundParameters.ContainsKey("PrivilegeGroupMembershipList"))
-        {
-            $AccountObject.PrivilegeGroupMembershipList = $PrivilegeGroupMembershipList
-        }
-    }
-    else
-    {
-        # Make sure it is actually in the partition (just in case caller has called Enter-SafeguardAssetPartition)
-        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                              -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId  $AccountObject.Id)
-    }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AssetAccounts/$($AccountObject.Id)" -Body $AccountObject
+        if ($PsCmdlet.ParameterSetName -eq "Attributes")
+        {
+            $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                    -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToEdit -Account $AccountToEdit)
+        }
+
+        if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
+        {
+            $AccountObject = (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                  -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -AssetToGet $AssetToEdit -AccountToGet $local:AccountId)
+
+            if ($PSBoundParameters.ContainsKey("Description")) { $AccountObject.Description = $Description }
+            if ($PSBoundParameters.ContainsKey("DomainName")) { $AccountObject.DomainName = $DomainName }
+            if ($PSBoundParameters.ContainsKey("PasswordProfile"))
+            {
+                Import-Module -Name "$PSScriptRoot\profiles.psm1" -Scope Local
+                $local:ProfileId = (Resolve-SafeguardPasswordProfileId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                        -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $PasswordProfile)
+                if (-not $AccountObject.PasswordProfile) { $AccountObject.PasswordProfile = @{} }
+                $AccountObject.PasswordProfile.Id = $local:ProfileId
+            }
+            if ($PSBoundParameters.ContainsKey("PrivilegeGroupMembershipList"))
+            {
+                $AccountObject.PrivilegeGroupMembershipList = $PrivilegeGroupMembershipList
+            }
+        }
+        else
+        {
+            # Make sure it is actually in the partition (just in case caller has called Enter-SafeguardAssetPartition)
+            $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                  -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId  $AccountObject.Id)
+        }
+
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AssetAccounts/$($AccountObject.Id)" -Body $AccountObject
+    }
 }
 
 <#
