@@ -871,8 +871,12 @@ function New-SafeguardAsset
         [Parameter(Mandatory=$true,ParameterSetName="Ldap",Position=0)]
         [string]$ServiceAccountDistinguishedName,
         [Parameter(Mandatory=$false,ParameterSetName="Ldap")]
+        [Parameter(Mandatory=$false,ParameterSetName="Asset")]
+        [Parameter(Mandatory=$false,ParameterSetName="Ad")]
         [switch]$NoSslEncryption,
         [Parameter(Mandatory=$false,ParameterSetName="Ldap")]
+        [Parameter(Mandatory=$false,ParameterSetName="Asset")]
+        [Parameter(Mandatory=$false,ParameterSetName="Ad")]
         [switch]$DoNotVerifyServerSslCertificate,
         [Parameter(Mandatory=$false,ParameterSetName="Asset")]
         [Parameter(Mandatory=$true,ParameterSetName="Ad",Position=0)]
@@ -1010,19 +1014,18 @@ function New-SafeguardAsset
     #Ldap Connection properties
     if ($PSCmdlet.ParameterSetName -eq "Ldap")
     {
-        $local:ConnectionProperties.UseSslEncryption = $true;
-        $local:ConnectionProperties.VerifySslCertificate = $true;
         $local:ConnectionProperties.ServiceAccountDistinguishedName = $ServiceAccountDistinguishedName;
+    }
 
-        if ($NoSslEncryption)
-        {
-            $local:ConnectionProperties.UseSslEncryption = $false
-            $local:ConnectionProperties.VerifySslCertificate = $false
-        }
-        if ($DoNotVerifyServerSslCertificate)
-        {
-            $local:ConnectionProperties.VerifySslCertificate = $false
-        }
+    # SSL connection properties (all parameter sets)
+    if ($NoSslEncryption)
+    {
+        $local:ConnectionProperties.UseSslEncryption = $false
+        $local:ConnectionProperties.VerifySslCertificate = $false
+    }
+    if ($DoNotVerifyServerSslCertificate)
+    {
+        $local:ConnectionProperties.VerifySslCertificate = $false
     }
 
     $local:DirectoryAssetProperties = @{ }
@@ -1107,6 +1110,9 @@ An integer containing the asset partition ID to test the asset in.
 .PARAMETER AssetToTest
 An integer containing the ID of the asset to test connection to or a string containing the name.
 
+.PARAMETER ExtendedLogging
+Generate debug task log for the test connection action.
+
 .INPUTS
 None.
 
@@ -1118,6 +1124,9 @@ Test-SafeguardAsset -AccessToken $token -Appliance 10.5.32.54 -Insecure 5
 
 .EXAMPLE
 Test-SafeguardAsset 5
+
+.EXAMPLE
+Test-SafeguardAsset -Insecure 5 -ExtendedLogging
 #>
 function Test-SafeguardAsset
 {
@@ -1134,7 +1143,9 @@ function Test-SafeguardAsset
         [Parameter(Mandatory=$false)]
         [int]$AssetPartitionId = $null,
         [Parameter(Mandatory=$true,Position=0)]
-        [object]$AssetToTest
+        [object]$AssetToTest,
+        [Parameter(Mandatory=$false)]
+        [switch]$ExtendedLogging
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -1143,8 +1154,11 @@ function Test-SafeguardAsset
     $local:AssetId = (Resolve-SafeguardAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
                           -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $AssetToTest)
 
+    $local:Parameters = @{}
+    if ($ExtendedLogging) { $local:Parameters.extendedLogging = $true }
+
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-        POST "Assets/$($local:AssetId)/TestConnection" -LongRunningTask
+        POST "Assets/$($local:AssetId)/TestConnection" -Parameters $local:Parameters -LongRunningTask
 }
 
 <#
@@ -2376,6 +2390,9 @@ An integer containing the ID of the asset to check password for or a string cont
 .PARAMETER AccountToUse
 An integer containing the ID of the account to check password for or a string containing the name.
 
+.PARAMETER ExtendedLogging
+Generate debug task log for the check password action.
+
 .INPUTS
 None.
 
@@ -2387,6 +2404,9 @@ Test-SafeguardAssetAccountPassword -AccessToken $token -Appliance 10.5.32.54 -In
 
 .EXAMPLE
 Test-SafeguardAssetAccountPassword -AccountToUse oracle
+
+.EXAMPLE
+Test-SafeguardAssetAccountPassword -Insecure windows.blah.corp administrator -ExtendedLogging
 #>
 function Test-SafeguardAssetAccountPassword
 {
@@ -2405,7 +2425,9 @@ function Test-SafeguardAssetAccountPassword
         [Parameter(Mandatory=$false,Position=0)]
         [object]$AssetToUse,
         [Parameter(Mandatory=$true,Position=1)]
-        [object]$AccountToUse
+        [object]$AccountToUse,
+        [Parameter(Mandatory=$false)]
+        [switch]$ExtendedLogging
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -2413,7 +2435,12 @@ function Test-SafeguardAssetAccountPassword
 
     $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToUse -Account $AccountToUse)
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts/$($local:AccountId)/CheckPassword" -LongRunningTask
+
+    $local:Parameters = @{}
+    if ($ExtendedLogging) { $local:Parameters.extendedLogging = $true }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        POST "AssetAccounts/$($local:AccountId)/CheckPassword" -Parameters $local:Parameters -LongRunningTask
 }
 
 <#
@@ -2447,6 +2474,9 @@ An integer containing the ID of the asset to change password for or a string con
 .PARAMETER AccountToUse
 An integer containing the ID of the account to change password for or a string containing the name.
 
+.PARAMETER ExtendedLogging
+Generate debug task log for the change password action.
+
 .INPUTS
 None.
 
@@ -2476,7 +2506,9 @@ function Invoke-SafeguardAssetAccountPasswordChange
         [Parameter(Mandatory=$false,Position=0)]
         [object]$AssetToUse,
         [Parameter(Mandatory=$true,Position=1)]
-        [object]$AccountToUse
+        [object]$AccountToUse,
+        [Parameter(Mandatory=$false)]
+        [switch]$ExtendedLogging
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -2484,7 +2516,12 @@ function Invoke-SafeguardAssetAccountPasswordChange
 
     $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToUse -Account $AccountToUse)
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts/$($local:AccountId)/ChangePassword" -LongRunningTask
+
+    $local:Parameters = @{}
+    if ($ExtendedLogging) { $local:Parameters.extendedLogging = $true }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        POST "AssetAccounts/$($local:AccountId)/ChangePassword" -Parameters $local:Parameters -LongRunningTask
 }
 
 <#
@@ -2518,6 +2555,9 @@ An integer containing the ID of the asset to check SSH key for or a string conta
 .PARAMETER AccountToUse
 An integer containing the ID of the account to check SSH key for or a string containing the name.
 
+.PARAMETER ExtendedLogging
+Generate debug task log for the check SSH key action.
+
 .INPUTS
 None.
 
@@ -2547,7 +2587,9 @@ function Test-SafeguardAssetAccountSshKey
         [Parameter(Mandatory=$false,Position=0)]
         [object]$AssetToUse,
         [Parameter(Mandatory=$true,Position=1)]
-        [object]$AccountToUse
+        [object]$AccountToUse,
+        [Parameter(Mandatory=$false)]
+        [switch]$ExtendedLogging
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -2555,7 +2597,12 @@ function Test-SafeguardAssetAccountSshKey
 
     $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToUse -Account $AccountToUse)
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts/$($local:AccountId)/CheckSshKey" -LongRunningTask
+
+    $local:Parameters = @{}
+    if ($ExtendedLogging) { $local:Parameters.extendedLogging = $true }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        POST "AssetAccounts/$($local:AccountId)/CheckSshKey" -Parameters $local:Parameters -LongRunningTask
 }
 
 <#
@@ -2589,6 +2636,9 @@ An integer containing the ID of the asset to change SSH key for or a string cont
 .PARAMETER AccountToUse
 An integer containing the ID of the account to change SSH key for or a string containing the name.
 
+.PARAMETER ExtendedLogging
+Generate debug task log for the change SSH key action.
+
 .INPUTS
 None.
 
@@ -2618,7 +2668,9 @@ function Invoke-SafeguardAssetAccountSshKeyChange
         [Parameter(Mandatory=$false,Position=0)]
         [object]$AssetToUse,
         [Parameter(Mandatory=$true,Position=1)]
-        [object]$AccountToUse
+        [object]$AccountToUse,
+        [Parameter(Mandatory=$false)]
+        [switch]$ExtendedLogging
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -2626,7 +2678,12 @@ function Invoke-SafeguardAssetAccountSshKeyChange
 
     $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToUse -Account $AccountToUse)
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST "AssetAccounts/$($local:AccountId)/ChangeSshKey" -LongRunningTask
+
+    $local:Parameters = @{}
+    if ($ExtendedLogging) { $local:Parameters.extendedLogging = $true }
+
+    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+        POST "AssetAccounts/$($local:AccountId)/ChangeSshKey" -Parameters $local:Parameters -LongRunningTask
 }
 
 <#

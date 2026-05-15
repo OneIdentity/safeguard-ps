@@ -350,7 +350,8 @@ FunctionsToExport = @(
     'Get-SafeguardReasonCode','Find-SafeguardReasonCode','New-SafeguardReasonCode',
     'Edit-SafeguardReasonCode','Remove-SafeguardReasonCode','Get-SafeguardReasonCodeScope',
     # runningtasks.psm1
-    'Get-SafeguardRunningTask','Stop-SafeguardRunningTask'
+    'Get-SafeguardRunningTask','Stop-SafeguardRunningTask',
+    'Get-SafeguardTaskLog','Clear-SafeguardTaskLog'
 )
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
