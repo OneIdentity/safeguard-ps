@@ -149,6 +149,19 @@ jobs:
           Publish-Module -Name safeguard-ps -NuGetApiKey "$(PowerShellGalleryApiKey)" -Verbose -SkipAutomaticTags -Force
       displayName: 'Publish PowerShell module to PowerShell Gallery'
 
+    - task: PowerShell@2
+      inputs:
+        targetType: inline
+        script: |
+          $local:ModulePath = (Get-Module -ListAvailable safeguard-ps).ModuleBase
+          Write-Host "Module path: $local:ModulePath"
+          $local:ZipName = "safeguard-ps-$(VersionString).zip"
+          $local:ZipPath = Join-Path "$(Build.ArtifactStagingDirectory)" $local:ZipName
+          Compress-Archive -Path "$local:ModulePath\*" -DestinationPath $local:ZipPath -Force
+          Write-Host "Created archive: $local:ZipPath"
+          Get-ChildItem "$(Build.ArtifactStagingDirectory)"
+      displayName: 'Archive PowerShell module for GitHub Release'
+
     - task: GitHubRelease@1
       inputs:
         gitHubConnection: 'PangaeaBuild-GitHub'
@@ -161,6 +174,7 @@ jobs:
         isPreRelease: $(isPrerelease)
         changeLogCompareToRelease: 'lastFullRelease'
         changeLogType: 'commitBased'
+        assets: $(Build.ArtifactStagingDirectory)/*.zip
       displayName: 'Creating GitHub release'
 
 # Job 4: Build and Publish Linux- runs only on successful merges (not PRs)
