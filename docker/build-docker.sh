@@ -14,7 +14,7 @@ if [ ! -z "$2" ]; then
 fi
 
 ScriptDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-. "$ScriptDir/docker/docker-include.sh"
+. "$ScriptDir/docker-include.sh"
 
 DockerFile=`get_safeguard_dockerfile $ImageType`
 
@@ -22,5 +22,6 @@ if [ ! -z "$(docker images -q oneidentity/safeguard-ps:$Version$ImageType)" ]; t
     echo "Cleaning up the old image: oneidentity/safeguard-ps:$Version$ImageType ..."
     docker rmi --force "oneidentity/safeguard-ps:$Version$ImageType"
 fi
+RepoRoot="$(dirname "$ScriptDir")"
 echo "Building a new image: oneidentity/safeguard-ps:$Version$ImageType ..."
-docker buildx build --no-cache --load -t "oneidentity/safeguard-ps:$Version$ImageType" -f "docker/$DockerFile" $ScriptDir 2>&1
+docker buildx build --no-cache --load -t "oneidentity/safeguard-ps:$Version$ImageType" -f "docker/$DockerFile" $RepoRoot 2>&1

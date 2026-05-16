@@ -3,8 +3,8 @@ steps:
     inputs:
       targetType: 'filePath'
       failOnStderr: true
-      filePath: '$(System.DefaultWorkingDirectory)/versionnumber.sh'
-      arguments: $(version) $(Build.BuildId)
+      filePath: '$(System.DefaultWorkingDirectory)/pipeline-templates/versionnumber.sh'
+      arguments: $(version) $(Build.BuildId) $(Build.SourceBranchName) $(isTagBuild)
     displayName: 'Setting build version'
 
   - task: Bash@3
@@ -32,8 +32,8 @@ steps:
   - task: PowerShell@2
     inputs:
       targetType: filePath
-      filePath: $(System.DefaultWorkingDirectory)/install-forpipeline.ps1
-      arguments: $(ModuleDir) $(VersionString) $$(isPrerelease)
+      filePath: $(System.DefaultWorkingDirectory)/pipeline-templates/install-forpipeline.ps1
+      arguments: $(ModuleDir) $(VersionString) $$(isPrerelease) $(PrereleaseSuffix)
     displayName: 'Building PowerShell module'
 
   - task: Bash@3
@@ -42,8 +42,8 @@ steps:
       failOnStderr: true
       script: |
         export DOCKER_BUILDKIT=1
-        $(System.DefaultWorkingDirectory)/build-docker.sh ubuntu $(VersionString)
-        $(System.DefaultWorkingDirectory)/build-docker.sh azurelinux $(VersionString)
-        $(System.DefaultWorkingDirectory)/build-docker.sh alpine $(VersionString)
+        $(System.DefaultWorkingDirectory)/docker/build-docker.sh ubuntu $(VersionString)
+        $(System.DefaultWorkingDirectory)/docker/build-docker.sh azurelinux $(VersionString)
+        $(System.DefaultWorkingDirectory)/docker/build-docker.sh alpine $(VersionString)
         docker tag oneidentity/safeguard-ps:$(VersionString)-alpine oneidentity/safeguard-ps:latest
     displayName: 'Build Linux Docker images'

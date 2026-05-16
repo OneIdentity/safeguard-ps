@@ -3,8 +3,8 @@ steps:
   inputs:
     targetType: filePath
     failOnStderr: true
-    filePath: $(System.DefaultWorkingDirectory)\versionnumber.ps1
-    arguments: $(version) $(Build.BuildId)
+    filePath: $(System.DefaultWorkingDirectory)\pipeline-templates\versionnumber.ps1
+    arguments: $(version) $(Build.BuildId) $(Build.SourceBranchName) $(isTagBuild)
   displayName: 'Setting build version'
 
 - task: PowerShell@2
@@ -32,8 +32,8 @@ steps:
 - task: PowerShell@2
   inputs:
     targetType: filePath
-    filePath: $(System.DefaultWorkingDirectory)\install-forpipeline.ps1
-    arguments: $(ModuleDir) $(VersionString) $$(isPrerelease)
+    filePath: $(System.DefaultWorkingDirectory)\pipeline-templates\install-forpipeline.ps1
+    arguments: $(ModuleDir) $(VersionString) $$(isPrerelease) $(PrereleaseSuffix)
   displayName: 'Building PowerShell module'
 
 - task: PowerShell@2

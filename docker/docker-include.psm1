@@ -39,5 +39,5 @@ function Get-SafeguardDockerFile
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    (Resolve-Path (Join-Path "docker" (Get-SafeguardDockerFileName $ImageType))).Path
+    (Resolve-Path (Join-Path $PSScriptRoot (Get-SafeguardDockerFileName $ImageType))).Path
 }
