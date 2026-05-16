@@ -335,7 +335,7 @@ Edit-SafeguardCustomPlatform 10001 -ScriptFile "C:\scripts\UpdatedScript.json"
 #>
 function Edit-SafeguardCustomPlatform
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Attributes")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -343,27 +343,27 @@ function Edit-SafeguardCustomPlatform
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$false,Position=0)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false,Position=0)]
         [object]$PlatformToEdit,
-        [Parameter(Mandatory=$false)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$Name,
-        [Parameter(Mandatory=$false)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$DisplayName,
-        [Parameter(Mandatory=$false)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$Description,
-        [Parameter(Mandatory=$false)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$ScriptFile,
-        [Parameter(Mandatory=$false)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [switch]$AllowSessionRequests,
-        [Parameter(Mandatory=$false)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [switch]$DenySessionRequests,
-        [Parameter(Mandatory=$false)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [int]$SshSessionPort,
-        [Parameter(Mandatory=$false)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [int]$RdpSessionPort,
-        [Parameter(Mandatory=$false)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [int]$TelnetSessionPort,
-        [Parameter(Mandatory=$false,ValueFromPipeline=$true)]
+        [Parameter(ParameterSetName="Object",Mandatory=$false,ValueFromPipeline=$true)]
         [object]$PlatformObject
     )
 

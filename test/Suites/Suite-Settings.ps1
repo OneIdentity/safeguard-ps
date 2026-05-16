@@ -5,6 +5,12 @@
 
     Setup = {
         param($Context)
+        $prefix = $Context.TestPrefix
+        # Pre-cleanup stale syslog server from prior failed runs
+        try {
+            $stale = Get-SafeguardSyslogServer -Insecure | Where-Object { $_.Name -match $prefix }
+            $stale | ForEach-Object { Remove-SafeguardSyslogServer -Insecure $_.Id }
+        } catch {}
     }
 
     Execute = {
@@ -95,6 +101,38 @@
             $settings = Get-SafeguardCoreSetting -Insecure -Fields "Name","Value"
             $list = @($settings)
             $list.Count -ge 1 -and $null -ne $list[0].Name
+        }
+
+        # =========================================
+        # Syslog Server pipeline tests
+        # =========================================
+
+        # --- New-SafeguardSyslogServer ---
+        Test-SgPsAssert "New-SafeguardSyslogServer creates a server" {
+            $prefix = $Context.TestPrefix
+            $server = New-SafeguardSyslogServer -Insecure -NetworkAddress "10.99.99.1" `
+                -Name "${prefix}_Syslog"
+            $Context.SuiteData["SyslogId"] = $server.Id
+
+            Register-SgPsTestCleanup -Description "Delete test syslog server" -Action {
+                param($Ctx)
+                try { Remove-SafeguardSyslogServer -Insecure $Ctx.SuiteData['SyslogId'] } catch {}
+            }
+            $server.Name -eq "${prefix}_Syslog"
+        }
+
+        # --- Edit-SafeguardSyslogServer via pipeline ---
+        Test-SgPsAssert "Edit-SafeguardSyslogServer via pipeline" {
+            $prefix = $Context.TestPrefix
+            $server = Get-SafeguardSyslogServer -Insecure $Context.SuiteData["SyslogId"]
+            $server.Name = "${prefix}_SyslogRenamed"
+            $edited = $server | Edit-SafeguardSyslogServer -Insecure
+            $edited.Name -eq "${prefix}_SyslogRenamed"
+        }
+        Test-SgPsAssert "Edit-SafeguardSyslogServer pipeline edit persisted" {
+            $prefix = $Context.TestPrefix
+            $readback = Get-SafeguardSyslogServer -Insecure $Context.SuiteData["SyslogId"]
+            $readback.Name -eq "${prefix}_SyslogRenamed"
         }
     }
 

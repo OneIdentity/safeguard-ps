@@ -1065,54 +1065,60 @@ function Edit-SafeguardUser
         [ValidateSet('GlobalAdmin','DirectoryAdmin','Auditor','ApplicationAuditor','SystemAuditor','AssetAdmin','ApplianceAdmin',
                      'PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin','All',IgnoreCase=$true)]
         [string[]]$AdminRoles = $null,
-        [Parameter(ParameterSetName="Object",Mandatory=$false)]
+        [Parameter(ParameterSetName="Object",Mandatory=$false,ValueFromPipeline=$true)]
         [object]$UserObject
     )
 
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $UserObject)
+    begin
     {
-        throw "UserObject must not be null"
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     }
 
-    if ($PsCmdlet.ParameterSetName -eq "Attributes")
+    process
     {
-        if (-not $PSBoundParameters.ContainsKey("UserToEdit"))
+        if ($PsCmdlet.ParameterSetName -eq "Object" -and -not $UserObject)
         {
-            $UserToEdit = (Read-Host "UserToEdit")
-        }
-        $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit)
-    }
-
-    if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
-    {
-        $UserObject = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:UserId)
-
-        if ($PSBoundParameters.ContainsKey("FirstName")) { $UserObject.FirstName = $FirstName }
-        if ($PSBoundParameters.ContainsKey("LastName")) { $UserObject.LastName = $LastName }
-        if ($PSBoundParameters.ContainsKey("Description")) { $UserObject.Description = $Description }
-        if ($PSBoundParameters.ContainsKey("EmailAddress")) { $UserObject.EmailAddress = $EmailAddress }
-        if ($PSBoundParameters.ContainsKey("WorkPhone")) { $UserObject.WorkPhone = $WorkPhone }
-        if ($PSBoundParameters.ContainsKey("MobilePhone")) { $UserObject.MobilePhone = $MobilePhone }
-        if ($PSBoundParameters.ContainsKey("AuthProvider"))
-        {
-            $local:ResolvedProvider = (Get-SafeguardAuthenticationProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AuthProvider)[0]
-            $UserObject.PrimaryAuthenticationProvider = @{ Id = $local:ResolvedProvider.Id }
+            throw "UserObject must not be null"
         }
 
-        if ($PSBoundParameters.ContainsKey("AdminRoles"))
+        if ($PsCmdlet.ParameterSetName -eq "Attributes")
         {
-            if ($AdminRoles -contains "All")
+            if (-not $PSBoundParameters.ContainsKey("UserToEdit"))
             {
-                $AdminRoles = @('GlobalAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
+                $UserToEdit = (Read-Host "UserToEdit")
             }
-            $UserObject.AdminRoles = $AdminRoles
+            $local:UserId = (Resolve-SafeguardUserId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $UserToEdit)
         }
-    }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$($UserObject.Id)" -Body $UserObject
+        if (-not ($PsCmdlet.ParameterSetName -eq "Object"))
+        {
+            $UserObject = (Get-SafeguardUser -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:UserId)
+
+            if ($PSBoundParameters.ContainsKey("FirstName")) { $UserObject.FirstName = $FirstName }
+            if ($PSBoundParameters.ContainsKey("LastName")) { $UserObject.LastName = $LastName }
+            if ($PSBoundParameters.ContainsKey("Description")) { $UserObject.Description = $Description }
+            if ($PSBoundParameters.ContainsKey("EmailAddress")) { $UserObject.EmailAddress = $EmailAddress }
+            if ($PSBoundParameters.ContainsKey("WorkPhone")) { $UserObject.WorkPhone = $WorkPhone }
+            if ($PSBoundParameters.ContainsKey("MobilePhone")) { $UserObject.MobilePhone = $MobilePhone }
+            if ($PSBoundParameters.ContainsKey("AuthProvider"))
+            {
+                $local:ResolvedProvider = (Get-SafeguardAuthenticationProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $AuthProvider)[0]
+                $UserObject.PrimaryAuthenticationProvider = @{ Id = $local:ResolvedProvider.Id }
+            }
+
+            if ($PSBoundParameters.ContainsKey("AdminRoles"))
+            {
+                if ($AdminRoles -contains "All")
+                {
+                    $AdminRoles = @('GlobalAdmin','Auditor','AssetAdmin','ApplianceAdmin','PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin')
+                }
+                $UserObject.AdminRoles = $AdminRoles
+            }
+        }
+
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Users/$($UserObject.Id)" -Body $UserObject
+    }
 }
 
 <#

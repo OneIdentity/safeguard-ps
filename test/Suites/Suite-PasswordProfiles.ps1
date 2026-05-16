@@ -84,6 +84,18 @@
             $updated.Description -eq "Updated check schedule"
         }
 
+        # --- Edit-SafeguardPasswordCheckSchedule via pipeline ---
+        Test-SgPsAssert "Edit-SafeguardPasswordCheckSchedule via pipeline" {
+            $sched = Get-SafeguardPasswordCheckSchedule -Insecure $Context.SuiteData["CheckId"]
+            $sched.Description = "Pipeline check edit"
+            $edited = $sched | Edit-SafeguardPasswordCheckSchedule -Insecure
+            $edited.Description -eq "Pipeline check edit"
+        }
+        Test-SgPsAssert "Edit-SafeguardPasswordCheckSchedule pipeline edit persisted" {
+            $readback = Get-SafeguardPasswordCheckSchedule -Insecure $Context.SuiteData["CheckId"]
+            $readback.Description -eq "Pipeline check edit"
+        }
+
         # =========================================
         # Password Change Schedules
         # =========================================
@@ -119,6 +131,18 @@
             $updated.Description -eq "Updated change schedule"
         }
 
+        # --- Edit-SafeguardPasswordChangeSchedule via pipeline ---
+        Test-SgPsAssert "Edit-SafeguardPasswordChangeSchedule via pipeline" {
+            $sched = Get-SafeguardPasswordChangeSchedule -Insecure $Context.SuiteData["ChangeId"]
+            $sched.Description = "Pipeline change edit"
+            $edited = $sched | Edit-SafeguardPasswordChangeSchedule -Insecure
+            $edited.Description -eq "Pipeline change edit"
+        }
+        Test-SgPsAssert "Edit-SafeguardPasswordChangeSchedule pipeline edit persisted" {
+            $readback = Get-SafeguardPasswordChangeSchedule -Insecure $Context.SuiteData["ChangeId"]
+            $readback.Description -eq "Pipeline change edit"
+        }
+
         # =========================================
         # Account Password Rules
         # =========================================
@@ -152,6 +176,18 @@
             $updated = Edit-SafeguardAccountPasswordRule -Insecure `
                 $Context.SuiteData["RuleId"] -Description "Updated password rule"
             $updated.Description -eq "Updated password rule"
+        }
+
+        # --- Edit-SafeguardAccountPasswordRule via pipeline ---
+        Test-SgPsAssert "Edit-SafeguardAccountPasswordRule via pipeline" {
+            $rule = Get-SafeguardAccountPasswordRule -Insecure $Context.SuiteData["RuleId"]
+            $rule.Description = "Pipeline rule edit"
+            $edited = $rule | Edit-SafeguardAccountPasswordRule -Insecure
+            $edited.Description -eq "Pipeline rule edit"
+        }
+        Test-SgPsAssert "Edit-SafeguardAccountPasswordRule pipeline edit persisted" {
+            $readback = Get-SafeguardAccountPasswordRule -Insecure $Context.SuiteData["RuleId"]
+            $readback.Description -eq "Pipeline rule edit"
         }
 
         # =========================================
@@ -197,6 +233,18 @@
             $updated = Edit-SafeguardPasswordProfile -Insecure `
                 $Context.SuiteData["ProfileId"] -Description "Updated profile desc"
             $updated.Description -eq "Updated profile desc"
+        }
+
+        # --- Edit-SafeguardPasswordProfile via pipeline ---
+        Test-SgPsAssert "Edit-SafeguardPasswordProfile via pipeline" {
+            $profObj = Get-SafeguardPasswordProfile -Insecure $Context.SuiteData["ProfileId"]
+            $profObj.Description = "Pipeline profile edit"
+            $edited = $profObj | Edit-SafeguardPasswordProfile -Insecure
+            $edited.Description -eq "Pipeline profile edit"
+        }
+        Test-SgPsAssert "Edit-SafeguardPasswordProfile pipeline edit persisted" {
+            $readback = Get-SafeguardPasswordProfile -Insecure $Context.SuiteData["ProfileId"]
+            $readback.Description -eq "Pipeline profile edit"
         }
 
         # --- New-SafeguardPasswordProfile (second, for delete) ---

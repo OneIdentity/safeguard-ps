@@ -14,6 +14,7 @@
         # Pre-cleanup
         Remove-SgPsStaleTestObject -Collection "AssetGroups" -Name $testGroup
         Remove-SgPsStaleTestObject -Collection "AssetGroups" -Name $testGroup2
+        Remove-SgPsStaleTestObject -Collection "AssetGroups" -Name "${prefix}_DynAG"
         Remove-SgPsStaleTestObject -Collection "Assets" -Name $testAsset
 
         $Context.SuiteData["TestGroup"] = $testGroup
@@ -79,6 +80,18 @@
             $readback.Description -eq "Updated description"
         }
 
+        # --- Edit-SafeguardAssetGroup via pipeline ---
+        Test-SgPsAssert "Edit-SafeguardAssetGroup via pipeline" {
+            $ag = Get-SafeguardAssetGroup -Insecure $Context.SuiteData["GroupId"]
+            $ag.Description = "Pipeline edit"
+            $edited = $ag | Edit-SafeguardAssetGroup -Insecure
+            $edited.Description -eq "Pipeline edit"
+        }
+        Test-SgPsAssert "Edit-SafeguardAssetGroup pipeline edit persisted" {
+            $readback = Get-SafeguardAssetGroup -Insecure $Context.SuiteData["GroupId"]
+            $readback.Description -eq "Pipeline edit"
+        }
+
         # --- Add-SafeguardAssetGroupMember ---
         Test-SgPsAssert "Add-SafeguardAssetGroupMember adds a member" {
             Add-SafeguardAssetGroupMember -Insecure $testGroup -AssetList $testAsset
@@ -100,6 +113,37 @@
             $members = Get-SafeguardAssetGroupMember -Insecure $testGroup
             $list = @($members)
             -not ($list | Where-Object { $_.Id -eq $Context.SuiteData["AssetId"] })
+        }
+
+        # =========================================
+        # Dynamic Asset Groups
+        # =========================================
+
+        # --- New-SafeguardDynamicAssetGroup ---
+        Test-SgPsAssert "New-SafeguardDynamicAssetGroup creates a group" {
+            $prefix = $Context.TestPrefix
+            $dynGroup = New-SafeguardDynamicAssetGroup -Insecure "${prefix}_DynAG" `
+                -Description "Dynamic asset group test" `
+                -GroupingRule "([Name contains '${prefix}'])"
+            $Context.SuiteData["DynGroupId"] = $dynGroup.Id
+
+            Register-SgPsTestCleanup -Description "Delete dynamic asset group" -Action {
+                param($Ctx)
+                try { Remove-SafeguardAssetGroup -Insecure $Ctx.SuiteData['DynGroupId'] } catch {}
+            }
+            $dynGroup.Name -eq "${prefix}_DynAG"
+        }
+
+        # --- Edit-SafeguardDynamicAssetGroup via pipeline ---
+        Test-SgPsAssert "Edit-SafeguardDynamicAssetGroup via pipeline" {
+            $dg = Get-SafeguardAssetGroup -Insecure $Context.SuiteData["DynGroupId"]
+            $dg | Add-Member -NotePropertyName Description -NotePropertyValue "Pipeline dynamic AG edit" -Force
+            $edited = $dg | Edit-SafeguardDynamicAssetGroup -Insecure
+            $edited.Description -eq "Pipeline dynamic AG edit"
+        }
+        Test-SgPsAssert "Edit-SafeguardDynamicAssetGroup pipeline edit persisted" {
+            $readback = Get-SafeguardAssetGroup -Insecure $Context.SuiteData["DynGroupId"]
+            $readback.Description -eq "Pipeline dynamic AG edit"
         }
 
         # --- New-SafeguardAssetGroup (second, for remove test) ---

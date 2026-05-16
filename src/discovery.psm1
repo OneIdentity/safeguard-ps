@@ -336,7 +336,7 @@ Edit-SafeguardAccountDiscoverySchedule -Insecure 3 -Schedule (New-SafeguardSched
 #>
 function Edit-SafeguardAccountDiscoverySchedule
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Attributes")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -348,35 +348,51 @@ function Edit-SafeguardAccountDiscoverySchedule
         [object]$AssetPartition,
         [Parameter(Mandatory=$false)]
         [int]$AssetPartitionId = $null,
-        [Parameter(Mandatory=$true,Position=0)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$true,Position=0)]
         [object]$ScheduleToEdit,
-        [Parameter(Mandatory=$false)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [string]$Description,
-        [Parameter(Mandatory=$false)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [switch]$ScheduleDiscoverServices,
-        [Parameter(Mandatory=$false)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [switch]$AutoConfigureDependentSystems,
-        [Parameter(Mandatory=$false)]
-        [HashTable]$Schedule
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
+        [HashTable]$Schedule,
+        [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
+        [object]$ScheduleObject
     )
 
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    $local:SchedObj = (Get-SafeguardAccountDiscoverySchedule -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                           -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $ScheduleToEdit)
-
-    if ($PSBoundParameters.ContainsKey("Description")) { $local:SchedObj.Description = $Description }
-    if ($PSBoundParameters.ContainsKey("ScheduleDiscoverServices")) { $local:SchedObj.ScheduleDiscoverServices = [bool]$ScheduleDiscoverServices }
-    if ($PSBoundParameters.ContainsKey("AutoConfigureDependentSystems")) { $local:SchedObj.AutoConfigureDependentSystems = [bool]$AutoConfigureDependentSystems }
-    if ($PSBoundParameters.ContainsKey("Schedule"))
+    begin
     {
-        Import-Module -Name "$PSScriptRoot\schedules.psm1" -Scope Local
-        $local:SchedObj = (Copy-ScheduleToDto -Schedule $Schedule -Dto $local:SchedObj)
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-        PUT "AssetPartitions/$($local:SchedObj.AssetPartitionId)/AccountDiscoverySchedules/$($local:SchedObj.Id)" -Body $local:SchedObj
+    process
+    {
+        if ($PsCmdlet.ParameterSetName -eq "Object")
+        {
+            if (-not $ScheduleObject) { throw "ScheduleObject must not be null" }
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                PUT "AssetPartitions/$($ScheduleObject.AssetPartitionId)/AccountDiscoverySchedules/$($ScheduleObject.Id)" -Body $ScheduleObject
+            return
+        }
+
+        $local:SchedObj = (Get-SafeguardAccountDiscoverySchedule -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                               -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $ScheduleToEdit)
+
+        if ($PSBoundParameters.ContainsKey("Description")) { $local:SchedObj.Description = $Description }
+        if ($PSBoundParameters.ContainsKey("ScheduleDiscoverServices")) { $local:SchedObj.ScheduleDiscoverServices = [bool]$ScheduleDiscoverServices }
+        if ($PSBoundParameters.ContainsKey("AutoConfigureDependentSystems")) { $local:SchedObj.AutoConfigureDependentSystems = [bool]$AutoConfigureDependentSystems }
+        if ($PSBoundParameters.ContainsKey("Schedule"))
+        {
+            Import-Module -Name "$PSScriptRoot\schedules.psm1" -Scope Local
+            $local:SchedObj = (Copy-ScheduleToDto -Schedule $Schedule -Dto $local:SchedObj)
+        }
+
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            PUT "AssetPartitions/$($local:SchedObj.AssetPartitionId)/AccountDiscoverySchedules/$($local:SchedObj.Id)" -Body $local:SchedObj
+    }
 }
 
 <#
@@ -987,35 +1003,41 @@ function Add-SafeguardAccountDiscoveryRule
         [string]$RuleName,
         [Parameter(ParameterSetName="Attributes",Mandatory=$false)]
         [switch]$AutoManageDiscoveredAccounts,
-        [Parameter(ParameterSetName="Object",Mandatory=$true)]
+        [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
         [object]$RuleObject
     )
 
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
-    $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
-                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -UseDefault)
-
-    $local:ScheduleId = (Resolve-SafeguardAccountDiscoveryScheduleId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                             -AssetPartitionId $AssetPartitionId $Schedule)
-
-    if ($PSCmdlet.ParameterSetName -eq "Object")
+    begin
     {
-        $local:Body = @($RuleObject)
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     }
-    else
+
+    process
     {
-        $local:Rule = @{
-            "Name" = $RuleName;
-            "AutoManageDiscoveredAccounts" = [bool]$AutoManageDiscoveredAccounts;
+        Import-Module -Name "$PSScriptRoot\assetpartitions.psm1" -Scope Local
+        $AssetPartitionId = (Resolve-AssetPartitionIdFromSafeguardSession -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                                 -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -UseDefault)
+
+        $local:ScheduleId = (Resolve-SafeguardAccountDiscoveryScheduleId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                 -AssetPartitionId $AssetPartitionId $Schedule)
+
+        if ($PSCmdlet.ParameterSetName -eq "Object")
+        {
+            $local:Body = @($RuleObject)
         }
-        $local:Body = @($local:Rule)
-    }
+        else
+        {
+            $local:Rule = @{
+                "Name" = $RuleName;
+                "AutoManageDiscoveredAccounts" = [bool]$AutoManageDiscoveredAccounts;
+            }
+            $local:Body = @($local:Rule)
+        }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST `
-        "AssetPartitions/$AssetPartitionId/AccountDiscoverySchedules/$($local:ScheduleId)/Rules/Add" -Body $local:Body
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST `
+            "AssetPartitions/$AssetPartitionId/AccountDiscoverySchedules/$($local:ScheduleId)/Rules/Add" -Body $local:Body
+    }
 }
 
 <#

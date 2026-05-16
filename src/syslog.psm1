@@ -356,7 +356,7 @@ Edit-SafeguardSyslogServer -AccessToken $token -Appliance 10.5.32.54 -Insecure $
 #>
 function Edit-SafeguardSyslogServer
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Attributes")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -364,13 +364,28 @@ function Edit-SafeguardSyslogServer
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
-        [Parameter(Mandatory=$true, Position=0)]
-        [object]$SyslogServer
+        [Parameter(ParameterSetName="Attributes",Mandatory=$true, Position=0)]
+        [object]$SyslogServer,
+        [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
+        [object]$ServerObject
     )
 
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+    begin
+    {
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+    }
 
-    $local:id = Resolve-SafeguardSyslogServerId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $SyslogServer
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "SyslogServers/$($local:id)" -Body $SyslogServer
+    process
+    {
+        if ($PsCmdlet.ParameterSetName -eq "Object")
+        {
+            if (-not $ServerObject) { throw "ServerObject must not be null" }
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "SyslogServers/$($ServerObject.Id)" -Body $ServerObject
+            return
+        }
+
+        $local:id = Resolve-SafeguardSyslogServerId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $SyslogServer
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "SyslogServers/$($local:id)" -Body $SyslogServer
+    }
 }

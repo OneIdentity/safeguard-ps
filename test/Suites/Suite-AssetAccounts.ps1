@@ -101,6 +101,18 @@
             $readback.Description -eq "Modified via object"
         }
 
+        # --- Edit-SafeguardAssetAccount via pipeline ---
+        Test-SgPsAssert "Edit-SafeguardAssetAccount via pipeline" {
+            $acct = Get-SafeguardAssetAccount -Insecure $assetId $Context.SuiteData["AccountId"]
+            $acct.Description = "Pipeline edit"
+            $edited = $acct | Edit-SafeguardAssetAccount -Insecure
+            $edited.Description -eq "Pipeline edit"
+        }
+        Test-SgPsAssert "Edit-SafeguardAssetAccount pipeline edit persisted" {
+            $readback = Get-SafeguardAssetAccount -Insecure $assetId $Context.SuiteData["AccountId"]
+            $readback.Description -eq "Pipeline edit"
+        }
+
         # --- Find-SafeguardAssetAccount (search string) ---
         Test-SgPsAssert "Find-SafeguardAssetAccount by search string" {
             $results = Find-SafeguardAssetAccount -Insecure $testAccount

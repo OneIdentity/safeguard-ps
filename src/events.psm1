@@ -1000,7 +1000,7 @@ function Edit-SafeguardEventSubscription
         [Parameter(Mandatory=$false)]
         [switch]$IsSignalrEvent,
 
-        [Parameter(ParameterSetName='Object', Mandatory=$false)]
+        [Parameter(ParameterSetName='Object', Mandatory=$false,ValueFromPipeline=$true)]
         [object]$SubscriptionObject,
 
         [Parameter(ParameterSetName='EmailEvent')][switch]$IsEmailEvent,
@@ -1020,10 +1020,15 @@ function Edit-SafeguardEventSubscription
         [Parameter(ParameterSetName='SyslogEvent', Mandatory=$false)][object]$SyslogFacility
     )
 
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+    begin
+    {
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+    }
 
-    if ($PSBoundParameters.ContainsKey("SubscriptionObject"))
+    process
+    {
+        if ($PSBoundParameters.ContainsKey("SubscriptionObject"))
     {
         #Resolve events contained in the SubscriptionObject
         ForEach($IndividualEvent in $SubscriptionObject.Subscriptions)
@@ -1130,6 +1135,7 @@ function Edit-SafeguardEventSubscription
     }
 
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "EventSubscribers/$($local:Body.Id)" -Body $local:Body
+    }
 }
 
 <#

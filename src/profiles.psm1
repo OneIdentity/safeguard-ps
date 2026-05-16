@@ -831,7 +831,8 @@ function Edit-SafeguardAccountPasswordRule
         [object]$AssetPartition,
         [Parameter(Mandatory=$false)]
         [int]$AssetPartitionId = $null,
-        [Parameter(Mandatory=$true,Position=0)]
+        [Parameter(ParameterSetName="Exclude",Mandatory=$true,Position=0)]
+        [Parameter(ParameterSetName="Include",Mandatory=$true,Position=0)]
         [object]$PasswordRuleToEdit,
         [Parameter(Mandatory=$false)]
         [string]$Description,
@@ -885,58 +886,74 @@ function Edit-SafeguardAccountPasswordRule
         [int]$MaxConsecutiveAlphanumeric,
         [Parameter(Mandatory=$false)]
         [ValidateSet("NotSpecified", "NoConsecutiveRepeatedCharacters", "NoRepeatedCharacters", "AllowRepeatedCharacters", IgnoreCase=$true)]
-        [string]$RepeatedCharRestriction
+        [string]$RepeatedCharRestriction,
+        [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
+        [object]$RuleObject
     )
 
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    $local:RuleObj = (Get-SafeguardAccountPasswordRule -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
-                          -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $PasswordRuleToEdit)
-
-    if ($PSBoundParameters.ContainsKey("Description")) { $local:RuleObj.Description = $Description }
-    if ($PSBoundParameters.ContainsKey("MinCharacters")) { $local:RuleObj.MinCharacters = $MinCharacters }
-    if ($PSBoundParameters.ContainsKey("MaxCharacters")) { $local:RuleObj.MaxCharacters = $MaxCharacters }
-    if ($PSBoundParameters.ContainsKey("AllowUppercase")) { $local:RuleObj.AllowUppercaseCharacters = $AllowUppercase }
-    if ($PSBoundParameters.ContainsKey("MinUppercase")) { $local:RuleObj.MinUppercaseCharacters = $MinUppercase }
-    if ($PSBoundParameters.ContainsKey("AllowLowercase")) { $local:RuleObj.AllowLowercaseCharacters = $AllowLowercase }
-    if ($PSBoundParameters.ContainsKey("MinLowercase")) { $local:RuleObj.MinLowercaseCharacters = $MinLowercase }
-    if ($PSBoundParameters.ContainsKey("AllowNumeric")) { $local:RuleObj.AllowNumericCharacters = $AllowNumeric }
-    if ($PSBoundParameters.ContainsKey("MinNumeric")) { $local:RuleObj.MinNumericCharacters = $MinNumeric }
-    if ($PSBoundParameters.ContainsKey("AllowSymbols")) { $local:RuleObj.AllowNonAlphaNumericCharacters = $AllowSymbols }
-    if ($PSBoundParameters.ContainsKey("MinSymbols")) { $local:RuleObj.MinNonAlphaNumericCharacters = $MinSymbols }
-    if ($PSBoundParameters.ContainsKey("RepeatedCharRestriction")) { $local:RuleObj.RepeatedCharacterRestriction = $RepeatedCharRestriction }
-
-    if ($PSBoundParameters.ContainsKey("MaxConsecutiveUppercase")) { $local:RuleObj.MaxConsecutiveUppercaseCharacters = $MaxConsecutiveUppercase }
-    if ($PSBoundParameters.ContainsKey("InvalidUppercaseChars")) { $local:RuleObj.InvalidUppercaseCharacters = $InvalidUppercaseChars }
-
-    if ($PSBoundParameters.ContainsKey("MaxConsecutiveLowercase")) { $local:RuleObj.MaxConsecutiveLowercaseCharacters = $MaxConsecutiveLowercase }
-    if ($PSBoundParameters.ContainsKey("InvalidLowercaseChars")) { $local:RuleObj.InvalidLowercaseCharacters = [string[]]($InvalidLowercaseChars -split "(?<=.)(?=.)") }
-
-    if ($PSBoundParameters.ContainsKey("MaxConsecutiveNumeric")) { $local:RuleObj.MaxConsecutiveNumericCharacters = $MaxConsecutiveNumeric }
-    if ($PSBoundParameters.ContainsKey("InvalidNumericChars")) { $local:RuleObj.InvalidNumericCharacters = [string[]]($InvalidNumericChars -split "(?<=.)(?=.)") }
-
-    if ($PSBoundParameters.ContainsKey("MaxConsecutiveSymbols")) { $local:RuleObj.MaxConsecutiveNonAlphaNumericCharacters = $MaxConsecutiveSymbols }
-    if ($PSBoundParameters.ContainsKey("SymbolRestrictionType")) { $local:RuleObj.NonAlphaNumericRestrictionType = $SymbolRestrictionType }
-    if ($PSBoundParameters.ContainsKey("InvalidSymbolChars"))
+    begin
     {
-        $local:RuleObj.InvalidNonAlphaNumericCharacters = [string[]]($InvalidSymbolChars -split "(?<=.)(?=.)")
-        $local:RuleObj.NonAlphaNumericRestrictionType = "Exclude"
-    }
-    if ($PSBoundParameters.ContainsKey("AllowedSymbolChars"))
-    {
-        $local:RuleObj.AllowedNonAlphaNumericCharacters = [string[]]($AllowedSymbolChars -split "(?<=.)(?=.)")
-        $local:RuleObj.NonAlphaNumericRestrictionType = "Include"
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     }
 
-    if ($PSBoundParameters.ContainsKey("AllowedFirstCharType")) { $local:RuleObj.AllowedFirstCharacterType = $AllowedFirstCharType }
-    if ($PSBoundParameters.ContainsKey("AllowedLastCharType")) { $local:RuleObj.AllowedLastCharacterType = $AllowedLastCharType }
+    process
+    {
+        if ($PsCmdlet.ParameterSetName -eq "Object")
+        {
+            if (-not $RuleObject) { throw "RuleObject must not be null" }
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                PUT "AssetPartitions/$($RuleObject.AssetPartitionId)/PasswordRules/$($RuleObject.Id)" -Body $RuleObject
+            return
+        }
 
-    if ($PSBoundParameters.ContainsKey("MaxConsecutiveAlpha")) { $local:RuleObj.MaxConsecutiveAlphabeticCharacters = $MaxConsecutiveAlpha }
-    if ($PSBoundParameters.ContainsKey("MaxConsecutiveAlphanumeric")) { $local:RuleObj.MaxConsecutiveAlphaNumericCharacters = $MaxConsecutiveAlphanumeric }
+        $local:RuleObj = (Get-SafeguardAccountPasswordRule -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                              -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $PasswordRuleToEdit)
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-        PUT "AssetPartitions/$($local:RuleObj.AssetPartitionId)/PasswordRules/$($local:RuleObj.Id)" -Body $local:RuleObj
+        if ($PSBoundParameters.ContainsKey("Description")) { $local:RuleObj.Description = $Description }
+        if ($PSBoundParameters.ContainsKey("MinCharacters")) { $local:RuleObj.MinCharacters = $MinCharacters }
+        if ($PSBoundParameters.ContainsKey("MaxCharacters")) { $local:RuleObj.MaxCharacters = $MaxCharacters }
+        if ($PSBoundParameters.ContainsKey("AllowUppercase")) { $local:RuleObj.AllowUppercaseCharacters = $AllowUppercase }
+        if ($PSBoundParameters.ContainsKey("MinUppercase")) { $local:RuleObj.MinUppercaseCharacters = $MinUppercase }
+        if ($PSBoundParameters.ContainsKey("AllowLowercase")) { $local:RuleObj.AllowLowercaseCharacters = $AllowLowercase }
+        if ($PSBoundParameters.ContainsKey("MinLowercase")) { $local:RuleObj.MinLowercaseCharacters = $MinLowercase }
+        if ($PSBoundParameters.ContainsKey("AllowNumeric")) { $local:RuleObj.AllowNumericCharacters = $AllowNumeric }
+        if ($PSBoundParameters.ContainsKey("MinNumeric")) { $local:RuleObj.MinNumericCharacters = $MinNumeric }
+        if ($PSBoundParameters.ContainsKey("AllowSymbols")) { $local:RuleObj.AllowNonAlphaNumericCharacters = $AllowSymbols }
+        if ($PSBoundParameters.ContainsKey("MinSymbols")) { $local:RuleObj.MinNonAlphaNumericCharacters = $MinSymbols }
+        if ($PSBoundParameters.ContainsKey("RepeatedCharRestriction")) { $local:RuleObj.RepeatedCharacterRestriction = $RepeatedCharRestriction }
+
+        if ($PSBoundParameters.ContainsKey("MaxConsecutiveUppercase")) { $local:RuleObj.MaxConsecutiveUppercaseCharacters = $MaxConsecutiveUppercase }
+        if ($PSBoundParameters.ContainsKey("InvalidUppercaseChars")) { $local:RuleObj.InvalidUppercaseCharacters = $InvalidUppercaseChars }
+
+        if ($PSBoundParameters.ContainsKey("MaxConsecutiveLowercase")) { $local:RuleObj.MaxConsecutiveLowercaseCharacters = $MaxConsecutiveLowercase }
+        if ($PSBoundParameters.ContainsKey("InvalidLowercaseChars")) { $local:RuleObj.InvalidLowercaseCharacters = [string[]]($InvalidLowercaseChars -split "(?<=.)(?=.)") }
+
+        if ($PSBoundParameters.ContainsKey("MaxConsecutiveNumeric")) { $local:RuleObj.MaxConsecutiveNumericCharacters = $MaxConsecutiveNumeric }
+        if ($PSBoundParameters.ContainsKey("InvalidNumericChars")) { $local:RuleObj.InvalidNumericCharacters = [string[]]($InvalidNumericChars -split "(?<=.)(?=.)") }
+
+        if ($PSBoundParameters.ContainsKey("MaxConsecutiveSymbols")) { $local:RuleObj.MaxConsecutiveNonAlphaNumericCharacters = $MaxConsecutiveSymbols }
+        if ($PSBoundParameters.ContainsKey("SymbolRestrictionType")) { $local:RuleObj.NonAlphaNumericRestrictionType = $SymbolRestrictionType }
+        if ($PSBoundParameters.ContainsKey("InvalidSymbolChars"))
+        {
+            $local:RuleObj.InvalidNonAlphaNumericCharacters = [string[]]($InvalidSymbolChars -split "(?<=.)(?=.)")
+            $local:RuleObj.NonAlphaNumericRestrictionType = "Exclude"
+        }
+        if ($PSBoundParameters.ContainsKey("AllowedSymbolChars"))
+        {
+            $local:RuleObj.AllowedNonAlphaNumericCharacters = [string[]]($AllowedSymbolChars -split "(?<=.)(?=.)")
+            $local:RuleObj.NonAlphaNumericRestrictionType = "Include"
+        }
+
+        if ($PSBoundParameters.ContainsKey("AllowedFirstCharType")) { $local:RuleObj.AllowedFirstCharacterType = $AllowedFirstCharType }
+        if ($PSBoundParameters.ContainsKey("AllowedLastCharType")) { $local:RuleObj.AllowedLastCharacterType = $AllowedLastCharType }
+
+        if ($PSBoundParameters.ContainsKey("MaxConsecutiveAlpha")) { $local:RuleObj.MaxConsecutiveAlphabeticCharacters = $MaxConsecutiveAlpha }
+        if ($PSBoundParameters.ContainsKey("MaxConsecutiveAlphanumeric")) { $local:RuleObj.MaxConsecutiveAlphaNumericCharacters = $MaxConsecutiveAlphanumeric }
+
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            PUT "AssetPartitions/$($local:RuleObj.AssetPartitionId)/PasswordRules/$($local:RuleObj.Id)" -Body $local:RuleObj
+    }
 }
 
 <#
@@ -1331,7 +1348,7 @@ Edit-SafeguardPasswordCheckSchedule "Daily Check at Noon" -ChangePasswordOnMisma
 #>
 function Edit-SafeguardPasswordCheckSchedule
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Attributes")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -1343,7 +1360,7 @@ function Edit-SafeguardPasswordCheckSchedule
         [object]$AssetPartition,
         [Parameter(Mandatory=$false)]
         [int]$AssetPartitionId = $null,
-        [Parameter(Mandatory=$false,Position=0)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false,Position=0)]
         [object]$CheckScheduleToEdit,
         [Parameter(Mandatory=$false)]
         [string]$Description,
@@ -1352,26 +1369,42 @@ function Edit-SafeguardPasswordCheckSchedule
         [Parameter(Mandatory=$false)]
         [switch]$NotifyOwnersOnMismatch,
         [Parameter(Mandatory=$false)]
-        [HashTable]$Schedule
+        [HashTable]$Schedule,
+        [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
+        [object]$ScheduleObject
     )
 
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    $local:CheckObj = (Get-SafeguardPasswordCheckSchedule -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
-                           -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $CheckScheduleToEdit)
-
-    if ($PSBoundParameters.ContainsKey("Description")) { $local:CheckObj.Description = $Description }
-    if ($PSBoundParameters.ContainsKey("ChangePasswordOnMismatch")) { $local:CheckObj.ResetPasswordOnMismatch = [bool]$ChangePasswordOnMismatch }
-    if ($PSBoundParameters.ContainsKey("NotifyOwnersOnMismatch")) { $local:CheckObj.NotifyOwnersOnMismatch = [bool]$NotifyOwnersOnMismatch }
-    if ($PSBoundParameters.ContainsKey("Schedule"))
+    begin
     {
-        Import-Module -Name "$PSScriptRoot\schedules.psm1" -Scope Local
-        $local:CheckObj = (Copy-ScheduleToDto -Schedule $Schedule -Dto $local:CheckObj)
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-        PUT "AssetPartitions/$($local:CheckObj.AssetPartitionId)/CheckSchedules/$($local:CheckObj.Id)" -Body $local:CheckObj
+    process
+    {
+        if ($PsCmdlet.ParameterSetName -eq "Object")
+        {
+            if (-not $ScheduleObject) { throw "ScheduleObject must not be null" }
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                PUT "AssetPartitions/$($ScheduleObject.AssetPartitionId)/CheckSchedules/$($ScheduleObject.Id)" -Body $ScheduleObject
+            return
+        }
+
+        $local:CheckObj = (Get-SafeguardPasswordCheckSchedule -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                               -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $CheckScheduleToEdit)
+
+        if ($PSBoundParameters.ContainsKey("Description")) { $local:CheckObj.Description = $Description }
+        if ($PSBoundParameters.ContainsKey("ChangePasswordOnMismatch")) { $local:CheckObj.ResetPasswordOnMismatch = [bool]$ChangePasswordOnMismatch }
+        if ($PSBoundParameters.ContainsKey("NotifyOwnersOnMismatch")) { $local:CheckObj.NotifyOwnersOnMismatch = [bool]$NotifyOwnersOnMismatch }
+        if ($PSBoundParameters.ContainsKey("Schedule"))
+        {
+            Import-Module -Name "$PSScriptRoot\schedules.psm1" -Scope Local
+            $local:CheckObj = (Copy-ScheduleToDto -Schedule $Schedule -Dto $local:CheckObj)
+        }
+
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            PUT "AssetPartitions/$($local:CheckObj.AssetPartitionId)/CheckSchedules/$($local:CheckObj.Id)" -Body $local:CheckObj
+    }
 }
 
 <#
@@ -1838,7 +1871,7 @@ Edit-SafeguardPasswordChangeSchedule "Windows Daily at 7pm" -Schedule (New-Safeg
 #>
 function Edit-SafeguardPasswordChangeSchedule
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Attributes")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -1850,7 +1883,7 @@ function Edit-SafeguardPasswordChangeSchedule
         [object]$AssetPartition,
         [Parameter(Mandatory=$false)]
         [int]$AssetPartitionId = $null,
-        [Parameter(Mandatory=$false,Position=0)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false,Position=0)]
         [object]$ChangeScheduleToEdit,
         [Parameter(Mandatory=$false)]
         [string]$Description,
@@ -1873,35 +1906,51 @@ function Edit-SafeguardPasswordChangeSchedule
         [Parameter(Mandatory=$false)]
         [switch]$UpdateTasks,
         [Parameter(Mandatory=$false)]
-        [HashTable]$Schedule
+        [HashTable]$Schedule,
+        [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
+        [object]$ScheduleObject
     )
 
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    $local:ChangeObj = (Get-SafeguardPasswordChangeSchedule -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
-                            -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $ChangeScheduleToEdit)
-
-    if ($PSBoundParameters.ContainsKey("Description")) { $local:ChangeObj.Description = $Description }
-    if ($PSBoundParameters.ContainsKey("ChangePasswordIfInUse")) { $local:ChangeObj.AllowPasswordChangeWhenReleased = [bool]$ChangePasswordIfInUse }
-    if ($PSBoundParameters.ContainsKey("RequireCurrentPassword")) { $local:ChangeObj.RequireCurrentPassword = [bool]$RequireCurrentPassword }
-    if ($PSBoundParameters.ContainsKey("SuspendAccountWhenCheckedIn")) { $local:ChangeObj.SuspendAccountWhenCheckedIn = [bool]$SuspendAccountWhenCheckedIn }
-    if ($PSBoundParameters.ContainsKey("ChangePasswordsManually")) { $local:ChangeObj.NotifyOwnersOnly = [bool]$ChangePasswordsManually }
-
-    if ($PSBoundParameters.ContainsKey("UpdateServices")) { $local:ChangeObj.UpdateWindowsServiceOnPasswordChange = [bool]$UpdateServices }
-    if ($PSBoundParameters.ContainsKey("RestartServices")) { $local:ChangeObj.RestartWindowsServiceOnPasswordChange = [bool]$RestartServices }
-    if ($PSBoundParameters.ContainsKey("UpdateIisAppPools")) { $local:ChangeObj.UpdateIisPoolsOnPasswordChange = [bool]$UpdateIisAppPools }
-    if ($PSBoundParameters.ContainsKey("UpdateComPlus")) { $local:ChangeObj.UpdateComPlusOnPasswordChange = [bool]$UpdateComPlus }
-    if ($PSBoundParameters.ContainsKey("UpdateTasks")) { $local:ChangeObj.UpdateWindowsTasksOnPasswordChange = [bool]$UpdateTasks }
-
-    if ($PSBoundParameters.ContainsKey("Schedule"))
+    begin
     {
-        Import-Module -Name "$PSScriptRoot\schedules.psm1" -Scope Local
-        $local:ChangeObj = (Copy-ScheduleToDto -Schedule $Schedule -Dto $local:ChangeObj)
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-        PUT "AssetPartitions/$($local:ChangeObj.AssetPartitionId)/ChangeSchedules/$($local:ChangeObj.Id)" -Body $local:ChangeObj
+    process
+    {
+        if ($PsCmdlet.ParameterSetName -eq "Object")
+        {
+            if (-not $ScheduleObject) { throw "ScheduleObject must not be null" }
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                PUT "AssetPartitions/$($ScheduleObject.AssetPartitionId)/ChangeSchedules/$($ScheduleObject.Id)" -Body $ScheduleObject
+            return
+        }
+
+        $local:ChangeObj = (Get-SafeguardPasswordChangeSchedule -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                                -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $ChangeScheduleToEdit)
+
+        if ($PSBoundParameters.ContainsKey("Description")) { $local:ChangeObj.Description = $Description }
+        if ($PSBoundParameters.ContainsKey("ChangePasswordIfInUse")) { $local:ChangeObj.AllowPasswordChangeWhenReleased = [bool]$ChangePasswordIfInUse }
+        if ($PSBoundParameters.ContainsKey("RequireCurrentPassword")) { $local:ChangeObj.RequireCurrentPassword = [bool]$RequireCurrentPassword }
+        if ($PSBoundParameters.ContainsKey("SuspendAccountWhenCheckedIn")) { $local:ChangeObj.SuspendAccountWhenCheckedIn = [bool]$SuspendAccountWhenCheckedIn }
+        if ($PSBoundParameters.ContainsKey("ChangePasswordsManually")) { $local:ChangeObj.NotifyOwnersOnly = [bool]$ChangePasswordsManually }
+
+        if ($PSBoundParameters.ContainsKey("UpdateServices")) { $local:ChangeObj.UpdateWindowsServiceOnPasswordChange = [bool]$UpdateServices }
+        if ($PSBoundParameters.ContainsKey("RestartServices")) { $local:ChangeObj.RestartWindowsServiceOnPasswordChange = [bool]$RestartServices }
+        if ($PSBoundParameters.ContainsKey("UpdateIisAppPools")) { $local:ChangeObj.UpdateIisPoolsOnPasswordChange = [bool]$UpdateIisAppPools }
+        if ($PSBoundParameters.ContainsKey("UpdateComPlus")) { $local:ChangeObj.UpdateComPlusOnPasswordChange = [bool]$UpdateComPlus }
+        if ($PSBoundParameters.ContainsKey("UpdateTasks")) { $local:ChangeObj.UpdateWindowsTasksOnPasswordChange = [bool]$UpdateTasks }
+
+        if ($PSBoundParameters.ContainsKey("Schedule"))
+        {
+            Import-Module -Name "$PSScriptRoot\schedules.psm1" -Scope Local
+            $local:ChangeObj = (Copy-ScheduleToDto -Schedule $Schedule -Dto $local:ChangeObj)
+        }
+
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            PUT "AssetPartitions/$($local:ChangeObj.AssetPartitionId)/ChangeSchedules/$($local:ChangeObj.Id)" -Body $local:ChangeObj
+    }
 }
 
 <#
@@ -2306,7 +2355,7 @@ Edit-SafeguardPasswordProfile -AssetPartition "Unix Servers" -ProfileToEdit "Cus
 #>
 function Edit-SafeguardPasswordProfile
 {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="Attributes")]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -2318,44 +2367,60 @@ function Edit-SafeguardPasswordProfile
         [object]$AssetPartition,
         [Parameter(Mandatory=$false)]
         [int]$AssetPartitionId = $null,
-        [Parameter(Mandatory=$true,Position=0)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$true,Position=0)]
         [object]$ProfileToEdit,
-        [Parameter(Mandatory=$false,Position=1)]
+        [Parameter(ParameterSetName="Attributes",Mandatory=$false,Position=1)]
         [string]$Description,
         [Parameter(Mandatory=$false)]
         [object]$PasswordRuleToSet,
         [Parameter(Mandatory=$false)]
         [object]$CheckScheduleToSet,
         [Parameter(Mandatory=$false)]
-        [object]$ChangeScheduleToSet
+        [object]$ChangeScheduleToSet,
+        [Parameter(ParameterSetName="Object",Mandatory=$true,ValueFromPipeline=$true)]
+        [object]$ProfileObject
     )
 
-    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
-    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    $local:ProfileObj = (Get-SafeguardPasswordProfile -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
-                             -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $ProfileToEdit)
-
-    if ($PSBoundParameters.ContainsKey("Description")) { $local:ProfileObj.Description = $Description }
-
-    if ($PSBoundParameters.ContainsKey("PasswordRuleToSet"))
+    begin
     {
-        $local:ProfileObj.AccountPasswordRuleId = (Resolve-SafeguardAccountPasswordRuleId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
-                                                       -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -AccountPasswordRule $PasswordRuleToSet)
-    }
-    if ($PSBoundParameters.ContainsKey("CheckScheduleToSet"))
-    {
-        $local:ProfileObj.CheckScheduleId  = (Resolve-SafeguardPasswordCheckScheduleId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
-                                                  -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -PasswordCheckSchedule $CheckScheduleToSet)
-    }
-    if ($PSBoundParameters.ContainsKey("ChangeScheduleToSet"))
-    {
-        $local:ProfileObj.ChangeScheduleId = (Resolve-SafeguardPasswordChangeScheduleId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
-                                                  -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -PasswordChangeSchedule $ChangeScheduleToSet)
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
     }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-        PUT "AssetPartitions/$($local:ProfileObj.AssetPartitionId)/Profiles/$($local:ProfileObj.Id)" -Body $local:ProfileObj
+    process
+    {
+        if ($PsCmdlet.ParameterSetName -eq "Object")
+        {
+            if (-not $ProfileObject) { throw "ProfileObject must not be null" }
+            Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                PUT "AssetPartitions/$($ProfileObject.AssetPartitionId)/Profiles/$($ProfileObject.Id)" -Body $ProfileObject
+            return
+        }
+
+        $local:ProfileObj = (Get-SafeguardPasswordProfile -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                                 -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $ProfileToEdit)
+
+        if ($PSBoundParameters.ContainsKey("Description")) { $local:ProfileObj.Description = $Description }
+
+        if ($PSBoundParameters.ContainsKey("PasswordRuleToSet"))
+        {
+            $local:ProfileObj.AccountPasswordRuleId = (Resolve-SafeguardAccountPasswordRuleId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                                                           -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -AccountPasswordRule $PasswordRuleToSet)
+        }
+        if ($PSBoundParameters.ContainsKey("CheckScheduleToSet"))
+        {
+            $local:ProfileObj.CheckScheduleId  = (Resolve-SafeguardPasswordCheckScheduleId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                                                      -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -PasswordCheckSchedule $CheckScheduleToSet)
+        }
+        if ($PSBoundParameters.ContainsKey("ChangeScheduleToSet"))
+        {
+            $local:ProfileObj.ChangeScheduleId = (Resolve-SafeguardPasswordChangeScheduleId -Appliance $Appliance -AccessToken $AccessToken -Insecure:$Insecure `
+                                                      -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -PasswordChangeSchedule $ChangeScheduleToSet)
+        }
+
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            PUT "AssetPartitions/$($local:ProfileObj.AssetPartitionId)/Profiles/$($local:ProfileObj.Id)" -Body $local:ProfileObj
+    }
 }
 
 <#
