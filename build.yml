@@ -4,24 +4,31 @@ variables:
 trigger:
   branches:
     include:
+      - main
       - master
       - release-*
+  tags:
+    include:
+      - 'v*'
   paths:
     exclude:
-      - '*.md'
+      - '**/*.md'
       - LICENSE
       - samples
+      - .github
 
 pr:
   branches:
     include:
+      - main
       - master
       - release-*
   paths:
     exclude:
-      - '*.md'
+      - '**/*.md'
       - LICENSE
       - samples
+      - .github
 
 jobs:
 # Job 1: PR Validation Windows - runs only on pull requests
@@ -142,7 +149,21 @@ jobs:
           Publish-Module -Name safeguard-ps -NuGetApiKey "$(PowerShellGalleryApiKey)" -Verbose -SkipAutomaticTags -Force
       displayName: 'Publish PowerShell module to PowerShell Gallery'
 
-# Job 4: Build and Publish Linux - runs only on successful merges (not PRs)
+    - task: GitHubRelease@1
+      inputs:
+        gitHubConnection: 'PangaeaBuild-GitHub'
+        repositoryName: 'OneIdentity/safeguard-ps'
+        action: 'create'
+        target: '$(Build.SourceVersion)'
+        tagSource: 'userSpecifiedTag'
+        tag: '$(ReleaseTag)'
+        title: '$(VersionString)'
+        isPreRelease: $(isPrerelease)
+        changeLogCompareToRelease: 'lastFullRelease'
+        changeLogType: 'commitBased'
+      displayName: 'Creating GitHub release'
+
+# Job 4: Build and Publish Linux- runs only on successful merges (not PRs)
 - job: BuildAndPublish_Linux
   displayName: "Build and publish Linux module and Docker images"
   condition: ne(variables['Build.Reason'], 'PullRequest')

@@ -1,7 +1,15 @@
 variables:
   - name: version
     value: "8.3"
+  - name: isTagBuild
+    value: ${{ startsWith(variables['Build.SourceBranch'], 'refs/tags/') }}
   - name: isPrerelease
-    value: ${{ true }}
+    ${{ if startsWith(variables['Build.SourceBranch'], 'refs/tags/') }}:
+      value: ${{ false }}
+    ${{ else }}:
+      value: ${{ true }}
   - name: shouldPublishDocker
-    value: $[ eq( variables.isPrerelease, false ) ]
+    ${{ if startsWith(variables['Build.SourceBranch'], 'refs/tags/') }}:
+      value: ${{ true }}
+    ${{ else }}:
+      value: ${{ false }}

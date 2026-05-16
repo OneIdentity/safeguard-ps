@@ -6,7 +6,9 @@ Param(
     [Parameter(Mandatory=$true,Position=1)]
     [string]$VersionString,
     [Parameter(Mandatory=$true,Position=2)]
-    [bool]$IsPrerelease
+    [bool]$IsPrerelease,
+    [Parameter(Mandatory=$false,Position=3)]
+    [string]$PrereleaseSuffix = "pre"
 )
 
 if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -32,7 +34,8 @@ if (-not $IsPrerelease)
 }
 else
 {
-    Write-Host "The module will be marked as prerelease"
+    Write-Host "Setting prerelease suffix to '$PrereleaseSuffix'"
+    (Get-Content $Module -Raw).replace("Prerelease = 'pre'", "Prerelease = '$PrereleaseSuffix'") | Set-Content $Module
 }
 
 $ModuleDef = (Invoke-Expression -Command (Get-Content $Module -Raw))
