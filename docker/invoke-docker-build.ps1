@@ -10,7 +10,7 @@ Param(
 if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
 if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-Import-Module -Name "$PSScriptRoot\docker\docker-include.psm1" -Scope Local -Force
+Import-Module -Name "$PSScriptRoot\docker-include.psm1" -Scope Local -Force
 
 $ImageType = $ImageType.ToLower()
 $SafeguardDockerFile = (Get-SafeguardDockerFile $ImageType)
@@ -33,5 +33,6 @@ if (Invoke-Expression "docker images -q oneidentity/safeguard-ps:$ImageType")
     & docker rmi --force "oneidentity/safeguard-ps:$ImageType"
 }
 
-Write-Host "Building a new image: oneidentity/safeguard-ps:$ImageType ..."
-& docker buildx build --no-cache --load -t "oneidentity/safeguard-ps:$Version$ImageType" -f "$SafeguardDockerFile" "$PSScriptRoot"
+$RepoRoot = (Split-Path $PSScriptRoot -Parent)
+Write-Host "Building a new image: oneidentity/safeguard-ps:$Version$ImageType ..."
+& docker buildx build --no-cache --load -t "oneidentity/safeguard-ps:$Version$ImageType" -f "$SafeguardDockerFile" "$RepoRoot"

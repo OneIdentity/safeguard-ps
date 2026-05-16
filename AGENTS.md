@@ -17,14 +17,22 @@ safeguard-ps/
 |   |-- ps-utilities.psm1        # Shared PowerShell utilities (not exported)
 |   |-- sg-utilities.psm1        # Shared Safeguard utilities (not exported)
 |   |-- signalr-utilities.psm1   # SignalR SSE helpers for event listeners (not exported)
+|   |-- SafeguardLogo.ico        # Module icon for PowerShell Gallery
 |   `-- <feature>.psm1           # Feature modules (assets, users, a2a, policies, etc.)
 |-- test/                         # Integration test framework and suites (requires PS 7)
 |-- samples/                      # Example scripts (see samples/README.md)
-|-- docker/                       # Dockerfiles (Ubuntu, Alpine, Azure Linux)
-|-- pipeline-templates/           # Azure Pipelines CI/CD templates
+|-- docker/                       # Dockerfiles and Docker build/run scripts
+|   |-- Dockerfile_*             # Container definitions (Ubuntu, Alpine, Azure Linux)
+|   |-- build-docker.sh          # Build Docker images (bash)
+|   |-- run-docker.sh            # Build and run Docker images (bash)
+|   |-- invoke-docker-build.ps1  # Build Docker images (PowerShell)
+|   `-- invoke-docker-run.ps1    # Build and run Docker images (PowerShell)
+|-- pipeline-templates/           # Azure Pipelines CI/CD templates and scripts
+|   |-- versionnumber.ps1        # Version derivation (Windows)
+|   |-- versionnumber.sh         # Version derivation (Linux)
+|   `-- install-forpipeline.ps1  # CI pipeline install (with mandatory lint)
 |-- Invoke-PsLint.ps1            # PSScriptAnalyzer lint script
 |-- install-local.ps1            # Local development install
-|-- install-forpipeline.ps1      # CI pipeline install (with mandatory lint)
 |-- cleanup-local.ps1            # Remove local module installation
 `-- build.yml                    # Azure Pipelines build definition
 ```
@@ -132,7 +140,7 @@ The `test/` directory requires PS 7 and is exempt.
 
 ## CI/CD pipeline
 
-Azure Pipelines (not GitHub Actions). CI runs `install-forpipeline.ps1` which replaces
+Azure Pipelines (not GitHub Actions). CI runs `pipeline-templates/install-forpipeline.ps1` which replaces
 the version placeholder, installs the module, and runs `Invoke-PsLint.ps1 -Strict`.
 
 ## Security

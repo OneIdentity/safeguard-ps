@@ -10,7 +10,7 @@ else
 fi
 
 ScriptDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-. "$ScriptDir/docker/docker-include.sh"
+. "$ScriptDir/docker-include.sh"
 
 DockerFile=`get_safeguard_dockerfile $ImageType`
 

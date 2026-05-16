@@ -13,14 +13,16 @@ Param(
 
 if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
 
+$RepoRoot = (Split-Path $PSScriptRoot -Parent)
+
 if (-not (Test-Path $TargetDir))
 {
     Write-Host "Creating $TargetDir"
     New-Item -Path $TargetDir -ItemType Container -Force | Out-Null
 }
 $ModuleName = "safeguard-ps"
-$Module = (Join-Path $PSScriptRoot "src\$ModuleName.psd1")
-$ModuleCatalog = (Join-Path $PSScriptRoot "src\$ModuleName.cat")
+$Module = (Join-Path $RepoRoot "src\$ModuleName.psd1")
+$ModuleCatalog = (Join-Path $RepoRoot "src\$ModuleName.cat")
 
 $CodeVersion = "$($VersionString.Split(".")[0..1] -join ".").99999"
 $BuildVersion = "$($VersionString)"
@@ -47,7 +49,7 @@ if ($ModuleDef["ModuleVersion"] -ne $BuildVersion)
 if ($Env:OS -eq "Windows_NT")
 {
     Write-Host "Adding Catalog file for signing"
-    New-FileCatalog -CatalogFilePath $ModuleCatalog -CatalogVersion 2.0 -Path (Join-Path $PSScriptRoot "src")
+    New-FileCatalog -CatalogFilePath $ModuleCatalog -CatalogVersion 2.0 -Path (Join-Path $RepoRoot "src")
 }
 
 Write-Host "Installing '$ModuleName $($ModuleDef["ModuleVersion"])' to '$TargetDir'"
@@ -61,11 +63,11 @@ if (-not (Test-Path $VersionDir))
 {
     New-Item -Path $VersionDir -ItemType Container -Force | Out-Null
 }
-Copy-Item -Recurse -Path (Join-Path $PSScriptRoot "src\*") -Destination $VersionDir
+Copy-Item -Recurse -Path (Join-Path $RepoRoot "src\*") -Destination $VersionDir
 
 # --- Run PSScriptAnalyzer lint check (fail build on any finding) ---
 Write-Host "Running PSScriptAnalyzer lint check..."
-& (Join-Path $PSScriptRoot "Invoke-PsLint.ps1") -Strict
+& (Join-Path $RepoRoot "Invoke-PsLint.ps1") -Strict
 if ($LASTEXITCODE -ne 0)
 {
     throw "PSScriptAnalyzer found lint findings. Run './install-local.ps1 -WithLinting' locally to see the errors."
