@@ -1,12 +1,12 @@
 ---
-name: architecture-deep-dive
+name: architecture
 description: >-
   Use when working on module internals, understanding the module manifest,
   SignalR event listeners, dynamic groups, custom platform scripts, or
   tracing how feature modules interact with the root module and global state.
 ---
 
-# Safeguard-PS Architecture Deep Dive
+# Safeguard-PS Architecture
 
 Use this skill when you need to reason about how the `safeguard-ps` module is wired together internally, not just how to call a public cmdlet.
 
