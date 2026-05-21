@@ -11,6 +11,38 @@ description: >-
 
 Use this skill when working directly with the Safeguard Web API, debugging cmdlets that wrap the API, or adding new cmdlet coverage for API endpoints.
 
+## 0. Cmdlet discovery
+
+Before writing any safeguard-ps code, use the built-in discovery tools:
+
+- **`Get-SafeguardCommand`** — searches available cmdlets by up to 3 keywords.
+  Returns matching cmdlet names so you don't have to guess.
+  ```powershell
+  Get-SafeguardCommand User           # all cmdlets with "User" in the name
+  Get-SafeguardCommand A2A Password   # A2A-related password cmdlets
+  Get-SafeguardCommand Trusted Cert   # trusted certificate management
+  ```
+
+- **`Get-Help <Cmdlet> -Full`** — shows complete parameter names, types, and
+  examples for any cmdlet. Always check this before guessing parameter names.
+  ```powershell
+  Get-Help New-SafeguardA2a -Full
+  Get-Help Add-SafeguardA2aCredentialRetrieval -Full
+  ```
+
+Common naming pitfalls (discovered through testing):
+
+| What you might guess | Actual cmdlet/parameter |
+|---|---|
+| `New-SafeguardA2aRegistration` | `New-SafeguardA2a` |
+| `-AccountToAdd` | `-Account` |
+| `-ParentA2a` (on Remove) | `-A2aToDelete` |
+| `Remove-SafeguardTrustedCertificate` | `Uninstall-SafeguardTrustedCertificate` |
+| `Install-SafeguardCertificate` | `Install-SafeguardTrustedCertificate` |
+
+**Rule: always run `Get-SafeguardCommand` first, then `Get-Help` to confirm
+parameter names before calling any cmdlet.**
+
 ## Quick rules
 
 - Prefer existing `Get-Safeguard*`, `Find-Safeguard*`, `New-Safeguard*`, `Edit-Safeguard*`, `Remove-Safeguard*`, and `Close-Safeguard*` cmdlets over raw `Invoke-SafeguardMethod`.

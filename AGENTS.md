@@ -69,6 +69,17 @@ PSScriptAnalyzer is the linter. The lint script is `Invoke-PsLint.ps1`.
 **All code must pass `Invoke-PsLint.ps1 -Strict` before merging.** 11 rules are excluded
 with documented rationale in the script. Do not add new exclusions without justification.
 
+## Testing
+
+Integration tests live under `test/`, require PowerShell 7 and a live Safeguard appliance, and run through `test/Invoke-SafeguardPsTests.ps1`. Use the testing skill for suite selection, environment setup, and debugging details.
+
+```powershell
+./test/Invoke-SafeguardPsTests.ps1 -ListSuites
+./test/Invoke-SafeguardPsTests.ps1 -Appliance <address> -AdminPassword <password>
+```
+
+See `.agents/skills/testing-guide/SKILL.md` for the full workflow, optional SPS coverage, and suite-to-module mapping.
+
 ## Code conventions
 
 ### Cmdlet naming
@@ -124,7 +135,7 @@ Always use `ConvertTo-Json -Depth 100`. The default depth 2 silently truncates n
 - **`-JsonBody`** -- raw JSON string, sent as-is.
 - **Trap:** Passing a JSON string to `-Body` double-serializes it.
 
-## PowerShell 5.1 compatibility
+### PowerShell 5.1 compatibility
 
 The `src/` directory **must** remain compatible with Windows PowerShell 5.1:
 
@@ -134,14 +145,9 @@ The `src/` directory **must** remain compatible with Windows PowerShell 5.1:
 
 The `test/` directory requires PS 7 and is exempt.
 
-## Versioning
+## CI/CD
 
-`ModuleVersion` has a `99999` placeholder. **Do not edit.** CI replaces it with the build version.
-
-## CI/CD pipeline
-
-Azure Pipelines (not GitHub Actions). CI runs `pipeline-templates/install-forpipeline.ps1` which replaces
-the version placeholder, installs the module, and runs `Invoke-PsLint.ps1 -Strict`.
+See `.agents/skills/build-and-release/SKILL.md` for Azure Pipelines job layout, version stamping, signing, publishing targets, and required service connections.
 
 ## Security
 
@@ -150,6 +156,10 @@ the version placeholder, installs the module, and runs `Invoke-PsLint.ps1 -Stric
 - Certificate PFX files in `test/TestData/CERTS/` use password `a` (test-only certs)
 - `-Insecure` disables SSL verification -- never recommend for production
 
+## Versioning
+
+`ModuleVersion` has a `99999` placeholder. **Do not edit.** CI replaces it with the build version and prerelease suffixes. See `.agents/skills/build-and-release/SKILL.md` for the exact version derivation rules.
+
 ## On-demand skills
 
 The following skills contain deeper reference material loaded only when relevant.
@@ -157,11 +167,14 @@ Read the `SKILL.md` when your current task matches the trigger.
 
 | Skill | When to read | File |
 |-------|-------------|------|
-| Testing Guide | Running, writing, or debugging tests; setting up test environments | `.agents/skills/testing-guide/SKILL.md` |
+| Testing Guide | Running, writing, or debugging integration tests; setting up live test environments | `.agents/skills/testing-guide/SKILL.md` |
 | API Patterns | Making API calls, using filters/query params, exploring Swagger | `.agents/skills/api-patterns/SKILL.md` |
-| Architecture Deep Dive | Working on module internals, SignalR, dynamic groups, custom scripts | `.agents/skills/architecture-deep-dive/SKILL.md` |
+| Architecture | Working on module internals, SignalR, dynamic groups, custom scripts | `.agents/skills/architecture/SKILL.md` |
+| Build and Release | Working on Azure Pipelines, version stamping, signing, PowerShell Gallery publication, Docker publishing, or GitHub releases | `.agents/skills/build-and-release/SKILL.md` |
+| A2A Workflow | Working on A2A registrations, certificate auth, credential retrieval, brokering, or A2A event listeners | `.agents/skills/a2a-workflow/SKILL.md` |
 | New Feature Module | Creating new .psm1 modules, adding cmdlets, updating manifest | `.agents/skills/new-feature-module/SKILL.md` |
+| Appliance Test Setup | Integration test object lifecycle on live appliances | `.agents/skills/appliance-test-setup/SKILL.md` |
 
 ## Keeping this file current
 
-After completing tasks, propose updates for new patterns, corrections, or skill changes.
+After completing tasks, propose updates for new patterns, corrections, or skill changes. Update the routing table when skills are added, renamed, or retired, and keep CI/testing pointers aligned with the actual pipeline and test runner files.
