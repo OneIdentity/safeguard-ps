@@ -173,6 +173,7 @@ Read the `SKILL.md` when your current task matches the trigger.
 | Build and Release | Working on Azure Pipelines, version stamping, signing, PowerShell Gallery publication, Docker publishing, or GitHub releases | `.agents/skills/build-and-release/SKILL.md` |
 | A2A Workflow | Working on A2A registrations, certificate auth, credential retrieval, brokering, or A2A event listeners | `.agents/skills/a2a-workflow/SKILL.md` |
 | New Feature Module | Creating new .psm1 modules, adding cmdlets, updating manifest | `.agents/skills/new-feature-module/SKILL.md` |
+| Appliance Test Setup | Integration test object lifecycle on live appliances | `.agents/skills/appliance-test-setup/SKILL.md` |
 
 ## Keeping this file current
 
