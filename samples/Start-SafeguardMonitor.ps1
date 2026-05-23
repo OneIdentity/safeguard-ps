@@ -11,6 +11,11 @@ Param (
     [SecureString]$Password,
     [Parameter(Mandatory=$true,ParameterSetName="Cred",Position=1)]
     [PSCredential]$Credential,
+    # -IgnoreSsl disables Safeguard appliance SSL certificate verification
+    # (it is passed through as -Insecure on the underlying cmdlets). Use
+    # this switch only with self-signed development / lab appliances. For
+    # production, install a trusted certificate on the appliance and OMIT
+    # -IgnoreSsl so the connection is validated against the trust store.
     [Parameter(Mandatory=$false)]
     [switch]$IgnoreSsl,
     [Parameter(Mandatory=$false)]
