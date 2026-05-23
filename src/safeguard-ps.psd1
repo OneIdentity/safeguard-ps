@@ -68,6 +68,7 @@ PowerShellVersion = '5.1'
 NestedModules = @(
     'sslhandling.psm1',
     'hostname-validation.psm1',
+    'redaction.psm1',
     'ps-utilities.psm1',
     'sg-utilities.psm1',
     'signalr-utilities.psm1',

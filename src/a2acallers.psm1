@@ -53,7 +53,8 @@ function Invoke-SafeguardA2aMethodWithCertificate
     }
 
     Write-Verbose "---Request---"
-    Write-Verbose "Headers=$(ConvertTo-Json -InputObject $Headers)"
+    Import-Module -Name "$PSScriptRoot\redaction.psm1" -Scope Local
+    Write-Verbose "Headers=$(ConvertTo-Json -InputObject (Hide-SdkPlumbing $local:Headers))"
 
     $Service = $Service.ToLower()
 
