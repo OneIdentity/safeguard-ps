@@ -32,7 +32,7 @@ function Get-SignalRConnectionToken
     {
         Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
         Disable-SslVerification
-        if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+        $PSDefaultParameterValues = Get-SafeguardSslPreferences
     }
 
     $local:Url = "https://$Appliance/service/$ServicePath/signalr/negotiate?negotiateVersion=1"
@@ -135,7 +135,7 @@ function Send-SignalRHandshake
     {
         Import-Module -Name "$PSScriptRoot\sslhandling.psm1" -Scope Local
         Disable-SslVerification
-        if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+        $PSDefaultParameterValues = Get-SafeguardSslPreferences
     }
 
     $local:EncodedToken = [System.Uri]::EscapeDataString($ConnectionToken)

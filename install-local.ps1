@@ -47,7 +47,7 @@ else
 }
 $ModuleName = "safeguard-ps"
 $Module = (Join-Path $PSScriptRoot "src\$ModuleName.psd1")
-$ModuleDef = (Invoke-Expression -Command (Get-Content $Module -Raw))
+$ModuleDef = (Import-PowerShellDataFile -Path $Module)
 
 Write-Host -ForegroundColor Green "Installing '$ModuleName $($ModuleDef["ModuleVersion"])' to '$TargetDir'"
 $ModuleDir = (Join-Path $TargetDir $ModuleName)

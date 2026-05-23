@@ -40,7 +40,7 @@ else
     (Get-Content $Module -Raw).replace("Prerelease = 'pre'", "Prerelease = '$PrereleaseSuffix'") | Set-Content $Module
 }
 
-$ModuleDef = (Invoke-Expression -Command (Get-Content $Module -Raw))
+$ModuleDef = (Import-PowerShellDataFile -Path $Module)
 if ($ModuleDef["ModuleVersion"] -ne $BuildVersion)
 {
     throw "Did not replace code version properly, ModuleVersion is '$($ModuleDef["ModuleVersion"])' BuildVersion is '$BuildVersion'"

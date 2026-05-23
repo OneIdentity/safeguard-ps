@@ -1,4 +1,4 @@
-﻿<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
+<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
 # Helpers
 function Test-SupportForClusterPatch
 {
@@ -429,7 +429,7 @@ function Send-PatchFile
         if ($Insecure)
         {
             Disable-SslVerification
-            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+            $PSDefaultParameterValues = Get-SafeguardSslPreferences
         }
 
         Add-SendFileStreamCmdletType
@@ -475,7 +475,7 @@ function Send-PatchFile
         if ($Insecure)
         {
             Enable-SslVerification
-            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+            $PSDefaultParameterValues = Get-SafeguardSslPreferences
         }
     }
 }
@@ -1711,7 +1711,7 @@ function Get-SafeguardSupportBundle
         if ($Insecure)
         {
             Disable-SslVerification
-            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+            $PSDefaultParameterValues = Get-SafeguardSslPreferences
         }
         # Use the new receive file stream cmdlet to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
         Write-Host "Please be patient. Support bundle generation can take several minutes before the response is returned."
@@ -1733,7 +1733,7 @@ function Get-SafeguardSupportBundle
         if ($Insecure)
         {
             Enable-SslVerification
-            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+            $PSDefaultParameterValues = Get-SafeguardSslPreferences
         }
     }
 }
@@ -1839,7 +1839,7 @@ function Get-SafeguardSupportBundleQuickGlance
         if ($Insecure)
         {
             Disable-SslVerification
-            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+            $PSDefaultParameterValues = Get-SafeguardSslPreferences
         }
         # Use the new receive file stream cmdlet avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
         Write-Host "Please be patient. Quick glance generation can take several minutes before the response is returned."
@@ -1861,7 +1861,7 @@ function Get-SafeguardSupportBundleQuickGlance
         if ($Insecure)
         {
             Enable-SslVerification
-            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+            $PSDefaultParameterValues = Get-SafeguardSslPreferences
         }
     }
 }
@@ -2650,7 +2650,7 @@ function Export-SafeguardBackup
         if ($Insecure)
         {
             Disable-SslVerification
-            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+            $PSDefaultParameterValues = Get-SafeguardSslPreferences
         }
         # Use the new receive file stream cmdlet to avoid the content scraping slow down from Invoke-RestMethod as well as timeout issues
         $RelUrl = "Backups/$BackupId/Download"
@@ -2672,7 +2672,7 @@ function Export-SafeguardBackup
         if ($Insecure)
         {
             Enable-SslVerification
-            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+            $PSDefaultParameterValues = Get-SafeguardSslPreferences
         }
     }
 
@@ -2766,7 +2766,7 @@ function Import-SafeguardBackup
         if ($Insecure)
         {
             Disable-SslVerification
-            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+            $PSDefaultParameterValues = Get-SafeguardSslPreferences
         }
 
         $BackupFile = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($BackupFile)
@@ -2808,7 +2808,7 @@ function Import-SafeguardBackup
         if ($Insecure)
         {
             Enable-SslVerification
-            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+            $PSDefaultParameterValues = Get-SafeguardSslPreferences
         }
     }
 }

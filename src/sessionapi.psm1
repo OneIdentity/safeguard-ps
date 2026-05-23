@@ -33,7 +33,7 @@ function Connect-Sps
     if ($Insecure)
     {
         Disable-SslVerification
-        if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+        $PSDefaultParameterValues = Get-SafeguardSslPreferences
     }
 
     $local:PasswordPlainText = [System.Net.NetworkCredential]::new("", $SessionPassword).Password
@@ -90,7 +90,7 @@ function Connect-SpsCertificate
     if ($Insecure)
     {
         Disable-SslVerification
-        if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+        $PSDefaultParameterValues = Get-SafeguardSslPreferences
     }
 
     try
@@ -769,7 +769,7 @@ function Get-SafeguardSpsLoginMethod
     if ($Insecure)
     {
         Disable-SslVerification
-        if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+        $PSDefaultParameterValues = Get-SafeguardSslPreferences
     }
 
     try
@@ -944,7 +944,7 @@ function Invoke-SafeguardSpsMethod
     if ($local:Insecure)
     {
         Disable-SslVerification
-        if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+        $PSDefaultParameterValues = Get-SafeguardSslPreferences
     }
 
     $local:Headers = @{
@@ -998,7 +998,7 @@ function Invoke-SafeguardSpsMethod
         if ($local:Insecure)
         {
             Enable-SslVerification
-            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+            $PSDefaultParameterValues = Get-SafeguardSslPreferences
         }
     }
 }
