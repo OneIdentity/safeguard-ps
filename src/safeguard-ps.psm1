@@ -1350,18 +1350,11 @@ function Connect-Safeguard
         [Parameter(Mandatory=$false)]
         [switch]$NoSessionVariable = $false,
         [Parameter(Mandatory=$false)]
-        [switch]$NoWindowTitle = $false,
-        [Parameter(Mandatory=$false)]
-        [switch]$AllowLocalhost = $false
+        [switch]$NoWindowTitle = $false
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
-
-    # FP-safeguard-ps-003 / W7 -- reject SSRF targets (loopback / link-local /
-    # cloud metadata) before any network call. -AllowLocalhost re-enables the
-    # loopback case only; metadata + link-local stay blocked.
-    $Appliance = (Assert-SafeguardApplianceAddress -Address $Appliance -AllowLocalhost:$AllowLocalhost)
 
     try
     {

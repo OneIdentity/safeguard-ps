@@ -188,7 +188,7 @@
         }
         Test-SgPsAssert "Copy-SafeguardAccountDiscoverySchedule preserves description" {
             $copy = Get-SafeguardAccountDiscoverySchedule -Insecure $Context.SuiteData["SchedCopyId"]
-            $copy.Description -eq "Edited description"
+            $copy.Description -eq "Pipeline schedule edit"
         }
 
         # --- Remove-SafeguardAccountDiscoverySchedule ---

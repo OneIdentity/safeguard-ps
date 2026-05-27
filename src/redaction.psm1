@@ -1,21 +1,14 @@
-# D-013 redaction doctrine for safeguard-ps SDK plumbing.
+# Redact authentication plumbing (auth headers, cookies, tokens) before they
+# are written to verbose/debug streams. Does not touch API request/response
+# data fields.
 #
-# Purpose: redact authentication plumbing (auth headers, cookies, OAuth-style
-# tokens) before they are written to verbose/debug streams. NOT a general
-# log scrubber. NEVER touches Safeguard API response/request *data* fields.
-#
-# Rules (intentionally narrow to avoid breaking real API payloads):
+# Rules:
 #   * Top-level keys ONLY. No recursion into nested objects.
 #   * EXACT case-insensitive key match against a fixed allowlist.
 #   * String-valued leaves ONLY. Non-string values pass through.
-#   * Authorization is special: the "Bearer " / "Basic " scheme prefix is
-#     retained, and only the credential portion is replaced with [REDACTED].
+#   * Authorization: preserves the scheme prefix (Bearer/Basic), redacts
+#     only the credential portion.
 #   * Input is NEVER mutated. A shallow copy is returned.
-#
-# Anything not in the allowlist passes through unchanged. This is deliberate:
-# Safeguard payloads contain fields whose names CONTAIN substrings of
-# allowlisted keys (PasswordRulesPolicyId, ApiKeyName, etc.) and any substring
-# or regex matcher would silently corrupt API I/O.
 
 $script:RedactionAllowlist = @(
     'Authorization',
@@ -71,8 +64,9 @@ function Hide-SdkPlumbing
         plumbing redacted, suitable for verbose/debug logging.
 
     .DESCRIPTION
-        Implements the D-013 redaction doctrine. See the header of
-        redaction.psm1 for the full rules. The input is never mutated.
+        Redacts SDK auth plumbing from a hashtable or PSCustomObject.
+        See the header of redaction.psm1 for the full rules. The input
+        is never mutated.
 
     .PARAMETER InputObject
         A hashtable, IDictionary, or PSCustomObject. Other types and $null
@@ -147,9 +141,8 @@ function Hide-SdkPlumbing
     }
 }
 
-# Backwards-compatible aliases so callers can still use the Redact-* names
-# from the D-013 design documentation. PSScriptAnalyzer requires approved
-# verbs (Hide is on the approved list; Redact is not).
+# Backwards-compatible aliases. PSScriptAnalyzer requires approved verbs
+# (Hide is approved; Redact is not).
 Set-Alias -Name Redact-SdkPlumbing    -Value Hide-SdkPlumbing
 Set-Alias -Name Redact-AuthHeaderValue -Value Hide-AuthHeaderValue
 

@@ -67,7 +67,6 @@ PowerShellVersion = '5.1'
 # Modules to import as nested modules of the module specified in RootModule/ModuleToProcess
 NestedModules = @(
     'sslhandling.psm1',
-    'hostname-validation.psm1',
     'redaction.psm1',
     'ps-utilities.psm1',
     'sg-utilities.psm1',

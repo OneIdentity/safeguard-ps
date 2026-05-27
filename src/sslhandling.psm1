@@ -1,17 +1,8 @@
 <# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
 # SSL handling helpers
 # Nothing is exported from here.
-#
-# Security history (2026-05-22, S5 fix FP-safeguard-ps-001):
-#   Disable-SslVerification used to mutate $global:PSDefaultParameterValues,
-#   which silently affected every Invoke-RestMethod / Invoke-WebRequest call
-#   in the caller's session -- including non-Safeguard cmdlets. This was a
-#   session-wide TLS-verification kill switch. The bypass is now expressed
-#   as module-scoped state ($script:SkipCertificateCheck) and surfaced to
-#   each cmdlet that needs it via Get-SafeguardSslPreferences, so unrelated
-#   cmdlets in the same session continue to validate certificates.
 
-# Tracks the customer's choice. Defaults to $false (verification on).
+# Tracks whether -Insecure is active. Defaults to $false (verification on).
 $script:SkipCertificateCheck = $false
 
 function Disable-SslVerification
