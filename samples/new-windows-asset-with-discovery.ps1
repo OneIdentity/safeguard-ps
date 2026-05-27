@@ -24,7 +24,10 @@ session ($SafeguardSession) is active, the session is reused. If no session exis
 you are prompted for the appliance address.
 
 .PARAMETER Insecure
-Ignore verification of the Safeguard appliance SSL certificate.
+Ignore verification of the Safeguard appliance SSL certificate. Use this
+switch only with self-signed development / lab appliances. For production
+deployments, install a trusted certificate on the appliance and OMIT this
+switch so the connection is validated against the trust store.
 
 .PARAMETER NetworkAddress
 IP address or hostname of the Windows machine to add as an asset. Prompted

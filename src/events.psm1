@@ -1333,7 +1333,7 @@ function Wait-SafeguardEvent
     if ($Insecure)
     {
         Disable-SslVerification
-        if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+        $PSDefaultParameterValues = Get-SafeguardSslPreferences
     }
 
     $local:SseDisposables = @()
@@ -1422,7 +1422,7 @@ function Wait-SafeguardEvent
         if ($Insecure)
         {
             Enable-SslVerification
-            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+            $PSDefaultParameterValues = Get-SafeguardSslPreferences
         }
         Write-Verbose "Event listener stopped."
     }

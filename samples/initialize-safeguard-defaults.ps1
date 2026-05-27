@@ -8,6 +8,10 @@
 Param(
     [Parameter(Mandatory=$true,Position=0)]
     [string]$Appliance,
+    # -Insecure disables Safeguard appliance SSL certificate verification.
+    # Use this only with self-signed development / lab appliances. For
+    # production, install a trusted certificate on the appliance and OMIT
+    # -Insecure so the connection is validated against the trust store.
     [Parameter(Mandatory=$false)]
     [switch]$Insecure,
     [Parameter(Mandatory=$false)]

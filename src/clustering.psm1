@@ -232,7 +232,7 @@ function Get-SafeguardClusterMember
 
     if ($Member)
     {
-        Write-Verbose "Getting specific appliance '$AccessToken' '$Appliance' '$Insecure' '$Member'"
+        Write-Verbose "Getting specific appliance '$Appliance' '$Insecure' '$Member'"
         Resolve-MemberAppliance -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Member -WithHealth:$WithHealth
     }
     else

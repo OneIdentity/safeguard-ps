@@ -39,7 +39,7 @@ function Invoke-SafeguardA2aMethodWithCertificate
     if ($Insecure)
     {
         Disable-SslVerification
-        if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+        $PSDefaultParameterValues = Get-SafeguardSslPreferences
     }
 
     $local:Headers = @{
@@ -119,7 +119,7 @@ function Invoke-SafeguardA2aMethodWithCertificate
         if ($Insecure)
         {
             Enable-SslVerification
-            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+            $PSDefaultParameterValues = Get-SafeguardSslPreferences
         }
     }
 }
@@ -1261,7 +1261,7 @@ function Wait-SafeguardA2aEvent
     if ($Insecure)
     {
         Disable-SslVerification
-        if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+        $PSDefaultParameterValues = Get-SafeguardSslPreferences
     }
 
     $local:SseDisposables = @()
@@ -1356,7 +1356,7 @@ function Wait-SafeguardA2aEvent
         if ($Insecure)
         {
             Enable-SslVerification
-            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+            $PSDefaultParameterValues = Get-SafeguardSslPreferences
         }
         Write-Verbose "A2A event listener stopped."
     }

@@ -1,6 +1,11 @@
 # Copyright (c) 2026 One Identity LLC. All rights reserved.
 # This script assumes that the bootstrap admin account has the default password
 # It also uses some test data underneath this directory
+#
+# NOTE on -Insecure: the -Insecure switch disables Safeguard appliance SSL
+# certificate verification. This sample uses it because development / lab
+# appliances typically present self-signed certificates. For production
+# scripts, install a trusted certificate on the appliance and OMIT -Insecure.
 [CmdletBinding()]
 Param(
     [Parameter(Mandatory=$true)]

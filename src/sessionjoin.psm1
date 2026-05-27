@@ -379,7 +379,7 @@ function Join-SafeguardSessionCluster
         if ($Insecure)
         {
             Disable-SslVerification
-            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+            $PSDefaultParameterValues = Get-SafeguardSslPreferences
         }
 
         $HttpSession = (Connect-Sps $SessionMaster $SessionUsername $SessionPassword -Insecure:$Insecure)
@@ -548,7 +548,7 @@ function Join-SafeguardSessionCluster
         if ($Insecure)
         {
             Enable-SslVerification
-            if ($global:PSDefaultParameterValues) { $PSDefaultParameterValues = $global:PSDefaultParameterValues.Clone() }
+            $PSDefaultParameterValues = Get-SafeguardSslPreferences
         }
     }
 }
