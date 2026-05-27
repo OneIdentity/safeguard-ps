@@ -120,32 +120,20 @@ function Edit-SslVersionSupport
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Write-Verbose "Configuring SSL version support to be secure (TLS 1.2+ only)"
-    # Strip Ssl3 if present (defensive; modern runtimes refuse to honour it anyway).
+    Write-Verbose "Configuring SSL version support to be secure"
+    # Remove SSLv3, if present
     if ([bool]([System.Net.ServicePointManager]::SecurityProtocol -band [System.Net.SecurityProtocolType]::Ssl3))
     {
         [System.Net.ServicePointManager]::SecurityProtocol = `
             [System.Net.ServicePointManager]::SecurityProtocol -band (-bnot [System.Net.SecurityProtocolType]::Ssl3)
     }
-    # Strip TLS 1.0 if present (deprecated; see RFC 8996).
-    if ([bool]([System.Net.ServicePointManager]::SecurityProtocol -band [System.Net.SecurityProtocolType]::Tls))
-    {
-        [System.Net.ServicePointManager]::SecurityProtocol = `
-            [System.Net.ServicePointManager]::SecurityProtocol -band (-bnot [System.Net.SecurityProtocolType]::Tls)
-    }
-    # Strip TLS 1.1 if present (deprecated; see RFC 8996).
-    if ([bool]([System.Net.ServicePointManager]::SecurityProtocol -band [System.Net.SecurityProtocolType]::Tls11))
-    {
-        [System.Net.ServicePointManager]::SecurityProtocol = `
-            [System.Net.ServicePointManager]::SecurityProtocol -band (-bnot [System.Net.SecurityProtocolType]::Tls11)
-    }
-    # Add TLS 1.2 if missing.
+    # Add TLS 1.2, if missing
     if (-not ([bool]([System.Net.ServicePointManager]::SecurityProtocol -band [System.Net.SecurityProtocolType]::Tls12)))
     {
         [System.Net.ServicePointManager]::SecurityProtocol = `
             [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12
     }
-    # Add TLS 1.3 if the runtime supports it.
+    # Add TLS 1.3 if the runtime supports it
     $local:Tls13 = ([System.Net.SecurityProtocolType].GetEnumNames() -contains 'Tls13')
     if ($local:Tls13)
     {

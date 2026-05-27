@@ -2097,8 +2097,7 @@ function Invoke-SafeguardMethod
     }
 
     Write-Verbose "---Request---"
-    Import-Module -Name "$PSScriptRoot\redaction.psm1" -Scope Local
-    Write-Verbose "Headers=$(ConvertTo-Json -InputObject (Hide-SdkPlumbing $local:Headers))"
+    Write-Verbose "Headers=$(ConvertTo-Json -InputObject $local:Headers)"
 
     if (-not $Anonymous)
     {
