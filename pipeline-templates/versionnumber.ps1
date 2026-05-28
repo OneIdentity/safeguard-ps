@@ -36,7 +36,7 @@ if ($IsTagBuild -eq "True") {
     $local:BuildNumber = ($BuildId - 250000) # shrink shared build number appropriately
     Write-Host "BuildNumber = $($local:BuildNumber)"
     $local:VersionString = "${Version}.${local:BuildNumber}"
-    $local:PrereleaseSuffix = "pre$($local:BuildNumber)"
+    $local:PrereleaseSuffix = "pre"
     $local:ReleaseTag = "dev/v${Version}.${local:BuildNumber}-$($local:PrereleaseSuffix)"
     Write-Host "Dev build: VersionString = $($local:VersionString), PrereleaseSuffix = $($local:PrereleaseSuffix), ReleaseTag = $($local:ReleaseTag)"
 }

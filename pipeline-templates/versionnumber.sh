@@ -34,7 +34,7 @@ else
     buildNumber=$(expr $buildId - 250000) # shrink shared build number appropriately
     echo "buildNumber = ${buildNumber}"
     versionString="${verNum}.${buildNumber}"
-    prereleaseSuffix="pre${buildNumber}"
+    prereleaseSuffix="pre"
     releaseTag="dev/v${verNum}.${buildNumber}-${prereleaseSuffix}"
     echo "Dev build: VersionString = $versionString, PrereleaseSuffix = $prereleaseSuffix, ReleaseTag = $releaseTag"
 fi
