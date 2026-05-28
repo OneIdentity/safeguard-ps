@@ -175,7 +175,6 @@ Describe 'PS 5.1 .Count behavior simulation' {
     }
 
     It '@() wrapping gives .Count 0 for empty/null result' {
-        $empty = @($null)
         # @($null) gives array with 1 null element, but -not @($null) should handle it
         # The actual pattern uses: if (-not $var) which is what matters
         $fromEmpty = @()

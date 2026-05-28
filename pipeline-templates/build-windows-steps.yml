@@ -88,7 +88,7 @@ steps:
       $ErrorActionPreference = "Stop"
       Write-Host "PowerShell version: $($PSVersionTable.PSVersion)"
       Write-Host "Running PS 5.1 unit tests via Pester..."
-      $testDir = Join-Path "$(System.DefaultWorkingDirectory)" "test" "Unit"
+      $testDir = Join-Path (Join-Path "$(System.DefaultWorkingDirectory)" "test") "Unit"
       if (-not (Test-Path $testDir))
       {
           Write-Host "No unit test directory found at $testDir, skipping."

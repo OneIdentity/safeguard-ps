@@ -24,7 +24,7 @@ $ModuleName = "safeguard-ps"
 $Module = (Join-Path $RepoRoot "src\$ModuleName.psd1")
 $ModuleCatalog = (Join-Path $RepoRoot "src\$ModuleName.cat")
 
-$CodeVersion = "$($VersionString.Split(".")[0..1] -join ".").99999"
+$CodeVersion = "$($VersionString.Split(".")[0..2] -join ".").99999"
 $BuildVersion = "$($VersionString)"
 Write-Host "Replacing CodeVersion: $CodeVersion with BuildVersion: $BuildVersion"
 (Get-Content $Module -Raw).replace($CodeVersion, $BuildVersion) | Set-Content $Module

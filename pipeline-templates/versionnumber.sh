@@ -15,8 +15,8 @@ echo "tagName = $tagName"
 echo "isTagBuild = $isTagBuild"
 
 if [ "$isTagBuild" = "True" ]; then
-    if ! echo "$tagName" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
-        echo "##[error]Tag '$tagName' does not match expected format v<major>.<minor>.<patch>"
+    if ! echo "$tagName" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
+        echo "##[error]Tag '$tagName' does not match expected format v<major>.<minor>.<patch>.<build>"
         exit 1
     fi
     versionString="${tagName#v}"
@@ -24,11 +24,11 @@ if [ "$isTagBuild" = "True" ]; then
     releaseTag="$tagName"
     echo "Tag build: VersionString = $versionString, ReleaseTag = $releaseTag"
 else
-    buildNumber=$(expr $buildId - 102500) # shrink shared build number appropriately
+    buildNumber=$(expr $buildId - 250000) # shrink shared build number appropriately
     echo "buildNumber = ${buildNumber}"
-    versionString="$verNum"
+    versionString="${verNum}.${buildNumber}"
     prereleaseSuffix="pre${buildNumber}"
-    releaseTag="dev/v${verNum}-${prereleaseSuffix}"
+    releaseTag="dev/v${verNum}.${buildNumber}-${prereleaseSuffix}"
     echo "Dev build: VersionString = $versionString, PrereleaseSuffix = $prereleaseSuffix, ReleaseTag = $releaseTag"
 fi
 

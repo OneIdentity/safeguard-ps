@@ -17,8 +17,8 @@ Write-Host "TagName = $TagName"
 Write-Host "IsTagBuild = $IsTagBuild"
 
 if ($IsTagBuild -eq "True") {
-    if ($TagName -notmatch '^v\d+\.\d+\.\d+$') {
-        Write-Error "Tag '$TagName' does not match expected format v<major>.<minor>.<patch>"
+    if ($TagName -notmatch '^v\d+\.\d+\.\d+\.\d+$') {
+        Write-Error "Tag '$TagName' does not match expected format v<major>.<minor>.<patch>.<build>"
         exit 1
     }
     $local:VersionString = $TagName -replace '^v', ''
@@ -26,11 +26,11 @@ if ($IsTagBuild -eq "True") {
     $local:ReleaseTag = $TagName
     Write-Host "Tag build: VersionString = $($local:VersionString), ReleaseTag = $($local:ReleaseTag)"
 } else {
-    $local:BuildNumber = ($BuildId - 102500) # shrink shared build number appropriately
+    $local:BuildNumber = ($BuildId - 250000) # shrink shared build number appropriately
     Write-Host "BuildNumber = $($local:BuildNumber)"
-    $local:VersionString = "${Version}"
+    $local:VersionString = "${Version}.${local:BuildNumber}"
     $local:PrereleaseSuffix = "pre$($local:BuildNumber)"
-    $local:ReleaseTag = "dev/v${Version}-$($local:PrereleaseSuffix)"
+    $local:ReleaseTag = "dev/v${Version}.${local:BuildNumber}-$($local:PrereleaseSuffix)"
     Write-Host "Dev build: VersionString = $($local:VersionString), PrereleaseSuffix = $($local:PrereleaseSuffix), ReleaseTag = $($local:ReleaseTag)"
 }
 
