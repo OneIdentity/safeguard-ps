@@ -47,6 +47,7 @@ Get-SafeguardCustomPlatform 65536
 function Get-SafeguardCustomPlatform
 {
     [CmdletBinding()]
+    [OutputType([object[]])]
     Param(
         [Parameter(Mandatory=$false)]
         [string]$Appliance,
@@ -84,7 +85,7 @@ function Get-SafeguardCustomPlatform
         else
         {
             $local:Parameters["filter"] = "PlatformFamily eq 'Custom' and DisplayName icontains '$PlatformToGet'"
-            $local:Results = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            $local:Results = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
                 GET Platforms -Parameters $local:Parameters)
             if (-not $local:Results)
             {

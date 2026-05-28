@@ -96,11 +96,11 @@ function Resolve-SafeguardTagId {
     if (-not ($Tag -as [int])) {
         # get tag based on name
         $local:EscapedTagName = $Tag -replace "'", "\'"
-        $local:Tags = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" -Parameters @{ filter = "Name ieq '$($local:EscapedTagName)'"; fields = "Id,AssetPartitionId" })
+        $local:Tags = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" -Parameters @{ filter = "Name ieq '$($local:EscapedTagName)'"; fields = "Id,AssetPartitionId" })
     } else {
         # Tag ID was supplied as param, not tag name
         # Confirm that the tag with this ID actually exists.
-        $local:Tags = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)/$($Tag)" -Parameters @{ fields = "Id,AssetPartitionId" })
+        $local:Tags = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)/$($Tag)" -Parameters @{ fields = "Id,AssetPartitionId" })
     }
 
     if (-not $local:Tags)

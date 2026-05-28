@@ -55,14 +55,14 @@ function Resolve-SafeguardProfileItemId
     {
         try
         {
-            $local:ItemList = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
+            $local:ItemList = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
                                    -Parameters @{ filter = "Name ieq '$Item'"; fields = "Id" })
         }
         catch
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with ieq filter, trying with q parameter"
-            $local:ItemList = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
+            $local:ItemList = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
                                    -Parameters @{ q = $Item; fields = "Id" })
         }
         if (-not $local:ItemList)

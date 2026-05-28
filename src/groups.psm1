@@ -38,7 +38,7 @@ function Resolve-SafeguardGroupId
     if (-not ($Group -as [int]))
     {
         $local:EscapedName = $Group -replace "'", "\'"
-        $local:Groups = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
+        $local:Groups = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
                                                 -Parameters @{ filter = "Name ieq '$($local:EscapedName)'" })
         if (-not $local:Groups)
         {

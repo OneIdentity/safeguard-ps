@@ -27,14 +27,14 @@ function Resolve-SafeguardPlatform
         Write-Host "Searching for platforms with '$Platform'"
         try
         {
-            $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
+            $local:Platforms = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
                                     -Parameters @{ Filter = "DisplayName icontains '$Platform' and Id ge 500" })
         }
         catch
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with icontains filter, trying with contains filter"
-            $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
+            $local:Platforms = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
                                     -Parameters @{ Filter = "DisplayName contains '$Platform' and Id ge 500" })
         }
         if (-not $local:Platforms)
@@ -89,7 +89,7 @@ function Resolve-SafeguardLdapDirectoryPlatform
         Write-Host "Searching for LDAP platforms with '$Platform'"
         try
         {
-            $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
+            $local:Platforms = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
                                     -Parameters @{ filter = "DisplayName icontains '$Platform' and DeviceClass eq 'Directory' and Id ne 522 and Id ge 500"; `
                                                    fields = "Id,DisplayName"; orderby = "Id" })
         }
@@ -97,13 +97,13 @@ function Resolve-SafeguardLdapDirectoryPlatform
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with icontains filter, trying with contains filter"
-            $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
+            $local:Platforms = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
                                     -Parameters @{ filter = "DisplayName contains '$Platform' and DeviceClass eq 'Directory' and Id ne 522 and Id ge 500"; `
                                                    fields = "Id,DisplayName"; orderby = "Id" })
         }
         if (-not $local:Platforms)
         {
-            $local:Platforms = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
+            $local:Platforms = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Platforms `
                                     -Parameters @{ q = "$Platform"; filter = "Id ge 500 and Id ne 522 and DeviceClass eq 'Directory'"; `
                                                    fields = "Id,DisplayName"; orderby = "Id" })
         }

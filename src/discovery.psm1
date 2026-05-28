@@ -44,14 +44,14 @@ function Resolve-SafeguardAccountDiscoveryScheduleId
     {
         try
         {
-            $local:Schedules = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
+            $local:Schedules = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
                                     -Parameters @{ filter = "Name ieq '$Schedule'"; fields = "Id" })
         }
         catch
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with ieq filter, trying with q parameter"
-            $local:Schedules = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
+            $local:Schedules = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
                                     -Parameters @{ q = $Schedule; fields = "Id" })
         }
         if (-not $local:Schedules)

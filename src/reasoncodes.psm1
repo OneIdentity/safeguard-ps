@@ -26,14 +26,14 @@ function Resolve-SafeguardReasonCodeId
     {
         try
         {
-            $local:ReasonCodes = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "ReasonCodes" `
+            $local:ReasonCodes = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "ReasonCodes" `
                                  -Parameters @{ filter = "Name ieq '$ReasonCode'" })
         }
         catch
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with ieq filter, trying with q parameter"
-            $local:ReasonCodes = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "ReasonCodes" `
+            $local:ReasonCodes = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "ReasonCodes" `
                                  -Parameters @{ q = $ReasonCode })
         }
         if (-not $local:ReasonCodes)
