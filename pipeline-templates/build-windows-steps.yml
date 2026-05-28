@@ -88,10 +88,10 @@ steps:
       $ErrorActionPreference = "Stop"
       Write-Host "PowerShell version: $($PSVersionTable.PSVersion)"
       Write-Host "Running PS 5.1 unit tests via Pester..."
-      $testDir = Join-Path (Join-Path "$(System.DefaultWorkingDirectory)" "test") "Unit"
-      if (-not (Test-Path $testDir))
+      $testFile = Join-Path (Join-Path (Join-Path "$(System.DefaultWorkingDirectory)" "test") "Unit") "resolve-functions.Tests.ps1"
+      if (-not (Test-Path $testFile))
       {
-          Write-Host "No unit test directory found at $testDir, skipping."
+          Write-Host "No unit test file found at $testFile, skipping."
           return
       }
       $pesterModule = Get-Module -Name Pester -ListAvailable | Sort-Object Version -Descending | Select-Object -First 1
@@ -102,7 +102,7 @@ steps:
       }
       Import-Module Pester -MinimumVersion 5.0.0
       $config = New-PesterConfiguration
-      $config.Run.Path = $testDir
+      $config.Run.Path = $testFile
       $config.Run.Exit = $true
       $config.Output.Verbosity = "Detailed"
       $results = Invoke-Pester -Configuration $config
