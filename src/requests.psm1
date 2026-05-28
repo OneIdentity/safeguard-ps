@@ -27,11 +27,11 @@ function Resolve-SafeguardRequestableAssetId
     {
         try
         {
-            $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/AccessRequestAssets" `
+            $local:Assets = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/AccessRequestAssets" `
                                  -Parameters @{ filter = "Name ieq '$Asset'" })
             if (-not $local:Assets)
             {
-                $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/AccessRequestAssets" `
+                $local:Assets = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/AccessRequestAssets" `
                                      -Parameters @{ filter = "NetworkAddress ieq '$Asset'" })
             }
         }
@@ -39,7 +39,7 @@ function Resolve-SafeguardRequestableAssetId
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with ieq filter, trying with q parameter"
-            $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/AccessRequestAssets" `
+            $local:Assets = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Me/AccessRequestAssets" `
                                  -Parameters @{ q = $Asset })
         }
         if (-not $local:Assets)

@@ -28,25 +28,25 @@ function Resolve-Event
         catch {}
         if (-not $local:FoundEvent)
         {
-            $local:Events = ((Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Events `
+            $local:Events = @((Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Events `
                                   -Parameters @{ fields = "Name,Category,Description" }) | Where-Object { $_.Name -match "$EventObj" })
             if (($local:Events).Count -eq 0)
             {
-                $local:Events = ((Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Events `
+                $local:Events = @((Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Events `
                                       -Parameters @{ fields = "Name,Category,Description" }) | Where-Object { $_.Category -match "$EventObj" })
             }
             if (($local:Events).Count -eq 0)
             {
                 try
                 {
-                    $local:Events = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Events `
+                    $local:Events = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Events `
                                         -Parameters @{ filter = "Description icontains '$EventObj'"; fields = "Name,Category,Description" })
                 }
                 catch
                 {
                     Write-Verbose $_
                     Write-Verbose "Caught exception with icontains filter, trying with contains filter"
-                    $local:Events = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Events `
+                    $local:Events = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Events `
                                         -Parameters @{ filter = "Description contains '$EventObj'"; fields = "Name,Category,Description" })
                 }
             }

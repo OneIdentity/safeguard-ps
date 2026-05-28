@@ -26,11 +26,11 @@ function Resolve-SafeguardA2aId
     {
         try
         {
-            $local:A2as = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET A2ARegistrations `
+            $local:A2as = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET A2ARegistrations `
                                 -Parameters @{ filter = "AppName ieq '$A2a'" })
             if (-not $local:A2as)
             {
-                $local:A2as = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET A2ARegistrations `
+                $local:A2as = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET A2ARegistrations `
                                     -Parameters @{ filter = "CertificateUser ieq '$A2a'" })
             }
         }
@@ -38,7 +38,7 @@ function Resolve-SafeguardA2aId
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with ieq filter, trying with q parameter"
-            $local:A2as = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET A2ARegistrations `
+            $local:A2as = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET A2ARegistrations `
                                 -Parameters @{ q = $A2as })
         }
         if (-not $local:A2as)
@@ -92,14 +92,14 @@ function Resolve-SafeguardA2aAccountId
         }
         try
         {
-            $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+            $local:Accounts = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
                                     Core GET "A2ARegistrations/$A2aId/RetrievableAccounts" -Parameters @{ filter = $local:Filter })
         }
         catch
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with ieq filter, trying with q parameter"
-            $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+            $local:Accounts = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
                                     Core GET "A2ARegistrations/$A2aId/RetrievableAccounts" -Parameters @{ q = $Account })
         }
         if (-not $local:Accounts)

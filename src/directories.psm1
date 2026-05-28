@@ -26,11 +26,11 @@ function Resolve-SafeguardDirectoryIdentityProviderId
     {
         try
         {
-            $local:Idps = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
+            $local:Idps = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
                                -Parameters @{ Filter = "Name ieq '$Directory'" })
             if (-not $local:Idps)
             {
-                $local:Idps = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
+                $local:Idps = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
                                    -Parameters @{ Filter = "DirectoryProperties.Domains.DomainName ieq '$Directory'" })
             }
         }
@@ -38,7 +38,7 @@ function Resolve-SafeguardDirectoryIdentityProviderId
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with ieq filter, trying with q parameter"
-            $local:Idps = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
+            $local:Idps = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET IdentityProviders `
                                       -Parameters @{ q = $Directory })
         }
         if (-not $local:Idps)
@@ -80,16 +80,16 @@ function Resolve-SafeguardDirectoryId
 
     if (-not ($Directory -as [int]))
     {
-        $local:Directories = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Assets `
+        $local:Directories = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Assets `
                                  -Parameters @{ filter = "IsDirectory eq true and Name ieq '$Directory'" })
         if (-not $local:Directories)
         {
-            $local:Directories = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Assets `
+            $local:Directories = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Assets `
                                      -Parameters @{ filter = "IsDirectory eq true and NetworkAddress ieq '$Directory'" })
         }
         if (-not $local:Directories)
         {
-            $local:Directories = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Assets `
+            $local:Directories = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Assets `
                                      -Parameters @{ filter = "IsDirectory eq true and DirectoryAssetProperties.Domains.DomainName ieq '$Directory'" })
         }
 
@@ -144,14 +144,14 @@ function Resolve-SafeguardDirectoryAccountId
         }
         try
         {
-            $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
+            $local:Accounts = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
                                    -Parameters @{ filter = "Name ieq '$Account'" })
         }
         catch
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with ieq filter, trying with q parameter"
-            $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
+            $local:Accounts = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
                                    -Parameters @{ q = $Account })
         }
         if (-not $local:Accounts)

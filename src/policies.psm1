@@ -26,11 +26,11 @@ function Resolve-SafeguardPolicyAssetId
     {
         try
         {
-            $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET PolicyAssets `
+            $local:Assets = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET PolicyAssets `
                                  -Parameters @{ filter = "Name ieq '$Asset'" })
             if (-not $local:Assets)
             {
-                $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET PolicyAssets `
+                $local:Assets = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET PolicyAssets `
                                      -Parameters @{ filter = "NetworkAddress ieq '$Asset'" })
             }
         }
@@ -38,7 +38,7 @@ function Resolve-SafeguardPolicyAssetId
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with ieq filter, trying with q parameter"
-            $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET PolicyAssets `
+            $local:Assets = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET PolicyAssets `
                                  -Parameters @{ q = $Asset })
         }
         if (-not $local:Assets)
@@ -98,14 +98,14 @@ function Resolve-SafeguardPolicyAccountId
         }
         try
         {
-            $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
+            $local:Accounts = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
                                    -Parameters @{ filter = "$($local:PreFilter)Name ieq '$Account'" })
         }
         catch
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with ieq filter, trying with q parameter"
-            $local:Accounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
+            $local:Accounts = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
                                    -Parameters @{ q = $Account })
         }
         if (-not $local:Accounts)
@@ -156,7 +156,7 @@ function Resolve-SafeguardAccessPolicyId
         }
         try
         {
-            $local:AccessPolicies = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AccessPolicies `
+            $local:AccessPolicies = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AccessPolicies `
                                  -Parameters @{ filter = $local:Filter })
         }
         catch
@@ -168,7 +168,7 @@ function Resolve-SafeguardAccessPolicyId
             {
                 $local:Params["filter"] = "RoleId eq $EntitlementId"
             }
-            $local:AccessPolicies = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AccessPolicies `
+            $local:AccessPolicies = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AccessPolicies `
                                  -Parameters $local:Params)
         }
         if (-not $local:AccessPolicies)

@@ -34,11 +34,11 @@ function Resolve-SafeguardDeletedAssetId
     {
         try
         {
-            $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
+            $local:Assets = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
                                  -Parameters @{ filter = "Name ieq '$Asset'"; fields = "Id" })
             if (-not $local:Assets)
             {
-                $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
+                $local:Assets = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
                                      -Parameters @{ filter = "NetworkAddress ieq '$Asset'"; fields = "Id" })
             }
         }
@@ -46,7 +46,7 @@ function Resolve-SafeguardDeletedAssetId
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with ieq filter, trying with q parameter"
-            $local:Assets = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
+            $local:Assets = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
                                  -Parameters @{ q = $Asset; fields = "Id" })
         }
         if (-not $local:Assets)
@@ -293,14 +293,14 @@ function Resolve-SafeguardDeletedAssetAccountId
     {
         try
         {
-            $local:AssetAccounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
+            $local:AssetAccounts = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
                                 -Parameters @{ filter = "Name ieq '$AssetAccount'"; fields = "Id" })
         }
         catch
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with ieq filter, trying with q parameter"
-            $local:AssetAccounts = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
+            $local:AssetAccounts = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
                                  -Parameters @{ q = $AssetAccount; fields = "Id" })
         }
         if (-not $local:AssetAccounts)
@@ -547,14 +547,14 @@ function Resolve-SafeguardDeletedUserId
     {
         try
         {
-            $local:Users = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
+            $local:Users = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
                                  -Parameters @{ filter = "Name ieq '$User' or DisplayName ieq '$User'"; fields = "Id" })
         }
         catch
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with ieq filter, trying with q parameter"
-            $local:Users = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
+            $local:Users = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
                                  -Parameters @{ q = $User; fields = "Id" })
         }
         if (-not $local:Users)

@@ -79,3 +79,32 @@ steps:
       Write-Host "Module imported successfully under PS 5.1"
   displayName: 'Verify PS 5.1 compatibility (parse and import)'
 
+- task: PowerShell@2
+  inputs:
+    targetType: inline
+    pwsh: false
+    failOnStderr: true
+    script: |
+      $ErrorActionPreference = "Stop"
+      Write-Host "PowerShell version: $($PSVersionTable.PSVersion)"
+      Write-Host "Running PS 5.1 unit tests via Pester..."
+      $testDir = Join-Path "$(System.DefaultWorkingDirectory)" "test" "Unit"
+      if (-not (Test-Path $testDir))
+      {
+          Write-Host "No unit test directory found at $testDir, skipping."
+          return
+      }
+      $pesterModule = Get-Module -Name Pester -ListAvailable | Sort-Object Version -Descending | Select-Object -First 1
+      if (-not $pesterModule -or $pesterModule.Version -lt [Version]"5.0.0")
+      {
+          Write-Host "Installing Pester 5..."
+          Install-Module -Name Pester -MinimumVersion 5.0.0 -Force -SkipPublisherCheck -Scope CurrentUser
+      }
+      Import-Module Pester -MinimumVersion 5.0.0
+      $config = New-PesterConfiguration
+      $config.Run.Path = $testDir
+      $config.Run.Exit = $true
+      $config.Output.Verbosity = "Detailed"
+      $results = Invoke-Pester -Configuration $config
+  displayName: 'Run unit tests under PS 5.1'
+

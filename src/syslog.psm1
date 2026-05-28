@@ -28,11 +28,11 @@ function Resolve-SafeguardSyslogServerId
     {
         try
         {
-            $local:Resources = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
+            $local:Resources = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
                                  -Parameters @{ filter = "Name ieq '$ToResolve'"; fields = "Id" })
             if (-not $local:Resources)
             {
-                $local:Resources = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
+                $local:Resources = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
                                      -Parameters @{ filter = "NetworkAddress ieq '$ToResolve'"; fields = "Id" })
             }
         }
@@ -40,7 +40,7 @@ function Resolve-SafeguardSyslogServerId
         {
             Write-Verbose $_
             Write-Verbose "Caught exception with ieq filter, trying with q parameter"
-            $local:Resources = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
+            $local:Resources = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "$($local:RelPath)" `
                                  -Parameters @{ q = $ToResolve; fields = "Id" })
         }
         if (-not $local:Resources)
