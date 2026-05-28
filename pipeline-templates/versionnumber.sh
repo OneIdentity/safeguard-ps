@@ -15,27 +15,20 @@ echo "tagName = $tagName"
 echo "isTagBuild = $isTagBuild"
 
 if [ "$isTagBuild" = "True" ]; then
-    if ! echo "$tagName" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$'; then
-        echo "##[error]Tag '$tagName' does not match expected format v<major>.<minor>.<patch>[.<build>]"
+    if ! echo "$tagName" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+        echo "##[error]Tag '$tagName' does not match expected format v<major>.<minor>.<patch>"
         exit 1
     fi
-    buildNumber=$(expr $buildId - 250000)
-    tagVersion="${tagName#v}"
-    segmentCount=$(echo "$tagVersion" | awk -F. '{print NF}')
-    if [ "$segmentCount" -eq 3 ]; then
-        versionString="${tagVersion}.${buildNumber}"
-    else
-        versionString="$tagVersion"
-    fi
+    versionString="${tagName#v}"
     prereleaseSuffix=""
     releaseTag="$tagName"
     echo "Tag build: VersionString = $versionString, ReleaseTag = $releaseTag"
 else
     buildNumber=$(expr $buildId - 250000) # shrink shared build number appropriately
     echo "buildNumber = ${buildNumber}"
-    versionString="${verNum}.${buildNumber}"
-    prereleaseSuffix="pre"
-    releaseTag="dev/v${verNum}.${buildNumber}-${prereleaseSuffix}"
+    versionString="${verNum}"
+    prereleaseSuffix="pre${buildNumber}"
+    releaseTag="dev/v${verNum}-${prereleaseSuffix}"
     echo "Dev build: VersionString = $versionString, PrereleaseSuffix = $prereleaseSuffix, ReleaseTag = $releaseTag"
 fi
 
