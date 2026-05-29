@@ -956,6 +956,9 @@ Aliases are shown in parentheses where available.
 - `Set-SafeguardApplianceSetting`
 - `Get-SafeguardCoreSetting`
 - `Set-SafeguardCoreSetting`
+- `Get-SafeguardOAuth2GrantType`
+- `Enable-SafeguardOAuth2GrantType`
+- `Disable-SafeguardOAuth2GrantType`
 - `Get-SafeguardDebugSettings`
 - `Set-SafeguardDebugSettings`
 - `Enable-SafeguardTlsLogging`
