@@ -308,6 +308,7 @@ FunctionsToExport = @(
     # setting.psm1
     'Get-SafeguardApplianceSetting','Set-SafeguardApplianceSetting','Get-SafeguardCoreSetting','Set-SafeguardCoreSetting',
     'Get-SafeguardDailyMessage','Set-SafeguardDailyMessage','Get-SafeguardLoginMessage','Set-SafeguardLoginMessage',
+    'Get-SafeguardOAuth2GrantType','Enable-SafeguardOAuth2GrantType','Disable-SafeguardOAuth2GrantType',
     'Get-SafeguardUserPasswordRule','Set-SafeguardUserPasswordRule','New-SafeguardUserPassword','Test-SafeguardUserPassword',
     # deleted.psm1
     'Get-SafeguardDeletedAsset','Remove-SafeguardDeletedAsset','Restore-SafeguardDeletedAsset',
