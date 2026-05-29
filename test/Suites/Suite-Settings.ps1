@@ -134,6 +134,85 @@
             $readback = Get-SafeguardSyslogServer -Insecure $Context.SuiteData["SyslogId"]
             $readback.Name -eq "${prefix}_SyslogRenamed"
         }
+
+        # =========================================
+        # OAuth2 Grant Type tests
+        # =========================================
+
+        # Save original state for cleanup
+        Test-SgPsAssert "Get-SafeguardOAuth2GrantType returns a list" {
+            $grantTypes = Get-SafeguardOAuth2GrantType -Insecure
+            $Context.SuiteData["OriginalGrantTypes"] = $grantTypes
+
+            Register-SgPsTestCleanup -Description "Restore OAuth2 grant types" -Action {
+                param($Ctx)
+                try {
+                    $original = $Ctx.SuiteData['OriginalGrantTypes']
+                    # Disable all first
+                    @("AuthorizationCode", "Implicit", "ResourceOwner", "DeviceCode") | ForEach-Object {
+                        try { Disable-SafeguardOAuth2GrantType -Insecure $_ } catch {}
+                    }
+                    # Re-enable original set
+                    if ($original -and $original.Count -gt 0) {
+                        $original | ForEach-Object {
+                            try { Enable-SafeguardOAuth2GrantType -Insecure $_ } catch {}
+                        }
+                    }
+                } catch {}
+            }
+
+            $grantTypes -is [array]
+        }
+
+        # --- Enable-SafeguardOAuth2GrantType ---
+        Test-SgPsAssert "Enable-SafeguardOAuth2GrantType enables a grant type" {
+            $result = Enable-SafeguardOAuth2GrantType -Insecure "Implicit"
+            $result -contains "Implicit"
+        }
+
+        Test-SgPsAssert "Enable-SafeguardOAuth2GrantType is idempotent" {
+            $before = Get-SafeguardOAuth2GrantType -Insecure
+            $result = Enable-SafeguardOAuth2GrantType -Insecure "Implicit"
+            $result.Count -eq $before.Count
+        }
+
+        Test-SgPsAssert "Get-SafeguardOAuth2GrantType confirms enable" {
+            $grantTypes = Get-SafeguardOAuth2GrantType -Insecure
+            $grantTypes -contains "Implicit"
+        }
+
+        # --- Disable-SafeguardOAuth2GrantType ---
+        Test-SgPsAssert "Disable-SafeguardOAuth2GrantType disables a grant type" {
+            $result = Disable-SafeguardOAuth2GrantType -Insecure "Implicit"
+            $result -notcontains "Implicit"
+        }
+
+        Test-SgPsAssert "Disable-SafeguardOAuth2GrantType is idempotent" {
+            $before = Get-SafeguardOAuth2GrantType -Insecure
+            $result = Disable-SafeguardOAuth2GrantType -Insecure "Implicit"
+            $result.Count -eq $before.Count
+        }
+
+        Test-SgPsAssert "Get-SafeguardOAuth2GrantType confirms disable" {
+            $grantTypes = Get-SafeguardOAuth2GrantType -Insecure
+            $grantTypes -notcontains "Implicit"
+        }
+
+        # --- Enable multiple grant types ---
+        Test-SgPsAssert "Enable-SafeguardOAuth2GrantType supports multiple types" {
+            Enable-SafeguardOAuth2GrantType -Insecure "AuthorizationCode"
+            $result = Enable-SafeguardOAuth2GrantType -Insecure "DeviceCode"
+            ($result -contains "AuthorizationCode") -and ($result -contains "DeviceCode")
+        }
+
+        # --- Disable all ---
+        Test-SgPsAssert "Disable-SafeguardOAuth2GrantType can clear all" {
+            Disable-SafeguardOAuth2GrantType -Insecure "AuthorizationCode"
+            Disable-SafeguardOAuth2GrantType -Insecure "DeviceCode"
+            Disable-SafeguardOAuth2GrantType -Insecure "Implicit"
+            $result = Disable-SafeguardOAuth2GrantType -Insecure "ResourceOwner"
+            $result.Count -eq 0
+        }
     }
 
     Cleanup = {

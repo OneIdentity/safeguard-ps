@@ -1,4 +1,4 @@
-﻿<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
+<# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
 
 <#
 .SYNOPSIS
@@ -977,4 +977,216 @@ function Test-SafeguardUserPassword
             throw
         }
     }
+}
+
+<#
+.SYNOPSIS
+Get the currently enabled OAuth2 grant types from a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Get the list of OAuth2 grant types that are currently enabled on the Safeguard appliance.
+The Authorization Code with PKCE grant type is always enabled and cannot be disabled.
+The grant types that can be managed are: AuthorizationCode (without PKCE enforcement),
+Implicit, ResourceOwner, and DeviceCode.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A list of strings representing the currently enabled OAuth2 grant types.
+
+.EXAMPLE
+Get-SafeguardOAuth2GrantType -AccessToken $token -Appliance 10.5.32.54 -Insecure
+
+.EXAMPLE
+Get-SafeguardOAuth2GrantType
+#>
+function Get-SafeguardOAuth2GrantType
+{
+    [OutputType([object[]])]
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Setting = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Settings/Allowed OAuth2 Grant Types")
+    $local:Value = $local:Setting.Value
+    if ([string]::IsNullOrWhiteSpace($local:Value))
+    {
+        [object[]]@()
+    }
+    else
+    {
+        [object[]]@($local:Value.Split(",") | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" })
+    }
+}
+
+
+<#
+.SYNOPSIS
+Enable an OAuth2 grant type on a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Enable one or more OAuth2 grant types on the Safeguard appliance. The valid grant types
+are: AuthorizationCode, Implicit, ResourceOwner, and DeviceCode. The Authorization Code
+with PKCE grant type is always enabled and cannot be managed via this setting.
+
+One Identity recommends disabling all grant types unless you have a custom integration
+application using them.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER GrantType
+A string containing the OAuth2 grant type to enable. Valid values are:
+AuthorizationCode, Implicit, ResourceOwner, DeviceCode.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A list of strings representing the OAuth2 grant types that are enabled after the operation.
+
+.EXAMPLE
+Enable-SafeguardOAuth2GrantType -AccessToken $token -Appliance 10.5.32.54 -Insecure ResourceOwner
+
+.EXAMPLE
+Enable-SafeguardOAuth2GrantType DeviceCode
+#>
+function Enable-SafeguardOAuth2GrantType
+{
+    [OutputType([object[]])]
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [ValidateSet("AuthorizationCode", "Implicit", "ResourceOwner", "DeviceCode", IgnoreCase=$true)]
+        [string]$GrantType
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Setting = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Settings/Allowed OAuth2 Grant Types")
+    $local:CurrentValue = $local:Setting.Value
+    if ([string]::IsNullOrWhiteSpace($local:CurrentValue))
+    {
+        $local:GrantTypes = @()
+    }
+    else
+    {
+        $local:GrantTypes = @($local:CurrentValue.Split(",") | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" })
+    }
+
+    if ($local:GrantTypes -notcontains $GrantType)
+    {
+        $local:GrantTypes += $GrantType
+    }
+
+    $local:Setting.Value = ($local:GrantTypes -join ", ")
+    $null = Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Settings/Allowed OAuth2 Grant Types" -Body $local:Setting
+    $local:GrantTypes
+}
+
+
+<#
+.SYNOPSIS
+Disable an OAuth2 grant type on a Safeguard appliance via the Web API.
+
+.DESCRIPTION
+Disable one or more OAuth2 grant types on the Safeguard appliance. The valid grant types
+are: AuthorizationCode, Implicit, ResourceOwner, and DeviceCode. The Authorization Code
+with PKCE grant type is always enabled and cannot be managed via this setting.
+
+One Identity recommends disabling all grant types unless you have a custom integration
+application using them.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER GrantType
+A string containing the OAuth2 grant type to disable. Valid values are:
+AuthorizationCode, Implicit, ResourceOwner, DeviceCode.
+
+.INPUTS
+None.
+
+.OUTPUTS
+A list of strings representing the OAuth2 grant types that are enabled after the operation.
+
+.EXAMPLE
+Disable-SafeguardOAuth2GrantType -AccessToken $token -Appliance 10.5.32.54 -Insecure ResourceOwner
+
+.EXAMPLE
+Disable-SafeguardOAuth2GrantType Implicit
+#>
+function Disable-SafeguardOAuth2GrantType
+{
+    [OutputType([object[]])]
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true, Position=0)]
+        [ValidateSet("AuthorizationCode", "Implicit", "ResourceOwner", "DeviceCode", IgnoreCase=$true)]
+        [string]$GrantType
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Setting = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Settings/Allowed OAuth2 Grant Types")
+    $local:CurrentValue = $local:Setting.Value
+    if ([string]::IsNullOrWhiteSpace($local:CurrentValue))
+    {
+        $local:GrantTypes = @()
+    }
+    else
+    {
+        $local:GrantTypes = @($local:CurrentValue.Split(",") | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" })
+    }
+
+    $local:GrantTypes = @($local:GrantTypes | Where-Object { $_ -ne $GrantType })
+
+    $local:Setting.Value = ($local:GrantTypes -join ", ")
+    $null = Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Settings/Allowed OAuth2 Grant Types" -Body $local:Setting
+    $local:GrantTypes
 }
