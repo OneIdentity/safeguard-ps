@@ -315,6 +315,126 @@ function Get-RstsTokenFromBrowser
     # Return as a hashtable object because other parts of the code later on will expect it.
     @{access_token=$local:RstsResponse.access_token}
 }
+function Get-RstsTokenFromDeviceCode
+{
+    [CmdletBinding()]
+    [OutputType([hashtable])]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    # Defaults match the SafeguardDotNet.DeviceCodeLogin reference implementation.
+    # The RSTS accepts client_id and scope but does not functionally use the scope
+    # for the device code flow; -IdentityProvider is intentionally not plumbed
+    # through here because the user selects their provider in the browser.
+    $local:ClientId = "safeguard-ps"
+    $local:Scope = "rsts:sts:primaryproviderid:local"
+    $local:PollIntervalSeconds = 5
+
+    Write-Verbose "Requesting device authorization from $Appliance..."
+    try
+    {
+        $local:DeviceResponse = (Invoke-RestMethod -Method POST -Headers @{
+            "Accept" = "application/json";
+            "Content-type" = "application/json"
+        } -Uri "https://$Appliance/RSTS/oauth2/DeviceLogin" -Body ([System.Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -Depth 100 -InputObject @{
+            client_id = $local:ClientId;
+            scope = $local:Scope
+        }))))
+    }
+    catch
+    {
+        throw "Unable to obtain device code from $Appliance -- $($_.Exception.Message)"
+    }
+
+    if (-not $local:DeviceResponse.device_code -or -not $local:DeviceResponse.user_code)
+    {
+        throw "Device authorization response from $Appliance is missing required fields"
+    }
+
+    $local:ExpiresIn = if ($local:DeviceResponse.expires_in) { [int]$local:DeviceResponse.expires_in } else { 300 }
+    if ($local:DeviceResponse.interval) { $local:PollIntervalSeconds = [int]$local:DeviceResponse.interval }
+
+    Write-Host ""
+    Write-Host "To sign in, use a web browser to open the page:"
+    Write-Host "    $($local:DeviceResponse.verification_uri)"
+    Write-Host "and enter the code:"
+    Write-Host "    $($local:DeviceResponse.user_code)"
+    if ($local:DeviceResponse.verification_uri_complete)
+    {
+        Write-Host "Or open this URL directly to skip entering the code:"
+        Write-Host "    $($local:DeviceResponse.verification_uri_complete)"
+    }
+    Write-Host "The code expires in $($local:ExpiresIn) seconds. Press Ctrl+C to cancel."
+    Write-Host ""
+
+    $local:Deadline = (Get-Date).AddSeconds($local:ExpiresIn)
+    $local:RstsAccessToken = $null
+
+    while ((Get-Date) -lt $local:Deadline)
+    {
+        Start-Sleep -Seconds $local:PollIntervalSeconds
+
+        $local:PollResponse = $null
+        $local:PollBodyBytes = [System.Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -Depth 100 -InputObject @{
+            grant_type = "urn:ietf:params:oauth:grant-type:device_code";
+            device_code = $local:DeviceResponse.device_code;
+            client_id = $local:ClientId
+        }))
+
+        try
+        {
+            $local:PollResponse = (Invoke-RestMethod -Method POST -Headers @{
+                "Accept" = "application/json";
+                "Content-type" = "application/json"
+            } -Uri "https://$Appliance/RSTS/oauth2/token" -Body $local:PollBodyBytes)
+        }
+        catch
+        {
+            $local:ErrorBody = $null
+            if ($_.Exception.Response)
+            {
+                try
+                {
+                    $local:Stream = $_.Exception.Response.GetResponseStream()
+                    $local:Reader = New-Object System.IO.StreamReader($local:Stream)
+                    $local:ErrorText = $local:Reader.ReadToEnd()
+                    $local:Reader.Close()
+                    if ($local:ErrorText) { $local:ErrorBody = (ConvertFrom-Json $local:ErrorText -ErrorAction SilentlyContinue) }
+                }
+                catch {}
+            }
+
+            $local:OAuthError = if ($local:ErrorBody) { $local:ErrorBody.error } else { $null }
+            switch ($local:OAuthError)
+            {
+                "authorization_pending" { Write-Verbose "Device code authorization pending..."; continue }
+                "slow_down" { $local:PollIntervalSeconds += 5; Write-Verbose "Slow down requested; polling every $($local:PollIntervalSeconds)s"; continue }
+                "access_denied" { throw "Device code authentication was denied." }
+                "expired_token" { throw "Device code has expired. Please try again." }
+                default { throw "Unable to redeem device code -- $($_.Exception.Message)" }
+            }
+        }
+
+        if ($local:PollResponse.access_token)
+        {
+            $local:RstsAccessToken = $local:PollResponse.access_token
+            break
+        }
+    }
+
+    if (-not $local:RstsAccessToken)
+    {
+        throw "Device code expired before user authenticated."
+    }
+
+    # Return as a hashtable object because other parts of the code later on will expect it.
+    @{access_token=$local:RstsAccessToken}
+}
 function Submit-RstsMultifactorPost
 {
     [CmdletBinding()]
