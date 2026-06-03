@@ -1287,7 +1287,8 @@ authentication is also supported.
 First this script retrieves an access token from the embedded redistributable
 secure token service. Then, it exchanges this token for a Safeguard user token.
 
-You must use the -Browser parameter for 2FA login support.
+You must use the -Browser parameter for 2FA login support, or -DeviceCode for 2FA login from
+headless environments (Docker, SSH, CI) where a local browser is not available.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -1337,6 +1338,13 @@ If neither the -Gui nor -Browser switches are specified, then the OAuth2 Resourc
 will be used to programmatically submit the provided credentials. Ensure that Safeguard has been configured to allow
 this grant type by checking the Safeguard Access settings in Appliance Management.
 
+.PARAMETER DeviceCode
+Use the OAuth 2.0 Device Authorization Grant (RFC 8628) to authenticate without launching a local browser. The cmdlet
+displays a verification URL and a short user code; you complete the login from any browser on any device. This is the
+recommended interactive flow for headless environments such as Docker containers, remote SSH sessions, and CI runners.
+Supports any identity provider, including those requiring SSO/MFA. Requires Safeguard appliance firmware >= 8.2 with
+the "Device Code" OAuth2 grant type enabled in Appliance Management.
+
 .PARAMETER Pkce
 Use PKCE (Proof Key for Code Exchange) non-interactive authentication. This programmatically simulates
 the browser-based OAuth2/PKCE flow without launching a browser, which does not require that the Resource
@@ -1372,6 +1380,19 @@ Login Successful.
 Connect-Safeguard 10.5.32.54 -Browser
 
 [Opens browser window for normal Safeguard login experience, including 2FA]
+
+
+.EXAMPLE
+Connect-Safeguard 10.5.32.54 -DeviceCode
+
+To sign in, use a web browser to open the page:
+    https://10.5.32.54/RSTS/oauth2/device
+and enter the code:
+    ABCD-1234
+Login Successful.
+
+[Headless device code flow -- complete the login from any browser on any device. Useful in
+Docker containers, SSH sessions, and CI runners where -Browser cannot launch a local window.]
 
 
 .EXAMPLE
