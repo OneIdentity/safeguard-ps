@@ -361,6 +361,18 @@ function Get-RstsTokenFromDeviceCode
     }
     catch
     {
+        $local:StatusCode = $null
+        try { $local:StatusCode = [int]$_.Exception.Response.StatusCode } catch {}
+        if ($local:StatusCode -eq 400)
+        {
+            Write-Host ""
+            Write-Host "Appliance returned an error rather than an OAuth response."
+            Write-Host "The Device Code OAuth2 grant type may not be enabled on this appliance."
+            Write-Host "Enable it under Appliance Management -> Safeguard Access -> Local Login Control,"
+            Write-Host "or upgrade to Safeguard 7.4 or later."
+            Write-Host ""
+            throw "Unable to obtain device code from $Appliance (HTTP 400)"
+        }
         throw "Unable to obtain device code from $Appliance -- $($_.Exception.Message)"
     }
 
@@ -1392,7 +1404,7 @@ Use the OAuth 2.0 Device Authorization Grant (RFC 8628) to authenticate without 
 displays a verification URL and a short user code; you complete the login from any browser on any device. This is the
 recommended interactive flow for headless environments such as Docker containers, remote SSH sessions, and CI runners.
 Supports any identity provider, including those requiring SSO/MFA. Combine with -IdentityProvider to pre-select the
-provider on the login page so the user is not prompted to choose. Requires Safeguard appliance firmware >= 8.2 with
+provider on the login page so the user is not prompted to choose. Requires Safeguard appliance firmware >= 7.4 with
 the "Device Code" OAuth2 grant type enabled in Appliance Management.
 
 .PARAMETER Pkce

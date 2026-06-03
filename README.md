@@ -158,7 +158,7 @@ cmdlet displays a verification URL and short user code; you complete the
 login from any browser on any device, and the token is delivered back to
 PowerShell automatically.  This flow supports SSO and multi-factor
 authentication just like `-Browser`.  It requires Safeguard appliance
-firmware 8.2 or later with the **Device Code** OAuth2 grant type enabled
+firmware 7.4 or later with the **Device Code** OAuth2 grant type enabled
 under *Appliance Management -> Safeguard Access -> Local Login Control*.
 
 ```Powershell
