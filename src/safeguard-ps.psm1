@@ -327,11 +327,19 @@ function Get-RstsTokenFromDeviceCode
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    # Defaults match the SafeguardDotNet.DeviceCodeLogin reference implementation.
-    # The RSTS accepts client_id and scope but does not functionally use the scope
-    # for the device code flow; -IdentityProvider is intentionally not plumbed
-    # through here because the user selects their provider in the browser.
-    $local:ClientId = "safeguard-ps"
+    # We intentionally send an empty client_id. The RSTS bakes a client_id into
+    # the auth-code JWT during the browser-side completion (LoginController),
+    # and that side only picks up a client_id from the URL query string. The
+    # short verification_uri_complete URL we display does not include client_id,
+    # so the JWT ends up signed with the appliance's default ApplicationClientId.
+    # The token-poll then compares the cached client_id (what we sent here) to
+    # the JWT claim. Sending an empty string lets the appliance normalize both
+    # sides to ApplicationClientId, which makes the device flow work whether the
+    # user opens verification_uri_complete or types the user_code on the long
+    # verification_uri page. The scope is accepted but not functionally used by
+    # the RSTS for the device code flow; -IdentityProvider is intentionally not
+    # plumbed through here because the user selects their provider in the browser.
+    $local:ClientId = ""
     $local:Scope = "rsts:sts:primaryproviderid:local"
     $local:PollIntervalSeconds = 5
 
@@ -395,18 +403,33 @@ function Get-RstsTokenFromDeviceCode
         }
         catch
         {
+            $local:ErrorText = $null
             $local:ErrorBody = $null
-            if ($_.Exception.Response)
+
+            # PowerShell 7 surfaces the response body via ErrorDetails.Message
+            # because Invoke-RestMethod throws HttpResponseException whose Response
+            # is an HttpResponseMessage (no GetResponseStream). Windows PowerShell
+            # 5.1 also populates ErrorDetails.Message in most cases, so try it first.
+            if ($_.ErrorDetails -and $_.ErrorDetails.Message)
             {
+                $local:ErrorText = $_.ErrorDetails.Message
+            }
+            elseif ($_.Exception.Response -and $_.Exception.Response.GetResponseStream)
+            {
+                # Fallback path for older Windows PowerShell 5.1 (HttpWebResponse).
                 try
                 {
                     $local:Stream = $_.Exception.Response.GetResponseStream()
                     $local:Reader = New-Object System.IO.StreamReader($local:Stream)
                     $local:ErrorText = $local:Reader.ReadToEnd()
                     $local:Reader.Close()
-                    if ($local:ErrorText) { $local:ErrorBody = (ConvertFrom-Json $local:ErrorText -ErrorAction SilentlyContinue) }
                 }
                 catch {}
+            }
+
+            if ($local:ErrorText)
+            {
+                $local:ErrorBody = (ConvertFrom-Json $local:ErrorText -ErrorAction SilentlyContinue)
             }
 
             $local:OAuthError = if ($local:ErrorBody) { $local:ErrorBody.error } else { $null }
@@ -416,7 +439,11 @@ function Get-RstsTokenFromDeviceCode
                 "slow_down" { $local:PollIntervalSeconds += 5; Write-Verbose "Slow down requested; polling every $($local:PollIntervalSeconds)s"; continue }
                 "access_denied" { throw "Device code authentication was denied." }
                 "expired_token" { throw "Device code has expired. Please try again." }
-                default { throw "Unable to redeem device code -- $($_.Exception.Message)" }
+                default
+                {
+                    $local:Detail = if ($local:ErrorText) { $local:ErrorText } else { $_.Exception.Message }
+                    throw "Unable to redeem device code -- $local:Detail"
+                }
             }
         }
 
