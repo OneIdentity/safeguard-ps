@@ -151,8 +151,32 @@ Grant of OAuth2.
 Login Successful.
 ```
 
+For headless environments where a local browser is not available -- such as
+Docker containers, remote SSH sessions, or CI runners -- use `-DeviceCode` to
+authenticate via the OAuth 2.0 Device Authorization Grant (RFC 8628).  The
+cmdlet displays a verification URL and short user code; you complete the
+login from any browser on any device, and the token is delivered back to
+PowerShell automatically.  This flow supports SSO and multi-factor
+authentication just like `-Browser`.  It requires Safeguard appliance
+firmware 8.2 or later with the **Device Code** OAuth2 grant type enabled
+under *Appliance Management -> Safeguard Access -> Local Login Control*.
+
+```Powershell
+> Connect-Safeguard -Insecure 192.168.123.123 -DeviceCode
+
+To sign in, use a web browser to open the page:
+    https://192.168.123.123/RSTS/oauth2/device
+and enter the code:
+    ABCD-1234
+Or open this URL directly to skip entering the code:
+    https://192.168.123.123/RSTS/oauth2/device?user_code=ABCD-1234
+The code expires in 300 seconds. Press Ctrl+C to cancel.
+
+Login Successful.
+```
+
 If your appliance still has Resource Owner Grant enabled, the legacy login
-style (without `-Pkce` or `-Browser`) will continue to work:
+style (without `-Pkce`, `-Browser`, or `-DeviceCode`) will continue to work:
 
 ```Powershell
 > Connect-Safeguard -Insecure 192.168.123.123 local Admin
