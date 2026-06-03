@@ -1827,6 +1827,7 @@ function Connect-Safeguard
                 "CertificateObject" = $CertificateObject;
                 "Insecure" = $Insecure;
                 "Gui" = $Gui -Or $Browser;
+                "DeviceCode" = [bool]$DeviceCode;
                 "NoWindowTitle" = $NoWindowTitle;
                 "AssetPartitionId" = $null
             }
@@ -2430,6 +2431,10 @@ function Update-SafeguardAccessToken
     if ($SafeguardSession.Gui)
     {
         Connect-Safeguard -Appliance $SafeguardSession.Appliance -Insecure:$SafeguardSession.Insecure -Browser -Version $SafeguardSession.Version
+    }
+    elseif ($SafeguardSession.DeviceCode)
+    {
+        Connect-Safeguard -Appliance $SafeguardSession.Appliance -Insecure:$SafeguardSession.Insecure -DeviceCode -Version $SafeguardSession.Version
     }
     elseif ($SafeguardSession.IdentityProvider -ieq "certificate")
     {
