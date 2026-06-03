@@ -1459,6 +1459,8 @@ function Connect-Safeguard
         [switch]$Gui,
         [Parameter(ParameterSetName="Browser",Mandatory=$false)]
         [switch]$Browser,
+        [Parameter(ParameterSetName="DeviceCode",Mandatory=$true)]
+        [switch]$DeviceCode,
         [Parameter(ParameterSetName="Pkce",Mandatory=$true)]
         [switch]$Pkce,
         [Parameter(ParameterSetName="Pkce",Mandatory=$false)]
@@ -1492,6 +1494,10 @@ function Connect-Safeguard
                 $IdentityProvider = (Resolve-ProviderToRstsId -Appliance $Appliance -Version $Version -Provider $IdentityProvider)
             }
             $local:RstsResponse = (Get-RstsTokenFromBrowser -Appliance $Appliance -Username $Username -IdentityProvider $IdentityProvider)
+        }
+        elseif ($DeviceCode)
+        {
+            $local:RstsResponse = (Get-RstsTokenFromDeviceCode -Appliance $Appliance)
         }
         else
         {
