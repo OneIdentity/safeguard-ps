@@ -232,47 +232,25 @@ For example:
 
 CommandType     Name                                               Version    Source
 -----------     ----                                               -------    ------
-Function        Get-SafeguardDirectoryAccount                      2.1.0.9... safeguard-ps
+Function        Get-SafeguardDirectoryAccount                      8.4.2      safeguard-ps
 
 ```
 
 ## Module Versioning
 
-The version of safeguard-ps mirrors the version of Safeguard that it was
-developed and tested against.  However, the build numbers (fourth number)
-should not be expected to match.
+safeguard-ps follows [semantic versioning](https://semver.org/) (MAJOR.MINOR.PATCH).
+The module version no longer tracks Safeguard appliance releases.  Any recent
+version of safeguard-ps is expected to work against any currently supported
+version of the Safeguard for Privileged Passwords appliance.  When the Safeguard
+Web API gains new capabilities, safeguard-ps adds cmdlets or parameters to
+expose them; older cmdlets continue to work against older appliances.
 
-For Example:
+If you encounter a cmdlet that depends on an API feature your appliance does
+not have, the call will return an error from the appliance -- upgrade either
+the appliance or the module as appropriate.
 
-safeguard-ps 2.2.152 would correspond to Safeguard 2.2.0.6958.
-
-This does not mean that safeguard-ps 2.2.152 won't work at all with
-Safeguard 2.4.0.7846.  For the most part the cmdlets will still work, but
-you may occasionally come across things that are broken.
-
-For the best results, please try to match the first two version numbers of
-the safeguard-ps module to the first two numbers of the Safeguard appliance
-you are communicating with.  The most important thing for safeguard-ps is
-the version of the Safeguard Web API, which will never change between
-where only the third and fourth numbers differ.
-
-### Pre-release Builds
-
-As of version 2.2.x, safeguard-ps began using a three digit version number.
-It also now supports prerelease builds.  This is so the next version of
-safeguard-ps can be developed in lock step with the Safeguard product.
-
-Dropping the third number is insignificant as the Safeguard Web API never
-changes in those releases.
-
-### API v3
-
-Safeguard 2.7 shipped with a new version of the Safeguard API (v3).  The
-safeguard-ps 2.7 module was updated to use the v3 API by default.  Safeguard
-2.7 serves both the v2 and v3 APIs, but the v3 version of the API is the only
-one guaranteed to work.  Please try to match the first and second version
-numbers between Safeguard and safeguard-ps as instructed above to avoid any
-compatibility issues.
+Prerelease builds are also published to the PowerShell Gallery; see the
+*Prerelease Versions* section above for installation instructions.
 
 ## Real-Time Event Listeners
 
@@ -1054,3 +1032,5 @@ Aliases are shown in parentheses where available.
 
 - `Get-SafeguardRunningTask`
 - `Stop-SafeguardRunningTask`
+- `Get-SafeguardTaskLog`
+- `Clear-SafeguardTaskLog`
