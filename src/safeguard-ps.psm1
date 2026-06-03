@@ -321,7 +321,9 @@ function Get-RstsTokenFromDeviceCode
     [OutputType([hashtable])]
     Param(
         [Parameter(Mandatory=$true,Position=0)]
-        [string]$Appliance
+        [string]$Appliance,
+        [Parameter(Mandatory=$false,Position=1)]
+        [string]$IdentityProvider
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -337,8 +339,11 @@ function Get-RstsTokenFromDeviceCode
     # sides to ApplicationClientId, which makes the device flow work whether the
     # user opens verification_uri_complete or types the user_code on the long
     # verification_uri page. The scope is accepted but not functionally used by
-    # the RSTS for the device code flow; -IdentityProvider is intentionally not
-    # plumbed through here because the user selects their provider in the browser.
+    # the RSTS for the device code flow -- the actual scope on the issued token
+    # is determined by the provider used during the browser-side completion.
+    # An IdentityProvider hint is propagated to the user via the displayed URLs
+    # by appending the primaryProviderID query parameter, which causes the RSTS
+    # login page to skip the provider drop-down (Login.cs:601-604).
     $local:ClientId = ""
     $local:Scope = "rsts:sts:primaryproviderid:local"
     $local:PollIntervalSeconds = 5
@@ -367,15 +372,32 @@ function Get-RstsTokenFromDeviceCode
     $local:ExpiresIn = if ($local:DeviceResponse.expires_in) { [int]$local:DeviceResponse.expires_in } else { 300 }
     if ($local:DeviceResponse.interval) { $local:PollIntervalSeconds = [int]$local:DeviceResponse.interval }
 
+    $local:VerificationUri = $local:DeviceResponse.verification_uri
+    $local:VerificationUriComplete = $local:DeviceResponse.verification_uri_complete
+    if ($IdentityProvider)
+    {
+        $local:Encoded = [System.Uri]::EscapeDataString($IdentityProvider)
+        if ($local:VerificationUri)
+        {
+            $local:Sep = if ($local:VerificationUri.Contains("?")) { "&" } else { "?" }
+            $local:VerificationUri = "$($local:VerificationUri)$($local:Sep)primaryProviderID=$($local:Encoded)"
+        }
+        if ($local:VerificationUriComplete)
+        {
+            $local:Sep = if ($local:VerificationUriComplete.Contains("?")) { "&" } else { "?" }
+            $local:VerificationUriComplete = "$($local:VerificationUriComplete)$($local:Sep)primaryProviderID=$($local:Encoded)"
+        }
+    }
+
     Write-Host ""
     Write-Host "To sign in, use a web browser to open the page:"
-    Write-Host "    $($local:DeviceResponse.verification_uri)"
+    Write-Host "    $($local:VerificationUri)"
     Write-Host "and enter the code:"
     Write-Host "    $($local:DeviceResponse.user_code)"
-    if ($local:DeviceResponse.verification_uri_complete)
+    if ($local:VerificationUriComplete)
     {
         Write-Host "Or open this URL directly to skip entering the code:"
-        Write-Host "    $($local:DeviceResponse.verification_uri_complete)"
+        Write-Host "    $($local:VerificationUriComplete)"
     }
     Write-Host "The code expires in $($local:ExpiresIn) seconds. Press Ctrl+C to cancel."
     Write-Host ""
@@ -1369,7 +1391,8 @@ this grant type by checking the Safeguard Access settings in Appliance Managemen
 Use the OAuth 2.0 Device Authorization Grant (RFC 8628) to authenticate without launching a local browser. The cmdlet
 displays a verification URL and a short user code; you complete the login from any browser on any device. This is the
 recommended interactive flow for headless environments such as Docker containers, remote SSH sessions, and CI runners.
-Supports any identity provider, including those requiring SSO/MFA. Requires Safeguard appliance firmware >= 8.2 with
+Supports any identity provider, including those requiring SSO/MFA. Combine with -IdentityProvider to pre-select the
+provider on the login page so the user is not prompted to choose. Requires Safeguard appliance firmware >= 8.2 with
 the "Device Code" OAuth2 grant type enabled in Appliance Management.
 
 .PARAMETER Pkce
@@ -1420,6 +1443,13 @@ Login Successful.
 
 [Headless device code flow -- complete the login from any browser on any device. Useful in
 Docker containers, SSH sessions, and CI runners where -Browser cannot launch a local window.]
+
+
+.EXAMPLE
+Connect-Safeguard 10.5.32.54 -DeviceCode -IdentityProvider extf14
+
+[Headless device code flow with a pre-selected identity provider; the user is taken
+straight to the provider's login page without being prompted to choose.]
 
 
 .EXAMPLE
@@ -1545,7 +1575,11 @@ function Connect-Safeguard
         }
         elseif ($DeviceCode)
         {
-            $local:RstsResponse = (Get-RstsTokenFromDeviceCode -Appliance $Appliance)
+            if ($IdentityProvider)
+            {
+                $IdentityProvider = (Resolve-ProviderToRstsId -Appliance $Appliance -Version $Version -Provider $IdentityProvider)
+            }
+            $local:RstsResponse = (Get-RstsTokenFromDeviceCode -Appliance $Appliance -IdentityProvider $IdentityProvider)
         }
         else
         {

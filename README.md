@@ -175,6 +175,14 @@ The code expires in 300 seconds. Press Ctrl+C to cancel.
 Login Successful.
 ```
 
+You can pre-select an identity provider with `-IdentityProvider` so the user
+is taken straight to that provider's login page instead of choosing from a
+drop-down:
+
+```Powershell
+> Connect-Safeguard -Insecure 192.168.123.123 -DeviceCode -IdentityProvider extf14
+```
+
 If your appliance still has Resource Owner Grant enabled, the legacy login
 style (without `-Pkce`, `-Browser`, or `-DeviceCode`) will continue to work:
 
