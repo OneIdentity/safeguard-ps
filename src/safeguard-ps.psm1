@@ -315,6 +315,175 @@ function Get-RstsTokenFromBrowser
     # Return as a hashtable object because other parts of the code later on will expect it.
     @{access_token=$local:RstsResponse.access_token}
 }
+function Get-RstsTokenFromDeviceCode
+{
+    [CmdletBinding()]
+    [OutputType([hashtable])]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false,Position=1)]
+        [string]$IdentityProvider
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    # We intentionally send an empty client_id. The RSTS bakes a client_id into
+    # the auth-code JWT during the browser-side completion (LoginController),
+    # and that side only picks up a client_id from the URL query string. The
+    # short verification_uri_complete URL we display does not include client_id,
+    # so the JWT ends up signed with the appliance's default ApplicationClientId.
+    # The token-poll then compares the cached client_id (what we sent here) to
+    # the JWT claim. Sending an empty string lets the appliance normalize both
+    # sides to ApplicationClientId, which makes the device flow work whether the
+    # user opens verification_uri_complete or types the user_code on the long
+    # verification_uri page. The scope is accepted but not functionally used by
+    # the RSTS for the device code flow -- the actual scope on the issued token
+    # is determined by the provider used during the browser-side completion.
+    # An IdentityProvider hint is propagated to the user via the displayed URLs
+    # by appending the primaryProviderID query parameter, which causes the RSTS
+    # login page to skip the provider drop-down (Login.cs:601-604).
+    $local:ClientId = ""
+    $local:Scope = "rsts:sts:primaryproviderid:local"
+    $local:PollIntervalSeconds = 5
+
+    Write-Verbose "Requesting device authorization from $Appliance..."
+    try
+    {
+        $local:DeviceResponse = (Invoke-RestMethod -Method POST -Headers @{
+            "Accept" = "application/json";
+            "Content-type" = "application/json"
+        } -Uri "https://$Appliance/RSTS/oauth2/DeviceLogin" -Body ([System.Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -Depth 100 -InputObject @{
+            client_id = $local:ClientId;
+            scope = $local:Scope
+        }))))
+    }
+    catch
+    {
+        throw "Unable to obtain device code from $Appliance -- $($_.Exception.Message)"
+    }
+
+    if (-not $local:DeviceResponse.device_code -or -not $local:DeviceResponse.user_code)
+    {
+        throw "Device authorization response from $Appliance is missing required fields"
+    }
+
+    $local:ExpiresIn = if ($local:DeviceResponse.expires_in) { [int]$local:DeviceResponse.expires_in } else { 300 }
+    if ($local:DeviceResponse.interval) { $local:PollIntervalSeconds = [int]$local:DeviceResponse.interval }
+
+    $local:VerificationUri = $local:DeviceResponse.verification_uri
+    $local:VerificationUriComplete = $local:DeviceResponse.verification_uri_complete
+    if ($IdentityProvider)
+    {
+        $local:Encoded = [System.Uri]::EscapeDataString($IdentityProvider)
+        if ($local:VerificationUri)
+        {
+            $local:Sep = if ($local:VerificationUri.Contains("?")) { "&" } else { "?" }
+            $local:VerificationUri = "$($local:VerificationUri)$($local:Sep)primaryProviderID=$($local:Encoded)"
+        }
+        if ($local:VerificationUriComplete)
+        {
+            $local:Sep = if ($local:VerificationUriComplete.Contains("?")) { "&" } else { "?" }
+            $local:VerificationUriComplete = "$($local:VerificationUriComplete)$($local:Sep)primaryProviderID=$($local:Encoded)"
+        }
+    }
+
+    Write-Host ""
+    Write-Host "To sign in, use a web browser to open the page:"
+    Write-Host "    $($local:VerificationUri)"
+    Write-Host "and enter the code:"
+    Write-Host "    $($local:DeviceResponse.user_code)"
+    if ($local:VerificationUriComplete)
+    {
+        Write-Host "Or open this URL directly to skip entering the code:"
+        Write-Host "    $($local:VerificationUriComplete)"
+    }
+    Write-Host "The code expires in $($local:ExpiresIn) seconds. Press Ctrl+C to cancel."
+    Write-Host ""
+
+    $local:Deadline = (Get-Date).AddSeconds($local:ExpiresIn)
+    $local:RstsAccessToken = $null
+
+    while ((Get-Date) -lt $local:Deadline)
+    {
+        Start-Sleep -Seconds $local:PollIntervalSeconds
+
+        $local:PollResponse = $null
+        $local:PollBodyBytes = [System.Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -Depth 100 -InputObject @{
+            grant_type = "urn:ietf:params:oauth:grant-type:device_code";
+            device_code = $local:DeviceResponse.device_code;
+            client_id = $local:ClientId
+        }))
+
+        try
+        {
+            $local:PollResponse = (Invoke-RestMethod -Method POST -Headers @{
+                "Accept" = "application/json";
+                "Content-type" = "application/json"
+            } -Uri "https://$Appliance/RSTS/oauth2/token" -Body $local:PollBodyBytes)
+        }
+        catch
+        {
+            $local:ErrorText = $null
+            $local:ErrorBody = $null
+
+            # PowerShell 7 surfaces the response body via ErrorDetails.Message
+            # because Invoke-RestMethod throws HttpResponseException whose Response
+            # is an HttpResponseMessage (no GetResponseStream). Windows PowerShell
+            # 5.1 also populates ErrorDetails.Message in most cases, so try it first.
+            if ($_.ErrorDetails -and $_.ErrorDetails.Message)
+            {
+                $local:ErrorText = $_.ErrorDetails.Message
+            }
+            elseif ($_.Exception.Response -and $_.Exception.Response.GetResponseStream)
+            {
+                # Fallback path for older Windows PowerShell 5.1 (HttpWebResponse).
+                try
+                {
+                    $local:Stream = $_.Exception.Response.GetResponseStream()
+                    $local:Reader = New-Object System.IO.StreamReader($local:Stream)
+                    $local:ErrorText = $local:Reader.ReadToEnd()
+                    $local:Reader.Close()
+                }
+                catch {}
+            }
+
+            if ($local:ErrorText)
+            {
+                $local:ErrorBody = (ConvertFrom-Json $local:ErrorText -ErrorAction SilentlyContinue)
+            }
+
+            $local:OAuthError = if ($local:ErrorBody) { $local:ErrorBody.error } else { $null }
+            switch ($local:OAuthError)
+            {
+                "authorization_pending" { Write-Verbose "Device code authorization pending..."; continue }
+                "slow_down" { $local:PollIntervalSeconds += 5; Write-Verbose "Slow down requested; polling every $($local:PollIntervalSeconds)s"; continue }
+                "access_denied" { throw "Device code authentication was denied." }
+                "expired_token" { throw "Device code has expired. Please try again." }
+                default
+                {
+                    $local:Detail = if ($local:ErrorText) { $local:ErrorText } else { $_.Exception.Message }
+                    throw "Unable to redeem device code -- $local:Detail"
+                }
+            }
+        }
+
+        if ($local:PollResponse.access_token)
+        {
+            $local:RstsAccessToken = $local:PollResponse.access_token
+            break
+        }
+    }
+
+    if (-not $local:RstsAccessToken)
+    {
+        throw "Device code expired before user authenticated."
+    }
+
+    # Return as a hashtable object because other parts of the code later on will expect it.
+    @{access_token=$local:RstsAccessToken}
+}
 function Submit-RstsMultifactorPost
 {
     [CmdletBinding()]
@@ -1167,7 +1336,8 @@ authentication is also supported.
 First this script retrieves an access token from the embedded redistributable
 secure token service. Then, it exchanges this token for a Safeguard user token.
 
-You must use the -Browser parameter for 2FA login support.
+You must use the -Browser parameter for 2FA login support, or -DeviceCode for 2FA login from
+headless environments (Docker, SSH, CI) where a local browser is not available.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -1217,6 +1387,14 @@ If neither the -Gui nor -Browser switches are specified, then the OAuth2 Resourc
 will be used to programmatically submit the provided credentials. Ensure that Safeguard has been configured to allow
 this grant type by checking the Safeguard Access settings in Appliance Management.
 
+.PARAMETER DeviceCode
+Use the OAuth 2.0 Device Authorization Grant (RFC 8628) to authenticate without launching a local browser. The cmdlet
+displays a verification URL and a short user code; you complete the login from any browser on any device. This is the
+recommended interactive flow for headless environments such as Docker containers, remote SSH sessions, and CI runners.
+Supports any identity provider, including those requiring SSO/MFA. Combine with -IdentityProvider to pre-select the
+provider on the login page so the user is not prompted to choose. Requires Safeguard appliance firmware >= 8.2 with
+the "Device Code" OAuth2 grant type enabled in Appliance Management.
+
 .PARAMETER Pkce
 Use PKCE (Proof Key for Code Exchange) non-interactive authentication. This programmatically simulates
 the browser-based OAuth2/PKCE flow without launching a browser, which does not require that the Resource
@@ -1252,6 +1430,26 @@ Login Successful.
 Connect-Safeguard 10.5.32.54 -Browser
 
 [Opens browser window for normal Safeguard login experience, including 2FA]
+
+
+.EXAMPLE
+Connect-Safeguard 10.5.32.54 -DeviceCode
+
+To sign in, use a web browser to open the page:
+    https://10.5.32.54/RSTS/oauth2/device
+and enter the code:
+    ABCD-1234
+Login Successful.
+
+[Headless device code flow -- complete the login from any browser on any device. Useful in
+Docker containers, SSH sessions, and CI runners where -Browser cannot launch a local window.]
+
+
+.EXAMPLE
+Connect-Safeguard 10.5.32.54 -DeviceCode -IdentityProvider extf14
+
+[Headless device code flow with a pre-selected identity provider; the user is taken
+straight to the provider's login page without being prompted to choose.]
 
 
 .EXAMPLE
@@ -1339,6 +1537,8 @@ function Connect-Safeguard
         [switch]$Gui,
         [Parameter(ParameterSetName="Browser",Mandatory=$false)]
         [switch]$Browser,
+        [Parameter(ParameterSetName="DeviceCode",Mandatory=$true)]
+        [switch]$DeviceCode,
         [Parameter(ParameterSetName="Pkce",Mandatory=$true)]
         [switch]$Pkce,
         [Parameter(ParameterSetName="Pkce",Mandatory=$false)]
@@ -1372,6 +1572,14 @@ function Connect-Safeguard
                 $IdentityProvider = (Resolve-ProviderToRstsId -Appliance $Appliance -Version $Version -Provider $IdentityProvider)
             }
             $local:RstsResponse = (Get-RstsTokenFromBrowser -Appliance $Appliance -Username $Username -IdentityProvider $IdentityProvider)
+        }
+        elseif ($DeviceCode)
+        {
+            if ($IdentityProvider)
+            {
+                $IdentityProvider = (Resolve-ProviderToRstsId -Appliance $Appliance -Version $Version -Provider $IdentityProvider)
+            }
+            $local:RstsResponse = (Get-RstsTokenFromDeviceCode -Appliance $Appliance -IdentityProvider $IdentityProvider)
         }
         else
         {
@@ -1701,6 +1909,7 @@ function Connect-Safeguard
                 "CertificateObject" = $CertificateObject;
                 "Insecure" = $Insecure;
                 "Gui" = $Gui -Or $Browser;
+                "DeviceCode" = [bool]$DeviceCode;
                 "NoWindowTitle" = $NoWindowTitle;
                 "AssetPartitionId" = $null
             }
@@ -2304,6 +2513,10 @@ function Update-SafeguardAccessToken
     if ($SafeguardSession.Gui)
     {
         Connect-Safeguard -Appliance $SafeguardSession.Appliance -Insecure:$SafeguardSession.Insecure -Browser -Version $SafeguardSession.Version
+    }
+    elseif ($SafeguardSession.DeviceCode)
+    {
+        Connect-Safeguard -Appliance $SafeguardSession.Appliance -Insecure:$SafeguardSession.Insecure -DeviceCode -Version $SafeguardSession.Version
     }
     elseif ($SafeguardSession.IdentityProvider -ieq "certificate")
     {
