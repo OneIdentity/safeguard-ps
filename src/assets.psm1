@@ -306,6 +306,12 @@ An integer containing the ID of the asset or a string containing the name.
 .PARAMETER AcceptSshHostKey
 Whether or not to automatically accept the SSH host key that is discovered.
 
+.PARAMETER ExtendedLogging
+Whether or not to turn on extended logging on the appliance for the duration of
+this discovery operation. This produces additional task log output (e.g.,
+SshCommunication entries) that is useful for debugging connectivity and
+custom platform script issues.
+
 .INPUTS
 None.
 
@@ -317,6 +323,9 @@ Invoke-SafeguardAsset -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
 Invoke-SafeguardAsset linux123.internal.com
+
+.EXAMPLE
+Invoke-SafeguardAssetSshHostKeyDiscovery -Insecure linux123.internal.com -ExtendedLogging
 #>
 function Invoke-SafeguardAssetSshHostKeyDiscovery
 {
@@ -335,7 +344,9 @@ function Invoke-SafeguardAssetSshHostKeyDiscovery
         [Parameter(Mandatory=$true,Position=0)]
         [object]$Asset,
         [Parameter(Mandatory=$false)]
-        [switch]$AcceptSshHostKey
+        [switch]$AcceptSshHostKey,
+        [Parameter(Mandatory=$false)]
+        [switch]$ExtendedLogging
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -357,8 +368,10 @@ function Invoke-SafeguardAssetSshHostKeyDiscovery
     }
 
     Write-Host "Discovering SSH host key..."
+    $local:Parameters = @{}
+    if ($ExtendedLogging) { $local:Parameters.extendedLogging = $true }
     $local:SshHostKey = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-                             POST "Assets/$($local:AssetObj.Id)/DiscoverSshHostKey")
+                             POST "Assets/$($local:AssetObj.Id)/DiscoverSshHostKey" -Parameters $local:Parameters)
     if (-not $local:SshHostKey)
     {
         throw "SshHostKey not found on asset: $($local:AssetObj.Name)"
