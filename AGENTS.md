@@ -158,7 +158,12 @@ See `.agents/skills/build-and-release/SKILL.md` for Azure Pipelines job layout, 
 
 ## Versioning
 
-`ModuleVersion` has a `99999` placeholder. **Do not edit.** CI replaces it with the build version and prerelease suffixes. See `.agents/skills/build-and-release/SKILL.md` for the exact version derivation rules.
+The base `<major>.<minor>.<patch>` version is hand-bumped between release cycles in two files that must stay in sync:
+
+- `pipeline-templates/global-variables.yml` (the `version` variable)
+- `src/safeguard-ps.psd1` (`ModuleVersion = '<major>.<minor>.<patch>.99999'`)
+
+The trailing `.99999` placeholder must remain -- CI replaces it with the build number and adds the prerelease suffix. Do not hand-edit `99999`. Tag builds (`v<major>.<minor>.<patch>`) ship a non-prerelease release; main builds in between produce `dev/v<version>-preNNNNNN` prereleases against whatever base version is currently committed. See `.agents/skills/build-and-release/SKILL.md` for the full derivation rules and the bump procedure.
 
 ## On-demand skills
 
