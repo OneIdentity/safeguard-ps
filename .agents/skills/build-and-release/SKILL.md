@@ -87,16 +87,27 @@ The base released version lives in `pipeline-templates/global-variables.yml`:
 ```yaml
 variables:
   - name: version
-    value: "8.3.0"
+    value: "8.4.3"
 ```
 
-The source manifest intentionally keeps a placeholder version:
+The source manifest mirrors that base version with a `99999` build placeholder:
 
 ```powershell
-ModuleVersion = '8.3.99999'
+ModuleVersion = '8.4.3.99999'
 ```
 
-Do not hand-edit the placeholder for normal development work.
+CI replaces the `99999` portion (and adds the prerelease suffix) at build time -- do not hand-edit `99999` for normal development work. The `<major>.<minor>.<patch>` portion is hand-bumped between release cycles (see "Bumping the version" below).
+
+### Bumping the version for the next prerelease cycle
+
+After cutting a release tag (e.g. `v8.4.2`), main keeps producing prereleases against that same base version (`dev/v8.4.2-preNNNNNN`) until the base is bumped. To start a new cycle (e.g. moving to 8.4.3 prereleases so a future `v8.4.3` tag can ship):
+
+1. Edit `pipeline-templates/global-variables.yml` -- update the `version` value (e.g. `"8.4.2"` -> `"8.4.3"`).
+2. Edit `src/safeguard-ps.psd1` -- update `ModuleVersion` to match (e.g. `'8.4.2.99999'` -> `'8.4.3.99999'`). Keep the `.99999` placeholder.
+3. Commit both changes together. Suggested message: `Bump version to <new> for next prerelease cycle`.
+4. The next CI build off main will produce `dev/v<new>-preNNNNNN` prereleases. When ready to ship, push a `v<new>` tag and the tag build will publish a non-prerelease release.
+
+The two files must stay in sync -- `install-forpipeline.ps1` substitutes `<major>.<minor>.99999` based on the pipeline `version` variable, so a mismatched manifest will fail stamping.
 
 ### Tag builds
 
@@ -121,7 +132,7 @@ For a valid tag build:
 For branch and PR builds:
 
 - `VersionString` stays at the base version from `global-variables.yml`
-- `BuildNumber` is computed as `Build.BuildId - 102500`
+- `BuildNumber` is computed as `Build.BuildId - 250000`
 - `PrereleaseSuffix` becomes `pre<BuildNumber>`
 - `ReleaseTag` becomes `dev/v<version>-pre<BuildNumber>`
 - `isPrerelease` is true
@@ -130,11 +141,11 @@ For branch and PR builds:
 Example from the scripts:
 
 ```text
-version     = 8.3.0
-Build.BuildId = 102745
-BuildNumber = 245
-PrereleaseSuffix = pre245
-ReleaseTag = dev/v8.3.0-pre245
+version     = 8.4.3
+Build.BuildId = 367659
+BuildNumber = 117659
+PrereleaseSuffix = pre117659
+ReleaseTag = dev/v8.4.3-pre117659
 ```
 
 ### Manifest stamping behavior
