@@ -2707,6 +2707,101 @@ function Invoke-SafeguardAssetAccountSshKeyChange
 
 <#
 .SYNOPSIS
+Discover SSH authorized keys for an account managed by Safeguard via the Web API.
+
+.DESCRIPTION
+Run a task to enumerate the SSH authorized_keys entries for an account on a managed
+asset.  Safeguard connects to the target system using the custom platform script's
+DiscoverAuthorizedKeys operation and reports the authorized keys that are present.
+This is a long-running task; the cmdlet returns the terminal task result.
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER AssetPartition
+An integer containing an ID or a string containing the name of the asset partition
+to discover authorized keys in.
+
+.PARAMETER AssetPartitionId
+An integer containing the asset partition ID to discover authorized keys in.
+(If specified, this will override the AssetPartition parameter)
+
+.PARAMETER AssetToUse
+An integer containing the ID of the asset to discover authorized keys for or a string containing the name.
+
+.PARAMETER AccountToUse
+An integer containing the ID of the account to discover authorized keys for or a string containing the name.
+
+.PARAMETER ExtendedLogging
+Generate debug task log for the authorized key discovery action.
+
+.INPUTS
+Object containing an account Id may be piped in (e.g., from Get-SafeguardAssetAccount).
+
+.OUTPUTS
+JSON response from Safeguard Web API.
+
+.EXAMPLE
+Invoke-SafeguardAssetAccountAuthorizedKeyDiscovery -AccessToken $token -Appliance 10.5.32.54 -Insecure linux.blah.corp admin-a
+
+.EXAMPLE
+Invoke-SafeguardAssetAccountAuthorizedKeyDiscovery -AccountToUse 123
+
+.EXAMPLE
+Get-SafeguardAssetAccount linux.blah.corp admin-a | Invoke-SafeguardAssetAccountAuthorizedKeyDiscovery
+
+.EXAMPLE
+Invoke-SafeguardAssetAccountAuthorizedKeyDiscovery -Insecure linux.blah.corp admin-a -ExtendedLogging
+#>
+function Invoke-SafeguardAssetAccountAuthorizedKeyDiscovery
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [object]$AssetPartition,
+        [Parameter(Mandatory=$false)]
+        [int]$AssetPartitionId = $null,
+        [Parameter(Mandatory=$false,Position=0)]
+        [object]$AssetToUse,
+        [Parameter(Mandatory=$true,Position=1,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
+        [object]$AccountToUse,
+        [Parameter(Mandatory=$false)]
+        [switch]$ExtendedLogging
+    )
+
+    begin
+    {
+        if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+        if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+    }
+
+    process
+    {
+        $local:AccountId = (Resolve-SafeguardAssetAccountId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                               -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId -Asset $AssetToUse -Account $AccountToUse)
+
+        $local:Parameters = @{}
+        if ($ExtendedLogging) { $local:Parameters.extendedLogging = $true }
+
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+            POST "AssetAccounts/$($local:AccountId)/DiscoverSshKeys" -Parameters $local:Parameters -LongRunningTask
+    }
+}
+
+<#
+.SYNOPSIS
 Remove an asset account from Safeguard via the Web API.
 
 .DESCRIPTION
