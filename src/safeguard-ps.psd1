@@ -84,7 +84,8 @@ NestedModules = @(
     'assets.psm1',
     'assetpartitions.psm1',
     'schedules.psm1',
-    'profiles.psm1',
+    'passwordschedules.psm1',
+    'passwordprofiles.psm1',
     'sshkeyschedules.psm1',
     'sshkeyprofiles.psm1',
     'directories.psm1',
@@ -212,13 +213,14 @@ FunctionsToExport = @(
     # schedules.psm1 -- used for creating/updating profile components
     'New-SafeguardSchedule','New-SafeguardScheduleMonthlyByDayOfWeek','New-SafeguardScheduleMonthlyByDay',
     'New-SafeguardScheduleWeekly','New-SafeguardScheduleDaily',
-    # profiles.psm1
+    # passwordschedules.psm1
     'Get-SafeguardAccountPasswordRule','New-SafeguardAccountPasswordRule','Remove-SafeguardAccountPasswordRule',
     'Rename-SafeguardAccountPasswordRule','Copy-SafeguardAccountPasswordRule','Edit-SafeguardAccountPasswordRule',
     'Get-SafeguardPasswordCheckSchedule','New-SafeguardPasswordCheckSchedule','Remove-SafeguardPasswordCheckSchedule',
     'Rename-SafeguardPasswordCheckSchedule','Copy-SafeguardPasswordCheckSchedule','Edit-SafeguardPasswordCheckSchedule',
     'Get-SafeguardPasswordChangeSchedule','New-SafeguardPasswordChangeSchedule','Remove-SafeguardPasswordChangeSchedule',
     'Rename-SafeguardPasswordChangeSchedule','Copy-SafeguardPasswordChangeSchedule','Edit-SafeguardPasswordChangeSchedule',
+    # passwordprofiles.psm1
     'Get-SafeguardPasswordProfile','New-SafeguardPasswordProfile','Remove-SafeguardPasswordProfile',
     'Rename-SafeguardPasswordProfile','Copy-SafeguardPasswordProfile','Edit-SafeguardPasswordProfile',
     'Get-SafeguardPasswordProfileAsset','Add-SafeguardPasswordProfileAsset','Remove-SafeguardPasswordProfileAsset',

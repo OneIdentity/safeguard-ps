@@ -2059,7 +2059,7 @@ function Edit-SafeguardAssetAccount
             if ($PSBoundParameters.ContainsKey("DomainName")) { $AccountObject.DomainName = $DomainName }
             if ($PSBoundParameters.ContainsKey("PasswordProfile"))
             {
-                Import-Module -Name "$PSScriptRoot\profiles.psm1" -Scope Local
+                Import-Module -Name "$PSScriptRoot\passwordschedules.psm1" -Scope Local
                 $local:ProfileId = (Resolve-SafeguardPasswordProfileId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
                                         -AssetPartition $AssetPartition -AssetPartitionId $AssetPartitionId $PasswordProfile)
                 if (-not $AccountObject.PasswordProfile) { $AccountObject.PasswordProfile = @{} }
