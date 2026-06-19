@@ -84,7 +84,10 @@ NestedModules = @(
     'assets.psm1',
     'assetpartitions.psm1',
     'schedules.psm1',
-    'profiles.psm1',
+    'passwordschedules.psm1',
+    'passwordprofiles.psm1',
+    'sshkeyschedules.psm1',
+    'sshkeyprofiles.psm1',
     'directories.psm1',
     'groups.psm1',
     'policies.psm1',
@@ -196,6 +199,7 @@ FunctionsToExport = @(
     'Set-SafeguardAssetAccountPassword','Set-SafeguardAssetAccountSshKey','New-SafeguardAssetAccountRandomPassword',
     'Test-SafeguardAssetAccountPassword','Invoke-SafeguardAssetAccountPasswordChange',
     'Test-SafeguardAssetAccountSshKey','Invoke-SafeguardAssetAccountSshKeyChange',
+    'Invoke-SafeguardAssetAccountAuthorizedKeyDiscovery',
     'Remove-SafeguardAssetAccount','Invoke-SafeguardAssetSshHostKeyDiscovery',
     'New-SafeguardAssetImportTemplate','Import-SafeguardAsset',
     'New-SafeguardAssetAccountImportTemplate','Import-SafeguardAssetAccount',
@@ -209,17 +213,30 @@ FunctionsToExport = @(
     # schedules.psm1 -- used for creating/updating profile components
     'New-SafeguardSchedule','New-SafeguardScheduleMonthlyByDayOfWeek','New-SafeguardScheduleMonthlyByDay',
     'New-SafeguardScheduleWeekly','New-SafeguardScheduleDaily',
-    # profiles.psm1
+    # passwordschedules.psm1
     'Get-SafeguardAccountPasswordRule','New-SafeguardAccountPasswordRule','Remove-SafeguardAccountPasswordRule',
     'Rename-SafeguardAccountPasswordRule','Copy-SafeguardAccountPasswordRule','Edit-SafeguardAccountPasswordRule',
     'Get-SafeguardPasswordCheckSchedule','New-SafeguardPasswordCheckSchedule','Remove-SafeguardPasswordCheckSchedule',
     'Rename-SafeguardPasswordCheckSchedule','Copy-SafeguardPasswordCheckSchedule','Edit-SafeguardPasswordCheckSchedule',
     'Get-SafeguardPasswordChangeSchedule','New-SafeguardPasswordChangeSchedule','Remove-SafeguardPasswordChangeSchedule',
     'Rename-SafeguardPasswordChangeSchedule','Copy-SafeguardPasswordChangeSchedule','Edit-SafeguardPasswordChangeSchedule',
+    # passwordprofiles.psm1
     'Get-SafeguardPasswordProfile','New-SafeguardPasswordProfile','Remove-SafeguardPasswordProfile',
     'Rename-SafeguardPasswordProfile','Copy-SafeguardPasswordProfile','Edit-SafeguardPasswordProfile',
     'Get-SafeguardPasswordProfileAsset','Add-SafeguardPasswordProfileAsset','Remove-SafeguardPasswordProfileAsset',
     'Get-SafeguardPasswordProfileAccount','Add-SafeguardPasswordProfileAccount','Remove-SafeguardPasswordProfileAccount',
+    # sshkeyschedules.psm1
+    'Get-SafeguardSshKeyCheckSchedule','New-SafeguardSshKeyCheckSchedule','Remove-SafeguardSshKeyCheckSchedule',
+    'Rename-SafeguardSshKeyCheckSchedule','Copy-SafeguardSshKeyCheckSchedule','Edit-SafeguardSshKeyCheckSchedule',
+    'Get-SafeguardSshKeyChangeSchedule','New-SafeguardSshKeyChangeSchedule','Remove-SafeguardSshKeyChangeSchedule',
+    'Rename-SafeguardSshKeyChangeSchedule','Copy-SafeguardSshKeyChangeSchedule','Edit-SafeguardSshKeyChangeSchedule',
+    'Get-SafeguardSshKeyDiscoverySchedule','New-SafeguardSshKeyDiscoverySchedule','Remove-SafeguardSshKeyDiscoverySchedule',
+    'Rename-SafeguardSshKeyDiscoverySchedule','Copy-SafeguardSshKeyDiscoverySchedule','Edit-SafeguardSshKeyDiscoverySchedule',
+    # sshkeyprofiles.psm1
+    'Get-SafeguardSshKeyProfile','New-SafeguardSshKeyProfile','Remove-SafeguardSshKeyProfile',
+    'Rename-SafeguardSshKeyProfile','Copy-SafeguardSshKeyProfile','Edit-SafeguardSshKeyProfile',
+    'Get-SafeguardSshKeyProfileAsset','Add-SafeguardSshKeyProfileAsset','Remove-SafeguardSshKeyProfileAsset',
+    'Get-SafeguardSshKeyProfileAccount','Add-SafeguardSshKeyProfileAccount','Remove-SafeguardSshKeyProfileAccount',
     # discovery.psm1
     'Get-SafeguardAccountDiscoverySchedule','New-SafeguardAccountDiscoverySchedule',
     'Edit-SafeguardAccountDiscoverySchedule','Remove-SafeguardAccountDiscoverySchedule',
