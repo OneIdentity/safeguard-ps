@@ -264,8 +264,8 @@
 
         # --- Rename-SafeguardSshKeyProfile ---
         Test-SgPsAssert "Rename-SafeguardSshKeyProfile renames the copy" {
-            $renamed = Rename-SafeguardSshKeyProfile -Insecure `
-                $Context.SuiteData["ProfileCopyId"] "$($Context.SuiteData['ProfileCopyName'])_Renamed"
+            Rename-SafeguardSshKeyProfile -Insecure `
+                $Context.SuiteData["ProfileCopyId"] "$($Context.SuiteData['ProfileCopyName'])_Renamed" | Out-Null
             $readback = Get-SafeguardSshKeyProfile -Insecure $Context.SuiteData["ProfileCopyId"]
             $readback.Name -eq "$($Context.SuiteData['ProfileCopyName'])_Renamed"
         }

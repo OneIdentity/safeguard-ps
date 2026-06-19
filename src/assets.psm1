@@ -2713,7 +2713,8 @@ Discover SSH authorized keys for an account managed by Safeguard via the Web API
 Run a task to enumerate the SSH authorized_keys entries for an account on a managed
 asset.  Safeguard connects to the target system using the custom platform script's
 DiscoverAuthorizedKeys operation and reports the authorized keys that are present.
-This is a long-running task; the cmdlet returns the terminal task result.
+This is a long-running task; the cmdlet waits for the task to finish and then
+returns the discovered SSH keys recorded on the account.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -2741,11 +2742,14 @@ An integer containing the ID of the account to discover authorized keys for or a
 .PARAMETER ExtendedLogging
 Generate debug task log for the authorized key discovery action.
 
+.PARAMETER Timeout
+The number of seconds to wait for the discovery task to complete (default 300).
+
 .INPUTS
 Object containing an account Id may be piped in (e.g., from Get-SafeguardAssetAccount).
 
 .OUTPUTS
-JSON response from Safeguard Web API.
+JSON response from Safeguard Web API (the discovered SSH keys for the account).
 
 .EXAMPLE
 Invoke-SafeguardAssetAccountAuthorizedKeyDiscovery -AccessToken $token -Appliance 10.5.32.54 -Insecure linux.blah.corp admin-a
@@ -2778,7 +2782,9 @@ function Invoke-SafeguardAssetAccountAuthorizedKeyDiscovery
         [Parameter(Mandatory=$true,Position=1,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
         [object]$AccountToUse,
         [Parameter(Mandatory=$false)]
-        [switch]$ExtendedLogging
+        [switch]$ExtendedLogging,
+        [Parameter(Mandatory=$false)]
+        [int]$Timeout = 300
     )
 
     begin
@@ -2795,8 +2801,61 @@ function Invoke-SafeguardAssetAccountAuthorizedKeyDiscovery
         $local:Parameters = @{}
         if ($ExtendedLogging) { $local:Parameters.extendedLogging = $true }
 
+        # The DiscoverSshKeys task does not record its result under the Passwords audit log the
+        # way Check/Change do, so the Location header used by -LongRunningTask resolves to a 404.
+        # Instead, kick off the task, poll RunningTasks for completion, and return the keys that
+        # were discovered and recorded on the account.
+        $local:Response = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
+                               POST "AssetAccounts/$($local:AccountId)/DiscoverSshKeys" -Parameters $local:Parameters)
+        Write-Verbose ($local:Response | ConvertTo-Json -Depth 100)
+
+        $local:TaskId = $local:Response.RequestStatus.Id
+        if (-not $local:TaskId) { $local:TaskId = $local:Response.Id }
+
+        if ($local:TaskId)
+        {
+            $local:StartTime = (Get-Date)
+            do {
+                Start-Sleep 1
+                $local:Task = $null
+                try
+                {
+                    $local:Task = (Get-SafeguardRunningTask -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                       -TaskName DiscoverSshKeys -TaskId $local:TaskId)
+                }
+                catch
+                {
+                    # Once the task finishes it is no longer tracked under RunningTasks and the
+                    # appliance returns a 404; treat that as completion and read the results.
+                    Write-Verbose "DiscoverSshKeys task $($local:TaskId) no longer running: $($_.Exception.Message)"
+                    break
+                }
+                if (-not $local:Task) { break }
+                $local:Status = $local:Task.RequestStatus
+                if ($local:Status.State -ieq "Failure")
+                {
+                    Write-Host ""
+                    $local:Task.Log | ForEach-Object {
+                        Write-Host (" {0,-26} {1,-12} {2}" -f $_.Timestamp,$_.Status,$_.Message)
+                    }
+                    throw "SSH authorized key discovery failed: $($local:Status.Message)"
+                }
+                $local:Percent = 0
+                if ($local:Status.PercentComplete) { $local:Percent = $local:Status.PercentComplete }
+                Write-Progress -Activity "Waiting for SSH authorized key discovery" -Status "Step: $($local:Status.Message)" -PercentComplete $local:Percent
+                if ((((Get-Date) - $local:StartTime).TotalSeconds) -gt $Timeout)
+                {
+                    throw "Timed out waiting for SSH authorized key discovery, timeout was $Timeout seconds"
+                }
+            } until ($local:Status.PercentComplete -eq 100)
+        }
+        else
+        {
+            Write-Warning "Unable to determine the discovery task Id; returning the keys currently recorded on the account."
+        }
+
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core `
-            POST "AssetAccounts/$($local:AccountId)/DiscoverSshKeys" -Parameters $local:Parameters -LongRunningTask
+            GET "AssetAccounts/$($local:AccountId)/DiscoveredSshKeys"
     }
 }
 
