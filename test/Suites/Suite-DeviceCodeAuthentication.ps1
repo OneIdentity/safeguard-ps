@@ -320,15 +320,18 @@
         # Cleanup -- framework-registered cleanups run afterward, so this is the resilient
         # restore path even if Execute threw.
         try {
-            $original = @($Context.SuiteData["OriginalGrantTypes"])
-            @("AuthorizationCode", "Implicit", "ResourceOwner", "DeviceCode") | ForEach-Object {
-                try { $null = Disable-SafeguardOAuth2GrantType -Insecure $_ } catch {}
-            }
-            if ($original -and $original.Count -gt 0) {
+            # Only mutate grant types if the original set was actually captured. A
+            # missing key means Setup's capture threw -- we don't know the original
+            # set, so leave grant types untouched rather than disabling everything.
+            # An empty captured set still sets the key, so it resets correctly.
+            if ($Context.SuiteData.ContainsKey("OriginalGrantTypes")) {
+                $original = @($Context.SuiteData["OriginalGrantTypes"] |
+                    Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+                @("AuthorizationCode", "Implicit", "ResourceOwner", "DeviceCode") | ForEach-Object {
+                    try { $null = Disable-SafeguardOAuth2GrantType -Insecure $_ } catch {}
+                }
                 $original | ForEach-Object {
-                    if (-not [string]::IsNullOrWhiteSpace([string]$_)) {
-                        try { $null = Enable-SafeguardOAuth2GrantType -Insecure $_ } catch {}
-                    }
+                    try { $null = Enable-SafeguardOAuth2GrantType -Insecure $_ } catch {}
                 }
             }
         }
