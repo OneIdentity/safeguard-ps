@@ -1,6 +1,6 @@
 variables:
   - name: version
-    value: "8.4.3"
+    value: "8.4.4"
   - name: isTagBuild
     value: ${{ startsWith(variables['Build.SourceBranch'], 'refs/tags/') }}
   - name: isPrerelease
