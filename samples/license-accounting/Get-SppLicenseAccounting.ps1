@@ -214,12 +214,12 @@ if (-not $UseExistingConnection) {
 }
 
 # ---------------------------------------------------------------------------
-# 1a. Preflight: verify the connected caller can actually read everything this
-#     report needs. Reading the AccessRequest audit log (session counts) and the
-#     full user/entitlement set requires an auditor role, or the policy+user admin
-#     pair. GlobalAdmin/SystemAuditor alone canNOT read AuditLog/AccessRequests
-#     (verified live: an admin with GlobalAdmin+SystemAuditor got 0 activity rows;
-#     the same pull as an Auditor returned the full set).
+# 2. Preflight: verify the connected caller can actually read everything this
+#    report needs. Reading the AccessRequest audit log (session counts) and the
+#    full user/entitlement set requires an auditor role, or the policy+user admin
+#    pair. GlobalAdmin/SystemAuditor alone canNOT read AuditLog/AccessRequests
+#    (verified live: an admin with GlobalAdmin+SystemAuditor got 0 activity rows;
+#    the same pull as an Auditor returned the full set).
 # ---------------------------------------------------------------------------
 try {
     $me = Get-SafeguardLoggedInUser
@@ -245,7 +245,7 @@ Write-Host ("Preflight OK: '{0}' has roles [{1}]" -f $myName, ($myRoles -join ',
 
 
 # ---------------------------------------------------------------------------
-# 2. Determine the window from the APPLIANCE clock (last N full calendar months, UTC)
+# 3. Determine the window from the APPLIANCE clock (last N full calendar months, UTC)
 # ---------------------------------------------------------------------------
 try {
     $applianceNow = [datetime]::Parse((Get-SafeguardTime).CurrentTime).ToUniversalTime()
@@ -294,7 +294,7 @@ $windowLabel = "{0:yyyy-MM} .. {1} ({2} months{3}, UTC)" -f `
 Write-Banner "SPP LICENSE USAGE ACCOUNTING`nAppliance now (UTC): $($applianceNow.ToString('o'))`nWindow: $windowLabel`nPeak-month rule: > $SessionThreshold sessions in ANY single calendar month = Privileged"
 
 # ---------------------------------------------------------------------------
-# 3. Pre-fetch A2A registrations (used by the NHI count in section 8).
+# 4. Pre-fetch A2A registrations (used by the NHI count in section 11).
 #    We deliberately do NOT build a certificate-user exclusion set: a cert user
 #    used only for an A2A registration has no admin role, ownership, entitlement,
 #    or interactive session and lands in Uncounted on its own, while a cert user
@@ -309,7 +309,7 @@ try {
 }
 
 # ---------------------------------------------------------------------------
-# 4. Load the user universe (paged) and apply exclusions
+# 5. Load the user universe (paged) and apply exclusions
 # ---------------------------------------------------------------------------
 Write-Host "Loading users ..." -ForegroundColor Green
 $allUsers = @(Invoke-PagedGet Core "Users" @{ fields = 'Id,Name,AdminRoles,AllowPersonalAccounts,Disabled,PrimaryAuthenticationProvider' })
@@ -337,7 +337,7 @@ foreach ($u in $allUsers) {
     # cohorted on their real signals (a cert-only user has none and lands in
     # Uncounted). Disabled users are NOT excluded here; a disabled user who had
     # sessions still consumed a license, so the "disabled with NO sessions"
-    # exclusion is deferred until after session counting (see step 6a).
+    # exclusion is deferred until after session counting (see step 9).
     $exclReason = $null
     if ($id -le 0) { $exclReason = "system pseudo-user (negative Id)" }
 
@@ -380,27 +380,18 @@ Write-Host ("  {0} users total; {1} in scope, {2} excluded (system pseudo-users)
     $allUsers.Count, $records.Count, $excluded.Count)
 
 # ---------------------------------------------------------------------------
-# 5. Partition ownership is resolved directly from the asset partitions in
-#    step 5c, together with asset/account ownership (all three ownership levels
-#    read the owners off each object itself). It is deliberately NOT taken from
-#    the UserEntitlement report: that report only lists users who hold an
-#    asset/account/policy grant, so a user whose ONLY privileged tie is owning a
-#    partition (a common delegated-admin case) would be absent from it and
-#    silently missed -> Privileged undercount. Requester/approver/reviewer
-#    membership is resolved directly from Roles + AccessPolicies in step 5b.
-# ---------------------------------------------------------------------------
-
-# ---------------------------------------------------------------------------
-# 5b. Entitlement membership -> LimitedPrivileged eligibility.
-#     A user counts (as at least LimitedPrivileged) only if they appear in an
-#     ACTUAL entitlement, in one of three roles:
-#       - Requester : a member of an entitlement (Role.Members)
-#       - Approver  : listed in an access policy's ApproverSets[].Approvers
-#       - Reviewer  : listed in an access policy's Reviewers
-#     Merely being a user on the box (no role, no session) is NOT enough -> that
-#     user stays Uncounted. Group principals (PrincipalKind = 'Group') are
-#     expanded to their member users via UserGroups/{id}/Members; nested groups
-#     are followed once with a visited guard so a membership cycle can't loop.
+# 6. Entitlement membership -> LimitedPrivileged eligibility.
+#    A user counts (as at least LimitedPrivileged) only if they appear in an
+#    ACTUAL entitlement, in one of three roles:
+#      - Requester : a member of an entitlement (Role.Members)
+#      - Approver  : listed in an access policy's ApproverSets[].Approvers
+#      - Reviewer  : listed in an access policy's Reviewers
+#    Merely being a user on the box (no role, no session) is NOT enough -> that
+#    user stays Uncounted. Group principals (PrincipalKind = 'Group') are
+#    expanded to their member users via UserGroups/{id}/Members; nested groups
+#    are followed once with a visited guard so a membership cycle can't loop.
+#    Membership is read directly from Roles + AccessPolicies (not the
+#    UserEntitlement report), for the same reason ownership is in step 7.
 # ---------------------------------------------------------------------------
 Write-Host "Resolving entitlement requesters + policy approvers/reviewers ..." -ForegroundColor Green
 
@@ -503,18 +494,22 @@ try {
 }
 
 # ---------------------------------------------------------------------------
-# 5c. Asset, account & partition ownership -> Privileged.
-#     SPP grants ownership at three independent levels: partition, asset, and
-#     account -- all resolved here by reading each object's owners directly. A
-#     user listed in an object's ManagedBy owns that object; a group in ManagedBy
-#     makes each of its members an owner (expanded with the same accumulator as
-#     step 5b). Owning ANY securable forces Privileged so ownership can't be
-#     handed off to dodge the session count (anti-abuse). ManagedBy is
-#     returned on the LIST endpoints when asked for via the fields filter, so the
-#     asset/account passes are two paged scans of (Id, ManagedBy) -- not a call
-#     per object. Partition owners are read per partition from the dedicated
-#     owners endpoint (partitions are few, and their count is independent of the
-# user count). (Policy and audit ownership are not counted.)
+# 7. Asset, account & partition ownership -> Privileged.
+#    SPP grants ownership at three independent levels: partition, asset, and
+#    account -- all resolved here by reading each object's owners directly. A
+#    user listed in an object's ManagedBy owns that object; a group in ManagedBy
+#    makes each of its members an owner (expanded with the same accumulator as
+#    step 6). Owning ANY securable forces Privileged so ownership can't be
+#    handed off to dodge the session count (anti-abuse). ManagedBy is
+#    returned on the LIST endpoints when asked for via the fields filter, so the
+#    asset/account passes are two paged scans of (Id, ManagedBy) -- not a call
+#    per object. Partition owners are read per partition from the dedicated
+#    owners endpoint (partitions are few, and their count is independent of the
+#    user count). Ownership is read directly (not from the UserEntitlement
+#    report): that report only lists users who hold an asset/account/policy
+#    grant, so a user whose ONLY privileged tie is owning a partition (a common
+#    delegated-admin case) would be absent from it and silently missed ->
+#    Privileged undercount. (Policy and audit ownership are not counted.)
 # ---------------------------------------------------------------------------
 Write-Host "Resolving asset, account & partition ownership ..." -ForegroundColor Green
 
@@ -584,12 +579,12 @@ try {
 Write-Host ("  in-scope owner marks partition/asset/account = {0}/{1}/{2}" -f $partOwnerMarks, $assetOwnerMarks, $acctOwnerMarks)
 
 # ---------------------------------------------------------------------------
-# Session-counting core (pure, no I/O) -- factored out of section 6 so the
+# Session-counting core (pure, no I/O) -- factored out of section 8 so the
 # licensing-critical math (per-month RequestId de-dup, month-boundary half-open
 # windowing, peak-vs-total selection, in-scope/excluded/orphan routing) can be
 # exercised by a synthetic-row harness. The live audit log is immutable and can't
 # be backdated, so these branches (>10-in-a-month, multi-month peak, dedup,
-# disabled-with-sessions) can only be proven against crafted rows. Section 6 calls
+# disabled-with-sessions) can only be proven against crafted rows. Section 8 calls
 # these exactly where the inline code used to run, so live behavior is unchanged.
 # ---------------------------------------------------------------------------
 
@@ -676,7 +671,7 @@ function Get-PeakSessionStats {
 }
 
 # ---------------------------------------------------------------------------
-# 6. Session counts per (user, calendar month) from the audit log -> peak month.
+# 8. Session counts per (user, calendar month) from the audit log -> peak month.
 #    Source: AuditLog/AccessRequests/Activities, Action eq 'InitializeSession'
 #    (the "Session Initiated" event). Distinct access RequestId per user per
 #    month -> one count per authorized request. We key on RequestId, NOT
@@ -691,8 +686,8 @@ $unmatched       = @{}   # deletedUserId -> (monthLabel -> HashSet[requestKey]) 
 $unmatchedNames  = @{}   # deletedUserId -> last-seen RequesterName (for display only)
 $actFields       = 'LogTime,RequestId,RequesterId,RequesterName,Action,SessionId'
 
-# In-scope = current users we loaded into $records (populated in section 4, not yet
-# pruned -- the disabled-with-no-sessions drop happens later in 6a). Snapshot the Id
+# In-scope = current users we loaded into $records (populated in section 5, not yet
+# pruned -- the disabled-with-no-sessions drop happens later in step 9). Snapshot the Id
 # set now for the row-router. $allUserIds already holds every current user Id.
 $inScopeUserIds = New-Object 'System.Collections.Generic.HashSet[int]'
 foreach ($k in $records.Keys) { [void]$inScopeUserIds.Add([int]$k) }
@@ -730,12 +725,12 @@ Write-Host ("  sessions attributed to {0} in-scope users; {1} session-owners not
     $monthlyByUser.Count, $unmatched.Count)
 
 # ---------------------------------------------------------------------------
-# 6a. Deferred disabled-user exclusion. Now that sessions are known, drop disabled
-#     users who had NO sessions in the window (unless -IncludeDisabledUsers). A
-#     disabled user WITH sessions still consumed a license, so it stays and is
-#     cohorted normally. (This is also why disabled users are loaded into $records
-#     up front rather than excluded there: their sessions must attribute to them,
-#     not fall through to the deleted-user orphan path.)
+# 9. Deferred disabled-user exclusion. Now that sessions are known, drop disabled
+#    users who had NO sessions in the window (unless -IncludeDisabledUsers). A
+#    disabled user WITH sessions still consumed a license, so it stays and is
+#    cohorted normally. (This is also why disabled users are loaded into $records
+#    up front rather than excluded there: their sessions must attribute to them,
+#    not fall through to the deleted-user orphan path.)
 # ---------------------------------------------------------------------------
 if (-not $IncludeDisabledUsers) {
     $droppedDisabled = 0
@@ -755,8 +750,8 @@ if (-not $IncludeDisabledUsers) {
 }
 
 # ---------------------------------------------------------------------------
-# 7. Classify each in-scope identity once (peak-month rule).
-#    Privileged > LimitedPrivileged > Uncounted.
+# 10. Classify each in-scope identity once (peak-month rule).
+#     Privileged > LimitedPrivileged > Uncounted.
 # ---------------------------------------------------------------------------
 foreach ($r in $records.Values) {
     $reasons = @()
@@ -873,8 +868,8 @@ foreach ($uid in $unmatched.Keys) {
 }
 
 # ---------------------------------------------------------------------------
-# 8. NHI = unique (A2A registration + retrievable account) pairs + brokers.
-#    Skip DISABLED registrations. Point-in-time (current) count.
+# 11. NHI = unique (A2A registration + retrievable account) pairs + brokers.
+#     Skip DISABLED registrations. Point-in-time (current) count.
 # ---------------------------------------------------------------------------
 Write-Host "Counting NHI (A2A registrations, retrievable accounts, brokers) ..." -ForegroundColor Green
 $nhiPairs  = New-Object 'System.Collections.Generic.HashSet[string]'
@@ -925,17 +920,17 @@ foreach ($reg in $a2aRegistrations) {
 $nhiCount = $nhiPairs.Count
 
 # ---------------------------------------------------------------------------
-# 9. Workforce = ENABLED users with AllowPersonalAccounts = true (WPV permission).
-#    Decided purely on the enabled + WPV state, independent of the step-6a
-#    session-based disabled drop: an enabled WPV user counts whether or not they
-#    have any sessions/entitlements, and a disabled user never counts (a disabled
-#    account cannot log in, so it cannot consume WPV). Additive to P / LP.
+# 12. Workforce = ENABLED users with AllowPersonalAccounts = true (WPV permission).
+#     Decided purely on the enabled + WPV state, independent of the step 9
+#     session-based disabled drop: an enabled WPV user counts whether or not they
+#     have any sessions/entitlements, and a disabled user never counts (a disabled
+#     account cannot log in, so it cannot consume WPV). Additive to P / LP.
 # ---------------------------------------------------------------------------
 foreach ($r in $records.Values) { if ($r.AllowPersonalAccounts -and -not $r.Disabled) { $r.IsWorkforce = $true } }
 $workforceCount = @($records.Values | Where-Object IsWorkforce).Count
 
 # ---------------------------------------------------------------------------
-# 10. Totals + output
+# 13. Totals + output
 # ---------------------------------------------------------------------------
 $allRecords = @($records.Values) + $syntheticRecords.ToArray()
 $privCount  = @($allRecords | Where-Object Cohort -eq 'Privileged').Count
