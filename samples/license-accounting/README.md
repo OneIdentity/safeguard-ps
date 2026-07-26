@@ -23,11 +23,12 @@ Safeguard licensing model uses:
 - **NHI** (non-human identity) — counted from application-to-application (A2A)
   configuration: one per unique registration-and-retrievable-account pair, plus
   one per configured access-request broker. Disabled registrations are skipped.
-- **Workforce** — an add-on flag for users allowed to use personal accounts
-  (web-privilege / self-service). It is reported alongside the user's primary
-  category, not instead of it. This flag is applied independently of the primary
-  category, so even a user who is otherwise **Uncounted** still consumes a
-  Workforce add-on if they are allowed to use personal accounts.
+- **Workforce** — an add-on flag for users who are entitled to the Personal
+  Password Vault (also known as the Enterprise Password Vault), which has since
+  been renamed the Workforce Password Vault (WPV). It is an add-on: the flag is
+  reported alongside the user's primary category, not instead of it, and it is
+  applied independently — so even a user who is otherwise **Uncounted** still
+  consumes a Workforce add-on if they hold this entitlement.
 
 Two groups never consume a license and are reported separately:
 
