@@ -1,0 +1,17 @@
+UserId,UserName,DisplayName,Provider,Disabled,Cohort,Reason,HasAdminRight,AdminRoles,IsPartitionOwner,IsAssetOwner,IsAccountOwner,HasEntitlement,EntitlementVia,PeakMonth,PeakSessionCount,TotalSessions,AllowPersonalAccounts,IsWorkforce
+-2,admin,,Local,False,Excluded,system pseudo-user (negative Id),True,GlobalAdmin;ApplianceAdmin;UserAdmin;HelpdeskAdmin;OperationsAdmin;SystemAuditor,False,False,False,False,,,0,0,False,False
+-103,SessionConnectionUser_3,,Certificate,False,Excluded,system pseudo-user (negative Id),True,Auditor;ApplicationAuditor;SystemAuditor,False,False,False,False,,,0,0,False,False
+150,awong,,Local,False,LimitedPrivileged,entitlement (Requester); peak 0 <= 10,False,,False,False,False,True,Requester,,0,0,False,False
+118,plee,Pat Lee,Local,False,LimitedPrivileged,deleted user (recovered): 1 session(s) in window (<= 10/mo); deleted 2026-07-21,False,,False,False,False,False,,2026-07*,1,1,False,False
+73,dadams,,corp.example.com,False,Privileged,admin-role[GlobalAdmin;Auditor;AssetAdmin;ApplianceAdmin;PolicyAdmin;UserAdmin;HelpdeskAdmin;OperationsAdmin;ApplicationAuditor;SystemAuditor]; peak 12 sessions in 2026-07* > 10,True,GlobalAdmin;Auditor;AssetAdmin;ApplianceAdmin;PolicyAdmin;UserAdmin;HelpdeskAdmin;OperationsAdmin;ApplicationAuditor;SystemAuditor,False,False,False,True,Requester,2026-07*,12,12,False,False
+104,license-auditor,,Local,False,Privileged,admin-role[Auditor;ApplicationAuditor;SystemAuditor],True,Auditor;ApplicationAuditor;SystemAuditor,False,False,False,False,,,0,0,False,False
+148,sgadmin,,Local,False,Privileged,admin-role[AssetAdmin;ApplianceAdmin;PolicyAdmin;UserAdmin;HelpdeskAdmin;OperationsAdmin;ApplicationAuditor],True,AssetAdmin;ApplianceAdmin;PolicyAdmin;UserAdmin;HelpdeskAdmin;OperationsAdmin;ApplicationAuditor,False,False,False,False,,,0,0,False,False
+157,tmurphy,,Local,False,Privileged,admin-role[HelpdeskAdmin],True,HelpdeskAdmin,False,False,False,False,,,0,0,True,True
+6,opsadmin,,Local,False,Privileged,admin-role[AssetAdmin;PolicyAdmin;UserAdmin;HelpdeskAdmin],True,AssetAdmin;PolicyAdmin;UserAdmin;HelpdeskAdmin,False,False,False,False,,,0,0,False,False
+149,svc-vault,,Certificate,False,Uncounted,no admin/ownership/entitlement/sessions,False,,False,False,False,False,,,0,0,False,False
+152,contractor1,,Local,False,Uncounted,no admin/ownership/entitlement/sessions,False,,False,False,False,False,,,0,0,False,False
+151,mrivera,,Local,False,Uncounted,no admin/ownership/entitlement/sessions,False,,False,False,False,False,,,0,0,True,True
+153,jkim,,Local,False,Uncounted,no admin/ownership/entitlement/sessions,False,,False,False,False,False,,,0,0,True,True
+154,bsingh,,Local,False,Uncounted,no admin/ownership/entitlement/sessions,False,,False,False,False,False,,,0,0,True,True
+155,lchen,,Local,False,Uncounted,no admin/ownership/entitlement/sessions,False,,False,False,False,False,,,0,0,True,True
+156,rpatel,,Local,False,Uncounted,no admin/ownership/entitlement/sessions,False,,False,False,False,False,,,0,0,True,True

@@ -1,0 +1,2 @@
+Appliance,GeneratedUtc,ApplianceNowUtc,WindowStartUtc,WindowEndExclUtc,Months,IncludesPartialMonth,SessionThreshold,Privileged,LimitedPrivileged,NHI,Workforce,UsersInScope,UsersExcluded,SessionOnlyOrphans,DisabledRegsSkipped
+safeguard.example.com,2026-07-26T00:31:09.8125331Z,2026-07-26T06:31:07.0000000Z,2025-07-01T00:00:00.0000000Z,2026-07-26T06:31:07.0000000Z,13,True,10,5,2,29,6,13,2,1,0
