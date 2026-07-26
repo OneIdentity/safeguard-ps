@@ -74,6 +74,17 @@ $cred = Get-Credential
 .\Get-SppLicenseAccounting.ps1 -Appliance safeguard.example.com -Pkce -Credential $cred
 ```
 
+To sign in with a browser — useful when your login requires multi-factor
+authentication, or when you would rather not put credentials in a script — open
+the connection yourself first with `Connect-Safeguard -Browser`, which launches
+your default browser to complete sign-in (including MFA), then run the script
+with `-UseExistingConnection` to reuse that session:
+
+```powershell
+Connect-Safeguard -Appliance safeguard.example.com -Browser
+.\Get-SppLicenseAccounting.ps1 -UseExistingConnection
+```
+
 Add `-IncludeCurrentMonth` to also count the current, still-in-progress month as
 a partial bucket (labeled with a trailing `*`). By default the window covers only
 complete calendar months. Use `-Insecure` against an appliance with an untrusted
