@@ -442,7 +442,13 @@ function Add-PrincipalUserIds {
             $tmp = New-Object 'System.Collections.Generic.HashSet[int]'
             if ($Visited.Add($principalId)) {   # cycle guard
                 try {
-                    $gm = @(Get-SafeguardUserGroupMember -GroupToGet $principalId)
+                    # Project to Id only: this endpoint returns full ~40-field user
+                    # objects by default, and its members are always users (it does
+                    # not expose PrincipalKind, so a member is never a nested-group
+                    # principal here). Id is all the accumulator needs; a member with
+                    # no PrincipalKind is treated as a user, which is the intended and
+                    # pre-existing behavior.
+                    $gm = @(Invoke-SafeguardMethod Core GET "UserGroups/$principalId/Members" -Parameters @{ fields = 'Id' })
                     foreach ($sub in $gm) { Add-PrincipalUserIds -Principal $sub -Into $tmp -Visited $Visited }
                 } catch {
                     Write-Warning "Could not expand user group $principalId ($($_.Exception.Message)); its members are not counted."
@@ -480,21 +486,25 @@ function Set-EntitlementVia {
 try {
     $reqMarks = 0; $apprMarks = 0; $revMarks = 0
 
-    # Requesters: members of every entitlement (Role).
-    $roles = @(Get-SafeguardEntitlement)
+    # Requesters: members of every entitlement (Role). The Roles list already
+    # carries each entitlement's Members inline, so read it in ONE request with
+    # the fields projected to what we use (Id, Name, Members) instead of issuing
+    # a separate Roles/{id}/Members GET per entitlement -- that per-role fan-out
+    # was the dominant cost of this phase and scaled linearly with entitlement
+    # count.
+    $roles = @(Invoke-SafeguardMethod Core GET "Roles" -Parameters @{ fields = 'Id,Name,Members' })
     foreach ($role in $roles) {
-        $members = @()
-        try { $members = @(Invoke-SafeguardMethod Core GET "Roles/$($role.Id)/Members") }
-        catch { Write-Warning "Could not read members of entitlement $($role.Id) '$($role.Name)' ($($_.Exception.Message))." }
-        foreach ($mem in $members) {
+        foreach ($mem in @($role.Members)) {
             $ids = New-Object 'System.Collections.Generic.HashSet[int]'
             Add-PrincipalUserIds -Principal $mem -Into $ids -Visited (New-Object 'System.Collections.Generic.HashSet[int]')
             $reqMarks += (Set-EntitlementVia -Ids $ids -Via 'Requester')
         }
     }
 
-    # Approvers + reviewers: from every access policy.
-    $policies = @(Get-SafeguardAccessPolicy)
+    # Approvers + reviewers: from every access policy. Project to the two fields
+    # we read (ApproverSets, Reviewers) so the large per-policy properties we do
+    # not use (scope items, request/session properties, etc.) are never fetched.
+    $policies = @(Invoke-SafeguardMethod Core GET "AccessPolicies" -Parameters @{ fields = 'Id,Name,ApproverSets,Reviewers' })
     foreach ($pol in $policies) {
         foreach ($set in $pol.ApproverSets) {
             foreach ($ap in $set.Approvers) {
