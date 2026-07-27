@@ -156,8 +156,16 @@ function Get-FirstProp {
     return $null
 }
 
-# Page a GET that returns an array, using take/skip, until a short page is returned.
-# Accumulates and returns all rows. Use only for bounded result sets (users, A2A).
+# Page a GET that returns an array, using page/limit, until a short page is
+# returned. Accumulates and returns all rows.
+#
+# The Safeguard Web API paginates list endpoints with `page` (0-based) + `limit`.
+# It SILENTLY IGNORES `take`/`skip` -- passing those returns the full result set
+# on every request, so a take/skip loop never sees a short page and spins forever,
+# re-appending the whole set each pass (unbounded memory, never terminates). Use
+# page/limit only. Past-the-end pages come back as a single empty Object[] wrapper
+# rather than an empty body, so those wrappers are filtered out before counting;
+# a page that reduces to zero real rows ends the loop.
 function Invoke-PagedGet {
     param(
         [string]$Service,
@@ -166,17 +174,32 @@ function Invoke-PagedGet {
         [int]$PageSize = 1000
     )
     $out  = New-Object System.Collections.Generic.List[object]
-    $skip = 0
+    $page = 0
+    $lastFirstId = $null
     while ($true) {
         $p = @{}
         foreach ($k in $Parameters.Keys) { $p[$k] = $Parameters[$k] }
-        $p["take"] = $PageSize
-        $p["skip"] = $skip
-        $batch = @(Invoke-SafeguardMethod $Service GET $Path -Parameters $p)
+        $p["page"]  = $page
+        $p["limit"] = $PageSize
+        # Drop nulls and the empty-array wrapper an out-of-range page returns, so a
+        # spent result set collapses to an empty batch and terminates the loop.
+        $batch = @(Invoke-SafeguardMethod $Service GET $Path -Parameters $p |
+                   Where-Object { $null -ne $_ -and -not ($_ -is [System.Array]) })
         if ($batch.Count -eq 0) { break }
+
+        # Defensive guard against an endpoint that ignores paging entirely: if a
+        # later page hands back the same first row as the previous one, the server
+        # is returning the whole set each time -- stop rather than loop forever.
+        $firstId = "$(Get-FirstProp $batch[0] @('Id'))"
+        if ($page -gt 0 -and $firstId -ne '' -and $firstId -eq $lastFirstId) {
+            Write-Warning ("Paging not honored for '{0}' (page {1} repeated the first row); stopping at {2} rows." -f $Path, $page, $out.Count)
+            break
+        }
+        $lastFirstId = $firstId
+
         foreach ($b in $batch) { $out.Add($b) }
         if ($batch.Count -lt $PageSize) { break }
-        $skip += $PageSize
+        $page++
     }
     $out.ToArray()
 }
