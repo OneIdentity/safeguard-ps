@@ -685,15 +685,19 @@ function Add-SessionActivityRows {
 }
 
 # Reduce a (userId -> month -> HashSet[requestKey]) map to per-user peak month,
-# peak count, and total. Peak uses strict '>': the earliest month reaching the
-# max keeps the PeakMonth label (display only). Returns userId -> {Peak,PeakMonth,Total}.
+# peak count, and total. Peak uses strict '>' over months walked in chronological
+# order, so on a tie the EARLIEST month keeps the PeakMonth label (display only).
+# Returns userId -> {Peak,PeakMonth,Total}.
 function Get-PeakSessionStats {
     [CmdletBinding()]
     param([hashtable] $MonthlyByUser)
     $result = @{}
     foreach ($uid in $MonthlyByUser.Keys) {
         $peak = 0; $peakMonth = $null; $total = 0
-        foreach ($lbl in $MonthlyByUser[$uid].Keys) {
+        # Sort the month labels (yyyy-MM sorts chronologically) so the tie-break is
+        # deterministic: Hashtable.Keys has no defined order, so without this the
+        # earliest-month promise above would depend on internal bucket ordering.
+        foreach ($lbl in ($MonthlyByUser[$uid].Keys | Sort-Object)) {
             $c = $MonthlyByUser[$uid][$lbl].Count
             $total += $c
             if ($c -gt $peak) { $peak = $c; $peakMonth = $lbl }
