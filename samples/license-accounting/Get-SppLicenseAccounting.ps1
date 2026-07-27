@@ -448,7 +448,8 @@ function Add-PrincipalUserIds {
                     # principal here). Id is all the accumulator needs; a member with
                     # no PrincipalKind is treated as a user, which is the intended and
                     # pre-existing behavior.
-                    $gm = @(Invoke-SafeguardMethod Core GET "UserGroups/$principalId/Members" -Parameters @{ fields = 'Id' })
+                    $gm = @(Invoke-SafeguardMethod Core GET "UserGroups/$principalId/Members" -Parameters @{ fields = 'Id' } |
+                            Where-Object { $null -ne $_ -and -not ($_ -is [System.Array]) })
                     foreach ($sub in $gm) { Add-PrincipalUserIds -Principal $sub -Into $tmp -Visited $Visited }
                 } catch {
                     Write-Warning "Could not expand user group $principalId ($($_.Exception.Message)); its members are not counted."
@@ -492,7 +493,11 @@ try {
     # a separate Roles/{id}/Members GET per entitlement -- that per-role fan-out
     # was the dominant cost of this phase and scaled linearly with entitlement
     # count.
-    $roles = @(Invoke-SafeguardMethod Core GET "Roles" -Parameters @{ fields = 'Id,Name,Members' })
+    # Drop the empty-array wrapper a zero-result list returns (same guard the
+    # paging engine uses) so a box with no entitlements reduces to an empty set
+    # -- $roles.Count is then a true 0 and the loop body simply does not run.
+    $roles = @(Invoke-SafeguardMethod Core GET "Roles" -Parameters @{ fields = 'Id,Name,Members' } |
+               Where-Object { $null -ne $_ -and -not ($_ -is [System.Array]) })
     foreach ($role in $roles) {
         foreach ($mem in @($role.Members)) {
             $ids = New-Object 'System.Collections.Generic.HashSet[int]'
@@ -504,7 +509,10 @@ try {
     # Approvers + reviewers: from every access policy. Project to the two fields
     # we read (ApproverSets, Reviewers) so the large per-policy properties we do
     # not use (scope items, request/session properties, etc.) are never fetched.
-    $policies = @(Invoke-SafeguardMethod Core GET "AccessPolicies" -Parameters @{ fields = 'Id,Name,ApproverSets,Reviewers' })
+    # Same empty-wrapper guard: a box with no access policies collapses to an
+    # empty set rather than the single [object[]] wrapper the endpoint returns.
+    $policies = @(Invoke-SafeguardMethod Core GET "AccessPolicies" -Parameters @{ fields = 'Id,Name,ApproverSets,Reviewers' } |
+                  Where-Object { $null -ne $_ -and -not ($_ -is [System.Array]) })
     foreach ($pol in $policies) {
         foreach ($set in $pol.ApproverSets) {
             foreach ($ap in $set.Approvers) {
@@ -534,9 +542,13 @@ try {
 #    makes each of its members an owner (expanded with the same accumulator as
 #    step 6). Owning ANY securable forces Privileged so ownership can't be
 #    handed off to dodge the session count (anti-abuse). ManagedBy is
-#    returned on the LIST endpoints when asked for via the fields filter, so the
-#    asset/account passes are two paged scans of (Id, ManagedBy) -- not a call
-#    per object. Partition owners are read per partition from the dedicated
+#    returned on the LIST endpoints when asked for via the fields filter, and a
+#    server-side filter (ManagedBy.Count gt 0) makes each pass return ONLY the
+#    owned objects -- so the asset/account passes are two small paged scans, not
+#    a full-inventory scan and not a call per object (proven behavior-equivalent
+#    to a full client-side scan on a live cluster). In an ownerless environment
+#    the filter yields the empty [object[]] wrapper (blank Id), which is skipped.
+#    Partition owners are read per partition from the dedicated
 #    owners endpoint (partitions are few, and their count is independent of the
 #    user count). Ownership is read directly (not from the UserEntitlement
 #    report): that report only lists users who hold an asset/account/policy
@@ -561,8 +573,10 @@ function Set-OwnerFlag {
 
 $assetOwnerMarks = 0; $acctOwnerMarks = 0
 try {
-    $ownedAssets = Invoke-PagedGet Core 'Assets' @{ fields = 'Id,ManagedBy' }
+    $ownedAssets = Invoke-PagedGet Core 'Assets' @{ fields = 'Id,ManagedBy'; filter = 'ManagedBy.Count gt 0' }
     foreach ($as in $ownedAssets) {
+        # Skip the empty [object[]] wrapper an ownerless environment returns (blank Id).
+        if ($null -eq $as -or ($as -is [System.Array]) -or $null -eq $as.Id) { continue }
         foreach ($owner in $as.ManagedBy) {
             $ids = New-Object 'System.Collections.Generic.HashSet[int]'
             Add-PrincipalUserIds -Principal $owner -Into $ids -Visited (New-Object 'System.Collections.Generic.HashSet[int]')
@@ -573,8 +587,10 @@ try {
     Write-Warning "Asset ownership scan failed ($($_.Exception.Message)); asset-owner detection is degraded."
 }
 try {
-    $ownedAccounts = Invoke-PagedGet Core 'AssetAccounts' @{ fields = 'Id,ManagedBy' }
+    $ownedAccounts = Invoke-PagedGet Core 'AssetAccounts' @{ fields = 'Id,ManagedBy'; filter = 'ManagedBy.Count gt 0' }
     foreach ($ac in $ownedAccounts) {
+        # Skip the empty [object[]] wrapper an ownerless environment returns (blank Id).
+        if ($null -eq $ac -or ($ac -is [System.Array]) -or $null -eq $ac.Id) { continue }
         foreach ($owner in $ac.ManagedBy) {
             $ids = New-Object 'System.Collections.Generic.HashSet[int]'
             Add-PrincipalUserIds -Principal $owner -Into $ids -Visited (New-Object 'System.Collections.Generic.HashSet[int]')
