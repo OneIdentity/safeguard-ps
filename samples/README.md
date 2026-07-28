@@ -41,3 +41,11 @@ nearly every cmdlet in the safeguard-ps module is implemented using `Invoke-Safe
   directory account (preferred) or explicit username/password for connection. The directory
   account can be specified as an ID, `name@domain`, `domain\name`, or plain name. Runs fully
   non-interactive when all parameters are supplied, or prompts interactively for anything missing.
+
+- **license-accounting/**
+
+  `Get-SppLicenseAccounting.ps1` reads a running Safeguard for Privileged Passwords cluster and
+  reports how many identities fall into each licensed category (Privileged, LimitedPrivileged, NHI,
+  and the Workforce add-on), so you can compare real usage against what you are licensed for. It is
+  read-only and non-interactive, and writes a small set of CSV files you can open in a spreadsheet.
+  See the [license-accounting README](license-accounting/README.md) for details and sample output.
