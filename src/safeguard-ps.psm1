@@ -2321,14 +2321,16 @@ function Invoke-SafeguardMethod
         # which will not hit this code.
         $Insecure = $SafeguardSession["Insecure"]
     }
-    if (-not ($PSBoundParameters.ContainsKey("MinimumTlsVersion")) -and $SafeguardSession -and $SafeguardSession.ContainsKey("MinimumTlsVersion"))
+    if (-not ($PSBoundParameters.ContainsKey("MinimumTlsVersion")) -and $SafeguardSession -and -not [string]::IsNullOrEmpty($SafeguardSession["MinimumTlsVersion"]))
     {
         # Inherit the minimum TLS version from the connection so every call fails closed below it.
+        # Guard against an empty stored value: assigning "" to this ValidateSet-constrained variable throws.
         $MinimumTlsVersion = $SafeguardSession["MinimumTlsVersion"]
     }
-    if (-not ($PSBoundParameters.ContainsKey("MaximumTlsVersion")) -and $SafeguardSession -and $SafeguardSession.ContainsKey("MaximumTlsVersion"))
+    if (-not ($PSBoundParameters.ContainsKey("MaximumTlsVersion")) -and $SafeguardSession -and -not [string]::IsNullOrEmpty($SafeguardSession["MaximumTlsVersion"]))
     {
         # Inherit the maximum TLS version from the connection so every call fails closed above it.
+        # Guard against an empty stored value: assigning "" to this ValidateSet-constrained variable throws.
         $MaximumTlsVersion = $SafeguardSession["MaximumTlsVersion"]
     }
     # Only forward TLS bounds to nested Connect-Safeguard when set; the parameters use ValidateSet
