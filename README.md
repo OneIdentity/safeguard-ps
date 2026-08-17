@@ -168,6 +168,78 @@ Client certificate authentication is also available in `Connect-Safeguard`.
 This can be done either using a PFX certificate file or a SHA-1 thumbprint
 of a certificate stored in the Current User personal certificate store.
 
+### TLS and HTTP behavior
+
+safeguard-ps always negotiates a secure TLS version (TLS 1.2 or higher, and
+TLS 1.3 where the runtime supports it). Safeguard for Privileged Passwords 9.0
+enables TLS 1.3, and safeguard-ps connects successfully to 9.0 on both Windows
+PowerShell 5.1 and PowerShell 7 with no extra flags.
+
+REST calls are pinned to HTTP/1.1. This keeps client certificate authentication
+working against the 9.0 Standard binding, where HTTP/2 would otherwise disallow
+the post-handshake certificate request.
+
+If you want to constrain the TLS version, `Connect-Safeguard` accepts
+`-MinimumTlsVersion` and `-MaximumTlsVersion` (each `1.2` or `1.3`). Use
+`-MinimumTlsVersion 1.3` to require TLS 1.3 and fail closed against any lower
+version:
+
+```Powershell
+> Connect-Safeguard 192.168.123.123 -Thumbprint AB40BF0AD5647C9A8E0431DA5F473F44910D8975 -MinimumTlsVersion 1.3
+Login Successful.
+```
+
+Use `-MaximumTlsVersion 1.2` to pin the connection to TLS 1.2 as an interim
+measure for environments that are not ready for TLS 1.3:
+
+```Powershell
+> Connect-Safeguard 192.168.123.123 -Thumbprint AB40BF0AD5647C9A8E0431DA5F473F44910D8975 -MaximumTlsVersion 1.2
+Login Successful.
+```
+
+Supply both to negotiate within an inclusive range. The setting is stored in the
+session and honored by subsequent `Invoke-SafeguardMethod` calls. The default
+behavior (neither parameter) is unchanged: safeguard-ps negotiates the highest
+protocol both sides support and works against 8.x and 9.0 with no extra flags.
+
+Only TLS 1.2 and TLS 1.3 can be selected; 1.0 and 1.1 are intentionally
+excluded.
+
+#### TLS 1.3 gotchas by PowerShell edition
+
+TLS 1.3 enforcement behaves differently depending on which PowerShell you run,
+because the two editions use different HTTP stacks. Read this before relying on
+`-MinimumTlsVersion 1.3` in automation.
+
+| Behavior | PowerShell 7 (Core) | Windows PowerShell 5.1 |
+|----------|---------------------|------------------------|
+| How the TLS range is applied | Per request via the `Invoke-RestMethod -SslProtocol` parameter | Process-wide via `[System.Net.ServicePointManager]::SecurityProtocol` |
+| HTTP/1.1 pin mechanism | `-HttpVersion 1.1` (feature-detected; PowerShell 7.3+) | Already defaults to HTTP/1.1 (no `-HttpVersion` parameter) |
+| TLS 1.3 requirement | `-SslProtocol Tls13` requires **PowerShell 7.3+** | `SecurityProtocolType.Tls13` requires **.NET Framework 4.8** on **Windows 11 / Windows Server 2022** or later |
+
+Specific gotchas:
+
+* **`-MinimumTlsVersion 1.3` throws a clear error when the runtime cannot honor
+  it** rather than silently downgrading. On PowerShell older than 7.3 the
+  `WebSslProtocol` enum has no `Tls13` value; on Windows PowerShell 5.1 the
+  `SecurityProtocolType` enum has no `Tls13` value unless the OS/.NET Framework
+  provides it. If you need to *enforce* TLS 1.3, prefer **PowerShell 7.3 or
+  newer**.
+* **The enum existing does not guarantee negotiation succeeds.** Whether TLS 1.3
+  actually completes depends on the underlying TLS provider: Windows uses
+  Schannel (Windows 11 / Windows Server 2022+), Linux uses OpenSSL 1.1.1+, and
+  macOS uses recent SecureTransport/LibreSSL. An older host can accept
+  `-MinimumTlsVersion 1.3` yet still fail the handshake.
+* **On Windows PowerShell 5.1 the range is process-wide, not per call.** Setting
+  `-MinimumTlsVersion`/`-MaximumTlsVersion` changes
+  `ServicePointManager.SecurityProtocol` for the entire process, so it affects
+  every other HTTPS call in that session and persists until the process exits or
+  the value is changed again.
+* **The HTTP/1.1 pin is always safe.** It is applied via `-HttpVersion 1.1` only
+  where that parameter exists; on older PowerShell 7 and Windows PowerShell 5.1
+  HTTP/1.1 is already the default, so certificate authentication against the
+  SPP 9.0 HTTP/2-capable binding keeps working everywhere with no configuration.
+
 Once you are logged in, you can call any cmdlet listed below.  For example:
 
 ```Powershell

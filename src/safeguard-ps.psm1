@@ -1143,7 +1143,11 @@ function Invoke-WithoutBody
         [Parameter(Mandatory=$false)]
         [switch]$LongRunningTask,
         [Parameter(Mandatory=$false)]
-        [int]$Timeout
+        [int]$Timeout,
+        [Parameter(Mandatory=$false)]
+        [string]$MinimumTlsVersion,
+        [Parameter(Mandatory=$false)]
+        [string]$MaximumTlsVersion
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -1158,6 +1162,9 @@ function Invoke-WithoutBody
         Uri = $local:Url;
         TimeoutSec = $Timeout
     }
+    # Pin HTTP/1.1 (and optionally enforce TLS 1.3) so cert-based auth works against
+    # the SPP 9.0 Standard binding regardless of the ingress in front of the appliance.
+    $arguments += (Get-SafeguardWebRequestPreference -MinimumTlsVersion $MinimumTlsVersion -MaximumTlsVersion $MaximumTlsVersion)
     if ($InFile)
     {
         Write-Verbose "InFile=$InFile"
@@ -1214,7 +1221,11 @@ function Invoke-WithBody
         [Parameter(Mandatory=$false)]
         [switch]$LongRunningTask,
         [Parameter(Mandatory=$false)]
-        [int]$Timeout
+        [int]$Timeout,
+        [Parameter(Mandatory=$false)]
+        [string]$MinimumTlsVersion,
+        [Parameter(Mandatory=$false)]
+        [string]$MaximumTlsVersion
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -1237,6 +1248,9 @@ function Invoke-WithBody
         Body = ([System.Text.Encoding]::UTF8.GetBytes($local:BodyInternal));
         TimeoutSec = $Timeout
     }
+    # Pin HTTP/1.1 (and optionally enforce TLS 1.3) so cert-based auth works against
+    # the SPP 9.0 Standard binding regardless of the ingress in front of the appliance.
+    $arguments += (Get-SafeguardWebRequestPreference -MinimumTlsVersion $MinimumTlsVersion -MaximumTlsVersion $MaximumTlsVersion)
     if ($OutFile)
     {
         Write-Verbose "OutFile=$OutFile"
@@ -1292,7 +1306,11 @@ function Invoke-Internal
         [Parameter(Mandatory=$false)]
         [switch]$LongRunningTask,
         [Parameter(Mandatory=$false)]
-        [int]$Timeout
+        [int]$Timeout,
+        [Parameter(Mandatory=$false)]
+        [string]$MinimumTlsVersion,
+        [Parameter(Mandatory=$false)]
+        [string]$MaximumTlsVersion
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -1304,20 +1322,20 @@ function Invoke-Internal
         {
             {$_ -in "get","delete"} {
                 Invoke-WithoutBody -Appliance $Appliance -Service $Service -Method $Method -Version $Version -RelativeUrl $RelativeUrl -Headers $Headers `
-                    -Parameters $Parameters -InFile $InFile -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout
+                    -Parameters $Parameters -InFile $InFile -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout -MinimumTlsVersion $MinimumTlsVersion -MaximumTlsVersion $MaximumTlsVersion
                 break
             }
             {$_ -in "put","post"} {
                 if ($InFile)
                 {
                     Invoke-WithoutBody -Appliance $Appliance -Service $Service -Method $Method -Version $Version -RelativeUrl $RelativeUrl -Headers $Headers `
-                        -Parameters $Parameters -InFile $InFile -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout
+                        -Parameters $Parameters -InFile $InFile -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout -MinimumTlsVersion $MinimumTlsVersion -MaximumTlsVersion $MaximumTlsVersion
                 }
                 else
                 {
                     Invoke-WithBody -Appliance $Appliance -Service $Service -Method $Method -Version $Version -RelativeUrl $RelativeUrl -Headers $Headers `
                         -Body $Body -JsonBody $JsonBody `
-                        -Parameters $Parameters -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout
+                        -Parameters $Parameters -OutFile $OutFile -LongRunningTask:$LongRunningTask -Timeout $Timeout -MinimumTlsVersion $MinimumTlsVersion -MaximumTlsVersion $MaximumTlsVersion
                 }
                 break
             }
@@ -1425,6 +1443,20 @@ If this switch is sent the access token will be returned and a login session con
 .PARAMETER NoWindowTitle
 If this switch is sent safeguard-ps won't try to set the window title, which can cause failures when the PowerShell
 runtime doesn't allow user interaction; for example, when running safeguard-ps from C#.
+
+.PARAMETER MinimumTlsVersion
+Require at least this TLS version for the connection, failing closed against anything lower. Valid values are
+"1.2" and "1.3". SPP 9.0 enables TLS 1.3; by default safeguard-ps negotiates the highest protocol both sides
+support. Use -MinimumTlsVersion 1.3 to require TLS 1.3. On PowerShell 7 the range is applied per request via
+-SslProtocol; on Windows PowerShell 5.1 it is applied process-wide via ServicePointManager and requires an
+operating system/.NET Framework that supports the requested version. The setting is persisted in the session and
+honored by subsequent Invoke-SafeguardMethod calls.
+
+.PARAMETER MaximumTlsVersion
+Cap the connection at this TLS version, failing closed against anything higher. Valid values are "1.2" and "1.3".
+For example, -MaximumTlsVersion 1.2 pins the connection to TLS 1.2 as an interim measure for environments that
+are not ready for TLS 1.3. Combine with -MinimumTlsVersion to negotiate within an inclusive range. Applied the
+same way as -MinimumTlsVersion and persisted in the session.
 
 .INPUTS
 None.
@@ -1562,7 +1594,13 @@ function Connect-Safeguard
         [Parameter(Mandatory=$false)]
         [switch]$NoSessionVariable = $false,
         [Parameter(Mandatory=$false)]
-        [switch]$NoWindowTitle = $false
+        [switch]$NoWindowTitle = $false,
+        [Parameter(Mandatory=$false)]
+        [ValidateSet("1.2","1.3")]
+        [string]$MinimumTlsVersion,
+        [Parameter(Mandatory=$false)]
+        [ValidateSet("1.2","1.3")]
+        [string]$MaximumTlsVersion
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -1570,11 +1608,20 @@ function Connect-Safeguard
 
     try
     {
-        Edit-SslVersionSupport
+        Edit-SslVersionSupport -MinimumTlsVersion $MinimumTlsVersion -MaximumTlsVersion $MaximumTlsVersion
+        # Make the module's HTTP/TLS behavior explicit for every REST call made while
+        # authenticating (RSTS token exchange, LoginResponse, provider discovery, etc.):
+        # pin HTTP/1.1 so client-certificate auth works on the SPP 9.0 Standard binding,
+        # and enforce TLS 1.3 when requested. These apply via $PSDefaultParameterValues so
+        # they flow into the nested Invoke-RestMethod calls throughout the login flow.
+        $PSDefaultParameterValues = (Get-SafeguardWebRequestPreference -MinimumTlsVersion $MinimumTlsVersion -MaximumTlsVersion $MaximumTlsVersion -AsDefaultParameterValues)
         if ($Insecure)
         {
             Disable-SslVerification
-            $PSDefaultParameterValues = Get-SafeguardSslPreferences
+            foreach ($local:SslPref in (Get-SafeguardSslPreferences).GetEnumerator())
+            {
+                $PSDefaultParameterValues[$local:SslPref.Key] = $local:SslPref.Value
+            }
         }
 
         if ($Browser -Or $Gui)
@@ -1923,6 +1970,8 @@ function Connect-Safeguard
                 "Gui" = $Gui -Or $Browser;
                 "DeviceCode" = [bool]$DeviceCode;
                 "NoWindowTitle" = $NoWindowTitle;
+                "MinimumTlsVersion" = $MinimumTlsVersion;
+                "MaximumTlsVersion" = $MaximumTlsVersion;
                 "AssetPartitionId" = $null
             }
             if (-not $NoWindowTitle)
@@ -2148,6 +2197,18 @@ A switch to specify that this method call should be handled synchronously as a l
 .PARAMETER JsonOutput
 A switch to return data as pretty JSON string.
 
+.PARAMETER MinimumTlsVersion
+Require at least this TLS version for this request, failing closed against anything lower. Valid values are "1.2"
+and "1.3". When called with an existing session created by Connect-Safeguard -MinimumTlsVersion, this is inherited
+automatically and does not need to be specified. On PowerShell 7 the range is applied per request via -SslProtocol;
+on Windows PowerShell 5.1 it is applied process-wide via ServicePointManager and requires an operating system/.NET
+Framework that supports the requested version.
+
+.PARAMETER MaximumTlsVersion
+Cap this request at this TLS version, failing closed against anything higher. Valid values are "1.2" and "1.3".
+Inherited from the session created by Connect-Safeguard -MaximumTlsVersion when not specified. Applied the same way
+as -MinimumTlsVersion.
+
 .PARAMETER Anonymous
 When this switch is specified, no Bearer token authorization header is included in the request.
 
@@ -2232,7 +2293,13 @@ function Invoke-SafeguardMethod
         [Parameter(Mandatory=$false)]
         [HashTable]$ExtraHeaders,
         [Parameter(Mandatory=$false)]
-        [switch]$JsonOutput
+        [switch]$JsonOutput,
+        [Parameter(Mandatory=$false)]
+        [ValidateSet("1.2","1.3")]
+        [string]$MinimumTlsVersion,
+        [Parameter(Mandatory=$false)]
+        [ValidateSet("1.2","1.3")]
+        [string]$MaximumTlsVersion
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -2254,6 +2321,23 @@ function Invoke-SafeguardMethod
         # which will not hit this code.
         $Insecure = $SafeguardSession["Insecure"]
     }
+    if (-not ($PSBoundParameters.ContainsKey("MinimumTlsVersion")) -and $SafeguardSession -and -not [string]::IsNullOrEmpty($SafeguardSession["MinimumTlsVersion"]))
+    {
+        # Inherit the minimum TLS version from the connection so every call fails closed below it.
+        # Guard against an empty stored value: assigning "" to this ValidateSet-constrained variable throws.
+        $MinimumTlsVersion = $SafeguardSession["MinimumTlsVersion"]
+    }
+    if (-not ($PSBoundParameters.ContainsKey("MaximumTlsVersion")) -and $SafeguardSession -and -not [string]::IsNullOrEmpty($SafeguardSession["MaximumTlsVersion"]))
+    {
+        # Inherit the maximum TLS version from the connection so every call fails closed above it.
+        # Guard against an empty stored value: assigning "" to this ValidateSet-constrained variable throws.
+        $MaximumTlsVersion = $SafeguardSession["MaximumTlsVersion"]
+    }
+    # Only forward TLS bounds to nested Connect-Safeguard when set; the parameters use ValidateSet
+    # and would reject an empty pass-through value.
+    $TlsBoundParameters = @{}
+    if (-not [string]::IsNullOrEmpty($MinimumTlsVersion)) { $TlsBoundParameters["MinimumTlsVersion"] = $MinimumTlsVersion }
+    if (-not [string]::IsNullOrEmpty($MaximumTlsVersion)) { $TlsBoundParameters["MaximumTlsVersion"] = $MaximumTlsVersion }
     if (-not $AccessToken -and -not $Anonymous -and -not $SafeguardSession)
     {
         if (-not $Appliance)
@@ -2261,7 +2345,7 @@ function Invoke-SafeguardMethod
             $Appliance = (Read-Host "Appliance")
         }
         Write-Verbose "Not using existing session, calling Connect-Safeguard [1]..."
-        $AccessToken = (Connect-Safeguard -Appliance $Appliance -Insecure:$Insecure -NoSessionVariable)
+        $AccessToken = (Connect-Safeguard -Appliance $Appliance -Insecure:$Insecure @TlsBoundParameters -NoSessionVariable)
     }
     elseif (-not $Anonymous)
     {
@@ -2282,7 +2366,7 @@ function Invoke-SafeguardMethod
         if (-not $AccessToken -and -not $Anonymous)
         {
             Write-Verbose "Not using existing session, calling Connect-Safeguard [2]..."
-            $AccessToken = (Connect-Safeguard -Appliance $Appliance -Insecure:$Insecure -NoSessionVariable)
+            $AccessToken = (Connect-Safeguard -Appliance $Appliance -Insecure:$Insecure @TlsBoundParameters -NoSessionVariable)
         }
     }
     else
@@ -2300,7 +2384,8 @@ function Invoke-SafeguardMethod
     }
 
     Write-Verbose "Insecure=$Insecure"
-    Edit-SslVersionSupport
+    Write-Verbose "MinimumTlsVersion=$MinimumTlsVersion; MaximumTlsVersion=$MaximumTlsVersion"
+    Edit-SslVersionSupport -MinimumTlsVersion $MinimumTlsVersion -MaximumTlsVersion $MaximumTlsVersion
     if ($Insecure)
     {
         Disable-SslVerification
@@ -2331,13 +2416,13 @@ function Invoke-SafeguardMethod
         {
             (Invoke-Internal -Appliance $Appliance -Service $Service -Method $Method -Version $Version -RelativeUrl $RelativeUrl -Headers $local:Headers `
                              -Body $Body -JsonBody $JsonBody -Parameters $Parameters -InFile $InFile -OutFile $OutFile `
-                             -LongRunningTask:$LongRunningTask -Timeout $Timeout) | ConvertTo-Json -Depth 100
+                             -LongRunningTask:$LongRunningTask -Timeout $Timeout -MinimumTlsVersion $MinimumTlsVersion -MaximumTlsVersion $MaximumTlsVersion) | ConvertTo-Json -Depth 100
         }
         else
         {
             Invoke-Internal -Appliance $Appliance -Service $Service -Method $Method -Version $Version -RelativeUrl $RelativeUrl -Headers $local:Headers `
                             -Body $Body -JsonBody $JsonBody -Parameters $Parameters -InFile $InFile -OutFile $OutFile `
-                            -LongRunningTask:$LongRunningTask -Timeout $Timeout
+                            -LongRunningTask:$LongRunningTask -Timeout $Timeout -MinimumTlsVersion $MinimumTlsVersion -MaximumTlsVersion $MaximumTlsVersion
         }
     }
     catch
@@ -2351,13 +2436,13 @@ function Invoke-SafeguardMethod
             {
                 (Invoke-Internal -Appliance $Appliance -Service $Service -Method $Method -Version $RetryVersion -RelativeUrl $RetryUrl -Headers $local:Headers `
                                  -Body $Body -JsonBody $JsonBody -Parameters $Parameters -InFile $InFile -OutFile $OutFile `
-                                 -LongRunningTask:$LongRunningTask -Timeout $Timeout) | ConvertTo-Json -Depth 100
+                                 -LongRunningTask:$LongRunningTask -Timeout $Timeout -MinimumTlsVersion $MinimumTlsVersion -MaximumTlsVersion $MaximumTlsVersion) | ConvertTo-Json -Depth 100
             }
             else
             {
                 Invoke-Internal -Appliance $Appliance -Service $Service -Method $Method -Version $RetryVersion -RelativeUrl $RetryUrl -Headers $local:Headers `
                                 -Body $Body -JsonBody $JsonBody -Parameters $Parameters -InFile $InFile -OutFile $OutFile `
-                                -LongRunningTask:$LongRunningTask -Timeout $Timeout
+                                -LongRunningTask:$LongRunningTask -Timeout $Timeout -MinimumTlsVersion $MinimumTlsVersion -MaximumTlsVersion $MaximumTlsVersion
             }
         }
         else

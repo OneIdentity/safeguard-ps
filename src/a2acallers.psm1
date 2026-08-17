@@ -42,6 +42,11 @@ function Invoke-SafeguardA2aMethodWithCertificate
         $PSDefaultParameterValues = Get-SafeguardSslPreferences
     }
 
+    # Pin HTTP/1.1 for A2A certificate authentication. On the SPP 9.0 HTTP/2-capable
+    # binding, HTTP/2 disallows the post-handshake TLS certificate request that client
+    # certificate auth relies on, so the A2A cert calls must use HTTP/1.1 (see issue #650).
+    $local:WebRequestArguments = (Get-SafeguardWebRequestPreference)
+
     $local:Headers = @{
             "Accept" = "application/json";
             "Content-type" = "application/json"
@@ -82,12 +87,12 @@ function Invoke-SafeguardA2aMethodWithCertificate
             if (-not $local:BodyInternal)
             {
                 Invoke-RestMethod -CertificateThumbprint $Thumbprint -Method $Method -Headers $local:Headers `
-                    -Uri "https://$Appliance/service/$Service/v$Version/$RelativeUrl"
+                    -Uri "https://$Appliance/service/$Service/v$Version/$RelativeUrl" @local:WebRequestArguments
             }
             else
             {
                 Invoke-RestMethod -CertificateThumbprint $Thumbprint -Method $Method -Headers $local:Headers `
-                    -Uri "https://$Appliance/service/$Service/v$Version/$RelativeUrl" -Body ([System.Text.Encoding]::UTF8.GetBytes($local:BodyInternal))
+                    -Uri "https://$Appliance/service/$Service/v$Version/$RelativeUrl" -Body ([System.Text.Encoding]::UTF8.GetBytes($local:BodyInternal)) @local:WebRequestArguments
             }
         }
         else
@@ -95,12 +100,12 @@ function Invoke-SafeguardA2aMethodWithCertificate
             if (-not $local:BodyInternal)
             {
                 Invoke-RestMethod -Certificate $local:Cert -Method $Method -Headers $local:Headers `
-                    -Uri "https://$Appliance/service/$Service/v$Version/$RelativeUrl"
+                    -Uri "https://$Appliance/service/$Service/v$Version/$RelativeUrl" @local:WebRequestArguments
             }
             else
             {
                 Invoke-RestMethod -Certificate $local:Cert -Method $Method -Headers $local:Headers `
-                    -Uri "https://$Appliance/service/$Service/v$Version/$RelativeUrl" -Body ([System.Text.Encoding]::UTF8.GetBytes($local:BodyInternal))
+                    -Uri "https://$Appliance/service/$Service/v$Version/$RelativeUrl" -Body ([System.Text.Encoding]::UTF8.GetBytes($local:BodyInternal)) @local:WebRequestArguments
             }
         }
     }
