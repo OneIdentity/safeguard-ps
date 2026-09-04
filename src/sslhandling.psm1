@@ -212,6 +212,19 @@ function Edit-SslVersionSupport
         [System.Net.ServicePointManager]::SecurityProtocol = `
             [System.Net.ServicePointManager]::SecurityProtocol -band (-bnot [System.Net.SecurityProtocolType]::Ssl3)
     }
+    # Remove TLS 1.0 and TLS 1.1, if present. Both are deprecated and Safeguard
+    # requires TLS 1.2 or higher, so strip them to fail closed rather than let the
+    # client silently negotiate a weak protocol.
+    if ([bool]([System.Net.ServicePointManager]::SecurityProtocol -band [System.Net.SecurityProtocolType]::Tls))
+    {
+        [System.Net.ServicePointManager]::SecurityProtocol = `
+            [System.Net.ServicePointManager]::SecurityProtocol -band (-bnot [System.Net.SecurityProtocolType]::Tls)
+    }
+    if ([bool]([System.Net.ServicePointManager]::SecurityProtocol -band [System.Net.SecurityProtocolType]::Tls11))
+    {
+        [System.Net.ServicePointManager]::SecurityProtocol = `
+            [System.Net.ServicePointManager]::SecurityProtocol -band (-bnot [System.Net.SecurityProtocolType]::Tls11)
+    }
     # Add TLS 1.2, if missing
     if (-not ([bool]([System.Net.ServicePointManager]::SecurityProtocol -band [System.Net.SecurityProtocolType]::Tls12)))
     {
