@@ -77,9 +77,12 @@
         }
 
         # --- Get-SafeguardTls12OnlyStatus ---
-        Test-SgPsAssert "Get-SafeguardTls12OnlyStatus returns TLS status" {
-            $tls = Get-SafeguardTls12OnlyStatus -Insecure
-            $null -ne $tls
+        Test-SgPsAssert "Get-SafeguardTls12OnlyStatus returns status (8.x) or is removed (9.0+)" {
+            # The TLS 1.2 Only setting was removed in Safeguard 9.0, which negotiates TLS 1.3.
+            # On 8.x the cmdlet returns a boolean; on 9.0+ it warns and returns nothing.
+            $major = (Get-SafeguardVersion -Appliance $Context.Appliance -Insecure).Major
+            $tls = Get-SafeguardTls12OnlyStatus -Insecure -WarningAction SilentlyContinue
+            if ($major -ge 9) { $null -eq $tls } else { $tls -is [bool] }
         }
 
         # --- Get-SafeguardApplianceDnsSuffix ---
