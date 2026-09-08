@@ -799,6 +799,10 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate
 
+.PARAMETER Force
+Do not prompt for confirmation before enabling the Session Access Request Broker.
+Intended for unattended or automation scenarios.
+
 .INPUTS
 None.
 
@@ -820,7 +824,9 @@ function Enable-SafeguardSessionClusterAccessRequestBroker
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [switch]$Force
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -834,11 +840,18 @@ function Enable-SafeguardSessionClusterAccessRequestBroker
     else
     {
         Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
-        $local:Confirmed = (Get-Confirmation "Enable Session Access Request Broker" `
-                                ("You are about to enable SPS to create access requests, monitor workflow, and retrieve credentials on behalf of users to connect sessions.`n" + `
-                                 "Access requests created and used by SPS will still be governed by SPP entitlements.`n" + `
-                                 "Do you want to enable the Session Access Request Broker?") `
-                                "Enable SPS to request access and retrieve credentials on behalf of users." "Cancel this operation.")
+        if ($Force)
+        {
+            $local:Confirmed = $true
+        }
+        else
+        {
+            $local:Confirmed = (Get-Confirmation "Enable Session Access Request Broker" `
+                                    ("You are about to enable SPS to create access requests, monitor workflow, and retrieve credentials on behalf of users to connect sessions.`n" + `
+                                     "Access requests created and used by SPS will still be governed by SPP entitlements.`n" + `
+                                     "Do you want to enable the Session Access Request Broker?") `
+                                    "Enable SPS to request access and retrieve credentials on behalf of users." "Cancel this operation.")
+        }
         if ($local:Confirmed)
         {
             Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Cluster/SessionModules/AccessRequestBroker" -Body @{ Enabled = $true }
@@ -865,6 +878,10 @@ A string containing the bearer token to be used with Safeguard Web API.
 .PARAMETER Insecure
 Ignore verification of Safeguard appliance SSL certificate
 
+.PARAMETER Force
+Do not prompt for confirmation before disabling the Session Access Request Broker.
+Intended for unattended or automation scenarios.
+
 .INPUTS
 None.
 
@@ -886,7 +903,9 @@ function Disable-SafeguardSessionClusterAccessRequestBroker
         [Parameter(Mandatory=$false)]
         [object]$AccessToken,
         [Parameter(Mandatory=$false)]
-        [switch]$Insecure
+        [switch]$Insecure,
+        [Parameter(Mandatory=$false)]
+        [switch]$Force
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -900,11 +919,18 @@ function Disable-SafeguardSessionClusterAccessRequestBroker
     else
     {
         Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
-        $local:Confirmed = (Get-Confirmation "Enable Session Access Request Broker" `
-                                ("You are about to disable SPS from being able to retrieve credentials on behalf of users to connect sessions.`n" + `
-                                 "This will prevent SPS initiated sessions from connecting.`n" + `
-                                 "Do you want to disable the Session Access Request Broker?") `
-                                "Disable to prevent SPS from retrieving credentials on behalf of users." "Cancel this operation.")
+        if ($Force)
+        {
+            $local:Confirmed = $true
+        }
+        else
+        {
+            $local:Confirmed = (Get-Confirmation "Enable Session Access Request Broker" `
+                                    ("You are about to disable SPS from being able to retrieve credentials on behalf of users to connect sessions.`n" + `
+                                     "This will prevent SPS initiated sessions from connecting.`n" + `
+                                     "Do you want to disable the Session Access Request Broker?") `
+                                    "Disable to prevent SPS from retrieving credentials on behalf of users." "Cancel this operation.")
+        }
         if ($local:Confirmed)
         {
             Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "Cluster/SessionModules/AccessRequestBroker" -Body @{ Enabled = $false }
