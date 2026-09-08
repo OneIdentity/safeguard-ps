@@ -155,9 +155,18 @@
             if ($hasData)
             {
                 $entry = if ($result -is [Array]) { $result[0] } else { $result }
-                $logId = [string]$entry.LogId
-                $detail = Get-SafeguardAuditLog -Insecure Patches -Id $logId
-                $null -ne $detail -and $detail.LogId -eq $logId
+                # Patches audit entries are keyed by LogId on 8.x and by Id on 9.0.
+                $logId = if ($entry.LogId) { [string]$entry.LogId } else { [string]$entry.Id }
+                if ([string]::IsNullOrEmpty($logId))
+                {
+                    Write-Host "  (skipped -- patch audit entry has no id field)"
+                    $true
+                }
+                else
+                {
+                    $detail = Get-SafeguardAuditLog -Insecure Patches -Id $logId
+                    $null -ne $detail -and (([string]$detail.LogId -eq $logId) -or ([string]$detail.Id -eq $logId))
+                }
             }
             else
             {

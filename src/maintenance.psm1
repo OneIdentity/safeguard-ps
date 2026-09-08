@@ -999,8 +999,10 @@ function Get-SafeguardApplianceUptime
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    $local:Os = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET OperatingSystem)
-    $local:Ts =  [timespan]::FromSeconds($local:Os.UptimeInSeconds)
+    # The Appliance/OperatingSystem resource was removed in Safeguard 9.0. Read uptime from the
+    # appliance health status instead, which exposes the same value on both 8.x and 9.0.
+    $local:Health = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET "ApplianceStatus/Health")
+    $local:Ts = [timespan]::FromMilliseconds($local:Health.UpTime.TotalMilliseconds)
     New-Object -TypeName PSObject -Property @{
         TotalSeconds = $local:Ts.TotalSeconds;
         Days = $local:Ts.Days;
@@ -3281,6 +3283,21 @@ function Set-SafeguardBmcAdminPassword
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance PUT BmcConfiguration -Body $local:Body
 }
 
+# The TLS 1.2 Only (SecureSsl) appliance setting was removed in Safeguard 9.0, which negotiates
+# TLS 1.3 and no longer supports restricting the appliance to TLS 1.2 only. The Web API returns
+# HTTP 405 with error code 60612 for this resource on 9.0 and later.
+function Test-SafeguardSecureSslRemoved
+{
+    [CmdletBinding()]
+    [OutputType([bool])]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        $ErrorRecord
+    )
+
+    ($ErrorRecord.Exception.HttpStatusCode -eq 405) -and ($ErrorRecord.Exception.ErrorCode -eq 60612)
+}
+
 <#
 .SYNOPSIS
 Get current status of TLS 1.2 Only setting in Safeguard via the Web API.
@@ -3289,6 +3306,9 @@ Get current status of TLS 1.2 Only setting in Safeguard via the Web API.
 TLS 1.2 Only means Safeguard will only negotiate TLS 1.2+ connections when
 clients access the Web API and Web UI.  This cmdlet reports the current
 status of that setting: true or false.
+
+This setting was removed in Safeguard 9.0, which negotiates TLS 1.3. On 9.0
+and later this cmdlet writes a warning and returns nothing.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -3326,7 +3346,20 @@ function Get-SafeguardTls12OnlyStatus
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET "ApplianceStatus/SecureSsl"
+    try
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance GET "ApplianceStatus/SecureSsl"
+    }
+    catch
+    {
+        if (Test-SafeguardSecureSslRemoved $_)
+        {
+            Write-Warning ("The TLS 1.2 Only setting was removed in Safeguard 9.0. Safeguard now negotiates " +
+                           "TLS 1.3 and no longer supports restricting the appliance to TLS 1.2 only.")
+            return
+        }
+        throw
+    }
 }
 
 <#
@@ -3375,7 +3408,19 @@ function Enable-SafeguardTls12Only
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance PUT "ApplianceStatus/SecureSsl" -Body $true
+    try
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance PUT "ApplianceStatus/SecureSsl" -Body $true
+    }
+    catch
+    {
+        if (Test-SafeguardSecureSslRemoved $_)
+        {
+            throw ("The TLS 1.2 Only setting was removed in Safeguard 9.0. Safeguard now negotiates " +
+                   "TLS 1.3 and no longer supports restricting the appliance to TLS 1.2 only.")
+        }
+        throw
+    }
     Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
 
     Write-Host -ForegroundColor Yellow "In order for this setting to take effect you need to reboot the Safeguard appliance."
@@ -3433,7 +3478,19 @@ function Disable-SafeguardTls12Only
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance PUT "ApplianceStatus/SecureSsl" -Body $false
+    try
+    {
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Appliance PUT "ApplianceStatus/SecureSsl" -Body $false
+    }
+    catch
+    {
+        if (Test-SafeguardSecureSslRemoved $_)
+        {
+            throw ("The TLS 1.2 Only setting was removed in Safeguard 9.0. Safeguard now negotiates " +
+                   "TLS 1.3 and no longer supports restricting the appliance to TLS 1.2 only.")
+        }
+        throw
+    }
     Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
 
     Write-Host -ForegroundColor Yellow "In order for this setting to take effect you need to reboot the Safeguard appliance."

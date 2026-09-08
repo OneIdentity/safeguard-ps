@@ -80,8 +80,9 @@
             $threw = $false
             try { Invoke-SafeguardAuditLogMaintenance -Insecure }
             catch {
-                # 60818 means a maintenance operation is already in progress -- acceptable
-                if ($_ -match "60818") { $threw = $false }
+                # 60818 = maintenance already in progress; 60819 = schedule not configured to
+                # archive or purge. Both are benign responses to a run-now request.
+                if ($_ -match "60818" -or $_ -match "60819") { $threw = $false }
                 else { $threw = $true }
             }
             -not $threw
@@ -93,8 +94,8 @@
                 $success = ($null -eq $result -or $result -eq "")
             }
             catch {
-                # Already in progress is acceptable
-                $success = ($_ -match "60818")
+                # Already in progress (60818) or nothing to archive/purge (60819) are acceptable.
+                $success = ($_ -match "60818" -or $_ -match "60819")
             }
             $success
         }
