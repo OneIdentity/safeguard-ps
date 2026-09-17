@@ -108,7 +108,8 @@ NestedModules = @(
     'customplatforms.psm1',
     'reasoncodes.psm1',
     'runningtasks.psm1',
-    'discovery.psm1'
+    'discovery.psm1',
+    'federation.psm1'
     )
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
@@ -369,7 +370,11 @@ FunctionsToExport = @(
     'Edit-SafeguardReasonCode','Remove-SafeguardReasonCode','Get-SafeguardReasonCodeScope',
     # runningtasks.psm1
     'Get-SafeguardRunningTask','Stop-SafeguardRunningTask',
-    'Get-SafeguardTaskLog','Clear-SafeguardTaskLog'
+    'Get-SafeguardTaskLog','Clear-SafeguardTaskLog',
+    # federation.psm1
+    'Get-SafeguardExternalFederationIdentityProvider','New-SafeguardExternalFederationIdentityProvider',
+    'Edit-SafeguardExternalFederationIdentityProvider','Remove-SafeguardExternalFederationIdentityProvider',
+    'Sync-SafeguardExternalFederationIdentityProvider','Get-SafeguardSamlMetadata'
 )
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
