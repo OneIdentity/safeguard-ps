@@ -42,6 +42,17 @@ nearly every cmdlet in the safeguard-ps module is implemented using `Invoke-Safe
   account can be specified as an ID, `name@domain`, `domain\name`, or plain name. Runs fully
   non-interactive when all parameters are supplied, or prompts interactively for anything missing.
 
+- **entra-id-federation-setup.ps1**
+
+  End-to-end walkthrough for configuring Microsoft Entra ID (Azure AD) as a SAML
+  external federation identity provider for Safeguard: get the SPP service provider
+  metadata, upload it to Entra to create an Enterprise Application, create the
+  federation provider, and create a federated user. It also covers enabling
+  passwordless / passkey (FIDO2) sign-in, which works around Entra ID error
+  AADSTS75011 (ADO Bug 737561) by relaxing the requested SAML authentication
+  context. See the [Entra ID federation walkthrough](entra-id-federation.md) for
+  step-by-step details.
+
 - **license-accounting/**
 
   `Get-SppLicenseAccounting.ps1` reads a running Safeguard for Privileged Passwords cluster and
