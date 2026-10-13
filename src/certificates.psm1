@@ -631,7 +631,8 @@ Assign an SSL certificate to a specific Safeguard appliance via the Web API.
 .DESCRIPTION
 Assign a previously added SSL certificate to a specific Safeguard appliance via
 the Web API.  If an appliance ID is not specified this cmdlet will use the appliance
-that you are communicating with.
+that you are communicating with. Other appliance assignments are preserved, and
+assigning the same appliance again does not add a duplicate assignment.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
@@ -693,12 +694,12 @@ function Set-SafeguardSslCertificateForAppliance
 
 
     Write-Host "Setting $Thumbprint as current SSL Certificate for $ApplianceId..."
-    $local:CurrentIds = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "SslCertificates/$Thumbprint/Appliances")
-    if (-not $local:CurrentIds)
+    # Enumerate REST arrays, including an empty array emitted as a single pipeline object.
+    $local:CurrentIds = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "SslCertificates/$Thumbprint/Appliances" | ForEach-Object { $_ })
+    if (-not ($local:CurrentIds | Where-Object { $_.Id -eq $ApplianceId }))
     {
-        $local:CurrentIds = @()
+        $local:CurrentIds += @{ "Id" = "$ApplianceId" }
     }
-    $local:CurrentIds += @{ "Id" = "$ApplianceId" }
     Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "SslCertificates/$Thumbprint/Appliances" -Body $local:CurrentIds
 }
 
@@ -771,7 +772,7 @@ function Clear-SafeguardSslCertificateForAppliance
 
     Write-Host "Clearing $Thumbprint as current SSL Certificate for $ApplianceId..."
     $local:CurrentIds = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "SslCertificates/$Thumbprint/Appliances")
-    $local:NewIds = $local:CurrentIds | Where-Object { $_.Id -ne $ApplianceId }
+    $local:NewIds = @($local:CurrentIds | Where-Object { $_.Id -ne $ApplianceId })
     if (-not $local:NewIds)
     {
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "SslCertificates/$Thumbprint/Appliances" -JsonBody "[]"

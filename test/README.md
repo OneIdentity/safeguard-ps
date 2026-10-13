@@ -203,7 +203,27 @@ Register-SgPsTestCleanup -Description "Delete test user" -Action {
 ### Optional / Conditional Suites
 
 - **BackupRestore** — Tagged `optional`, auto-skipped unless explicitly requested via `-Suite BackupRestore`. Puts appliance in maintenance mode.
+- **SslCertificateAssignments** — Tagged `optional` and `disruptive`. Select explicitly with
+  `-Suite Certificates,SslCertificateAssignments` on an authorized lab appliance. Requires
+  an interactive `ROTATE <appliance-id>` confirmation after displaying the rollback certificate.
+  Requires separate `TRUST <appliance-id>` confirmation for temporary certificate trust,
+  which may replicate within the cluster. Records the trusted list and verifies its exact
+  restoration after removing only the generated trust entry.
+  Generates a short-lived test server certificate, uploads it through
+  `Install-SafeguardSslCertificate` using an encrypted temporary PFX with a random
+  in-memory password, and immediately removes that file. Changes only the connected
+  node, exercises explicit and default appliance resolution, and independently reads back
+  assignment state. Cleanup restores and verifies the original certificate and assignment
+  IDs before deleting the test certificate. Retain console access in case HTTPS becomes
+  unavailable. Do not run concurrently with other certificate changes. Multi-node behavior
+  is not proven by this single-node suite.
 - **SPS Integration** — Requires `-SpsAppliance`, `-SpsUser`, `-SpsPassword` parameters. Gracefully skips all tests when SPS is not configured.
+
+Run `pwsh -NoProfile -File .\test\Test-SslCertificateAssignmentShape.ps1` for local,
+non-network regression checks of zero, singleton, and multiple assignment collections.
+These checks verify JSON array bodies, preservation of existing assignment properties,
+repeat assignment without duplicates, and both appliance resolution modes. They do not
+prove persistence or connectivity on a live multi-node topology.
 
 ### Test Data
 
