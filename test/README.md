@@ -172,6 +172,7 @@ Register-SgPsTestCleanup -Description "Delete test user" -Action {
 | **Framework Smoke Test** | 4 | — | Verifies test framework itself works |
 | **Connect & Core** | 14 | safeguard-ps.psm1 | Connect/Disconnect, tokens, Invoke-SafeguardMethod |
 | **User Management** | 14 | users.psm1 | User CRUD, enable/disable, password, search |
+| **External Federation** | 11 | federation.psm1, users.psm1 | SAML provider lifecycle, field projections, federated users |
 | **Data Types** | 8 | safeguard-ps.psm1 | Platforms, timezones, transfer protocols, providers |
 | **Management Shell** | 4 | safeguard-ps.psm1 | Get-SafeguardCommand, Get-SafeguardBanner |
 | **Asset Management** | 11 | assets.psm1 | Asset CRUD, search, edit |

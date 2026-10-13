@@ -658,6 +658,11 @@ Do not promprt for a password for new local user
 .PARAMETER Thumbprint
 String containing a SHA-1 thumbprint of certificate to use for authentication.
 
+.PARAMETER Identity
+String containing the identity used to authenticate an external federation user.
+This must match the name claim value returned by the external STS (typically the
+user's email address).  Required when the provider is an external federation provider.
+
 .INPUTS
 None.
 
@@ -669,6 +674,9 @@ New-SafeguardUser -AccessToken $token -Appliance 10.5.32.54 -Insecure
 
 .EXAMPLE
 New-SafeguardUser local petrsnd -AdminRoles 'AssetAdmin','ApplianceAdmin'
+
+.EXAMPLE
+New-SafeguardUser "SecureIDx.com" jsmith -Identity jsmith@secureidx.com -FirstName John -LastName Smith
 #>
 function New-SafeguardUser
 {
@@ -707,7 +715,9 @@ function New-SafeguardUser
         [Parameter(Mandatory=$false)]
         [switch]$NoPassword = $false,
         [Parameter(Mandatory=$false)]
-        [string]$Thumbprint
+        [string]$Thumbprint,
+        [Parameter(Mandatory=$false)]
+        [string]$Identity
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -716,6 +726,7 @@ function New-SafeguardUser
     $local:AllProviders = (Get-SafeguardIdentityProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure)
     $local:LocalProviderId = ($AllProviders | Where-Object { $_.Name -eq "Local" }).Id
     $local:CertificateProviderId = ($AllProviders | Where-Object { $_.Name -eq "Certificate" }).Id
+    $local:ExternalFederationProviderIds = @($AllProviders | Where-Object { $_.TypeReferenceName -eq "ExternalFederation" } | ForEach-Object { $_.Id })
     if (-not $PSBoundParameters.ContainsKey("Provider"))
     {
         Write-Host "Identity providers:"
@@ -812,6 +823,25 @@ function New-SafeguardUser
             }
         }
         $local:NewUser
+    }
+    elseif ($local:ExternalFederationProviderIds -contains $local:ProviderResolved)
+    {
+        if (-not $PSBoundParameters.ContainsKey("Identity"))
+        {
+            $Identity = (Read-Host "Identity (name claim returned by the external STS, typically an email address)")
+        }
+        $local:Body = @{
+            PrimaryAuthenticationProvider = @{ Id = $local:ProviderResolved; Identity = $Identity };
+            Name = $NewUserName;
+            AdminRoles = $AdminRoles
+        }
+        if ($PSBoundParameters.ContainsKey("FirstName")) { $local:Body.FirstName = $FirstName }
+        if ($PSBoundParameters.ContainsKey("LastName")) { $local:Body.LastName = $LastName }
+        if ($PSBoundParameters.ContainsKey("Description")) { $local:Body.Description = $Description }
+        if ($PSBoundParameters.ContainsKey("EmailAddress")) { $local:Body.EmailAddress = $EmailAddress }
+        if ($PSBoundParameters.ContainsKey("WorkPhone")) { $local:Body.WorkPhone = $WorkPhone }
+        if ($PSBoundParameters.ContainsKey("MobilePhone")) { $local:Body.MobilePhone = $MobilePhone }
+        Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Users -Body $local:Body
     }
     else
     {
