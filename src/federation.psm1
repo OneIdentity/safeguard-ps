@@ -132,10 +132,19 @@ function Get-SafeguardExternalFederationIdentityProvider
     }
     else
     {
+        $local:RemoveType = $Fields -and $Fields -notcontains "TypeReferenceName"
+        if ($local:RemoveType)
+        {
+            # The type is needed for filtering even when it is not requested in the output.
+            $local:Parameters["fields"] = (($Fields + "TypeReferenceName") -join ",")
+        }
         # Server-side filter is not relied upon for the type; filter client-side for robustness
         $local:Idps = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "IdentityProviders" `
                             -Parameters $local:Parameters)
-        $local:Idps | Where-Object { $_.TypeReferenceName -eq "ExternalFederation" }
+        $local:Idps | Where-Object { $_.TypeReferenceName -eq "ExternalFederation" } | ForEach-Object {
+            if ($local:RemoveType) { $_.PSObject.Properties.Remove("TypeReferenceName") }
+            $_
+        }
     }
 }
 

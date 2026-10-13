@@ -114,7 +114,7 @@ try
     }
 
     # -------------------------------------------------------------------------
-    # Enabling passkey login (separate step -- ADO Bug 737561 / AADSTS75011).
+    # Enabling passkey login (separate step -- AADSTS75011).
     #
     # By default SPP asks the STS for the "Password, ProtectedTransport"
     # authentication context. A passkey / FIDO2 / passwordless sign-in returns

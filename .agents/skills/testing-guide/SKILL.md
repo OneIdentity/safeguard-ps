@@ -105,6 +105,7 @@ Use this table to choose the smallest suite set that covers the module you are c
 |--------|----------------|
 | `safeguard-ps.psm1` | Connect, CertificateAuthentication, ApplianceStatus, DataTypes, ManagementShell |
 | `users.psm1` | Users |
+| `federation.psm1` | Federation, Users |
 | `assets.psm1` | Assets, AssetAccounts |
 | `assetpartitions.psm1` | AssetPartitions, PasswordProfiles |
 | `a2a.psm1` | A2ARegistrations, A2ACredentials |

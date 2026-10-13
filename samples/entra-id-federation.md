@@ -70,7 +70,7 @@ for the user (typically their email address).
 New-SafeguardUser "Entra ID" jsmith -Identity jsmith@example.com -FirstName John -LastName Smith
 ```
 
-## Enabling passkey login (ADO Bug 737561 / Entra ID AADSTS75011)
+## Enabling passkey login (Entra ID AADSTS75011)
 
 By default SPP's SAML SP asks the external STS for the
 `Password, ProtectedTransport` authentication context. When a user signs in to

@@ -49,7 +49,7 @@ nearly every cmdlet in the safeguard-ps module is implemented using `Invoke-Safe
   metadata, upload it to Entra to create an Enterprise Application, create the
   federation provider, and create a federated user. It also covers enabling
   passwordless / passkey (FIDO2) sign-in, which works around Entra ID error
-  AADSTS75011 (ADO Bug 737561) by relaxing the requested SAML authentication
+  AADSTS75011 by relaxing the requested SAML authentication
   context. See the [Entra ID federation walkthrough](entra-id-federation.md) for
   step-by-step details.
 
