@@ -901,6 +901,10 @@ Ignore verification of Safeguard appliance SSL certificate.
 The time in UTC to set to the appliance, when omitted the current time of your
 client machine is used.
 
+.PARAMETER Force
+Do not prompt for confirmation before setting the time. Intended for unattended
+or automation scenarios.
+
 .INPUTS
 None.
 
@@ -924,7 +928,9 @@ function Set-SafeguardTime
         [Parameter(Mandatory=$false)]
         [switch]$Insecure,
         [Parameter(Mandatory=$false,Position=0)]
-        [DateTime]$SystemTime
+        [DateTime]$SystemTime,
+        [Parameter(Mandatory=$false)]
+        [switch]$Force
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -940,10 +946,17 @@ function Set-SafeguardTime
     }
 
     Import-Module -Name "$PSScriptRoot\ps-utilities.psm1" -Scope Local
-    Write-Host -ForegroundColor Magenta "Setting the UTC time of the Safeguard appliance to: $($local:SystemTimeString)"
-    Write-Host -ForegroundColor Yellow "WARNING: Setting the wrong time can break a Safeguard appliance."
-    $local:Confirmed = (Get-Confirmation "Set Safeguard Time" "Are you sure you want to set the time on this Safeguard appliance?" `
-                                         "Set the time." "Cancels this operation.")
+    if ($Force)
+    {
+        $local:Confirmed = $true
+    }
+    else
+    {
+        Write-Host -ForegroundColor Magenta "Setting the UTC time of the Safeguard appliance to: $($local:SystemTimeString)"
+        Write-Host -ForegroundColor Yellow "WARNING: Setting the wrong time can break a Safeguard appliance."
+        $local:Confirmed = (Get-Confirmation "Set Safeguard Time" "Are you sure you want to set the time on this Safeguard appliance?" `
+                                             "Set the time." "Cancels this operation.")
+    }
 
     if ($local:Confirmed)
     {
