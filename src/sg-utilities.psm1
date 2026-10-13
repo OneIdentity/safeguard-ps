@@ -113,6 +113,13 @@ namespace Ex
             elseif ($local:ResponseObject.error.type) # sps error
             {
                 $local:Message = "$($local:ResponseObject.error.type): $($local:ResponseObject.error.message)"
+                # SPS validation failures (e.g. SemanticError) put the actionable reason in details.errors
+                foreach ($local:Detail in @($local:ResponseObject.error.details.errors))
+                {
+                    if (-not $local:Detail.message) { continue }
+                    $local:Message += " | $($local:Detail.message)"
+                    if ($local:Detail.paths) { $local:Message += " ($(@($local:Detail.paths) -join ', '))" }
+                }
                 $local:ExceptionToThrow = (New-Object Ex.SafeguardMethodException -ArgumentList @(
                     [int]$local:ThrownException.Response.StatusCode, $local:StatusDescription,
                     $local:Message, $local:ResponseBody
