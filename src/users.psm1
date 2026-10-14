@@ -24,23 +24,27 @@ function Resolve-SafeguardUserObject
 
     if (-not ($User -as [int]))
     {
-        $local:Filter = "Name ieq '$User'"
-        $local:Pair = ($User -split "\\")
-        if ($local:Pair.Length -eq 2)
+        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+        $local:NameParts = Split-SafeguardQualifiedName ([string]$User) -Format 'provider\user'
+        $local:PreFilter = ""
+        if ($null -ne $local:NameParts.Parent)
         {
-            $local:Filter = "IdentityProviderName ieq '$($local:Pair[0])' and Name ieq '$($local:Pair[1])'"
+            $local:PreFilter = "IdentityProvider.Name ieq '$(ConvertTo-SafeguardFilterStringLiteral $local:NameParts.Parent)' and "
         }
-        try
+        # Login names take precedence over display names, within the requested provider.
+        $local:Users = @()
+        foreach ($local:Field in "Name", "DisplayName")
         {
+            $local:Filter = "$($local:PreFilter)$local:Field ieq '$(ConvertTo-SafeguardFilterStringLiteral $local:NameParts.Name)'"
             $local:Users = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
-                                -Parameters @{ filter = $local:Filter })
-        }
-        catch
-        {
-            Write-Verbose $_
-            Write-Verbose "Caught exception with ieq filter, trying with q parameter"
-            $local:Users = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
-                                -Parameters @{ q = $User })
+                                -Parameters @{ filter = $local:Filter } |
+                Where-Object {
+                    $null -ne $_ -and $_.Id -and
+                    [string]::Equals([string]$_.$local:Field, $local:NameParts.Name, [System.StringComparison]::OrdinalIgnoreCase) -and
+                    ($null -eq $local:NameParts.Parent -or
+                        [string]::Equals([string]$_.IdentityProvider.Name, $local:NameParts.Parent, [System.StringComparison]::OrdinalIgnoreCase))
+                })
+            if ($local:Users.Count -gt 0) { break }
         }
         if (-not $local:Users)
         {
@@ -81,33 +85,7 @@ function Resolve-SafeguardUserId
 
     if (-not ($User -as [int]))
     {
-        $local:Filter = "Name ieq '$User'"
-        $local:Pair = ($User -split "\\")
-        if ($local:Pair.Length -eq 2)
-        {
-            $local:Filter = "IdentityProviderName ieq '$($local:Pair[0])' and Name ieq '$($local:Pair[1])'"
-        }
-        try
-        {
-            $local:Users = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
-                                -Parameters @{ filter = $local:Filter })
-        }
-        catch
-        {
-            Write-Verbose $_
-            Write-Verbose "Caught exception with ieq filter, trying with q parameter"
-            $local:Users = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Users `
-                                -Parameters @{ q = $User })
-        }
-        if (-not $local:Users)
-        {
-            throw "Unable to find user matching '$User'"
-        }
-        if ($local:Users.Count -ne 1)
-        {
-            throw "Found $($local:Users.Count) users matching '$User'"
-        }
-        $local:Users[0].Id
+        (Resolve-SafeguardUserObject -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $User).Id
     }
     else
     {
@@ -451,7 +429,10 @@ A string containing the bearer token to be used with Safeguard Web API.
 Ignore verification of Safeguard appliance SSL certificate.
 
 .PARAMETER UserToGet
-An integer containing an ID  or a string containing the name of the user to return.
+An integer containing an ID or an exact, case-insensitive login name or display name.
+Login names take precedence over display names. Use 'provider\user' to restrict lookup to
+an identity provider. Multiple matches are rejected. Qualified names must have exactly
+two nonempty parts; use an ID or user object for names containing backslashes.
 
 .PARAMETER Fields
 An array of the user property names to return.

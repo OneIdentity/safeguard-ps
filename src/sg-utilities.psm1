@@ -1,6 +1,52 @@
 <# Copyright (c) 2026 One Identity LLC. All rights reserved. #>
 # This file contains random Safeguard utilities required by some modules
 # Nothing is exported from here
+function ConvertTo-SafeguardFilterStringLiteral
+{
+    [CmdletBinding()]
+    [OutputType([string])]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [AllowEmptyString()]
+        [string]$Value
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $Value.Replace('\', '\\').Replace("'", "\'").Replace('*', '\*')
+}
+
+function Split-SafeguardQualifiedName
+{
+    [CmdletBinding()]
+    [OutputType([pscustomobject])]
+    Param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$Value,
+        [Parameter(Mandatory=$true)]
+        [string]$Format,
+        [Parameter(Mandatory=$false)]
+        [switch]$RequireQualified
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Parts = $Value -split "\\"
+    if ($local:Parts.Length -gt 2 -or [string]::IsNullOrWhiteSpace($local:Parts[0]) -or
+        ($local:Parts.Length -eq 2 -and [string]::IsNullOrWhiteSpace($local:Parts[1])) -or
+        ($RequireQualified -and $local:Parts.Length -ne 2))
+    {
+        throw "Unable to parse '$Value' using expected format of '$Format'. Each part must be nonempty; names containing backslashes must be specified by Id or object."
+    }
+    if ($local:Parts.Length -eq 2)
+    {
+        return [pscustomobject]@{ Parent = $local:Parts[0]; Name = $local:Parts[1] }
+    }
+    [pscustomobject]@{ Parent = $null; Name = $Value }
+}
+
 function Out-SafeguardExceptionIfPossible
 {
     [CmdletBinding()]

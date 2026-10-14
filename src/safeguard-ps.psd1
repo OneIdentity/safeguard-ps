@@ -274,7 +274,7 @@ FunctionsToExport = @(
     # policies.psm1
     'Get-SafeguardPolicyAsset','Find-SafeguardPolicyAsset','Get-SafeguardPolicyAccount','Find-SafeguardPolicyAccount',
     'Get-SafeguardAccessPolicy','Get-SafeguardAccessPolicyScopeItem','Get-SafeguardAccessPolicyAccessRequestProperty',
-    'Get-SafeguardAccessPolicySessionProperty','Add-SafeguardAccessPolicy','Remove-SafeguardAccessPolicy','Edit-SafeguardAccessPolicy',
+    'Get-SafeguardAccessPolicySessionProperty','Add-SafeguardAccessPolicy','Remove-SafeguardAccessPolicy','Edit-SafeguardAccessPolicy','Copy-SafeguardAccessPolicy',
     'Get-SafeguardUserLinkedAccount','Add-SafeguardUserLinkedAccount',
     'Remove-SafeguardUserLinkedAccount',
     # events.psm1

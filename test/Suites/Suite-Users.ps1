@@ -149,6 +149,37 @@
             $null -ne $user2.Id -and $user2.Name -eq $testUser2
         }
 
+        Test-SgPsAssert "Get-SafeguardUser resolves an exact display name" {
+            $source = Get-SafeguardUser -Insecure $Context.SuiteData["UserId"]
+            $found = Get-SafeguardUser -Insecure $source.DisplayName
+            $found.Id -eq $source.Id -and $found.Name -eq $testUser
+        }
+        Test-SgPsAssert "Get-SafeguardUser resolves provider-qualified login and display names" {
+            $source = Get-SafeguardUser -Insecure $Context.SuiteData["UserId"]
+            $login = Get-SafeguardUser -Insecure "local\$($testUser.ToUpperInvariant())"
+            $display = Get-SafeguardUser -Insecure "Local\$($source.DisplayName)"
+            $login.Id -eq $source.Id -and $display.Id -eq $source.Id
+        }
+        Test-SgPsAssert "Get-SafeguardUser prefers a login name over another user's display name" {
+            $second = Get-SafeguardUser -Insecure $Context.SuiteData["User2Id"]
+            $second.FirstName = $testUser
+            $second.LastName = $null
+            Edit-SafeguardUser -Insecure -UserObject $second | Out-Null
+            $readback = Get-SafeguardUser -Insecure $second.Id
+            $readback.DisplayName -eq $testUser -and
+                (Get-SafeguardUser -Insecure $testUser).Id -eq $Context.SuiteData["UserId"] -and
+                (Get-SafeguardUser -Insecure "Local\$testUser").Id -eq $Context.SuiteData["UserId"]
+        }
+        Test-SgPsAssertThrows "Get-SafeguardUser rejects a different provider without unqualified fallback" {
+            Get-SafeguardUser -Insecure "DoesNotExist\$testUser"
+        } -ExpectedMessage "Unable to find user"
+        Test-SgPsAssertThrows "Get-SafeguardUser rejects additional backslashes" {
+            Get-SafeguardUser -Insecure "Local\$testUser\extra"
+        } -ExpectedMessage "expected format"
+        Test-SgPsAssertThrows "Get-SafeguardUser rejects an empty qualified-name part" {
+            Get-SafeguardUser -Insecure "Local\"
+        } -ExpectedMessage "expected format"
+
         # --- Remove-SafeguardUser ---
         Test-SgPsAssert "Remove-SafeguardUser deletes a user" {
             Remove-SafeguardUser -Insecure $Context.SuiteData["User2Id"]

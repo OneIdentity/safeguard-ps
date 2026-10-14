@@ -21,6 +21,7 @@
 
         $Context.SuiteData["TestGroup"] = $testGroup
         $Context.SuiteData["TestGroup2"] = $testGroup2
+        $Context.SuiteData["TestAsset"] = $testAsset
 
         # Create an asset and account for group membership tests
         $asset = New-SafeguardAsset -Insecure -DisplayName $testAsset `
@@ -99,6 +100,13 @@
             $readback = Get-SafeguardAccountGroup -Insecure $Context.SuiteData["GroupId"]
             $readback.Description -eq "Pipeline edit"
         }
+
+        Test-SgPsAssertThrows "Account-group editing rejects extra backslashes" {
+            Add-SafeguardAccountGroupMember -Insecure $testGroup -AccountList "asset\account\extra"
+        } -ExpectedMessage "expected format"
+        Test-SgPsAssertThrows "Account-group editing rejects an empty name part" {
+            Add-SafeguardAccountGroupMember -Insecure $testGroup -AccountList "\account"
+        } -ExpectedMessage "expected format"
 
         # --- Add-SafeguardAccountGroupMember ---
         Test-SgPsAssert "Add-SafeguardAccountGroupMember adds a member" {
