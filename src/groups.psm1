@@ -1545,6 +1545,7 @@ String of type of operation to be perfomed on the account group. 'Add' to add ac
 .PARAMETER AccountList
 An array of ID or name pairs of the format '<asset>\<account>' to be added or removed in the account group.
 For example: 23\55,asset1\account1,asset1\342
+Each pair must contain exactly one backslash and two nonempty parts.
 
 .PARAMETER Description
 A string containing the new description for the account group.
@@ -1619,13 +1620,21 @@ function Edit-SafeguardAccountGroup
             [object[]]$local:Accounts = $null
             foreach ($local:AccountPair in $AccountList)
             {
-                $local:Pair = ($local:AccountPair -split "\\")
-                if ($local:Pair.Length -ne 2)
-                {
-                    throw "Unable to parse '$($local:AccountPair)' using expected format of 'asset\account'."
-                }
+                Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+                $local:NameParts = Split-SafeguardQualifiedName ([string]$local:AccountPair) -Format 'asset\account' -RequireQualified
                 $local:ResolvedAccount = (Get-SafeguardAssetAccount -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
-                    -AssetToGet $local:Pair[0] -AccountToGet $local:Pair[1] -Fields Asset.Id,Id,Asset.Name,Name)
+                    -AssetToGet $local:NameParts.Parent -AccountToGet $local:NameParts.Name -Fields Asset.Id,Id,Asset.Name,Asset.NetworkAddress,Name)
+                if (@($local:ResolvedAccount).Count -ne 1 -or $null -eq $local:ResolvedAccount.Id -or
+                    (($local:NameParts.Parent -as [int]) -and $local:ResolvedAccount.Asset.Id -ne [int]$local:NameParts.Parent) -or
+                    (-not ($local:NameParts.Parent -as [int]) -and
+                        -not [string]::Equals([string]$local:ResolvedAccount.Asset.Name, $local:NameParts.Parent, [System.StringComparison]::OrdinalIgnoreCase) -and
+                        -not [string]::Equals([string]$local:ResolvedAccount.Asset.NetworkAddress, $local:NameParts.Parent, [System.StringComparison]::OrdinalIgnoreCase)) -or
+                    (($local:NameParts.Name -as [int]) -and $local:ResolvedAccount.Id -ne [int]$local:NameParts.Name) -or
+                    (-not ($local:NameParts.Name -as [int]) -and
+                        -not [string]::Equals([string]$local:ResolvedAccount.Name, $local:NameParts.Name, [System.StringComparison]::OrdinalIgnoreCase)))
+                {
+                    throw "Unable to find an exact account match for '$($local:AccountPair)'"
+                }
                 $local:Accounts += $($local:ResolvedAccount)
             }
             Edit-SafeguardGroup -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -GroupType Account -GroupToEdit $GroupToEdit -Operation $Operation -ObjectToOperate $local:Accounts
