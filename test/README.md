@@ -179,7 +179,7 @@ Register-SgPsTestCleanup -Description "Delete test user" -Action {
 | **Asset Accounts** | 14 | assets.psm1 | Account CRUD, password, enable/disable, search |
 | **Asset Partitions** | 13 | assetpartitions.psm1 | Partition CRUD, owners, enter/exit context |
 | **Tags** | 14 | tags.psm1 | Tag CRUD, asset/account tagging |
-| **User Groups** | 11 | usergroups.psm1 | Group CRUD, membership |
+| **User Groups** | 38 | groups.psm1 | Group CRUD, membership, directory sync options (16 directory-conditional) |
 | **Asset Groups** | 10 | assetgroups.psm1 | Group CRUD, membership |
 | **Account Groups** | 18 | groups.psm1 | Group CRUD, membership, qualified-name validation |
 | **Entitlements** | 17 | entitlements.psm1 | Entitlement CRUD, user/group membership |
@@ -218,6 +218,13 @@ Register-SgPsTestCleanup -Description "Delete test user" -Action {
   unavailable. Do not run concurrently with other certificate changes. Multi-node behavior
   is not proven by this single-node suite.
 - **SPS Integration** — Requires `-SpsAppliance`, `-SpsUser`, `-SpsPassword` parameters. Gracefully skips all tests when SPS is not configured.
+- **User Groups (directory sync options)** — The directory-group tests for `-LinkDirectoryAccounts`,
+  `-PrimaryAuthenticationProvider`, and `-ResetPrimaryAuthenticationProvider` need an existing directory
+  identity provider and a directory group that is not already a Safeguard user group. Set
+  `SGPS_USERGROUP_DIRECTORY` (directory name or ID), `SGPS_USERGROUP_DIRECTORYGROUP` (group name), and
+  optionally `SGPS_USERGROUP_DOMAIN`. Use a group whose members are not existing Safeguard users; users
+  synchronized during the run are removed in cleanup. The suite creates and removes its own External
+  Federation provider as the alternate primary provider. These tests skip when the variables are unset.
 
 Run `pwsh -NoProfile -File .\test\Test-SslCertificateAssignmentShape.ps1` for local,
 non-network regression checks of zero, singleton, and multiple assignment collections.

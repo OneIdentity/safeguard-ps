@@ -55,6 +55,68 @@ function Resolve-SafeguardGroupId
         $Group
     }
 }
+function Resolve-SafeguardUserGroupAuthenticationProviderId
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Provider
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+    Import-Module -Name "$PSScriptRoot\users.psm1" -Scope Local
+
+    if ($null -eq $Provider -or "$Provider" -eq "")
+    {
+        throw "An authentication provider ID, name, or object must be specified"
+    }
+    if ($Provider.Id -as [int])
+    {
+        $Provider = $Provider.Id
+    }
+
+    if ($Provider -as [int])
+    {
+        try
+        {
+            $local:Found = (Get-SafeguardAuthenticationProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $Provider)
+        }
+        catch
+        {
+            Write-Verbose $_
+            $local:Found = $null
+        }
+        if (-not $local:Found)
+        {
+            throw "Unable to find authentication provider with ID '$Provider'"
+        }
+        return $local:Found.Id
+    }
+
+    # Name lookup may fall back to a broad search, so only accept an exact (case-insensitive) name match.
+    $local:Candidates = @(Get-SafeguardAuthenticationProvider -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure "$Provider")
+    $local:ExactMatches = @($local:Candidates | Where-Object { $_.Name -ieq "$Provider" })
+    if ($local:ExactMatches.Count -eq 1)
+    {
+        return $local:ExactMatches[0].Id
+    }
+    if ($local:ExactMatches.Count -gt 1)
+    {
+        throw "Found $($local:ExactMatches.Count) authentication providers named '$Provider', specify the provider ID instead"
+    }
+    if ($local:Candidates.Count -gt 0)
+    {
+        throw "Unable to find authentication provider named '$Provider', similar providers: $(($local:Candidates | ForEach-Object { "$($_.Name) ($($_.Id))" }) -join ', ')"
+    }
+    throw "Unable to find authentication provider named '$Provider'"
+}
 function Get-SafeguardGroup
 {
     [CmdletBinding()]
@@ -390,6 +452,18 @@ group.  You may also specify 'All' to grant all permissions. Other permissions a
 'ApplicationAuditor', 'SystemAuditor', 'Auditor', 'AssetAdmin', 'ApplianceAdmin', 'PolicyAdmin', 'UserAdmin',
 'HelpdeskAdmin', 'OperationsAdmin'.
 
+.PARAMETER LinkDirectoryAccounts
+A boolean indicating whether to automatically link managed directory accounts to the users synchronized
+from this directory group (DirectoryGroupSyncProperties.LinkDirectoryAccounts).  When omitted, the
+appliance default (false) is used.  Only valid for directory groups.
+
+.PARAMETER PrimaryAuthenticationProvider
+An integer containing the ID of the authentication provider, a string containing its name, or an
+authentication provider object, used as the primary authentication provider for users synchronized from
+this directory group (DirectoryGroupSyncProperties.PrimaryAuthenticationProviderId).  This must be the
+directory of the group, an External Federation provider, or a RADIUS provider configured as primary.
+When omitted, the appliance uses the directory of the group.  Only valid for directory groups.
+
 .INPUTS
 None.
 
@@ -404,6 +478,9 @@ New-SafeguardUserGroup "Web Server Admins" -Directory "singledomain.corp"
 
 .EXAMPLE
 New-SafeguardUserGroup "Web Server Admins" -Directory "demo.corp" -Domain "us.demo.corp" -AdminRoles UserAdmin,PolicyAdmin
+
+.EXAMPLE
+New-SafeguardUserGroup "Web Server Admins" -Directory "demo.corp" -LinkDirectoryAccounts $true -PrimaryAuthenticationProvider "Corp Federation"
 #>
 function New-SafeguardUserGroup
 {
@@ -426,7 +503,11 @@ function New-SafeguardUserGroup
         [Parameter(Mandatory=$false)]
         [ValidateSet('GlobalAdmin','DirectoryAdmin','Auditor','ApplicationAuditor','SystemAuditor','AssetAdmin','ApplianceAdmin',
                      'PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin','All',IgnoreCase=$true)]
-        [string[]]$AdminRoles
+        [string[]]$AdminRoles,
+        [Parameter(ParameterSetName="Directory",Mandatory=$false)]
+        [bool]$LinkDirectoryAccounts,
+        [Parameter(ParameterSetName="Directory",Mandatory=$false)]
+        [object]$PrimaryAuthenticationProvider
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
@@ -475,6 +556,23 @@ function New-SafeguardUserGroup
         else
         {
             $local:Body.DirectoryGroupSyncProperties = @{ AdminRoles = $AdminRoles }
+        }
+    }
+
+    if ($PSCmdlet.ParameterSetName -eq "Directory")
+    {
+        if ($PSBoundParameters.ContainsKey("LinkDirectoryAccounts") -or $PSBoundParameters.ContainsKey("PrimaryAuthenticationProvider"))
+        {
+            if (-not $local:Body.DirectoryGroupSyncProperties) { $local:Body.DirectoryGroupSyncProperties = @{} }
+        }
+        if ($PSBoundParameters.ContainsKey("LinkDirectoryAccounts"))
+        {
+            $local:Body.DirectoryGroupSyncProperties.LinkDirectoryAccounts = $LinkDirectoryAccounts
+        }
+        if ($PSBoundParameters.ContainsKey("PrimaryAuthenticationProvider"))
+        {
+            $local:Body.DirectoryGroupSyncProperties.PrimaryAuthenticationProviderId = (Resolve-SafeguardUserGroupAuthenticationProviderId `
+                -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $PrimaryAuthenticationProvider)
         }
     }
 
@@ -569,6 +667,29 @@ String of type of operation to be perfomed on the user group. 'Add' to add users
 .PARAMETER UserList
 An array of user IDs or names of the users to be added or removed in the user group.
 
+.PARAMETER LinkDirectoryAccounts
+A boolean indicating whether to automatically link managed directory accounts to the users synchronized
+from this directory group (DirectoryGroupSyncProperties.LinkDirectoryAccounts).  Specify $true to enable or
+$false to disable.  When omitted, the current setting is preserved.  Only valid for directory groups.
+
+.PARAMETER PrimaryAuthenticationProvider
+An integer containing the ID of the authentication provider, a string containing its name, or an
+authentication provider object, used as the primary authentication provider for users synchronized from
+this directory group (DirectoryGroupSyncProperties.PrimaryAuthenticationProviderId).  This must be the
+directory of the group, an External Federation provider, or a RADIUS provider configured as primary.
+When omitted, the current setting is preserved.  Only valid for directory groups.
+
+This setting applies to users created by future synchronization.  It does not change the authentication
+provider of existing users; use Sync-SafeguardUserGroupAuthenticationProvider to update existing users.
+
+.PARAMETER ResetPrimaryAuthenticationProvider
+Reset the primary authentication provider for users synchronized from this directory group to the default,
+which is the directory of the group.  Cannot be combined with PrimaryAuthenticationProvider.  Only valid
+for directory groups.
+
+.PARAMETER GroupObject
+An object containing the existing user group with desired properties set.
+
 .INPUTS
 None.
 
@@ -580,6 +701,16 @@ Edit-SafeguardUserGroup testusergroup add testuser1,testuser2
 
 .EXAMPLE
 Edit-SafeguardUserGroup testusergroup remove testuser1
+
+.EXAMPLE
+Edit-SafeguardUserGroup "Web Server Admins" -LinkDirectoryAccounts $false
+
+.EXAMPLE
+Edit-SafeguardUserGroup "Web Server Admins" -PrimaryAuthenticationProvider "Corp Federation"
+Sync-SafeguardUserGroupAuthenticationProvider "Web Server Admins"
+
+.EXAMPLE
+Edit-SafeguardUserGroup "Web Server Admins" -ResetPrimaryAuthenticationProvider
 #>
 function Edit-SafeguardUserGroup
 {
@@ -600,6 +731,12 @@ function Edit-SafeguardUserGroup
         [ValidateSet('GlobalAdmin','DirectoryAdmin','Auditor','ApplicationAuditor','SystemAuditor','AssetAdmin','ApplianceAdmin',
                      'PolicyAdmin','UserAdmin','HelpdeskAdmin','OperationsAdmin','All',IgnoreCase=$true)]
         [string[]]$AdminRoles,
+        [Parameter(Mandatory=$false, ParameterSetName="Attributes")]
+        [bool]$LinkDirectoryAccounts,
+        [Parameter(Mandatory=$false, ParameterSetName="Attributes")]
+        [object]$PrimaryAuthenticationProvider,
+        [Parameter(Mandatory=$false, ParameterSetName="Attributes")]
+        [switch]$ResetPrimaryAuthenticationProvider,
         [Parameter(Mandatory=$true, ParameterSetName="Operation", Position=1)]
         [ValidateSet("Add", "Remove", IgnoreCase=$true)]
         [string]$Operation,
@@ -643,6 +780,39 @@ function Edit-SafeguardUserGroup
                     }
                 }
                 $local:Group.DirectoryGroupSyncProperties.AdminRoles = $AdminRoles
+            }
+            $local:SetLink = $PSBoundParameters.ContainsKey("LinkDirectoryAccounts")
+            $local:SetProvider = $PSBoundParameters.ContainsKey("PrimaryAuthenticationProvider")
+            if ($local:SetProvider -and $ResetPrimaryAuthenticationProvider)
+            {
+                throw "PrimaryAuthenticationProvider and ResetPrimaryAuthenticationProvider cannot be specified together"
+            }
+            if ($local:SetLink -or $local:SetProvider -or $ResetPrimaryAuthenticationProvider)
+            {
+                if (-not $local:Group.DirectoryProperties -or $null -eq $local:Group.DirectoryProperties.DirectoryId)
+                {
+                    throw "LinkDirectoryAccounts and primary authentication provider settings are only valid for directory user groups, '$($local:Group.Name)' is not a directory group"
+                }
+                if (-not $local:Group.DirectoryGroupSyncProperties)
+                {
+                    $local:Group | Add-Member -NotePropertyName DirectoryGroupSyncProperties -NotePropertyValue (New-Object PSObject) -Force
+                }
+                # Add-Member -Force sets the value whether or not the property was present in the response.
+                if ($local:SetLink)
+                {
+                    $local:Group.DirectoryGroupSyncProperties | Add-Member -NotePropertyName LinkDirectoryAccounts -NotePropertyValue $LinkDirectoryAccounts -Force
+                }
+                if ($local:SetProvider)
+                {
+                    $local:ProviderId = (Resolve-SafeguardUserGroupAuthenticationProviderId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure `
+                                            $PrimaryAuthenticationProvider)
+                    $local:Group.DirectoryGroupSyncProperties | Add-Member -NotePropertyName PrimaryAuthenticationProviderId -NotePropertyValue $local:ProviderId -Force
+                }
+                if ($ResetPrimaryAuthenticationProvider)
+                {
+                    # A null primary provider is defaulted by the appliance to the directory of the group.
+                    $local:Group.DirectoryGroupSyncProperties | Add-Member -NotePropertyName PrimaryAuthenticationProviderId -NotePropertyValue $null -Force
+                }
             }
             Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure core PUT "UserGroups/$($local:Group.Id)" -Body $local:Group
         }
@@ -781,7 +951,8 @@ Safeguard allows setting authentication providers that will be required for grou
 however, if this configuration has been changed after a user group was created, it requires
 a manual process to force existing users to update.  This cmdlet forces synchronization of
 the user group and updates the authentication requirements of every user.  New users that are
-synchronized to Safeguard do not require this manual step.
+synchronized to Safeguard do not require this manual step.  Configure the primary authentication
+provider of a directory user group with Edit-SafeguardUserGroup -PrimaryAuthenticationProvider.
 
 .PARAMETER Appliance
 IP address or hostname of a Safeguard appliance.
