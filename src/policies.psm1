@@ -24,22 +24,14 @@ function Resolve-SafeguardPolicyAssetId
 
     if (-not ($Asset -as [int]))
     {
-        try
+        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+        $local:Assets = @()
+        foreach ($local:Field in "Name", "NetworkAddress")
         {
             $local:Assets = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET PolicyAssets `
-                                 -Parameters @{ filter = "Name ieq '$Asset'" })
-            if (-not $local:Assets)
-            {
-                $local:Assets = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET PolicyAssets `
-                                     -Parameters @{ filter = "NetworkAddress ieq '$Asset'" })
-            }
-        }
-        catch
-        {
-            Write-Verbose $_
-            Write-Verbose "Caught exception with ieq filter, trying with q parameter"
-            $local:Assets = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET PolicyAssets `
-                                 -Parameters @{ q = $Asset })
+                                 -Parameters @{ filter = "$local:Field ieq '$(ConvertTo-SafeguardFilterStringLiteral ([string]$Asset))'" } |
+                Where-Object { $null -ne $_ -and $_.Id -and [string]::Equals([string]$_.$local:Field, [string]$Asset, [System.StringComparison]::OrdinalIgnoreCase) })
+            if ($local:Assets.Count -gt 0) { break }
         }
         if (-not $local:Assets)
         {
@@ -88,26 +80,25 @@ function Resolve-SafeguardPolicyAccountId
         {
             $local:PreFilter = "Asset.Id eq $AssetId and "
         }
-        # Support asset\account syntax (e.g. "ubtu2404-agnt.dan.test\root")
-        $local:Pair = ($Account -split "\\")
-        if ($local:Pair.Length -eq 2)
+        Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+        $local:NameParts = Split-SafeguardQualifiedName ([string]$Account) -Format 'asset\account'
+        if ($null -ne $local:NameParts.Parent)
         {
-            $local:ResolvedAssetId = (Resolve-SafeguardPolicyAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:Pair[0])
+            $local:ResolvedAssetId = (Resolve-SafeguardPolicyAssetId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:NameParts.Parent)
+            if ($AssetId -and $AssetId -ne $local:ResolvedAssetId)
+            {
+                throw "Qualified account '$Account' does not belong to the specified asset Id $AssetId"
+            }
+            $AssetId = $local:ResolvedAssetId
             $local:PreFilter = "Asset.Id eq $($local:ResolvedAssetId) and "
-            $Account = $local:Pair[1]
         }
-        try
-        {
-            $local:Accounts = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
-                                   -Parameters @{ filter = "$($local:PreFilter)Name ieq '$Account'" })
-        }
-        catch
-        {
-            Write-Verbose $_
-            Write-Verbose "Caught exception with ieq filter, trying with q parameter"
-            $local:Accounts = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
-                                   -Parameters @{ q = $Account })
-        }
+        $local:Accounts = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET $local:RelativeUrl `
+                               -Parameters @{ filter = "$($local:PreFilter)Name ieq '$(ConvertTo-SafeguardFilterStringLiteral $local:NameParts.Name)'" } |
+            Where-Object {
+                $null -ne $_ -and $_.Id -and
+                [string]::Equals([string]$_.Name, $local:NameParts.Name, [System.StringComparison]::OrdinalIgnoreCase) -and
+                (-not $AssetId -or $_.Asset.Id -eq $AssetId)
+            })
         if (-not $local:Accounts)
         {
             throw "Unable to find policy account matching '$Account'"
@@ -361,7 +352,9 @@ Ignore verification of Safeguard appliance SSL certificate.
 An integer containing the ID of the asset or directory to get or a string containing the name.
 
 .PARAMETER AccountToGet
-An integer containing the ID of the account to get or a string containing the name.
+An integer containing the ID of the account or its exact, case-insensitive name.
+Use 'asset\account' to restrict lookup to one asset. Qualified names must contain
+exactly two nonempty parts. Use an ID or object for names containing backslashes.
 
 .INPUTS
 None.
@@ -1855,4 +1848,393 @@ function Edit-SafeguardAccessPolicy
 
         Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core PUT "AccessPolicies/$($AccessPolicyObject.Id)" -Body $AccessPolicyObject
     }
+}
+
+function Resolve-SafeguardExactEntitlementId
+{
+    [CmdletBinding()]
+    [OutputType([int])]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$Entitlement
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+    if ($null -ne $Entitlement.Id -and ($Entitlement.Id -as [int]))
+    {
+        $Entitlement = $Entitlement.Id
+    }
+
+    if ($Entitlement -as [int])
+    {
+        try
+        {
+            $local:Role = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Roles/$([int]$Entitlement)" `
+                               -Parameters @{ fields = "Id,Name" })
+        }
+        catch
+        {
+            Write-Verbose $_
+            throw "Unable to find entitlement with Id $Entitlement"
+        }
+        return [int]$local:Role.Id
+    }
+
+    $local:Name = [string]$Entitlement
+    $local:Roles = @(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET Roles `
+                         -Parameters @{ filter = "Name ieq '$(ConvertTo-SafeguardFilterStringLiteral $local:Name)'"; fields = "Id,Name" }) |
+        Where-Object { $null -ne $_ -and $_.Id -and [string]::Equals([string]$_.Name, $local:Name, [System.StringComparison]::OrdinalIgnoreCase) }
+    $local:Roles = @($local:Roles)
+    if ($local:Roles.Count -eq 0)
+    {
+        throw "Unable to find entitlement named '$($local:Name)'"
+    }
+    if ($local:Roles.Count -gt 1)
+    {
+        throw "Found $($local:Roles.Count) entitlements named '$($local:Name)'; specify the entitlement by Id"
+    }
+    [int]$local:Roles[0].Id
+}
+
+function Resolve-SafeguardAccessPolicyCopySourceId
+{
+    [CmdletBinding()]
+    [OutputType([int])]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object]$AccessPolicy
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    if ($null -eq $AccessPolicy -or ($AccessPolicy -is [string] -and [string]::IsNullOrWhiteSpace($AccessPolicy)))
+    {
+        throw "Access policy to copy cannot be null or empty"
+    }
+    if ($null -ne $AccessPolicy.Id -and ($AccessPolicy.Id -as [int]))
+    {
+        return [int]$AccessPolicy.Id
+    }
+    if ($AccessPolicy -as [int])
+    {
+        return [int]$AccessPolicy
+    }
+
+    $local:Name = [string]$AccessPolicy
+    $local:PreFilter = ""
+    $local:Within = ""
+    Import-Module -Name "$PSScriptRoot\sg-utilities.psm1" -Scope Local
+    $local:NameParts = Split-SafeguardQualifiedName $local:Name -Format 'entitlement\policy'
+    if ($null -ne $local:NameParts.Parent)
+    {
+        $local:EntitlementId = (Resolve-SafeguardExactEntitlementId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:NameParts.Parent)
+        $local:PreFilter = "RoleId eq $($local:EntitlementId) and "
+        $local:Within = " in entitlement '$($local:NameParts.Parent)'"
+        $local:Name = $local:NameParts.Name
+    }
+    $local:Found = @(@(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AccessPolicies `
+                             -Parameters @{ filter = "$($local:PreFilter)Name ieq '$(ConvertTo-SafeguardFilterStringLiteral $local:Name)'"; fields = "Id,Name,RoleId,RoleName" }) |
+        Where-Object { $null -ne $_ -and $_.Id -and [string]::Equals([string]$_.Name, $local:Name, [System.StringComparison]::OrdinalIgnoreCase) -and
+            ($null -eq $local:NameParts.Parent -or $_.RoleId -eq $local:EntitlementId) })
+    if ($local:Found.Count -eq 0)
+    {
+        throw "Unable to find access policy named '$($local:Name)'$($local:Within)"
+    }
+    if ($local:Found.Count -gt 1)
+    {
+        $local:Where = ($local:Found | ForEach-Object { "Id $($_.Id) in entitlement '$($_.RoleName)' (Id $($_.RoleId))" }) -join "; "
+        throw "Access policy name '$($local:Name)' is ambiguous: $($local:Where). Specify it as 'entitlement\policy' or by Id"
+    }
+    [int]$local:Found[0].Id
+}
+
+# Builds a validated, self-contained copy plan without creating anything. Each item holds
+# a deep-cloned request body made from the writable properties of the source policy.
+function New-SafeguardAccessPolicyCopyPlan
+{
+    [CmdletBinding()]
+    [OutputType([object[]],[System.Array])]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true)]
+        [object[]]$PolicyToCopy,
+        [Parameter(Mandatory=$false)]
+        [int]$TargetEntitlementId,
+        [Parameter(Mandatory=$false)]
+        [string]$NamePrefix,
+        [Parameter(Mandatory=$false)]
+        [string]$NameSuffix
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    # Server-assigned or computed properties (Id, RoleId, RoleName, Priority, created-by fields,
+    # counts, IsExpired, InvalidConnectionPolicy) are intentionally excluded.
+    $local:WritableProperties = @("Description","ExpirationDate","RequesterProperties","ApproverProperties","ReviewerProperties",
+                                  "AccessRequestProperties","SessionProperties","EmergencyAccessProperties","HourlyRestrictionProperties",
+                                  "ApproverSets","Reviewers","NotificationContacts","ReasonCodes","ScopeItems")
+
+    $local:SourceIds = New-Object 'System.Collections.Generic.HashSet[int]'
+    $local:FinalNames = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+    $local:Plan = @()
+    foreach ($local:Policy in $PolicyToCopy)
+    {
+        $local:SourceId = (Resolve-SafeguardAccessPolicyCopySourceId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $local:Policy)
+        if (-not $local:SourceIds.Add($local:SourceId))
+        {
+            throw "Access policy Id $($local:SourceId) was specified more than once"
+        }
+        try
+        {
+            $local:Source = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "AccessPolicies/$($local:SourceId)")
+        }
+        catch
+        {
+            Write-Verbose $_
+            throw "Unable to find access policy with Id $($local:SourceId)"
+        }
+
+        $local:FinalName = "$NamePrefix$($local:Source.Name)$NameSuffix"
+        if ($local:FinalName.Length -gt 255)
+        {
+            throw "Copied access policy name '$($local:FinalName)' exceeds the maximum length of 255 characters"
+        }
+        if (-not $local:FinalNames.Add($local:FinalName))
+        {
+            throw "More than one copied access policy would be named '$($local:FinalName)'"
+        }
+
+        # Deep clone so the plan shares no nested objects with the source response.
+        $local:Clone = ($local:Source | ConvertTo-Json -Depth 100 | ConvertFrom-Json)
+        $local:Body = [ordered]@{ Name = $local:FinalName }
+        foreach ($local:Property in $local:WritableProperties)
+        {
+            if ($local:Clone.PSObject.Properties.Name -contains $local:Property)
+            {
+                $local:Body[$local:Property] = $local:Clone.$local:Property
+            }
+        }
+        $local:Plan += [pscustomobject]@{
+            SourceId = $local:SourceId
+            SourceName = [string]$local:Source.Name
+            SourceEntitlementId = [int]$local:Source.RoleId
+            SourceEntitlementName = [string]$local:Source.RoleName
+            Name = $local:FinalName
+            Body = ($local:Body | ConvertTo-Json -Depth 100)
+        }
+    }
+
+    if ($PSBoundParameters.ContainsKey("TargetEntitlementId"))
+    {
+        $local:Existing = @(@(Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET AccessPolicies `
+                                  -Parameters @{ filter = "RoleId eq $TargetEntitlementId"; fields = "Id,Name" }) | Where-Object { $null -ne $_ -and $_.Id })
+        $local:Conflicts = @($local:Existing | Where-Object { $local:FinalNames.Contains([string]$_.Name) } | ForEach-Object { "'$($_.Name)' (Id $($_.Id))" })
+        if ($local:Conflicts.Count -gt 0)
+        {
+            throw "The target entitlement already has access policies with these names: $($local:Conflicts -join ', '). Use a name prefix or suffix"
+        }
+    }
+
+    ,$local:Plan
+}
+
+# Creates the copies described by a copy plan. Every item is attempted; nothing is rolled back.
+# If any item fails, a single terminating error describes what was and was not copied.
+function Invoke-SafeguardAccessPolicyCopyPlan
+{
+    [CmdletBinding()]
+    [OutputType([object])]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true)]
+        [object[]]$Plan,
+        [Parameter(Mandatory=$true)]
+        [int]$TargetEntitlementId,
+        [Parameter(Mandatory=$false)]
+        [string]$TargetEntitlementName,
+        [Parameter(Mandatory=$false)]
+        [switch]$EntitlementCreated
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:Succeeded = @()
+    $local:Failed = @()
+    foreach ($local:Item in $Plan)
+    {
+        try
+        {
+            # The planned body is a JSON object without RoleId; prepend RoleId rather than re-parsing it.
+            $local:JsonBody = "{`"RoleId`":$TargetEntitlementId," + $local:Item.Body.TrimStart().Substring(1)
+            $local:New = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST AccessPolicies `
+                              -JsonBody $local:JsonBody)
+            $local:Succeeded += [pscustomobject]@{ SourceId = $local:Item.SourceId; SourceName = $local:Item.SourceName; NewId = $local:New.Id; Name = $local:New.Name }
+            $local:New
+        }
+        catch
+        {
+            Write-Verbose $_
+            $local:Failed += [pscustomobject]@{ SourceId = $local:Item.SourceId; SourceName = $local:Item.SourceName; Name = $local:Item.Name; Message = $_.Exception.Message }
+        }
+    }
+
+    if ($local:Failed.Count -gt 0)
+    {
+        $local:Target = "entitlement '$TargetEntitlementName' (Id $TargetEntitlementId)"
+        $local:Message = "Copied $($local:Succeeded.Count) of $($Plan.Count) access policies to $($local:Target); nothing was rolled back."
+        if ($EntitlementCreated)
+        {
+            $local:Message = "Created $($local:Target), but copied only $($local:Succeeded.Count) of $($Plan.Count) access policies; the entitlement and successful copies were kept."
+        }
+        if ($local:Succeeded.Count -gt 0)
+        {
+            $local:Message += " Succeeded: " + (($local:Succeeded | ForEach-Object { "'$($_.SourceName)' (Id $($_.SourceId)) -> Id $($_.NewId)" }) -join "; ") + "."
+        }
+        $local:Message += " Failed: " + (($local:Failed | ForEach-Object { "'$($_.SourceName)' (Id $($_.SourceId)): $($_.Message)" }) -join "; ")
+        $local:Detail = [pscustomobject]@{
+            EntitlementId = $TargetEntitlementId
+            EntitlementName = $TargetEntitlementName
+            EntitlementCreated = [bool]$EntitlementCreated
+            Succeeded = $local:Succeeded
+            Failed = $local:Failed
+        }
+        $local:ErrorRecord = New-Object System.Management.Automation.ErrorRecord (New-Object System.Exception $local:Message), `
+            "SafeguardAccessPolicyCopyIncomplete", ([System.Management.Automation.ErrorCategory]::InvalidResult), $local:Detail
+        throw $local:ErrorRecord
+    }
+}
+
+<#
+.SYNOPSIS
+Copy access policies into an entitlement in Safeguard via the Web API.
+
+.DESCRIPTION
+Create new access policies in the target entitlement that duplicate the configuration of
+existing access policies. This is a copy: the source policies and their entitlements are
+never modified. Copies keep the requester, approver, reviewer, access request, session,
+emergency access, hourly restriction, scope, approver set, reviewer, notification contact,
+reason code, description, and expiration settings of the source. References to users,
+groups, assets, accounts, and other objects are kept as-is, so the copy refers to the same
+objects as the source on the same appliance.
+
+Source policies are resolved by Id, by policy object, or by exact name. A name may be
+qualified with its entitlement as 'entitlement\policy'. An unqualified name that matches
+policies in more than one entitlement is rejected; qualify it or use an Id to disambiguate.
+Qualified names must have exactly two nonempty parts. Names containing additional
+backslashes are rejected; use an Id or object for literal backslashes. All sources and
+final names are validated before anything is created. A copy keeps its source name unless
+-NamePrefix or -NameSuffix is given, and the command fails before creating anything if a
+final name is already used in the target entitlement (case-insensitive) or would be used by
+more than one copy.
+
+Copies are created in the order given and are added below the existing access policies of
+the target entitlement. Every copy is attempted. If any copy is rejected by the appliance,
+the successful copies are kept (nothing is rolled back) and a terminating error with
+FullyQualifiedErrorId 'SafeguardAccessPolicyCopyIncomplete' is thrown. Its TargetObject
+lists the successful copies (source Id and new Id) and the failures (source Id and message).
+
+.PARAMETER Appliance
+IP address or hostname of a Safeguard appliance.
+
+.PARAMETER AccessToken
+A string containing the bearer token to be used with Safeguard Web API.
+
+.PARAMETER Insecure
+Ignore verification of Safeguard appliance SSL certificate.
+
+.PARAMETER PolicyToCopy
+An array identifying the access policies to copy. Each element is an access policy ID, an
+access policy object, or an exact access policy name in one of these forms:
+  'policy'              Matched in every entitlement; rejected if more than one matches.
+  'entitlement\policy'  Matched only in the named entitlement.
+A name containing exactly one backslash is always treated as 'entitlement\policy', so a
+qualified name must have two nonempty parts. Additional backslashes are rejected; use an
+ID or object for a policy whose name contains a backslash.
+
+.PARAMETER TargetEntitlement
+An integer containing the ID, a string containing the exact name, or an object identifying
+the entitlement that will own the copies.
+
+.PARAMETER NamePrefix
+A string to prepend to the name of each copy.
+
+.PARAMETER NameSuffix
+A string to append to the name of each copy.
+
+.INPUTS
+None.
+
+.OUTPUTS
+JSON response from Safeguard Web API for each new access policy.
+
+.EXAMPLE
+Copy-SafeguardAccessPolicy "Linux Password" -TargetEntitlement "Lab Administrator"
+
+.EXAMPLE
+Copy-SafeguardAccessPolicy "Prod Operators\Linux Password","Prod Admins\Linux SSH" -TargetEntitlement "Lab Operators" -NameSuffix " (Lab)"
+
+.EXAMPLE
+Copy-SafeguardAccessPolicy 12,15 -TargetEntitlement 7
+#>
+function Copy-SafeguardAccessPolicy
+{
+    [CmdletBinding()]
+    [OutputType([object])]
+    Param(
+        [Parameter(Mandatory=$false)]
+        [string]$Appliance,
+        [Parameter(Mandatory=$false)]
+        [object]$AccessToken,
+        [Parameter(Mandatory=$false)]
+        [switch]$Insecure,
+        [Parameter(Mandatory=$true,Position=0)]
+        [object[]]$PolicyToCopy,
+        [Parameter(Mandatory=$true,Position=1)]
+        [object]$TargetEntitlement,
+        [Parameter(Mandatory=$false)]
+        [string]$NamePrefix,
+        [Parameter(Mandatory=$false)]
+        [string]$NameSuffix
+    )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
+    if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:TargetId = (Resolve-SafeguardExactEntitlementId -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure $TargetEntitlement)
+    $local:TargetName = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Roles/$($local:TargetId)" `
+                             -Parameters @{ fields = "Name" }).Name
+
+    $local:Plan = (New-SafeguardAccessPolicyCopyPlan -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -PolicyToCopy $PolicyToCopy `
+                       -TargetEntitlementId $local:TargetId -NamePrefix $NamePrefix -NameSuffix $NameSuffix)
+
+    Invoke-SafeguardAccessPolicyCopyPlan -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Plan $local:Plan `
+        -TargetEntitlementId $local:TargetId -TargetEntitlementName $local:TargetName
 }

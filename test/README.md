@@ -171,7 +171,7 @@ Register-SgPsTestCleanup -Description "Delete test user" -Action {
 |-------|-------|--------|-------------|
 | **Framework Smoke Test** | 4 | — | Verifies test framework itself works |
 | **Connect & Core** | 14 | safeguard-ps.psm1 | Connect/Disconnect, tokens, Invoke-SafeguardMethod |
-| **User Management** | 14 | users.psm1 | User CRUD, enable/disable, password, search |
+| **User Management** | 23 | users.psm1 | User CRUD, password, search, qualified names and login/display-name precedence |
 | **External Federation** | 11 | federation.psm1, users.psm1 | SAML provider lifecycle, field projections, federated users |
 | **Data Types** | 8 | safeguard-ps.psm1 | Platforms, timezones, transfer protocols, providers |
 | **Management Shell** | 4 | safeguard-ps.psm1 | Get-SafeguardCommand, Get-SafeguardBanner |
@@ -181,9 +181,9 @@ Register-SgPsTestCleanup -Description "Delete test user" -Action {
 | **Tags** | 14 | tags.psm1 | Tag CRUD, asset/account tagging |
 | **User Groups** | 11 | usergroups.psm1 | Group CRUD, membership |
 | **Asset Groups** | 10 | assetgroups.psm1 | Group CRUD, membership |
-| **Account Groups** | 10 | accountgroups.psm1 | Group CRUD, membership |
-| **Entitlements** | 14 | entitlements.psm1 | Entitlement CRUD, user/group membership |
-| **Access Policies** | 14 | accesspolicies.psm1 | Policy CRUD, scope, properties |
+| **Account Groups** | 18 | groups.psm1 | Group CRUD, membership, qualified-name validation |
+| **Entitlements** | 17 | entitlements.psm1 | Entitlement CRUD, user/group membership |
+| **Access Policies** | 47 | policies.psm1, entitlements.psm1 | Policy CRUD, scope, properties, policy copy (Copy-SafeguardAccessPolicy, New-SafeguardEntitlement -CopyAccessPolicy) |
 | **Access Requests** | 11 | accessrequests.psm1 | Request lifecycle: create, approve, checkout, close, deny |
 | **Certificates** | 14 | certificates.psm1 | Trusted/SSL certs, CSR lifecycle, audit log signing |
 | **A2A Registrations** | 15 | a2a.psm1 | A2A CRUD, credential retrieval config, API keys |

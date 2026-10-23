@@ -146,7 +146,7 @@ Describe 'Resolve-SafeguardUser - single result handling' {
     }
 
     It 'Returns correct ID when API returns a single user' {
-        $singleUser = [PSCustomObject]@{ Id = 101; UserName = "jdoe"; Name = "John Doe" }
+        $singleUser = [PSCustomObject]@{ Id = 101; Name = "jdoe"; DisplayName = "John Doe" }
 
         Mock Invoke-SafeguardMethod {
             $singleUser

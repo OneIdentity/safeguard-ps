@@ -881,6 +881,7 @@ Aliases are shown in parentheses where available.
 - `Get-SafeguardAccessPolicy`
 - `Add-SafeguardAccessPolicy`
 - `Edit-SafeguardAccessPolicy`
+- `Copy-SafeguardAccessPolicy`
 - `Remove-SafeguardAccessPolicy`
 - `Get-SafeguardAccessPolicyScopeItem`
 - `Get-SafeguardAccessPolicyAccessRequestProperty`
@@ -889,6 +890,13 @@ Aliases are shown in parentheses where available.
 - `Find-SafeguardPolicyAsset`
 - `Get-SafeguardPolicyAccount`
 - `Find-SafeguardPolicyAccount`
+
+Qualified names use `provider\user`, `asset\account`, or `entitlement\policy`, with
+exactly two nonempty parts. Additional backslashes are rejected. Lookups are
+case-insensitive and reject ambiguity rather than choosing a result. User lookup
+prefers an exact login name over an exact display name, within the specified
+provider. Use IDs or objects for names containing literal backslashes; account-group
+membership pairs support `assetId\accountId`.
 
 ### Access Requests
 

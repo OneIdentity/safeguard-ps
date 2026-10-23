@@ -163,6 +163,27 @@ Array of IDs or names of the user groups to set as the initial members of the en
 This sets the complete member list. To incrementally add or remove members after creation,
 use Add-SafeguardEntitlementMember and Remove-SafeguardEntitlementMember.
 
+.PARAMETER CopyAccessPolicy
+An array identifying existing access policies to copy into the new entitlement. Each element
+is an access policy ID, an access policy object, or an exact access policy name in one of
+these forms:
+  'policy'              Matched in every entitlement; rejected if more than one matches.
+  'entitlement\policy'  Matched only in the named entitlement.
+A name containing exactly one backslash is always treated as 'entitlement\policy', so a
+qualified name must have two nonempty parts. Additional backslashes are rejected; use an
+ID or object for a policy whose name contains a backslash. The source policies
+are not modified. Every source policy and copy name is validated before the entitlement is
+created. See Copy-SafeguardAccessPolicy for details of what is copied. If the appliance
+rejects any copy after the entitlement is created, the entitlement and the successful copies
+are kept and a terminating error with FullyQualifiedErrorId 'SafeguardAccessPolicyCopyIncomplete'
+describes which policies were and were not copied.
+
+.PARAMETER CopyAccessPolicyNamePrefix
+A string to prepend to the name of each copied access policy. Requires CopyAccessPolicy.
+
+.PARAMETER CopyAccessPolicyNameSuffix
+A string to append to the name of each copied access policy. Requires CopyAccessPolicy.
+
 .INPUTS
 None.
 
@@ -171,6 +192,9 @@ JSON response from Safeguard Web API.
 
 .EXAMPLE
 New-SafeguardEntitlement "Lab Administrator"
+
+.EXAMPLE
+New-SafeguardEntitlement "Lab Operators" -CopyAccessPolicy "Prod Operators\Linux Password","Prod Operators\Linux SSH"
 #>
 function New-SafeguardEntitlement
 {
@@ -189,11 +213,34 @@ function New-SafeguardEntitlement
         [Parameter(Mandatory=$false,Position=1)]
         [object[]]$MemberUsers,
         [Parameter(Mandatory=$false,Position=2)]
-        [object[]]$MemberGroups
+        [object[]]$MemberGroups,
+        [Parameter(Mandatory=$false)]
+        [object[]]$CopyAccessPolicy,
+        [Parameter(Mandatory=$false)]
+        [string]$CopyAccessPolicyNamePrefix,
+        [Parameter(Mandatory=$false)]
+        [string]$CopyAccessPolicyNameSuffix
     )
 
     if (-not $PSBoundParameters.ContainsKey("ErrorAction")) { $ErrorActionPreference = "Stop" }
     if (-not $PSBoundParameters.ContainsKey("Verbose")) { $VerbosePreference = $PSCmdlet.GetVariableValue("VerbosePreference") }
+
+    $local:CopyPlan = $null
+    if ($PSBoundParameters.ContainsKey("CopyAccessPolicy"))
+    {
+        if (-not $CopyAccessPolicy -or @($CopyAccessPolicy).Count -eq 0)
+        {
+            throw "CopyAccessPolicy must specify at least one access policy"
+        }
+        # Validate every source policy and copy name before the entitlement is created.
+        Import-Module -Name "$PSScriptRoot\policies.psm1" -Scope Local
+        $local:CopyPlan = (New-SafeguardAccessPolicyCopyPlan -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -PolicyToCopy $CopyAccessPolicy `
+                               -NamePrefix $CopyAccessPolicyNamePrefix -NameSuffix $CopyAccessPolicyNameSuffix)
+    }
+    elseif ($PSBoundParameters.ContainsKey("CopyAccessPolicyNamePrefix") -or $PSBoundParameters.ContainsKey("CopyAccessPolicyNameSuffix"))
+    {
+        throw "CopyAccessPolicyNamePrefix and CopyAccessPolicyNameSuffix require CopyAccessPolicy"
+    }
 
     [object[]]$Members = $null
     foreach ($local:User in $MemberUsers)
@@ -219,8 +266,15 @@ function New-SafeguardEntitlement
     $local:Body = @{ Name = $Name; Members = $local:Members }
     if ($PSBoundParameters.ContainsKey("Description")) { $local:Body.Description = $Description }
 
-    Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Roles `
-        -Body $local:Body
+    $local:Entitlement = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core POST Roles `
+                              -Body $local:Body)
+    if ($null -ne $local:CopyPlan)
+    {
+        $null = (Invoke-SafeguardAccessPolicyCopyPlan -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure -Plan $local:CopyPlan `
+                     -TargetEntitlementId $local:Entitlement.Id -TargetEntitlementName $local:Entitlement.Name -EntitlementCreated)
+        $local:Entitlement = (Invoke-SafeguardMethod -AccessToken $AccessToken -Appliance $Appliance -Insecure:$Insecure Core GET "Roles/$($local:Entitlement.Id)")
+    }
+    $local:Entitlement
 }
 
 

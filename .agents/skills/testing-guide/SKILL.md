@@ -109,8 +109,8 @@ Use this table to choose the smallest suite set that covers the module you are c
 | `assets.psm1` | Assets, AssetAccounts |
 | `assetpartitions.psm1` | AssetPartitions, PasswordProfiles |
 | `a2a.psm1` | A2ARegistrations, A2ACredentials |
-| `policies.psm1` | AccessPolicies |
-| `entitlements.psm1` | Entitlements |
+| `policies.psm1` | Policies |
+| `entitlements.psm1` | Entitlements, Policies |
 | `groups.psm1` | UserGroups, AssetGroups, AccountGroups |
 | `tags.psm1` | Tags |
 | `events.psm1` | Events, EventListener |

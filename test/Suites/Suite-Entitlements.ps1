@@ -65,6 +65,25 @@
             $entl.Name -eq $testEntitlement
         }
 
+        # --- New-SafeguardEntitlement without CopyAccessPolicy ---
+        Test-SgPsAssert "New-SafeguardEntitlement without CopyAccessPolicy returns one entitlement with no policies" {
+            $out = @(Get-SafeguardEntitlement -Insecure $Context.SuiteData["EntitlementId"])
+            $policies = @(Invoke-SafeguardMethod -Insecure Core GET AccessPolicies `
+                            -Parameters @{ filter = "RoleId eq $($Context.SuiteData['EntitlementId'])"; fields = "Id" } | Where-Object { $null -ne $_ -and $_.Id })
+            $out.Count -eq 1 -and $out[0].Description -eq "Test entitlement" -and $policies.Count -eq 0
+        }
+        Test-SgPsAssert "New-SafeguardEntitlement without CopyAccessPolicy emits a single object" {
+            $out = @(New-SafeguardEntitlement -Insecure $testEntitlement2)
+            $Context.SuiteData["Entitlement2Id"] = $out[0].Id
+            Register-SgPsTestCleanup -Description "Delete entitlement $testEntitlement2 (single output check)" -Action {
+                param($Ctx)
+                try { Remove-SafeguardEntitlement -Insecure $Ctx.SuiteData['Entitlement2Id'] } catch {}
+            }
+            $ok = $out.Count -eq 1 -and $out[0].Name -eq $testEntitlement2
+            Remove-SafeguardEntitlement -Insecure $out[0].Id | Out-Null
+            $ok
+        }
+
         # --- Get-SafeguardEntitlement by ID ---
         Test-SgPsAssert "Get-SafeguardEntitlement by ID" {
             $entl = Get-SafeguardEntitlement -Insecure $Context.SuiteData["EntitlementId"]
